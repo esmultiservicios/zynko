@@ -1,0 +1,12 @@
+const app=document.querySelector('.app');
+document.querySelector('#menu')?.addEventListener('click',()=>app.classList.toggle('menu-open'));
+document.querySelector('#theme')?.addEventListener('click',()=>{document.body.classList.toggle('dark');localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light')});
+if(localStorage.getItem('theme')==='dark')document.body.classList.add('dark');
+const sm=document.querySelector('#searchModal'); const openSearch=()=>sm?.classList.add('open'); const closeSearch=()=>sm?.classList.remove('open');
+document.querySelector('#globalSearch')?.addEventListener('click',openSearch); document.querySelector('#closeSearch')?.addEventListener('click',closeSearch);
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSearch()} if(e.key==='Escape')closeSearch()});
+const fly=document.querySelector('#flyout'); document.querySelectorAll('aside nav a').forEach(a=>a.addEventListener('mouseenter',()=>{if(innerWidth>760){document.querySelector('#flyTitle').textContent=a.querySelector('b')?.textContent||'';fly?.classList.add('open')}}));
+document.querySelector('aside')?.addEventListener('mouseleave',()=>setTimeout(()=>{if(!fly?.matches(':hover'))fly?.classList.remove('open')},120)); fly?.addEventListener('mouseleave',()=>fly.classList.remove('open'));
+document.querySelector('#language')?.addEventListener('change',e=>{location.href='?action=lang&lang='+encodeURIComponent(e.target.value)});
+if(window.jQuery&&jQuery.fn.select2){jQuery('.select2').select2({width:'100%',minimumResultsForSearch:6});}
+document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.querySelector('input[type=file]'); if(!input)return; zone.addEventListener('click',e=>{if(e.target!==input)input.click()}); zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')}); zone.addEventListener('dragleave',()=>zone.classList.remove('drag')); zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;zone.querySelector('small').textContent=e.dataTransfer.files[0].name}}); zone.addEventListener('paste',e=>{const f=[...e.clipboardData.files];if(f.length){const dt=new DataTransfer();f.forEach(x=>dt.items.add(x));input.files=dt.files;zone.querySelector('small').textContent=f[0].name}}); input.addEventListener('change',()=>{if(input.files[0])zone.querySelector('small').textContent=input.files[0].name});});

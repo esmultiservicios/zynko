@@ -1,0 +1,26 @@
+ES CHAT BRIDGE — ARQUITECTURA OBJETIVO
+
+PRODUCTO: ZYNKO
+BOT DEFAULT: NIVO (configurable por tenant)
+
+CAPAS
+Browser responsive -> PHP Controllers/Middleware -> Services -> MySQL
+                                             -> Meta channel adapters
+                                             -> AI provider adapter
+                                             -> WebSocket event bus
+                                             -> IZZY/CAMI REST + signed webhooks
+
+TENANCY
+Toda consulta operativa debe filtrar tenant_id desde la sesión/token autorizado, nunca desde un tenant_id confiado al navegador. Branding, bot, canales, usuarios, media, planes y conversaciones son tenant-scoped.
+
+UI
+Sidebar + flyout desktop; drawer mobile. Command palette global. Grid consistente. Select2 para datos buscables. Switches para booleanos. Uploader drag/drop/paste/browse con preview. ES/EN mediante catálogos i18n, no contenido duplicado manualmente.
+
+NIVO
+rules | ai | hybrid. Knowledge sources por tenant. Confidence/fallback y handoff. AI provider abstracto: la mensajería de Meta y la inteligencia son responsabilidades distintas.
+
+COMMERCIAL
+Plan + subscription + channel entitlements. past_due -> grace -> suspended. Nunca borrar datos por impago. El backend impide usar canales no habilitados.
+
+REALTIME
+Webhook -> durable event -> worker -> DB transaction -> publish WebSocket. Idempotency por provider/event_key y external_message_id.
