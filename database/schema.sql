@@ -8,8 +8,31 @@ CREATE TABLE tenant_users (tenant_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UN
 CREATE TABLE roles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NULL, code VARCHAR(40) NOT NULL, name VARCHAR(80) NOT NULL, permissions_json JSON NOT NULL, UNIQUE KEY uq_role(tenant_id,code));
 CREATE TABLE plans (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0, currency CHAR(3) NOT NULL DEFAULT 'HNL', max_users INT NULL, max_channels INT NULL, features_json JSON NULL, active TINYINT(1) NOT NULL DEFAULT 1);
 CREATE TABLE subscriptions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, plan_id BIGINT UNSIGNED NOT NULL, status ENUM('trial','active','past_due','suspended','cancelled') NOT NULL DEFAULT 'trial', starts_at DATETIME NOT NULL, renews_at DATETIME NULL, grace_until DATETIME NULL, monthly_amount DECIMAL(12,2) NOT NULL, currency CHAR(3) NOT NULL DEFAULT 'HNL', notes VARCHAR(500), INDEX(tenant_id,status));
-CREATE TABLE tenant_channel_entitlements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, channel_type ENUM('whatsapp','messenger','instagram') NOT NULL, enabled TINYINT(1) NOT NULL DEFAULT 0, monthly_amount DECIMAL(12,2) NOT NULL DEFAULT 0, UNIQUE KEY uq_entitlement(tenant_id,channel_type));
-CREATE TABLE channels (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, type ENUM('whatsapp','messenger','instagram') NOT NULL, name VARCHAR(120) NOT NULL, external_account_id VARCHAR(190), external_phone_id VARCHAR(190), display_address VARCHAR(190), token_ciphertext TEXT, token_expires_at DATETIME NULL, status ENUM('pending','connected','warning','disconnected') NOT NULL DEFAULT 'pending', settings_json JSON NULL, last_event_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,type,status));
+
+CREATE TABLE channel_connector_catalog (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ code VARCHAR(50) NOT NULL UNIQUE,
+ name VARCHAR(120) NOT NULL,
+ icon_class VARCHAR(120) NOT NULL,
+ icon_style VARCHAR(50) NOT NULL,
+ description VARCHAR(500) NULL,
+ connector_ready TINYINT(1) NOT NULL DEFAULT 0,
+ visible TINYINT(1) NOT NULL DEFAULT 1,
+ linkable TINYINT(1) NOT NULL DEFAULT 0,
+ sort_order INT NOT NULL DEFAULT 100,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+INSERT INTO channel_connector_catalog(code,name,icon_class,icon_style,description,connector_ready,visible,linkable,sort_order) VALUES
+('whatsapp','WhatsApp Business','fa-brands fa-whatsapp','whatsapp','Mensajes, multimedia, documentos y atención en tiempo real.',1,1,1,10),
+('messenger','Messenger','fa-brands fa-facebook-messenger','messenger','Conversaciones de páginas de Facebook conectadas a la empresa.',1,1,1,20),
+('instagram','Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',1,1,1,30),
+('webchat','Web Chat','fa-solid fa-message','webchat','Chat para sitios web y portales de clientes.',0,1,0,40),
+('telegram','Telegram','fa-brands fa-telegram','telegram','Mensajería mediante bots y API oficial de Telegram.',0,1,0,50),
+('email','Correo','fa-solid fa-envelope','email','Centraliza conversaciones recibidas por correo electrónico.',0,1,0,60);
+
+CREATE TABLE tenant_channel_entitlements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, channel_type VARCHAR(50) NOT NULL, enabled TINYINT(1) NOT NULL DEFAULT 0, monthly_amount DECIMAL(12,2) NOT NULL DEFAULT 0, UNIQUE KEY uq_entitlement(tenant_id,channel_type));
+CREATE TABLE channels (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, type VARCHAR(50) NOT NULL, name VARCHAR(120) NOT NULL, external_account_id VARCHAR(190), external_phone_id VARCHAR(190), display_address VARCHAR(190), token_ciphertext TEXT, token_expires_at DATETIME NULL, status ENUM('pending','connected','warning','disconnected') NOT NULL DEFAULT 'pending', settings_json JSON NULL, last_event_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,type,status));
 CREATE TABLE contacts (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160), phone VARCHAR(40), email VARCHAR(190), avatar_url VARCHAR(500), custom_fields JSON NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX(tenant_id,phone), INDEX(tenant_id,email));
 CREATE TABLE contact_identities (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, channel_id BIGINT UNSIGNED NOT NULL, external_id VARCHAR(190) NOT NULL, profile_json JSON NULL, UNIQUE KEY uq_identity(channel_id,external_id));
 CREATE TABLE contact_external_refs (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, external_system VARCHAR(80) NOT NULL, external_id VARCHAR(190) NOT NULL, UNIQUE KEY uq_ext(tenant_id,external_system,external_id));

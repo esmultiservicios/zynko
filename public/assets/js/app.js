@@ -46,7 +46,11 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  // modals
  const openModal=id=>{const m=document.getElementById(id);if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');setTimeout(()=>m.querySelector('input:not([type=hidden]),select,textarea')?.focus(),80)}}; const closeModal=m=>{m.closest('.modal-shell')?.classList.remove('open')};
  $$('[data-open]').forEach(b=>b.addEventListener('click',()=>openModal(b.dataset.open)));$$('.modal-close').forEach(b=>b.addEventListener('click',()=>closeModal(b)));$$('.modal-shell').forEach(m=>m.addEventListener('click',e=>{if(e.target===m){} }));
- $$('.channel-config').forEach(b=>b.addEventListener('click',()=>{$('#channelType').value=b.dataset.channel;$('#channelModalTitle').textContent='Configurar '+(b.dataset.channel==='whatsapp'?'WhatsApp Business':'Messenger');openModal('channelModal')}));
+ const channelNames={whatsapp:'WhatsApp Business',messenger:'Messenger',instagram:'Instagram Messaging'};
+ const openChannelConfig=type=>{if(!channelNames[type])return;$('#channelType').value=type;$('#channelModalTitle').textContent='Configurar '+channelNames[type];document.getElementById('channelCatalogModal')?.classList.remove('open');openModal('channelModal')};
+ $('#openChannelCatalog')?.addEventListener('click',()=>openModal('channelCatalogModal'));
+ $$('.channel-config,.channel-add').forEach(b=>b.addEventListener('click',()=>openChannelConfig(b.dataset.channel)));
+ $$('.channel-catalog-item[data-channel]').forEach(b=>b.addEventListener('click',()=>openChannelConfig(b.dataset.channel)));
  bindAjax('#channelForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#userForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#settingsForm',(j,f)=>{const t=f.querySelector('[name=theme]')?.value||'system';applyZynkoTheme(t);setTimeout(()=>location.reload(),700)}); bindAjax('#botForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#assignForm',()=>document.querySelector('#assignModal')?.classList.remove('open'));
  // search clear behavior
  $$('.list-search').forEach(inp=>{const wrap=inp.closest('.search-wrap')||inp.parentElement,clear=wrap?.querySelector('.clear-search');const run=()=>{const q=inp.value.trim().toLowerCase();if(clear)clear.hidden=!q;const root=inp.closest('.panel')||document;$$('.searchable',root).forEach(x=>x.hidden=q&&!x.textContent.toLowerCase().includes(q));};inp.addEventListener('input',run);clear?.addEventListener('click',()=>{inp.value='';run();inp.focus()})});
@@ -181,3 +185,23 @@ if(window.jQuery&&jQuery.fn.select2){
     $el.select2({width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false});
   });
 }
+
+// V2.7 — Channel catalog: functional admin modal + clear feedback for connectors in development.
+(()=>{
+ const open=id=>{const m=document.getElementById(id);if(!m)return;m.classList.add('open');m.setAttribute('aria-hidden','false');setTimeout(()=>m.querySelector('input:not([type=hidden]):not([disabled]),select:not([disabled]),textarea,button')?.focus(),80)};
+ const post=async form=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});let j={};try{j=await r.json()}catch(_){throw new Error('El servidor devolvió una respuesta no válida.')}if(!r.ok&&!j.message)throw new Error('No se pudo procesar la solicitud.');return j};
+ document.getElementById('openChannelAdmin')?.addEventListener('click',()=>open('channelAdminModal'));
+ document.querySelectorAll('.channel-unavailable').forEach(btn=>btn.addEventListener('click',()=>{
+   const name=btn.dataset.channelName||'Este canal';
+   const ready=btn.dataset.connectorReady==='1';
+   const message=ready
+     ? `${name} existe en el catálogo, pero actualmente está deshabilitado para vinculación. El administrador principal puede revisar su disponibilidad en “Administrar catálogo”.`
+     : `${name} ya está contemplado en ZYNKO, pero su conector real todavía está en desarrollo. No se simulará una conexión. Cuando el conector esté implementado podrás habilitarlo desde “Administrar catálogo”.`;
+   if(window.Swal) Swal.fire({title:ready?'Canal no habilitado':'Conector en desarrollo',text:message,icon:'info',confirmButtonText:'Entendido'});
+   else if(window.showNotify) showNotify('info',ready?'Canal no habilitado':'Conector en desarrollo',message);
+ }));
+ document.querySelectorAll('.channelCatalogForm').forEach(form=>form.addEventListener('submit',async e=>{
+   e.preventDefault();const btn=form.querySelector('button[type=submit],button:not([type])');const old=btn?.innerHTML;if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Guardando…'}
+   try{const j=await post(form);showNotify(j.ok?'success':'error',j.ok?'Catálogo actualizado':'No se pudo actualizar',j.message||'');if(j.ok)setTimeout(()=>location.reload(),550)}catch(err){showNotify('error','No se pudo actualizar',err.message||'Ocurrió un error inesperado.')}finally{if(btn){btn.disabled=false;btn.innerHTML=old||'<i class="fa-solid fa-floppy-disk"></i> Guardar'}}
+ }));
+})();

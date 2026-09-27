@@ -92,3 +92,5 @@ ZYNKO incluye `app/Services/EmailTemplates.php`, una plantilla transaccional res
 - El botón de pantalla completa mantiene ZYNKO en fullscreen al navegar entre Dashboard, Bandeja, Canales y demás módulos.
 - La navegación se conserva dentro de un contenedor del mismo origen mientras el documento anfitrión permanece en Fullscreen API.
 - Al pulsar nuevamente el botón de pantalla completa o salir con ESC, se limpia el modo persistente.
+
+- V2.10: Channel catalog modal readability and switch alignment corrected globally.
