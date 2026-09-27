@@ -2,7 +2,7 @@ CREATE DATABASE IF NOT EXISTS zynko CHARACTER SET utf8mb4 COLLATE utf8mb4_unicod
 USE zynko;
 
 CREATE TABLE tenants (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, slug VARCHAR(120) NOT NULL UNIQUE, status ENUM('trial','active','past_due','suspended','closed') NOT NULL DEFAULT 'trial', plan_id BIGINT UNSIGNED NULL, logo_path VARCHAR(255), logo_dark_path VARCHAR(255), favicon_path VARCHAR(255), primary_color VARCHAR(20) DEFAULT '#0F766E', secondary_color VARCHAR(20) DEFAULT '#0F172A', timezone VARCHAR(64) NOT NULL DEFAULT 'America/Tegucigalpa', locale ENUM('es','en') NOT NULL DEFAULT 'es', bot_name VARCHAR(100) NOT NULL DEFAULT 'NIVO', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-CREATE TABLE users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, password_hash VARCHAR(255) NOT NULL, locale ENUM('es','en') NOT NULL DEFAULT 'es', status ENUM('invited','active','disabled') NOT NULL DEFAULT 'active', mfa_enabled TINYINT(1) NOT NULL DEFAULT 0, last_login_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+CREATE TABLE users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, avatar_path VARCHAR(500) NULL, password_hash VARCHAR(255) NOT NULL, locale ENUM('es','en') NOT NULL DEFAULT 'es', status ENUM('invited','active','disabled') NOT NULL DEFAULT 'active', mfa_enabled TINYINT(1) NOT NULL DEFAULT 0, last_login_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE teams (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, INDEX(tenant_id));
 CREATE TABLE tenant_users (tenant_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, role_code VARCHAR(40) NOT NULL DEFAULT 'agent', team_id BIGINT UNSIGNED NULL, is_owner TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY(tenant_id,user_id), INDEX(team_id));
 CREATE TABLE roles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NULL, code VARCHAR(40) NOT NULL, name VARCHAR(80) NOT NULL, permissions_json JSON NOT NULL, UNIQUE KEY uq_role(tenant_id,code));
@@ -30,6 +30,158 @@ CREATE TABLE branding_settings (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, t
 CREATE TABLE audit_logs (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NULL, user_id BIGINT UNSIGNED NULL, action VARCHAR(120) NOT NULL, entity_type VARCHAR(80), entity_id VARCHAR(190), ip_address VARCHAR(64), user_agent VARCHAR(500), metadata_json JSON NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,created_at));
 CREATE TABLE user_sessions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, user_id BIGINT UNSIGNED NOT NULL, token_hash VARCHAR(255) NOT NULL UNIQUE, remember_me TINYINT(1) NOT NULL DEFAULT 0, ip_address VARCHAR(64), user_agent VARCHAR(500), expires_at DATETIME NOT NULL, revoked_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
 
-INSERT INTO plans(code,name,monthly_price,currency,max_users,max_channels,features_json) VALUES
+INSERT IGNORE INTO plans(code,name,monthly_price,currency,max_users,max_channels,features_json) VALUES
 ('starter','Starter',0,'HNL',3,1,JSON_OBJECT('inbox',true,'bot','rules')),
 ('business','Business',0,'HNL',15,3,JSON_OBJECT('inbox',true,'bot','hybrid','api',true));
+
+-- ZYNKO transactional email and notification center
+CREATE TABLE correo_tipo (
+  correo_tipo_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  codigo VARCHAR(60) NOT NULL UNIQUE,
+  nombre VARCHAR(120) NOT NULL,
+  descripcion VARCHAR(255) NULL,
+  destinatario ENUM('internal','user','customer','owner','custom') NOT NULL DEFAULT 'internal',
+  activo TINYINT(1) NOT NULL DEFAULT 1,
+  orden SMALLINT UNSIGNED NOT NULL DEFAULT 0
+);
+
+CREATE TABLE correo (
+  correo_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  correo_tipo_id INT UNSIGNED NOT NULL,
+  nombre VARCHAR(120) NOT NULL DEFAULT 'Principal',
+  metodo_envio ENUM('SMTP','GRAPH') NOT NULL DEFAULT 'SMTP',
+  server VARCHAR(190) NULL,
+  correo VARCHAR(190) NULL,
+  destinatario VARCHAR(190) NULL,
+  copia VARCHAR(1000) NULL,
+  password TEXT NULL,
+  port INT UNSIGNED NOT NULL DEFAULT 587,
+  smtp_secure ENUM('tls','ssl') NOT NULL DEFAULT 'tls',
+  tenant_graph_id VARCHAR(190) NULL,
+  client_id VARCHAR(190) NULL,
+  client_secret TEXT NULL,
+  graph_user VARCHAR(190) NULL,
+  save_to_sent_items TINYINT(1) NOT NULL DEFAULT 1,
+  estado TINYINT(1) NOT NULL DEFAULT 1,
+  is_default TINYINT(1) NOT NULL DEFAULT 0,
+  last_test_at DATETIME NULL,
+  last_test_status ENUM('ok','error') NULL,
+  last_test_message VARCHAR(500) NULL,
+  fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_correo_tenant_tipo (tenant_id,correo_tipo_id,estado)
+);
+
+CREATE TABLE notification_preferences (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  correo_tipo_id INT UNSIGNED NOT NULL,
+  email_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  in_app_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  recipient_override VARCHAR(190) NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_notification_pref (tenant_id,correo_tipo_id)
+);
+
+CREATE TABLE notification_log (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NULL,
+  correo_tipo_id INT UNSIGNED NULL,
+  channel ENUM('email','in_app') NOT NULL,
+  recipient VARCHAR(190) NULL,
+  subject VARCHAR(255) NULL,
+  status ENUM('queued','sent','failed','skipped') NOT NULL DEFAULT 'queued',
+  provider ENUM('SMTP','GRAPH','SYSTEM') NOT NULL DEFAULT 'SYSTEM',
+  error_message VARCHAR(1000) NULL,
+  metadata_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  sent_at DATETIME NULL,
+  INDEX idx_notification_log (tenant_id,status,created_at)
+);
+
+CREATE TABLE user_navigation_preferences (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  sidebar_mode ENUM('expanded','collapsed','hidden') NOT NULL DEFAULT 'expanded',
+  pinned_menu_json JSON NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_nav (tenant_id,user_id)
+);
+
+INSERT IGNORE INTO correo_tipo(codigo,nombre,descripcion,destinatario,orden) VALUES
+('system_alerts','Alertas del sistema','Errores críticos, salud del sistema e integraciones.','owner',10),
+('security','Seguridad y accesos','Inicios de sesión, cambios de contraseña y eventos de seguridad.','user',20),
+('company_lifecycle','Empresas y suscripciones','Alta de empresas, cambios de plan, pagos, vencimientos y bloqueos.','owner',30),
+('channel_events','Canales e integraciones','Conexión, desconexión y fallos de WhatsApp, Messenger y futuros canales.','owner',40),
+('user_management','Usuarios y equipo','Invitaciones, altas, bajas y cambios de acceso.','user',50),
+('conversation_alerts','Conversaciones','Asignaciones, escalaciones y eventos que requieren atención.','user',60),
+('nivo_ai','NIVO e IA','Alertas del asistente, handoff, conocimiento y automatizaciones.','owner',70),
+('billing','Facturación y cobros','Recibos, recordatorios, vencimientos y suspensión por pago.','owner',80),
+('reports','Reportes programados','Resúmenes y reportes enviados por correo.','custom',90),
+('email_tests','Pruebas de correo','Mensajes de prueba para validar SMTP o Microsoft Graph.','custom',100);
+
+-- Realtime/WebSocket event bus. The WebSocket daemon consumes pending events and
+-- broadcasts them only to clients belonging to the same tenant.
+CREATE TABLE realtime_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  event_type VARCHAR(80) NOT NULL,
+  entity_type VARCHAR(80) NULL,
+  entity_id VARCHAR(190) NULL,
+  payload_json JSON NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_realtime_tenant_id (tenant_id,id),
+  INDEX idx_realtime_created (created_at)
+);
+
+-- Commercial plan enforcement and external API hardening
+CREATE TABLE IF NOT EXISTS subscription_plans (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(120) NOT NULL, monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+ currency VARCHAR(8) NOT NULL DEFAULT 'HNL', max_users INT NULL, max_channels INT NULL,
+ features_json JSON NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS tenant_subscriptions (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
+ plan_id BIGINT UNSIGNED NOT NULL, status VARCHAR(30) NOT NULL DEFAULT 'active',
+ starts_at DATETIME NULL, ends_at DATETIME NULL, UNIQUE KEY uq_tenant_subscription(tenant_id)
+);
+CREATE TABLE IF NOT EXISTS api_request_logs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
+ api_key_id BIGINT UNSIGNED NOT NULL, endpoint VARCHAR(190) NOT NULL,
+ idempotency_key VARCHAR(190) NULL, http_status SMALLINT NOT NULL, payload_hash CHAR(64) NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,created_at)
+);
+CREATE TABLE IF NOT EXISTS api_idempotency (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
+ idempotency_key VARCHAR(190) NOT NULL, response_json JSON NOT NULL, http_status SMALLINT NOT NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_api_idem(tenant_id,idempotency_key)
+);
+
+CREATE TABLE nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(160) NOT NULL,keywords VARCHAR(500) NOT NULL,response TEXT NOT NULL,priority INT NOT NULL DEFAULT 100,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX idx_nivo_rules_tenant(tenant_id,active,priority)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- CRM ligero de contactos y seguimiento
+CREATE TABLE IF NOT EXISTS contact_categories (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(80) NOT NULL, color VARCHAR(20) NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_contact_category(tenant_id,name));
+CREATE TABLE IF NOT EXISTS contact_category_map (contact_id BIGINT UNSIGNED NOT NULL, category_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY(contact_id,category_id));
+CREATE TABLE IF NOT EXISTS conversation_followups (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, follow_up_at DATETIME NOT NULL, status ENUM('pending','done','cancelled') NOT NULL DEFAULT 'pending', note VARCHAR(500) NULL, created_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,status,follow_up_at));
+CREATE TABLE IF NOT EXISTS contact_activity (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NULL, action VARCHAR(80) NOT NULL, detail VARCHAR(500) NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,contact_id,created_at));
+
+-- Preferencias personales de interfaz (tema/ayuda). Runtime también la crea para instalaciones existentes.
+CREATE TABLE IF NOT EXISTS user_preferences (
+  user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  theme ENUM('system','light','dark') NOT NULL DEFAULT 'system',
+  context_help TINYINT(1) NOT NULL DEFAULT 1,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+-- Preferencias premium de la bandeja omnicanal
+CREATE TABLE IF NOT EXISTS inbox_preferences (
+  user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
+  channel_type VARCHAR(40) NOT NULL DEFAULT 'all',
+  assignment_filter VARCHAR(30) NOT NULL DEFAULT 'all',
+  priority_filter VARCHAR(30) NOT NULL DEFAULT 'all',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);

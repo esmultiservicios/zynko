@@ -60,3 +60,35 @@ En una instalación nueva, ZYNKO detecta que `storage/installed.lock` no existe 
 El asistente solicita únicamente los datos necesarios de MySQL y la cuenta principal. Luego prueba la conexión, crea la base de datos si el usuario MySQL tiene permisos, ejecuta `database/schema.sql`, crea la primera empresa, el usuario propietario, el branding inicial y el perfil de NIVO, genera `APP_KEY`, escribe `.env` y bloquea el instalador al finalizar.
 
 No es necesario importar las tablas manualmente. Para reinstalar deliberadamente en un entorno limpio, elimina primero la base de datos/datos correspondientes y `storage/installed.lock`; no hagas esto en producción con información existente.
+
+## Correo y notificaciones
+ZYNKO incluye esquema para `correo`, `correo_tipo`, preferencias y bitácora de notificaciones. La UI contempla SMTP y Microsoft Graph y una prueba antes de activar el envío. Se incluyen como referencia los servicios entregados por ES MULTISERVICIOS en `app/Services/` para conservar la lógica probada (SMTP/Graph, BCC, adjuntos y plantillas) mientras se integra con el bootstrap definitivo de ZYNKO.
+
+Eventos iniciales: sistema, seguridad, empresas/suscripciones, canales, usuarios, conversaciones, NIVO/IA, facturación/cobros, reportes y pruebas.
+
+jQuery 3.7.1 y Select2 4.1.0 están incluidos localmente en `public/assets/vendor/`; ZYNKO no depende de CDN para estas librerías.
+
+## Plantillas profesionales de correo
+ZYNKO incluye `app/Services/EmailTemplates.php`, una plantilla transaccional responsive y sin dependencias remotas. El branding se recibe por empresa en tiempo de ejecución (`company_name`, `logo_url`, `support_email`, `app_url`, `app_title`). Incluye plantillas base para prueba de correo, alta de empresa, seguridad, facturación y notificaciones genéricas. El panel **Correo y notificaciones** incorpora una vista previa visual de la plantilla.
+
+## UI local
+- jQuery 3.7.1: `public/assets/vendor/jquery/`
+- Select2 4.1.0: `public/assets/vendor/select2/`
+- Font Awesome Free 6.7.2 LTS: `public/assets/vendor/fontawesome/` (CSS + webfonts locales)
+- Notificaciones/confirmaciones ZYNKO: `public/assets/js/zynko-ui.js` (`showNotify` y `Swal.fire`), sin `alert()`, `confirm()` ni `prompt()` nativos.
+- El instalador permite probar SMTP o Microsoft Graph antes de guardar/finalizar; la prueba envía un correo real al destino interno o, si está vacío, al administrador principal.
+
+## Integración externa segura (fase API/NIVO)
+- Cada sistema externo usa su propia API key desde **Integraciones**.
+- Las claves se almacenan como hash y pueden revocarse.
+- `POST /api.php?r=v1/messages/send` recibe solicitudes de IZZY/CAMI/otros sistemas, valida tenant, scope, plan, canal e idempotencia y crea el mensaje en cola.
+- `POST /api.php?r=v1/nivo/context` recupera contexto autorizado de la base de conocimiento de NIVO.
+- Los límites de usuarios/canales se aplican desde el plan asignado a cada empresa.
+- Solo la empresa principal puede crear planes y asignarlos.
+- La entrega real por WhatsApp/Messenger exige autorización oficial y credenciales válidas de Meta. ZYNKO no marca un canal conectado ni simula un QR antes de esa fase.
+- Ver `docs/API_INTEGRATION.md`.
+
+### Premium Omnichannel V2.4 — Pantalla completa persistente
+- El botón de pantalla completa mantiene ZYNKO en fullscreen al navegar entre Dashboard, Bandeja, Canales y demás módulos.
+- La navegación se conserva dentro de un contenedor del mismo origen mientras el documento anfitrión permanece en Fullscreen API.
+- Al pulsar nuevamente el botón de pantalla completa o salir con ESC, se limpia el modo persistente.
