@@ -302,3 +302,24 @@ body:has(.inbox-premium-toolbar) main{height:calc(100dvh - 68px);overflow:hidden
 #channelAdminModal .channel-admin-copy b,#channelAdminModal .channel-admin-copy small{display:block!important;overflow:visible!important;text-overflow:clip!important;white-space:normal!important}
 @media(max-width:900px){#channelAdminModal .channel-catalog-modal{width:min(760px,calc(100vw - 24px))!important}#channelAdminModal .channel-admin-row{grid-template-columns:48px minmax(0,1fr) 112px!important}#channelAdminModal .channel-admin-control{grid-column:2/3!important;display:grid!important;grid-template-columns:135px minmax(0,1fr)!important;align-items:center!important;gap:10px!important}#channelAdminModal .channel-admin-control>strong{display:block!important}#channelAdminModal .channel-admin-row .compact-save{grid-column:3!important;grid-row:1/4!important}}
 @media(max-width:620px){#channelAdminModal .channel-catalog-modal{width:calc(100vw - 16px)!important}#channelAdminModal .channel-admin-row{grid-template-columns:44px minmax(0,1fr)!important}#channelAdminModal .channel-admin-control{grid-column:1/-1!important;grid-template-columns:1fr!important;gap:6px!important;padding-top:4px!important}#channelAdminModal .channel-admin-row .compact-save{grid-column:1/-1!important;grid-row:auto!important;width:100%!important}#channelAdminModal .channel-admin-note{font-size:10px!important}}
+
+
+/* V2.11 — Login Remember + dialog actions premium consistency */
+.login-card .form-line{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;min-height:42px!important}
+.login-card .switch-line{display:inline-grid!important;grid-template-columns:40px auto!important;align-items:center!important;gap:10px!important;min-height:40px!important;width:auto!important;max-width:max-content!important;padding:0!important;border:0!important;background:transparent!important;color:var(--text,#0f172a)!important;font-size:12px!important;font-weight:700!important;line-height:1.2!important;white-space:nowrap!important;overflow:visible!important}
+.login-card .switch-line input[type="checkbox"]{position:absolute!important;inline-size:1px!important;block-size:1px!important;opacity:0!important;pointer-events:none!important}
+.login-card .switch-line>span{position:relative!important;display:block!important;width:40px!important;height:22px!important;min-width:40px!important;max-width:40px!important;margin:0!important;padding:0!important;border:0!important;border-radius:999px!important;background:#cbd5e1!important;overflow:hidden!important;box-shadow:inset 0 0 0 1px rgba(15,23,42,.04)!important}
+.login-card .switch-line>span:after{content:""!important;position:absolute!important;display:block!important;width:16px!important;height:16px!important;left:3px!important;top:3px!important;margin:0!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(15,23,42,.18)!important;transform:translateX(0)!important;transition:transform .18s ease!important}
+.login-card .switch-line input[type="checkbox"]:checked+span{background:#10a98b!important}
+.login-card .switch-line input[type="checkbox"]:checked+span:after{left:3px!important;transform:translateX(18px)!important}
+.login-card .switch-line:focus-within>span{box-shadow:0 0 0 3px rgba(16,169,139,.16)!important}
+.login-card .form-line>a{min-height:40px!important;display:inline-flex!important;align-items:center!important;justify-content:flex-end!important;white-space:nowrap!important}
+
+.zynko-dialog-actions button{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;border:1px solid transparent!important;color:#fff!important;box-shadow:none!important}
+.zynko-dialog-actions button i{font-size:13px!important;line-height:1!important;color:inherit!important}
+.zynko-dialog-cancel{background:#10283a!important;color:#fff!important;border-color:#10283a!important}
+.zynko-dialog-cancel:hover{background:#17384e!important;border-color:#17384e!important;color:#fff!important}
+.zynko-dialog-confirm{background:#10a98b!important;color:#fff!important;border-color:#10a98b!important}
+.zynko-dialog-confirm:hover{background:#0d9279!important;border-color:#0d9279!important;color:#fff!important}
+.zynko-dialog-icon.question{background:#eef8f6!important;color:#0d9279!important}
+@media(max-width:520px){.login-card .form-line{align-items:flex-start!important;flex-direction:column!important;gap:4px!important}.login-card .form-line>a{justify-content:flex-start!important}}
