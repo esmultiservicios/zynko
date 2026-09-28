@@ -7,7 +7,8 @@ $platformOwner=isPlatformOwner();
 $menus=[
 'dashboard'=>['fa-solid fa-chart-line','Dashboard',[]],
 'inbox'=>['fa-solid fa-inbox','Bandeja',[['?page=inbox','Conversaciones','fa-comments'],['?page=inbox&filter=unassigned','Sin asignar','fa-user-clock']]],
-'channels'=>['fa-solid fa-comments','Canales',[['?page=channels','Canales conectados','fa-link'],['?page=channels#connection','Conexión y estado','fa-signal']]],
+'channels'=>['fa-solid fa-comments','Canales',[['?page=channels','Canales conectados','fa-link'],['?page=webchat','NIVO Web Chat','fa-message'],['?page=channels#connection','Conexión y estado','fa-signal']]],
+'webchat'=>['fa-solid fa-message','NIVO Web Chat',[['?page=webchat','Configurar widget','fa-sliders'],['?page=webchat#installations','Sitios autorizados','fa-globe']]],
 'users'=>['fa-solid fa-users','Usuarios',[['?page=users','Directorio','fa-address-book'],['?page=users#teams','Equipos','fa-people-group']]],
 'chatbot'=>['fa-solid fa-wand-magic-sparkles',$bot.' · IA',[['?page=chatbot','Configuración de NIVO','fa-robot'],['?page=chatbot#knowledge','Conocimiento','fa-book-open'],['?page=chatbot#handoff','Transferencia humana','fa-headset']]],
 'integrations'=>['fa-solid fa-plug','Integraciones',[['?page=integrations','Webhooks y API','fa-code-branch']]], 'billing'=>['fa-solid fa-credit-card','Suscripción',[]],

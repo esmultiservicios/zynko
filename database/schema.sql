@@ -27,7 +27,7 @@ INSERT INTO channel_connector_catalog(code,name,icon_class,icon_style,descriptio
 ('whatsapp','WhatsApp Business','fa-brands fa-whatsapp','whatsapp','Mensajes, multimedia, documentos y atención en tiempo real.',1,1,1,10),
 ('messenger','Messenger','fa-brands fa-facebook-messenger','messenger','Conversaciones de páginas de Facebook conectadas a la empresa.',1,1,1,20),
 ('instagram','Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',1,1,1,30),
-('webchat','Web Chat','fa-solid fa-message','webchat','Chat para sitios web y portales de clientes.',0,1,0,40),
+('webchat','NIVO Web Chat','fa-solid fa-message','webchat','Chat inteligente propio de ZYNKO para instalar en sitios y portales.',1,1,1,40),
 ('telegram','Telegram','fa-brands fa-telegram','telegram','Mensajería mediante bots y API oficial de Telegram.',0,1,0,50),
 ('email','Correo','fa-solid fa-envelope','email','Centraliza conversaciones recibidas por correo electrónico.',0,1,0,60);
 
@@ -208,3 +208,9 @@ CREATE TABLE IF NOT EXISTS inbox_preferences (
   priority_filter VARCHAR(30) NOT NULL DEFAULT 'all',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+
+-- NIVO Web Chat
+CREATE TABLE IF NOT EXISTS webchat_widgets(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,channel_id BIGINT UNSIGNED NULL,name VARCHAR(120) NOT NULL DEFAULT 'NIVO Web Chat',public_key CHAR(40) NOT NULL UNIQUE,enabled TINYINT(1) NOT NULL DEFAULT 1,position VARCHAR(30) NOT NULL DEFAULT 'bottom-right',offset_x INT NOT NULL DEFAULT 24,offset_y INT NOT NULL DEFAULT 24,accent_color VARCHAR(20) NOT NULL DEFAULT '#0F766E',launcher_icon VARCHAR(30) NOT NULL DEFAULT 'nivo',welcome_title VARCHAR(160) NOT NULL DEFAULT '¡Hola! Soy NIVO',welcome_message VARCHAR(500) NOT NULL DEFAULT '¿En qué puedo ayudarte hoy?',ask_name TINYINT(1) NOT NULL DEFAULT 1,ask_email TINYINT(1) NOT NULL DEFAULT 0,allow_multiple_domains TINYINT(1) NOT NULL DEFAULT 1,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(tenant_id,enabled));
+CREATE TABLE IF NOT EXISTS webchat_installations(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,domain VARCHAR(255) NOT NULL,label VARCHAR(120) NULL,enabled TINYINT(1) NOT NULL DEFAULT 1,created_by BIGINT UNSIGNED NULL,first_seen_at DATETIME NULL,last_seen_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_widget_domain(widget_id,domain),INDEX(tenant_id,enabled));
+CREATE TABLE IF NOT EXISTS webchat_visitors(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,visitor_token CHAR(64) NOT NULL UNIQUE,contact_id BIGINT UNSIGNED NULL,conversation_id BIGINT UNSIGNED NULL,name VARCHAR(160) NULL,email VARCHAR(190) NULL,origin_domain VARCHAR(255) NULL,last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX(tenant_id,widget_id),INDEX(conversation_id));

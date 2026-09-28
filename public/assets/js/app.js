@@ -205,3 +205,5 @@ if(window.jQuery&&jQuery.fn.select2){
    try{const j=await post(form);showNotify(j.ok?'success':'error',j.ok?'Catálogo actualizado':'No se pudo actualizar',j.message||'');if(j.ok)setTimeout(()=>location.reload(),550)}catch(err){showNotify('error','No se pudo actualizar',err.message||'Ocurrió un error inesperado.')}finally{if(btn){btn.disabled=false;btn.innerHTML=old||'<i class="fa-solid fa-floppy-disk"></i> Guardar'}}
  }));
 })();
+// NIVO Web Chat uses its dedicated configurator instead of the generic provider modal.
+document.querySelectorAll('.channel-add[data-channel="webchat"],.channel-config[data-channel="webchat"],.channel-catalog-item[data-channel="webchat"]').forEach(el=>el.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();location.href='?page=webchat'} ,true));
