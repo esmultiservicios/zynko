@@ -19,6 +19,9 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         allowed_channels_json JSON NULL,
         module_access_json JSON NULL,
         features_json JSON NULL,
+        external_ai_included TINYINT(1) NOT NULL DEFAULT 0,
+        external_ai_monthly_tokens BIGINT UNSIGNED NULL,
+        external_ai_channels_json JSON NULL,
         is_default_free TINYINT(1) NOT NULL DEFAULT 0,
         active TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -28,7 +31,10 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
     zynkoPlanColumn($pdo,'subscription_plans','max_daily_chats','max_daily_chats INT NULL AFTER max_webchat_sites');
     zynkoPlanColumn($pdo,'subscription_plans','allowed_channels_json','allowed_channels_json JSON NULL AFTER max_daily_chats');
     zynkoPlanColumn($pdo,'subscription_plans','module_access_json','module_access_json JSON NULL AFTER allowed_channels_json');
-    zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER features_json');
+    zynkoPlanColumn($pdo,'subscription_plans','external_ai_included','external_ai_included TINYINT(1) NOT NULL DEFAULT 0 AFTER features_json');
+    zynkoPlanColumn($pdo,'subscription_plans','external_ai_monthly_tokens','external_ai_monthly_tokens BIGINT UNSIGNED NULL AFTER external_ai_included');
+    zynkoPlanColumn($pdo,'subscription_plans','external_ai_channels_json','external_ai_channels_json JSON NULL AFTER external_ai_monthly_tokens');
+    zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER external_ai_channels_json');
     $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_subscriptions(
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         tenant_id BIGINT UNSIGNED NOT NULL,
@@ -104,27 +110,29 @@ function zynkoDecodeMap(mixed $value): array{
 function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): array{
     if($platformOwner)return [
         'unrestricted'=>true,'has_plan'=>true,'plan_id'=>0,'plan_code'=>'platform','plan_name'=>'Plataforma','subscription_status'=>'active',
-        'max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false
+        'max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]
     ];
     try{
         $q=$pdo->prepare("SELECT sp.*,ts.status subscription_status FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id WHERE ts.tenant_id=? LIMIT 1");
         $q->execute([$tenantId]);$p=$q->fetch();
         if(!$p){
             // Preserve existing installations that predate commercial plan enforcement.
-            return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false];
+            return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
         }
         $mods=zynkoDecodeMap($p['module_access_json']??null);
         $channels=zynkoDecodeList($p['allowed_channels_json']??null);
+        $externalAiChannels=zynkoDecodeList($p['external_ai_channels_json']??null);
         $status=(string)($p['subscription_status']??'active');
         $active=in_array($status,['active','grace','trial'],true)&&((int)($p['active']??1)===1);
         return [
             'unrestricted'=>false,'has_plan'=>true,'plan_id'=>(int)$p['id'],'plan_code'=>(string)($p['code']??''),'plan_name'=>(string)$p['name'],'subscription_status'=>$status,
             'max_users'=>$p['max_users']!==null?(int)$p['max_users']:null,'max_channels'=>$p['max_channels']!==null?(int)$p['max_channels']:null,
             'max_webchat_sites'=>$p['max_webchat_sites']!==null?(int)$p['max_webchat_sites']:null,'max_daily_chats'=>$p['max_daily_chats']!==null?(int)$p['max_daily_chats']:null,
-            'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active
+            'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active,
+            'external_ai_included'=>(int)($p['external_ai_included']??0)===1,'external_ai_monthly_tokens'=>$p['external_ai_monthly_tokens']!==null?(int)$p['external_ai_monthly_tokens']:null,'external_ai_channels'=>$externalAiChannels
         ];
     }catch(Throwable $e){
-        return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false];
+        return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
     }
 }
 

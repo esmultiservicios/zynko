@@ -43,7 +43,7 @@ CREATE TABLE conversation_notes (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, 
 CREATE TABLE tags (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(80) NOT NULL, color VARCHAR(20), UNIQUE KEY uq_tag(tenant_id,name));
 CREATE TABLE conversation_tags (conversation_id BIGINT UNSIGNED NOT NULL, tag_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY(conversation_id,tag_id));
 CREATE TABLE quick_replies (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, shortcut VARCHAR(80) NOT NULL, title VARCHAR(120) NOT NULL, body TEXT NOT NULL, team_id BIGINT UNSIGNED NULL, active TINYINT(1) DEFAULT 1, UNIQUE KEY uq_qr(tenant_id,shortcut));
-CREATE TABLE bot_profiles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(100) NOT NULL DEFAULT 'NIVO', enabled TINYINT(1) NOT NULL DEFAULT 0, mode ENUM('rules','ai','hybrid') NOT NULL DEFAULT 'hybrid', provider VARCHAR(60) NULL, model VARCHAR(100) NULL, system_prompt TEXT NULL, fallback_message TEXT NULL, handoff_rules_json JSON NULL, business_hours_json JSON NULL, knowledge_enabled TINYINT(1) NOT NULL DEFAULT 0, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_bot_tenant(tenant_id));
+CREATE TABLE bot_profiles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(100) NOT NULL DEFAULT 'NIVO', enabled TINYINT(1) NOT NULL DEFAULT 0, mode ENUM('rules','ai','hybrid') NOT NULL DEFAULT 'hybrid', provider VARCHAR(60) NULL, model VARCHAR(100) NULL, system_prompt TEXT NULL, fallback_message TEXT NULL, handoff_rules_json JSON NULL, business_hours_json JSON NULL, channel_policy_json JSON NULL, knowledge_enabled TINYINT(1) NOT NULL DEFAULT 0, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_bot_tenant(tenant_id));
 CREATE TABLE bot_flows (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(140) NOT NULL, version INT NOT NULL DEFAULT 1, status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft', definition_json JSON NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE knowledge_sources (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, solution_id BIGINT UNSIGNED NULL, module_id BIGINT UNSIGNED NULL, name VARCHAR(180) NOT NULL, source_type ENUM('text','url','file','faq','integration') NOT NULL, source_ref VARCHAR(500), content LONGTEXT NULL, status ENUM('pending','ready','error') NOT NULL DEFAULT 'pending', approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved', updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX(tenant_id,status));
 CREATE TABLE api_keys (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(120) NOT NULL, key_prefix VARCHAR(20) NOT NULL, key_hash VARCHAR(255) NOT NULL, scopes_json JSON NOT NULL, expires_at DATETIME NULL, revoked_at DATETIME NULL, last_used_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id));
@@ -183,6 +183,9 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
  allowed_channels_json JSON NULL,
  module_access_json JSON NULL,
  features_json JSON NULL,
+ external_ai_included TINYINT(1) NOT NULL DEFAULT 0,
+ external_ai_monthly_tokens BIGINT UNSIGNED NULL,
+ external_ai_channels_json JSON NULL,
  is_default_free TINYINT(1) NOT NULL DEFAULT 0,
  active TINYINT(1) NOT NULL DEFAULT 1,
  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -232,11 +235,42 @@ CREATE TABLE IF NOT EXISTS registration_requests (
  INDEX(status,code_expires_at), INDEX(ip_address,last_sent_at)
 );
 
-INSERT IGNORE INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,allowed_channels_json,module_access_json,features_json,is_default_free,active)
+INSERT IGNORE INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,allowed_channels_json,module_access_json,features_json,external_ai_included,external_ai_monthly_tokens,external_ai_channels_json,is_default_free,active)
 VALUES('free','Gratis',0,'HNL',1,1,1,5,
  JSON_ARRAY('webchat'),
  JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',0,'chatbot',0,'integrations',0,'email',0,'settings',0,'api',0),
- JSON_ARRAY('NIVO Web Chat incluido','1 sitio web autorizado','Hasta 5 chats nuevos por día','1 usuario propietario'),1,1);
+ JSON_ARRAY('NIVO Web Chat incluido','1 sitio web autorizado','Hasta 5 chats nuevos por día','1 usuario propietario'),0,NULL,JSON_ARRAY(),1,1);
+
+CREATE TABLE IF NOT EXISTS ai_provider_settings(
+ id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
+ provider VARCHAR(30) NOT NULL DEFAULT 'openai', enabled TINYINT(1) NOT NULL DEFAULT 0,
+ api_key_ciphertext TEXT NULL, admin_key_ciphertext TEXT NULL,
+ model VARCHAR(120) NOT NULL DEFAULT 'gpt-6-luna', fallback_only TINYINT(1) NOT NULL DEFAULT 1,
+ monthly_budget_usd DECIMAL(12,4) NULL,
+ input_cost_per_million DECIMAL(12,6) NOT NULL DEFAULT 0.050000,
+ cached_input_cost_per_million DECIMAL(12,6) NOT NULL DEFAULT 0.005000,
+ output_cost_per_million DECIMAL(12,6) NOT NULL DEFAULT 0.250000,
+ max_output_tokens INT UNSIGNED NOT NULL DEFAULT 700,
+ remote_month_cost_usd DECIMAL(12,4) NULL, remote_cost_refreshed_at DATETIME NULL,
+ last_test_at DATETIME NULL, last_test_status VARCHAR(20) NULL, last_test_message VARCHAR(500) NULL,
+ updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+INSERT IGNORE INTO ai_provider_settings(id,provider,enabled,model,fallback_only) VALUES(1,'openai',0,'gpt-6-luna',1);
+CREATE TABLE IF NOT EXISTS tenant_ai_settings(
+ tenant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY, enabled TINYINT(1) NOT NULL DEFAULT 0,
+ allowed_channels_json JSON NULL, updated_by BIGINT UNSIGNED NULL,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS ai_usage_logs(
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
+ conversation_id BIGINT UNSIGNED NULL, provider VARCHAR(30) NOT NULL DEFAULT 'openai',
+ channel_type VARCHAR(50) NOT NULL, model VARCHAR(120) NOT NULL, request_id VARCHAR(190) NULL,
+ input_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0, cached_input_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+ output_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0, estimated_cost_usd DECIMAL(14,8) NOT NULL DEFAULT 0,
+ status ENUM('ok','error','blocked') NOT NULL DEFAULT 'ok', error_message VARCHAR(1000) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ INDEX idx_ai_usage_tenant_month(tenant_id,created_at), INDEX idx_ai_usage_provider_month(provider,created_at), INDEX idx_ai_usage_conversation(conversation_id)
+);
 
 CREATE TABLE IF NOT EXISTS api_request_logs (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
@@ -292,7 +326,7 @@ CREATE TABLE IF NOT EXISTS conversation_audit_logs(
 
 
 -- NIVO Web Chat
-CREATE TABLE IF NOT EXISTS webchat_widgets(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,channel_id BIGINT UNSIGNED NULL,name VARCHAR(120) NOT NULL DEFAULT 'NIVO Web Chat',public_key CHAR(40) NOT NULL UNIQUE,enabled TINYINT(1) NOT NULL DEFAULT 1,position VARCHAR(30) NOT NULL DEFAULT 'bottom-right',display_mode ENUM('launcher','open') NOT NULL DEFAULT 'launcher',offset_x INT NOT NULL DEFAULT 24,offset_y INT NOT NULL DEFAULT 24,accent_color VARCHAR(20) NOT NULL DEFAULT '#0F766E',launcher_icon VARCHAR(30) NOT NULL DEFAULT 'nivo',launcher_label VARCHAR(80) NULL,sound_enabled TINYINT(1) NOT NULL DEFAULT 1,privacy_enabled TINYINT(1) NOT NULL DEFAULT 0,privacy_text VARCHAR(240) NULL,privacy_url VARCHAR(500) NULL,welcome_title VARCHAR(160) NOT NULL DEFAULT '¡Hola! Soy NIVO',assistant_subtitle VARCHAR(190) NULL,welcome_message VARCHAR(500) NOT NULL DEFAULT '¿En qué puedo ayudarte hoy?',ask_name TINYINT(1) NOT NULL DEFAULT 1,ask_email TINYINT(1) NOT NULL DEFAULT 0,profile_required TINYINT(1) NOT NULL DEFAULT 0,allow_multiple_domains TINYINT(1) NOT NULL DEFAULT 1,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(tenant_id,enabled));
+CREATE TABLE IF NOT EXISTS webchat_widgets(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,channel_id BIGINT UNSIGNED NULL,name VARCHAR(120) NOT NULL DEFAULT 'NIVO Web Chat',public_key CHAR(40) NOT NULL UNIQUE,enabled TINYINT(1) NOT NULL DEFAULT 1,position VARCHAR(30) NOT NULL DEFAULT 'bottom-right',display_mode ENUM('launcher','open') NOT NULL DEFAULT 'launcher',offset_x INT NOT NULL DEFAULT 24,offset_y INT NOT NULL DEFAULT 24,accent_color VARCHAR(20) NOT NULL DEFAULT '#0F766E',launcher_icon VARCHAR(30) NOT NULL DEFAULT 'nivo',launcher_label VARCHAR(80) NULL,sound_enabled TINYINT(1) NOT NULL DEFAULT 1,privacy_enabled TINYINT(1) NOT NULL DEFAULT 0,privacy_text VARCHAR(240) NULL,privacy_url VARCHAR(500) NULL,welcome_title VARCHAR(160) NOT NULL DEFAULT '¡Hola! Soy NIVO',assistant_subtitle VARCHAR(190) NULL,welcome_message VARCHAR(500) NOT NULL DEFAULT '¿En qué puedo ayudarte hoy?',ask_name TINYINT(1) NOT NULL DEFAULT 1,ask_email TINYINT(1) NOT NULL DEFAULT 0,profile_required TINYINT(1) NOT NULL DEFAULT 0,allow_multiple_domains TINYINT(1) NOT NULL DEFAULT 1,experience_json JSON NULL,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(tenant_id,enabled));
 CREATE TABLE IF NOT EXISTS webchat_installations(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,domain VARCHAR(255) NOT NULL,label VARCHAR(120) NULL,enabled TINYINT(1) NOT NULL DEFAULT 1,created_by BIGINT UNSIGNED NULL,first_seen_at DATETIME NULL,last_seen_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_widget_domain(widget_id,domain),INDEX(tenant_id,enabled));
 CREATE TABLE IF NOT EXISTS webchat_visitors(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,visitor_token CHAR(64) NOT NULL UNIQUE,contact_id BIGINT UNSIGNED NULL,conversation_id BIGINT UNSIGNED NULL,name VARCHAR(160) NULL,email VARCHAR(190) NULL,origin_domain VARCHAR(255) NULL,last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX(tenant_id,widget_id),INDEX(conversation_id));
 
@@ -326,7 +360,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.5');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.9');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

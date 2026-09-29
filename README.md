@@ -651,3 +651,377 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 ## V2.31.5
 - Login móvil compactado para reducir scroll sin eliminar NIVO, accesos ni opciones del formulario.
 - Ajustados espacios, tipografía, campos, botón, tarjeta NIVO y acciones en pantallas pequeñas.
+
+
+# HISTORIAL CONSOLIDADO DE CAMBIOS
+
+
+## Historial consolidado — README_ENTREGA_V2306
+
+ZYNKO V2.30.6 - SHOWCASE PRINCIPAL CORREGIDO
+
+Cambios aplicados:
+- Se corrigió la sección "Vista del sistema" del sitio principal.
+- Se reemplazaron y actualizaron las capturas mostradas en el sitio principal con las imágenes nuevas compartidas por el usuario.
+- Se amplió el showcase para incluir capturas actuales de:
+  * Dashboard
+  * Login
+  * Registro
+  * Bandeja omnicanal
+  * Canales
+  * NIVO Web Chat
+  * Usuarios
+  * NIVO IA
+  * Integraciones
+  * Suscripciones
+  * Correo y notificaciones
+  * Configuración y marca
+  * Inicio guiado
+- Se mantuvo la estructura y funcionalidad existente sin tocar la lógica principal del sistema.
+
+Archivo principal modificado:
+- app/Views/home.php
+
+
+## Historial consolidado — README_ENTREGA_V2307
+
+ZYNKO V2.30.7 - NIVO AUTONOMO + WHATSAPP UNIVERSAL
+
+CAMBIOS FUNCIONALES
+
+1. WHATSAPP PUBLICO
+- Se mantiene el botón flotante administrable.
+- Se usa URL universal de WhatsApp.
+- En móvil abre correctamente WhatsApp mediante navegación directa.
+- En escritorio abre WhatsApp Web/navegador en pestaña nueva.
+- Se agregó fallback si el navegador bloquea la nueva pestaña.
+- Se reforzó z-index, pointer-events y touch-action para evitar bloqueos por superposición.
+
+2. NIVO WEB CHAT + NIVO IA
+- Se agregó autocorrección runtime de la tabla nivo_rules para bases existentes.
+- Si NIVO está activo en la empresa principal y todavía no tiene reglas ni conocimiento, crea reglas iniciales seguras.
+- NIVO responde en la misma petición del visitante; el widget no depende exclusivamente del WebSocket para mostrar la respuesta.
+- Se agregó estado visual “Escribiendo…” mientras procesa la respuesta.
+- Se mantiene WebSocket y además se agregó polling de respaldo cada 5 segundos.
+- Se mejoró la normalización de texto y coincidencia de reglas/conocimiento.
+- Solo utiliza conocimiento aprobado y publicado.
+- Si no tiene información suficiente, responde de forma segura y puede transferir a humano según la configuración existente.
+- La transferencia marca la conversación como pendiente y mantiene la notificación al equipo.
+
+5 MEJORAS SIN COSTO APLICADAS
+- Runtime self-healing para NIVO.
+- Reglas iniciales seguras.
+- Matching local mejorado sin API de pago.
+- Respuesta inmediata + polling de respaldo.
+- Handoff humano seguro con notificación y estado pendiente.
+
+No requiere proveedor externo de IA ni gasto adicional para estas mejoras locales.
+
+
+## Historial consolidado — README_ENTREGA_V2308
+
+ZYNKO V2.30.8 - WHATSAPP SIN APERTURA DUPLICADA
+
+Correccion aplicada sobre V2.30.7:
+- Se elimina la interceptacion JavaScript que abria WhatsApp manualmente y podia provocar dos navegaciones.
+- Se mantiene un unico enlace nativo con target _blank.
+- Se cambia el destino al enlace oficial wa.me para un comportamiento mas directo en escritorio, tablet y movil.
+- Se conserva el mensaje prellenado configurado desde el panel.
+- No se modifica NIVO Web Chat, NIVO IA ni el resto de la logica funcional.
+
+Archivos modificados:
+- app/Views/home.php
+- public/assets/js/seo-home.js
+
+
+## Historial consolidado — README_ENTREGA_V2309
+
+ZYNKO V2.30.9 - NIVO CENTRADO EN MOVIL
+
+Cambio aplicado sobre V2.30.8 funcional:
+- Se centra la mascota NIVO dentro de la tarjeta NIVO IA en pantallas moviles.
+- La mascota mantiene proporciones, animacion y espacio interno limpio.
+- Se ajusta el alto del contenedor para evitar que la imagen quede pegada o desalineada.
+- Se conserva el layout de escritorio/tablet y toda la funcionalidad existente.
+- No se modifica NIVO Web Chat, NIVO IA, WhatsApp, Dashboard ni logica del sistema.
+
+
+## Historial consolidado — README_ENTREGA_V2310
+
+ZYNKO V2.31.0 - NIVO RESPUESTA INMEDIATA + WHATSAPP CORRECTO
+
+Correcciones:
+- NIVO responde de inmediato a saludos desde NIVO Web Chat.
+- Si el visitante indicó su nombre, el saludo se personaliza: "¡Hola, Edwin!".
+- Se garantiza que el nombre/email del visitante estén disponibles también en mensajes posteriores.
+- El runtime del Web Chat crea reglas iniciales seguras si NIVO está activo y no hay reglas ni conocimiento publicado.
+- NIVO mantiene reglas, conocimiento aprobado, fallback seguro y transferencia humana.
+- Se actualiza last_message_at cuando NIVO responde.
+- Número público de WhatsApp corregido a +504 8913-6844 en defaults, panel, portada, schema e instalación.
+
+No se elimina ni reemplaza la configuración administrable existente.
+
+
+## Historial consolidado — README_ENTREGA_V2311
+
+ZYNKO V2.31.1 — Bandeja Premium + NIVO Runtime
+
+Cambios principales:
+- Autoasignar, Asignar y Resumir alineados en una sola fila.
+- Cliente 360° legible y responsivo.
+- Seguimiento con fecha/hora, motivo y botón Programar completamente estilizados.
+- Tarjetas de conversaciones premium con hover, estados y SLA más claros.
+- Composer de respuestas reorganizado.
+- Respuestas de NIVO identificadas visualmente dentro de la conversación.
+- Reparación automática de columnas antiguas de bot_profiles para evitar que NIVO reciba el mensaje pero falle antes de responder.
+- Compatibilidad con instalaciones existentes sin migración manual obligatoria.
+
+
+## Historial consolidado — README_ENTREGA_V2312
+
+ZYNKO V2.31.2 — Bandeja final alineada y compacta
+
+Cambios:
+- Las tres tarjetas principales de Bandeja comparten borde superior y altura útil.
+- Área de respuesta siempre visible y más cómoda.
+- Cliente 360° compacto, sin scrollbar vertical en escritorio.
+- Conversaciones sin subrayados y con acabado premium.
+- Responsive conservado para escritorio, tablet y móvil.
+- No se eliminó funcionalidad existente.
+
+
+## Historial consolidado — README_ENTREGA_V2313
+
+ZYNKO V2.31.3 — Bandeja Premium · Gestión avanzada de conversaciones
+
+Base: ZYNKO V2.31.2_BANDEJA_ALINEADA_FINAL
+
+Mejoras funcionales incorporadas:
+1. Filtro buscable por categorías de contacto directamente desde la Bandeja.
+2. Filtro de atención: sin leer, con seguimiento y esperando más de 15 minutos.
+3. Ciclo de conversación: resolver/reabrir y archivar/restaurar sin perder historial.
+4. Eliminación segura solo para Owner/Admin con reautenticación por contraseña y registro de auditoría; no elimina físicamente mensajes.
+5. Gestión de lectura: al abrir explícitamente una conversación se marca como leída y puede volver a marcarse como no leída.
+
+Extras:
+- Acciones masivas: asignarme, resolver y archivar.
+- Ctrl/Cmd + Enter para enviar mensajes desde el compositor.
+- Categorías visibles en cada conversación y búsqueda textual por categoría.
+- Conversaciones archivadas se reactivan automáticamente si el visitante vuelve a escribir por NIVO Web Chat.
+- Conversaciones resueltas vuelven a estado activo cuando llega un nuevo mensaje web.
+- Vistas y filtros se guardan por usuario.
+
+Base de datos:
+- conversations: archived_at, deleted_at, deleted_by.
+- inbox_preferences: category_id, state_filter, attention_filter.
+- conversation_audit_logs: auditoría de acciones sensibles y de ciclo de vida.
+- Las columnas/tablas se crean automáticamente por ensureRuntimeSchema() al actualizar una instalación existente.
+
+Seguridad:
+- Eliminar conversación requiere rol owner/admin + contraseña actual válida.
+- La eliminación es lógica (soft delete) para conservar trazabilidad y evitar pérdida accidental de datos.
+
+
+## Historial consolidado — README_ENTREGA_V2314
+
+ZYNKO V2.31.4 — Bandeja Premium · Cliente 360 y emojis
+
+Cambios:
+- Cliente 360 legible y ordenado.
+- Scroll vertical solo cuando el contenido no cabe en la tarjeta.
+- Botones del compositor completamente centrados.
+- Emoji picker premium por categorías con más opciones.
+- Ajustes responsive sin alterar la lógica funcional existente.
+
+
+## Historial consolidado — README_ENTREGA_V2315
+
+ZYNKO V2.31.5 — Login móvil compacto
+
+- Reduce altura total del login en celulares.
+- Mantiene NIVO visible pero en formato compacto.
+- Reduce espacios verticales, tamaños y paddings únicamente en móvil.
+- Mantiene escritorio y tablet sin cambios funcionales.
+- Conserva Recordarme, recuperación, registro y metadatos.
+
+
+## Historial consolidado — README_CAMBIO_SHOWCASE_V2304
+
+ZYNKO V2.30.4 - ACTUALIZACION DE CAPTURAS DEL SITIO PRINCIPAL
+
+Se reemplazaron las capturas usadas en la seccion "Vista del sistema" del sitio principal con las nuevas imagenes proporcionadas por el usuario.
+
+Capturas publicas actualizadas:
+- dashboard.png
+- inbox.png
+- channels.png
+- webchat.png
+- nivo-ai.png
+- integrations.png
+- branding.png
+- onboarding.png
+
+Capturas adicionales guardadas para futuro uso:
+public/assets/img/showcase/extras/
+- login.png
+- register.png
+- users.png
+- billing.png
+- email.png
+- profile-menu.png
+- webchat-bottom.png
+
+No se modifico la logica del sistema.
+Solo se actualizaron assets visuales para no afectar el codigo funcional existente.
+
+## V2.31.7 — README único + menú contextual premium
+- Se consolidó el historial de entregas en este único `README.md`.
+- Se eliminaron los `README_ENTREGA_V*.txt` y `README_CAMBIO_*.txt` de la raíz para evitar acumulación de archivos.
+- La Bandeja incorpora menú contextual propio al hacer clic derecho sobre una conversación o sobre la conversación abierta.
+- Acciones disponibles: abrir, marcar como no leída, resolver/reabrir, archivar/restaurar y eliminar con autorización cuando el rol lo permite.
+- El menú respeta las confirmaciones existentes, auditoría y seguridad de eliminación.
+- Diseño responsive, premium y con cierre por clic externo, ESC, scroll, resize o pérdida de foco.
+
+
+## V2.31.7 — NIVO Web Chat + NIVO IA omnicanal
+
+Esta entrega parte de V2.31.6 y conserva el diseño, la Bandeja, el menú contextual y el README único. Añade configuración avanzada sin depender de proveedores de IA de pago.
+
+### NIVO Web Chat — 10 mejoras funcionales
+1. Apertura automática configurable con retraso.
+2. Indicador visual de que NIVO está escribiendo.
+3. Retardo visual configurable para una respuesta más natural.
+4. Hora opcional en cada mensaje.
+5. Respuestas rápidas administrables (hasta 8).
+6. Memoria local del estado abierto/cerrado del widget.
+7. Límite de caracteres por mensaje validado en cliente y servidor.
+8. Límite de mensajes por minuto para reducir abuso y spam.
+9. Protección contra doble envío mientras una petición está en proceso.
+10. Marca NIVO/ZYNKO administrable y cierre con ESC.
+
+### NIVO IA — 10 mejoras funcionales
+1. Selección de canales donde NIVO puede responder.
+2. Identidad automática como asistente de la empresa activa.
+3. Saludo personalizado usando el nombre del cliente.
+4. Detección básica ES/EN para saludos y fallbacks.
+5. Contexto operativo configurable por cantidad de mensajes.
+6. Protección contra respuestas duplicadas consecutivas.
+7. Transferencia después de una cantidad configurable de respuestas desconocidas.
+8. Máximo configurable de respuestas automáticas por conversación.
+9. Pausa configurable entre respuestas automáticas.
+10. Pausa automática de NIVO cuando la conversación ya está asignada a una persona.
+
+### Omnicanal
+`app/Services/NivoEngine.php` centraliza la evaluación de reglas, conocimiento aprobado, confianza, fallback y transferencia. NIVO Web Chat usa directamente este motor. La API agrega `POST /api.php?r=v1/messages/receive` para que conectores autorizados de WhatsApp, Messenger, Instagram, Telegram, correo o integraciones externas ingresen mensajes al mismo flujo de NIVO. La entrega real hacia proveedores externos sigue requiriendo que cada canal esté conectado y autorizado con su proveedor oficial.
+
+### Administración
+El Dashboard incorpora acceso directo **Visitar sitio público**, abierto en una pestaña nueva.
+
+
+## Documentación SEO consolidada
+
+ZYNKO - SEO TECNICO V2.28.1
+
+IMPLEMENTADO
+- /robots.txt físico visible en la raíz y copia en /public.
+- /sitemap.xml físico visible en la raíz y copia en /public.
+- En Apache, ambos endpoints son servidos dinámicamente por robots.php y sitemap.php para usar el dominio configurado.
+- Administrador SEO en Dashboard > Configuración > SEO y posicionamiento.
+- URL pública/canonical administrable con fallback a APP_URL.
+- Meta title/description, robots, canonical, Open Graph, Twitter Card y JSON-LD.
+- Tokens HTML para Google Search Console y Bing Webmaster Tools.
+- La portada pública / es indexable.
+- Login, registro, recuperación, verificación y dashboard llevan noindex/nofollow.
+- APIs, instalador y directorios privados quedan fuera del rastreo.
+- site.webmanifest e imagen social 1200x630 incluidos.
+
+ANTES DE PUBLICAR
+1. Configura la URL pública desde Dashboard > Configuración > SEO y posicionamiento o APP_URL en .env.
+2. Abre /robots.txt y /sitemap.xml en producción.
+3. Verifica Search Console preferiblemente con propiedad de Dominio/DNS.
+4. Envía /sitemap.xml en Google Search Console y Bing Webmaster Tools.
+5. Cuando ZYNKO tenga nuevas páginas públicas reales, agrégalas al generador public/sitemap.php; no agregues pantallas privadas.
+
+
+## V2.31.8 — NIVO IA híbrida + OpenAI opcional por plan
+
+Esta versión conserva NIVO interno como motor principal. OpenAI nunca sustituye la primera fase: reglas y conocimiento aprobado se evalúan primero; únicamente cuando NIVO interno no resuelve y todos los controles están habilitados se usa OpenAI como segunda fase.
+
+### Flujo funcional
+1. NIVO interno evalúa saludo, transferencia, reglas y conocimiento aprobado.
+2. Si existe respuesta local suficiente, no se consume OpenAI.
+3. Si el motor local no puede resolver, ZYNKO verifica proveedor global, plan, tenant, canal, límite mensual y presupuesto global.
+4. Solo entonces llama a OpenAI mediante Responses API.
+5. La respuesta se presenta al cliente como NIVO, la IA de la empresa activa.
+6. Si OpenAI no responde o está deshabilitado, se conserva el fallback y la transferencia humana de NIVO.
+
+### Administración de OpenAI
+- Conexión global exclusiva del administrador principal.
+- API Key cifrada con APP_KEY; nunca se muestra completa al cliente.
+- Admin API Key opcional únicamente para consultar costos reales de la organización.
+- Botón de prueba de conexión.
+- Modelo configurable; valor inicial `gpt-6-luna`.
+- Presupuesto mensual global configurable.
+- Tarifas por millón de tokens editables para mantener el cálculo de costo actualizado.
+- Registro local de tokens de entrada, tokens cacheados, tokens de salida, solicitudes y costo estimado.
+- Consulta opcional del costo real mensual de la organización mediante la API de Costs cuando existe Admin API Key.
+- El “saldo operativo” es presupuesto configurado menos consumo; no se presenta como saldo prepago oficial de OpenAI.
+
+### Control por empresa y canal
+- Cada empresa puede tener el respaldo externo apagado aunque OpenAI esté conectado globalmente.
+- Cada plan decide si incluye o no IA externa.
+- Cada plan puede limitar tokens mensuales.
+- Cada plan decide en qué canales puede utilizarse IA externa.
+- Cada empresa selecciona dentro de los canales permitidos dónde activar el respaldo.
+- El cliente nunca recibe ni visualiza las credenciales del proveedor.
+
+### Planes
+- Nuevo control “Incluir IA externa” al crear o editar un plan.
+- Límite opcional de tokens mensuales por plan.
+- Canales de IA externa configurables por plan.
+- Al incluir IA externa, NIVO · IA queda habilitado automáticamente como módulo del plan.
+- El Plan Gratis fuerza IA externa desactivada.
+- Las tarjetas de planes muestran cuándo OpenAI está incluido.
+- El catálogo de planes se puede descargar en CSV desde Suscripciones.
+
+### Base de datos
+- `subscription_plans.external_ai_included`
+- `subscription_plans.external_ai_monthly_tokens`
+- `subscription_plans.external_ai_channels_json`
+- nueva tabla `ai_provider_settings`
+- nueva tabla `tenant_ai_settings`
+- nueva tabla `ai_usage_logs`
+
+### Seguridad y compatibilidad
+- Las credenciales se cifran con AES-256-GCM usando APP_KEY.
+- OpenAI es fallback, no reemplazo del motor local.
+- Si el proveedor falla, NIVO continúa con su fallback/transferencia actual.
+- El motor compartido aplica el mismo flujo a Web Chat y a mensajes omnicanal recibidos por la API.
+- No se modifica la estructura visual general del proyecto; los controles nuevos reutilizan los estilos actuales.
+
+
+## V2.31.9 — Administración central de empresas
+
+- Nueva opción **Empresas** exclusiva para el administrador principal de la plataforma.
+- Listado visual con DIVs, búsqueda y filtros por estado y plan; no se usan tablas HTML.
+- Las empresas creadas desde el registro público aparecen automáticamente en este módulo.
+- Creación manual de empresa con usuario Owner, plan inicial y NIVO Web Chat preparado.
+- Vista consolidada de todos los usuarios de cada empresa sin mezclar sus datos con la gestión normal del tenant.
+- Gestión segura de rol y estado de los usuarios desde la ficha de la empresa.
+- Restablecimiento mediante contraseña temporal de una sola visualización; las contraseñas actuales nunca se muestran porque ZYNKO almacena hashes.
+- Modo asistencia para ingresar temporalmente como un usuario de otra empresa y regresar a la administración principal desde una barra visible.
+- Asignación de planes directamente a la empresa; todos los usuarios heredan las capacidades y límites del plan.
+- Auditoría de acciones administrativas sensibles mediante `platform_admin_audit`.
+- El snippet de NIVO Web Chat se muestra y copia con barras `/` normales, sin secuencias `\/` innecesarias.
+- Se mantiene un único `README.md` para el historial de versiones.
+
+### API externa por empresa
+
+Cada empresa usa su propia API Key y solo puede operar sobre sus canales. Flujo recomendado:
+
+1. `GET /api.php?r=v1/channels` para obtener `channel_id`, tipo y estado.
+2. `POST /api.php?r=v1/messages/receive` para registrar mensajes entrantes desde WhatsApp, Messenger, Instagram u otro conector y ejecutar NIVO.
+3. `POST /api.php?r=v1/messages/send` para registrar un mensaje saliente en ZYNKO.
+4. Enviar `Authorization: Bearer TU_CLAVE` y un `Idempotency-Key` único por mensaje para evitar duplicados.
+
+Las identidades externas se guardan en `contact_identities`, por lo que Messenger/Instagram no se mezclan con correos o teléfonos. La entrega final hacia Meta/Telegram/etc. depende del conector/proveedor autorizado del canal; la API de ZYNKO no inventa una autorización del proveedor.
