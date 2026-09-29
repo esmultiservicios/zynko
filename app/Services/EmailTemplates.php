@@ -59,5 +59,125 @@ final class EmailTemplates
     public static function companyCreated(array $company,array $settings): string { $name=self::e($company['name']??'Nueva empresa'); return self::shell('EMPRESAS','Empresa creada en ZYNKO','<p style="margin:0">La empresa <strong>'.$name.'</strong> fue creada correctamente y ya está disponible en la plataforma.</p>',$settings,'EMPRESA'); }
     public static function security(string $message,array $settings): string { return self::shell('SEGURIDAD','Actividad de seguridad','<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'SEGURIDAD'); }
     public static function billing(string $title,string $message,array $settings): string { return self::shell('FACTURACIÓN',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'FACTURACIÓN'); }
+
+    public static function verificationCode(string $code,string $company,array $settings): string {
+        $safeCompany=self::e($company);
+        $safeCode=self::e($code);
+        $content='<p style="margin:0">Recibimos una solicitud para crear una cuenta de <strong>'.$safeCompany.'</strong> en ZYNKO. Usa este código para confirmar que el correo te pertenece.</p>'
+            .'<div style="margin:22px 0;padding:20px;text-align:center;background:'.self::SOFT.';border:1px solid #D4EEE8;border-radius:14px">'
+            .'<div style="font-size:12px;color:'.self::MUTED.';font-weight:700">CÓDIGO DE VERIFICACIÓN</div>'
+            .'<div style="margin-top:8px;font-size:34px;line-height:1;font-weight:900;letter-spacing:8px;color:'.self::NAVY.'">'.$safeCode.'</div>'
+            .'<div style="margin-top:10px;font-size:12px;color:'.self::MUTED.'">Válido por 10 minutos. No lo compartas con nadie.</div></div>'
+            .'<p style="margin:0;color:'.self::MUTED.';font-size:13px">Si no solicitaste esta cuenta, puedes ignorar este correo.</p>';
+        return self::shell('CONFIRMACIÓN DE CORREO','Verifica tu cuenta de ZYNKO',$content,$settings,'VERIFICACIÓN');
+    }
+
+    public static function freeAccountWelcome(array $account,array $settings): string {
+        $company=self::e($account['company_name']??'Tu empresa');
+        $content='<p style="margin:0">La cuenta de <strong>'.$company.'</strong> fue verificada y ya está activa en ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
+            .'<strong style="color:'.self::NAVY.'">Plan Gratis activado</strong>'
+            .'<div style="margin-top:7px;color:'.self::MUTED.';font-size:13px;line-height:1.6">Incluye NIVO Web Chat en <strong>1 sitio web</strong> y hasta <strong>5 chats nuevos por día</strong>. Las conversaciones ya iniciadas pueden continuar sin límite de mensajes.</div></div>'
+            .'<p style="margin:18px 0 0">Cuando necesites más canales, más sitios o funciones avanzadas de NIVO, podrás pasar a un plan superior desde ZYNKO.</p>';
+        return self::shell('BIENVENIDO A ZYNKO','Tu cuenta gratis está lista',$content,$settings,'PLAN GRATIS');
+    }
+
+    public static function newCustomerAdmin(array $customer,array $settings): string {
+        $company=self::e($customer['company_name']??'Nueva empresa');
+        $owner=self::e($customer['owner_name']??'');
+        $email=self::e($customer['email']??'');
+        $phone=self::e($customer['phone']??'');
+        $business=self::e($customer['business_id']??'');
+        $content='<p style="margin:0">Se registró y verificó una nueva empresa en ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
+            .'<div style="font-size:14px;line-height:1.7"><strong>Empresa:</strong> '.$company.'<br><strong>Propietario:</strong> '.$owner.'<br><strong>Correo:</strong> '.$email
+            .($phone!==''?'<br><strong>Teléfono:</strong> '.$phone:'')
+            .($business!==''?'<br><strong>Identificación fiscal:</strong> '.$business:'')
+            .'<br><strong>Plan:</strong> Gratis · NIVO Web Chat</div></div>';
+        return self::shell('NUEVO CLIENTE','Nueva cuenta creada en ZYNKO',$content,$settings,'NUEVO CLIENTE');
+    }
+
+
+    public static function planCatalogEvent(string $action,array $plan,array $settings): string {
+        $name=self::e($plan['name']??'Plan');
+        $price=self::e(($plan['currency']??'HNL').' '.number_format((float)($plan['monthly_price']??0),2));
+        $status=!empty($plan['active'])?'Activo':'Inactivo';
+        $verb=['created'=>'creado','updated'=>'actualizado','deleted'=>'eliminado'][$action]??'actualizado';
+        $content='<p style="margin:0">El plan <strong>'.$name.'</strong> fue '.$verb.' en ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
+            .'<div style="font-size:14px;line-height:1.75"><strong>Plan:</strong> '.$name.'<br><strong>Precio:</strong> '.$price.'<br><strong>Estado:</strong> '.self::e($status)
+            .'<br><strong>Sitios Web Chat:</strong> '.self::e(($plan['max_webchat_sites']??null)?:'Ilimitados')
+            .'<br><strong>Chats nuevos/día:</strong> '.self::e(($plan['max_daily_chats']??null)?:'Ilimitados').'</div></div>';
+        return self::shell('PLANES Y SUSCRIPCIONES','Plan '.$verb,$content,$settings,'PLAN '.strtoupper($verb));
+    }
+
+    public static function planRequestCustomer(array $data,array $settings): string {
+        $plan=self::e($data['plan_name']??'Plan');
+        $company=self::e($data['company_name']??'Tu empresa');
+        $price=self::e(($data['currency']??'HNL').' '.number_format((float)($data['monthly_price']??0),2));
+        $content='<p style="margin:0">Recibimos la solicitud de <strong>'.$company.'</strong> para cambiar al plan <strong>'.$plan.'</strong>.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
+            .'<strong style="color:'.self::NAVY.'">Solicitud recibida</strong><div style="margin-top:7px;color:'.self::MUTED.';font-size:13px;line-height:1.6">Plan solicitado: <strong>'.$plan.'</strong> · '.$price.'/mes. Tu plan actual no cambia hasta que la solicitud sea aprobada.</div></div>';
+        return self::shell('SOLICITUD DE PLAN','Recibimos tu solicitud de plan',$content,$settings,'SOLICITUD RECIBIDA');
+    }
+
+    public static function planRequestAdmin(array $data,array $settings): string {
+        $company=self::e($data['company_name']??'Empresa');
+        $plan=self::e($data['plan_name']??'Plan');
+        $owner=self::e($data['owner_name']??'');
+        $email=self::e($data['email']??'');
+        $content='<p style="margin:0">Una empresa solicitó un cambio de plan desde ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
+            .'<div style="font-size:14px;line-height:1.75"><strong>Empresa:</strong> '.$company.'<br><strong>Solicitó:</strong> '.$plan
+            .($owner!==''?'<br><strong>Propietario:</strong> '.$owner:'').($email!==''?'<br><strong>Correo:</strong> '.$email:'').'</div></div>';
+        return self::shell('SOLICITUD COMERCIAL','Nueva solicitud de plan',$content,$settings,'REQUIERE ATENCIÓN');
+    }
+
+    public static function subscriptionChangedCustomer(array $data,array $settings): string {
+        $company=self::e($data['company_name']??'Tu empresa');
+        $plan=self::e($data['plan_name']??'Plan');
+        $previous=self::e($data['previous_plan_name']??'');
+        $status=self::e($data['status_label']??($data['status']??'Activo'));
+        $content='<p style="margin:0">La suscripción de <strong>'.$company.'</strong> fue actualizada.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
+            .'<div style="font-size:14px;line-height:1.75"><strong>Plan actual:</strong> '.$plan
+            .($previous!==''&&$previous!==$plan?'<br><strong>Plan anterior:</strong> '.$previous:'')
+            .'<br><strong>Estado:</strong> '.$status.'</div></div>'
+            .'<p style="margin:18px 0 0;color:'.self::MUTED.';font-size:13px">Los permisos, canales y límites de ZYNKO ya reflejan esta actualización.</p>';
+        return self::shell('TU SUSCRIPCIÓN','Tu plan de ZYNKO fue actualizado',$content,$settings,'SUSCRIPCIÓN');
+    }
+
+    public static function subscriptionChangedAdmin(array $data,array $settings): string {
+        $company=self::e($data['company_name']??'Empresa');
+        $plan=self::e($data['plan_name']??'Plan');
+        $previous=self::e($data['previous_plan_name']??'');
+        $status=self::e($data['status_label']??($data['status']??'Activo'));
+        $source=self::e($data['source_label']??'Asignación manual');
+        $content='<p style="margin:0">Se actualizó una suscripción en ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
+            .'<div style="font-size:14px;line-height:1.75"><strong>Empresa:</strong> '.$company.'<br><strong>Plan:</strong> '.$plan
+            .($previous!==''&&$previous!==$plan?'<br><strong>Anterior:</strong> '.$previous:'')
+            .'<br><strong>Estado:</strong> '.$status.'<br><strong>Origen:</strong> '.$source.'</div></div>';
+        return self::shell('CONTROL COMERCIAL','Suscripción actualizada',$content,$settings,'SUSCRIPCIÓN');
+    }
+
+    public static function planRequestResolved(array $data,array $settings): string {
+        $approved=($data['resolution']??'')==='approved';
+        $plan=self::e($data['plan_name']??'Plan');
+        $note=self::e($data['note']??'');
+        $content='<p style="margin:0">Tu solicitud para el plan <strong>'.$plan.'</strong> fue <strong>'.($approved?'aprobada':'rechazada').'</strong>.</p>'
+            .($approved?'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px"><strong style="color:'.self::NAVY.'">Plan activado</strong><div style="margin-top:7px;color:'.self::MUTED.';font-size:13px">Tus permisos y límites ya fueron actualizados.</div></div>':'')
+            .($note!==''?'<p style="margin:18px 0 0"><strong>Comentario:</strong> '.$note.'</p>':'');
+        return self::shell('SOLICITUD DE PLAN',$approved?'Tu solicitud fue aprobada':'Actualización de tu solicitud',$content,$settings,$approved?'APROBADA':'RECHAZADA');
+    }
+
+    public static function userLifecycle(string $title,string $message,array $settings,string $badge='USUARIO'): string {
+        return self::shell('SEGURIDAD Y ACCESO',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,$badge);
+    }
+
+    public static function channelLifecycle(string $title,string $message,array $settings): string {
+        return self::shell('CANALES E INTEGRACIONES',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'CANAL');
+    }
+
     public static function generic(string $eyebrow,string $title,string $message,array $settings,string $badge='NOTIFICACIÓN'): string { return self::shell($eyebrow,$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,$badge); }
 }

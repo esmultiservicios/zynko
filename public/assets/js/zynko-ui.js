@@ -41,8 +41,58 @@
     requestAnimationFrame(()=>{overlay.classList.add('open');overlay.querySelector('.zynko-dialog-confirm')?.focus()});
   });
   // API única para modales premium ZYNKO. Evita diálogos nativos y mantiene el mismo comportamiento visual.
+  // V2.27.2 · foco inteligente global.
+  // Mantiene el cursor en el primer campo realmente utilizable de formularios y modales,
+  // sin robar el foco al buscador global/público del dashboard ni a controles ocultos.
+  const zynkoFieldIsUsable=(el)=>{
+    if(!el || !(el instanceof HTMLElement))return false;
+    if(el.matches('[disabled],[readonly],[hidden],[aria-hidden="true"],[tabindex="-1"]'))return false;
+    if(el.closest('[hidden],[aria-hidden="true"],.select2-container--disabled'))return false;
+    if(el.closest('header,.top-left,.global-search,#globalSearch,#searchModal,.command-overlay,.command-palette,.zynko-dialog-overlay'))return false;
+    if(el instanceof HTMLInputElement){
+      const type=(el.type||'text').toLowerCase();
+      if(['hidden','button','submit','reset','checkbox','radio','file','image'].includes(type))return false;
+    }
+    const style=getComputedStyle(el);
+    if(style.display==='none'||style.visibility==='hidden')return false;
+    const r=el.getBoundingClientRect();
+    return r.width>0&&r.height>0;
+  };
+  window.ZynkoFocusFirst=(container=document,options={})=>{
+    const root=typeof container==='string'?document.querySelector(container):container;
+    if(!root)return null;
+    const selector='input, textarea, select, [contenteditable="true"]';
+    const explicit=[...root.querySelectorAll('[autofocus]')].find(zynkoFieldIsUsable);
+    const first=explicit||[...root.querySelectorAll(selector)].find(zynkoFieldIsUsable);
+    if(!first)return null;
+    if(options.onlyIfIdle!==false){
+      const active=document.activeElement;
+      if(active&&active!==document.body&&active!==document.documentElement&&active!==first)return null;
+    }
+    try{
+      first.focus({preventScroll:options.preventScroll!==false});
+      if(options.selectText&&typeof first.select==='function')first.select();
+    }catch(_){try{first.focus()}catch(__){}}
+    return first;
+  };
+  const zynkoAutoFocusPage=()=>{
+    if(document.querySelector('.modal-shell.open,.zynko-dialog-overlay.open'))return;
+    // Priorizamos formularios de autenticación/registro y luego formularios reales del contenido.
+    const scopes=[
+      '.auth-card form:not(.resend-form)',
+      '.login-card form',
+      'main form[data-autofocus-form]',
+      'main form:not([data-no-autofocus])'
+    ];
+    for(const sel of scopes){
+      const scope=[...document.querySelectorAll(sel)].find(el=>el.getClientRects().length>0);
+      if(scope&&window.ZynkoFocusFirst(scope,{onlyIfIdle:true,preventScroll:true}))break;
+    }
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(zynkoAutoFocusPage,90));
+  else setTimeout(zynkoAutoFocusPage,90);
   window.ZynkoModal={
-    open(target){const modal=typeof target==='string'?document.querySelector(target):target;if(!modal)return false;modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');requestAnimationFrame(()=>modal.querySelector('input:not([type=hidden]),select,textarea,button:not(.modal-close)')?.focus());return true},
+    open(target){const modal=typeof target==='string'?document.querySelector(target):target;if(!modal)return false;modal.classList.add('open');modal.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');requestAnimationFrame(()=>window.ZynkoFocusFirst?.(modal,{onlyIfIdle:false,preventScroll:true}));return true},
     close(target){const modal=typeof target==='string'?document.querySelector(target):target;if(!modal)return false;modal.classList.remove('open');modal.setAttribute('aria-hidden','true');if(!document.querySelector('.modal-shell.open'))document.body.classList.remove('modal-open');return true}
   };
   document.addEventListener('click',e=>{const close=e.target.closest('.modal-close');if(close){const modal=close.closest('.modal-shell');if(modal)ZynkoModal.close(modal)}});

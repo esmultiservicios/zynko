@@ -341,40 +341,70 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Unifica botones del instalador con acabados navy/teal, sin botones blancos.
 - Versión runtime, UI y schema sincronizada en 2.26.7.
 
-
-## V2.26.8
-- NIVO Web Chat muestra la mascota oficial de NIVO en el encabezado, aprovechando el espacio visual disponible sin interferir con la configuración.
-- NIVO · IA incorpora la misma mascota e identidad visual para mantener consistencia entre módulos.
-- Diseño responsive y compacto para escritorio, tablet y móvil.
-- Versión visual sincronizada en 2.26.8.
-
-
-## V2.27.0
-- NIVO Web Chat aprovecha el rail derecho con una escena viva de la mascota, mensaje contextual y estado animado.
-- NIVO gana microanimaciones sutiles en Web Chat y NIVO · IA, respetando reduced-motion.
-- Responsive: el acompañante se reorganiza en tablet y móvil sin crear espacios muertos.
+## V2.27.0 — Registro público, verificación y Plan Gratis
+- El login incorpora **Crear cuenta gratis** para altas públicas de empresas y propietarios.
+- Registro protegido con honeypot, límites por IP/correo, código de 6 dígitos hasheado, expiración de 10 minutos, reenvío controlado e intentos máximos.
+- La cuenta y empresa se crean únicamente después de verificar el correo.
+- Se activa automáticamente el **Plan Gratis** con NIVO Web Chat, 1 usuario, 1 sitio autorizado y hasta 5 chats nuevos por día; las conversaciones existentes pueden continuar sin límite de mensajes.
+- Los demás canales y módulos permanecen visibles, pero bloqueados cuando el plan no los incluye.
+- Administración de planes ampliada con canales permitidos, módulos, sitios Web Chat y límite diario de chats; NIVO Web Chat se incluye siempre.
+- Al completar el registro, ZYNKO envía correo premium de bienvenida al cliente y notificación de nuevo cliente al administrador principal.
+- La capa de servidor aplica límites de plan en Web Chat, sitios autorizados, canales, usuarios y módulos avanzados.
+- Runtime, interfaz y schema sincronizados en **2.27.0**.
 
 
-## V2.27.0
-- Estados visuales auditados: verde queda reservado para activo/conectado/autorizado.
-- NIVO inactivo ahora usa badge gris neutro, sin señal visual contradictoria.
-- Reglas e instalaciones desactivadas comparten el mismo lenguaje visual semántico.
-- Se preservan las mejoras visuales y la mascota animada de NIVO de V2.26.9.
 
-### V2.27.1
-- Repara la columna lateral de NIVO Web Chat para que la vista previa conserve su ancho correcto.
-- Evita que la mascota NIVO divida/comprima la vista previa en escritorio.
-- Mantiene a NIVO vivo en un bloque propio debajo de la vista previa y adapta el layout en tablet/móvil.
-- Conserva los estados semánticos de V2.27.0.
-
-
-### V2.27.2
-- Restaura el ancho premium original del panel Vista previa de NIVO Web Chat.
-- Iguala visualmente el alto del rail lateral con Diseño y comportamiento.
-- NIVO ocupa el espacio inferior disponible sin comprimir ni deformar la vista previa.
-- Ajustes responsive para escritorio, tablet y móvil.
+## V2.27.2 — Ciclo comercial y notificaciones bidireccionales
+- Los propietarios/administradores de empresas pueden solicitar un plan superior desde Suscripción.
+- Cada solicitud queda auditada y envía confirmación al cliente y aviso al administrador principal.
+- El administrador principal puede aprobar/asignar o rechazar solicitudes desde el mismo panel.
+- La asignación manual o aprobación de un plan notifica al cliente y al administrador principal, incluyendo plan anterior, plan actual y estado.
+- Cambios de estado `active`, `grace`, `suspended` y `cancelled` generan notificación comercial.
+- Crear, editar o eliminar planes genera aviso de auditoría al administrador principal.
+- Se agregan correos de seguridad cuando un usuario es creado, cambia su rol/estado o se revocan sus sesiones.
+- La configuración de un canal genera correo informativo al propietario de la empresa.
+- `notification_log` clasifica los nuevos eventos dentro de Empresas y suscripciones, Seguridad y Canales.
+- La entrega de correo usa siempre la plantilla premium central de ZYNKO/NIVO.
+- Runtime, interfaz y schema sincronizados en **2.27.2**.
 
 
-## V2.27.3
-- NIVO Web Chat mantiene el ancho y alto aprobados del rail lateral.
-- Se elimina el fondo oscuro del contenedor lateral; Vista previa y NIVO quedan como tarjetas claras independientes sobre el fondo normal del sistema.
+### V2.27.2 · Foco inteligente de formularios
+- El cursor se coloca automáticamente en el primer campo utilizable de formularios y modales.
+- Se excluye el buscador global/público del dashboard y controles ocultos, deshabilitados o readonly.
+- Registro público inicia directamente en Empresa; login, recuperación y verificación respetan su primer campo.
+- Los modales usan el mismo criterio sin provocar scroll ni enfocar campos inválidos.
+
+
+### V2.27.3 · Términos y Condiciones administrables
+- El registro público incluye acceso visible a Términos y Condiciones junto al consentimiento.
+- Los términos se muestran en un modal ancho, responsive y consistente con la interfaz premium de ZYNKO.
+- El administrador principal puede editar y publicar el documento desde el Dashboard.
+- Cada publicación incrementa la versión automáticamente.
+- La solicitud de registro guarda la versión aceptada y la fecha/hora de aceptación.
+- Si los términos cambian mientras un usuario completa el formulario, ZYNKO exige recargar y aceptar la versión vigente.
+- Runtime, interfaz y schema sincronizados en **2.27.3**.
+
+
+### V2.27.5 · Header legal premium y composición refinada
+- Rediseña el encabezado del modal legal para aprovechar correctamente el ancho disponible.
+- Integra versión y fecha de publicación en tarjetas compactas dentro del header.
+- Mejora jerarquía visual, alineación, cierre y comportamiento responsive sin alterar la administración del documento.
+
+### V2.27.4 · Modal legal premium y términos ampliados
+- Modal público reconstruido con header y footer siempre visibles; solo el contenido legal tiene scroll.
+- Botón de confirmación visible y estable en desktop, tablet y móvil.
+- Cabecera, metadatos, estado del documento y pie legal refinados visualmente.
+- Términos base ampliados a 18 secciones para cubrir cuenta, usuarios, uso aceptable, canales, planes, facturación, datos, privacidad, integraciones, disponibilidad, suspensión, propiedad intelectual y cambios del documento.
+- El administrador principal puede seguir modificando título y contenido desde Dashboard → Términos y Condiciones → Administrar términos.
+- Si la instalación conserva exactamente el texto base V2.27.3 sin editar, se actualiza automáticamente al nuevo texto; contenido previamente personalizado no se sobrescribe.
+- Runtime, interfaz y schema sincronizados en **2.27.5**.
+
+
+### V2.27.7 · Corrección de espaciado del encabezado legal
+- Corrige el encabezado del modal legal que visualmente quedaba pegado al borde superior.
+- Aumenta el aire vertical real del header y centra correctamente icono, título y subtítulo.
+- Reubica el botón de cierre con separación uniforme respecto a los bordes.
+- Mantiene versión y fecha alineadas en escritorio sin comprimir el título.
+- Ajusta el espaciado de tablet y móvil sin provocar desbordes.
+- Mantiene footer fijo, scroll exclusivo en el cuerpo y edición de términos desde el Dashboard.
+- Runtime, interfaz y schema sincronizados en **2.27.7**.

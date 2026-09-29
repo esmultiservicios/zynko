@@ -1,8 +1,8 @@
 CREATE DATABASE IF NOT EXISTS zynko CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE zynko;
 
-CREATE TABLE tenants (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, slug VARCHAR(120) NOT NULL UNIQUE, status ENUM('trial','active','past_due','suspended','closed') NOT NULL DEFAULT 'trial', plan_id BIGINT UNSIGNED NULL, logo_path VARCHAR(255), logo_dark_path VARCHAR(255), favicon_path VARCHAR(255), primary_color VARCHAR(20) DEFAULT '#0F766E', secondary_color VARCHAR(20) DEFAULT '#0F172A', timezone VARCHAR(64) NOT NULL DEFAULT 'America/Tegucigalpa', locale ENUM('es','en') NOT NULL DEFAULT 'es', bot_name VARCHAR(100) NOT NULL DEFAULT 'NIVO', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-CREATE TABLE users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, avatar_path VARCHAR(500) NULL, password_hash VARCHAR(255) NOT NULL, locale ENUM('es','en') NOT NULL DEFAULT 'es', status ENUM('invited','active','disabled') NOT NULL DEFAULT 'active', mfa_enabled TINYINT(1) NOT NULL DEFAULT 0, last_login_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+CREATE TABLE tenants (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, business_id VARCHAR(80) NULL, contact_phone VARCHAR(50) NULL, registration_source VARCHAR(30) NULL, slug VARCHAR(120) NOT NULL UNIQUE, status ENUM('trial','active','past_due','suspended','closed') NOT NULL DEFAULT 'trial', plan_id BIGINT UNSIGNED NULL, logo_path VARCHAR(255), logo_dark_path VARCHAR(255), favicon_path VARCHAR(255), primary_color VARCHAR(20) DEFAULT '#0F766E', secondary_color VARCHAR(20) DEFAULT '#0F172A', timezone VARCHAR(64) NOT NULL DEFAULT 'America/Tegucigalpa', locale ENUM('es','en') NOT NULL DEFAULT 'es', bot_name VARCHAR(100) NOT NULL DEFAULT 'NIVO', created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+CREATE TABLE users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160) NOT NULL, email VARCHAR(190) NOT NULL UNIQUE, email_verified_at DATETIME NULL, avatar_path VARCHAR(500) NULL, password_hash VARCHAR(255) NOT NULL, locale ENUM('es','en') NOT NULL DEFAULT 'es', status ENUM('invited','active','disabled') NOT NULL DEFAULT 'active', mfa_enabled TINYINT(1) NOT NULL DEFAULT 0, last_login_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
 CREATE TABLE teams (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, INDEX(tenant_id));
 CREATE TABLE tenant_users (tenant_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, role_code VARCHAR(40) NOT NULL DEFAULT 'agent', team_id BIGINT UNSIGNED NULL, is_owner TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY(tenant_id,user_id), INDEX(team_id));
 CREATE TABLE roles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NULL, code VARCHAR(40) NOT NULL, name VARCHAR(80) NOT NULL, permissions_json JSON NOT NULL, UNIQUE KEY uq_role(tenant_id,code));
@@ -172,15 +172,72 @@ CREATE TABLE realtime_events (
 -- Commercial plan enforcement and external API hardening
 CREATE TABLE IF NOT EXISTS subscription_plans (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
- name VARCHAR(120) NOT NULL, monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0,
- currency VARCHAR(8) NOT NULL DEFAULT 'HNL', max_users INT NULL, max_channels INT NULL,
- features_json JSON NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+ code VARCHAR(50) NULL UNIQUE,
+ name VARCHAR(120) NOT NULL,
+ monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0,
+ currency VARCHAR(8) NOT NULL DEFAULT 'HNL',
+ max_users INT NULL,
+ max_channels INT NULL,
+ max_webchat_sites INT NULL,
+ max_daily_chats INT NULL,
+ allowed_channels_json JSON NULL,
+ module_access_json JSON NULL,
+ features_json JSON NULL,
+ is_default_free TINYINT(1) NOT NULL DEFAULT 0,
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS tenant_subscriptions (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
  plan_id BIGINT UNSIGNED NOT NULL, status VARCHAR(30) NOT NULL DEFAULT 'active',
  starts_at DATETIME NULL, ends_at DATETIME NULL, UNIQUE KEY uq_tenant_subscription(tenant_id)
 );
+
+CREATE TABLE IF NOT EXISTS plan_upgrade_requests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ plan_id BIGINT UNSIGNED NOT NULL,
+ requested_by BIGINT UNSIGNED NOT NULL,
+ status ENUM('pending','approved','rejected','cancelled') NOT NULL DEFAULT 'pending',
+ note VARCHAR(500) NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ resolved_at DATETIME NULL,
+ resolved_by BIGINT UNSIGNED NULL,
+ INDEX idx_plan_request_tenant_status(tenant_id,status,created_at),
+ INDEX idx_plan_request_plan_status(plan_id,status)
+);
+
+CREATE TABLE IF NOT EXISTS registration_requests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ company_name VARCHAR(160) NOT NULL,
+ business_id VARCHAR(80) NULL,
+ owner_name VARCHAR(160) NOT NULL,
+ phone VARCHAR(50) NULL,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ verification_code_hash VARCHAR(255) NOT NULL,
+ code_expires_at DATETIME NOT NULL,
+ attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+ send_count SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+ window_started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ last_sent_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ status ENUM('pending','verified','blocked') NOT NULL DEFAULT 'pending',
+ ip_address VARCHAR(64) NULL,
+ user_agent VARCHAR(500) NULL,
+ terms_version INT UNSIGNED NULL,
+ terms_accepted_at DATETIME NULL,
+ verified_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX(status,code_expires_at), INDEX(ip_address,last_sent_at)
+);
+
+INSERT IGNORE INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,allowed_channels_json,module_access_json,features_json,is_default_free,active)
+VALUES('free','Gratis',0,'HNL',1,1,1,5,
+ JSON_ARRAY('webchat'),
+ JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',0,'chatbot',0,'integrations',0,'email',0,'settings',0,'api',0),
+ JSON_ARRAY('NIVO Web Chat incluido','1 sitio web autorizado','Hasta 5 chats nuevos por día','1 usuario propietario'),1,1);
+
 CREATE TABLE IF NOT EXISTS api_request_logs (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
  api_key_id BIGINT UNSIGNED NOT NULL, endpoint VARCHAR(190) NOT NULL,
@@ -255,4 +312,72 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.27.3');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.27.7');
+
+
+-- V2.27.3 · Términos y Condiciones administrables
+CREATE TABLE IF NOT EXISTS legal_documents(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  document_key VARCHAR(80) NOT NULL UNIQUE,
+  title VARCHAR(190) NOT NULL,
+  content LONGTEXT NOT NULL,
+  version INT UNSIGNED NOT NULL DEFAULT 1,
+  updated_by BIGINT UNSIGNED NULL,
+  published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO legal_documents(document_key,title,content,version,updated_by,published_at) VALUES
+('terms_conditions','Términos y Condiciones','1. Objeto y alcance
+Estos Términos y Condiciones regulan el acceso, registro y uso de ZYNKO, una plataforma SaaS omnicanal para la gestión de conversaciones, canales, contactos, usuarios y herramientas asociadas. Al registrar una empresa o utilizar el servicio, la persona usuaria acepta cumplir estas condiciones y las políticas vigentes que resulten aplicables.
+
+2. Registro, cuenta y verificación
+La persona que registra una empresa declara que la información proporcionada es verdadera, actual y suficiente, y que cuenta con autorización para actuar en nombre de la empresa cuando corresponda. El correo electrónico debe verificarse mediante el código enviado por ZYNKO antes de completar la activación. Cada cuenta es personal y las credenciales no deben compartirse con personas no autorizadas.
+
+3. Administración de la empresa y usuarios autorizados
+La empresa es responsable de administrar sus usuarios, roles, permisos y accesos internos. Las acciones realizadas por usuarios autorizados se considerarán efectuadas dentro del ámbito de la cuenta empresarial, salvo evidencia de acceso no autorizado reportado oportunamente. La empresa debe retirar accesos cuando una persona deje de estar autorizada.
+
+4. Uso aceptable del servicio
+ZYNKO debe utilizarse de forma lícita, responsable y conforme a las reglas de los canales conectados. No se permite fraude, suplantación, spam, campañas no autorizadas, abuso, acoso, distribución de contenido ilícito, intento de acceso a cuentas ajenas, extracción masiva no autorizada, malware, ingeniería inversa abusiva ni actividades destinadas a degradar, interrumpir o evadir la seguridad o los límites del servicio.
+
+5. Mensajería, consentimiento y canales de terceros
+La empresa es responsable de contar con las autorizaciones, bases legales y consentimientos necesarios para contactar a sus clientes y procesar sus datos. WhatsApp, Meta, correo electrónico, sitios web y otros canales o integraciones pueden estar sujetos a términos, políticas, revisiones, límites y disponibilidad de terceros. ZYNKO no controla cambios, suspensiones o restricciones impuestas directamente por dichos proveedores.
+
+6. Plan Gratis y límites de uso
+El Plan Gratis incluye únicamente las capacidades, canales y límites mostrados en el registro o dentro de ZYNKO. Los límites pueden incluir cantidad de sitios, usuarios, conversaciones nuevas, almacenamiento, integraciones u otras capacidades. Cuando se alcance un límite, determinadas funciones pueden quedar restringidas hasta el siguiente período aplicable o hasta realizar un cambio de plan. Las condiciones visibles en el sistema prevalecen para determinar las capacidades vigentes del plan.
+
+7. Planes de pago, facturación y renovaciones
+Cuando la empresa contrate un plan de pago, se aplicarán el precio, moneda, ciclo, fecha de renovación, impuestos y condiciones de cobro mostrados al momento de la contratación o acordados comercialmente. La continuidad de funciones de pago puede depender de que la suscripción se encuentre activa y al día. Cualquier condición comercial especial acordada por escrito se aplicará únicamente a la cuenta correspondiente.
+
+8. Datos, propiedad y responsabilidad de la empresa
+La empresa conserva la responsabilidad sobre la información que incorpora, envía, recibe o administra mediante ZYNKO. Debe garantizar que cuenta con los derechos y autorizaciones necesarios sobre contactos, mensajes, archivos y demás contenido tratado en la plataforma. La empresa es responsable de la exactitud de sus datos y de las decisiones tomadas a partir de ellos.
+
+9. Privacidad y seguridad
+ZYNKO aplica medidas técnicas y organizativas razonables para proteger la confidencialidad, integridad y disponibilidad de la información, incluyendo separación lógica entre empresas y controles de acceso. Ningún sistema puede garantizar seguridad absoluta. La empresa debe proteger sus credenciales, utilizar contraseñas seguras y comunicar de inmediato cualquier sospecha de acceso no autorizado o incidente relacionado con su cuenta.
+
+10. Integraciones, API y servicios externos
+Las funciones conectadas con servicios externos, APIs, webhooks o proveedores de mensajería dependen de la disponibilidad y condiciones de dichos servicios. La empresa es responsable de custodiar claves, tokens y credenciales de integración que administre. ZYNKO puede limitar o revocar una integración que genere riesgo de seguridad, abuso o incumplimiento.
+
+11. Disponibilidad, mantenimiento y evolución del servicio
+ZYNKO puede realizar mantenimiento, correcciones, actualizaciones, mejoras técnicas, cambios de interfaz o ajustes necesarios para seguridad, rendimiento y continuidad. Cuando sea razonablemente posible, los mantenimientos que puedan afectar significativamente la disponibilidad serán gestionados buscando reducir el impacto operativo. Las funciones pueden evolucionar, ser sustituidas o reorganizadas entre versiones.
+
+12. Suspensión, restricciones y cierre de cuenta
+ZYNKO puede limitar, suspender o cerrar el acceso cuando exista incumplimiento grave de estos términos, uso abusivo, fraude, riesgo de seguridad, falta de pago en servicios contratados, requerimiento legal o afectación a terceros o a la infraestructura. Cuando corresponda y sea razonablemente posible, se comunicará la situación a la empresa para que pueda corregirla.
+
+13. Conservación, exportación y eliminación de información
+La disponibilidad de exportaciones, respaldos, retención y eliminación de información dependerá de las funciones del plan, la configuración de la cuenta y las obligaciones legales aplicables. Antes de cerrar definitivamente una cuenta, la empresa debe obtener las copias o exportaciones que necesite cuando la función esté disponible.
+
+14. Propiedad intelectual
+ZYNKO, su interfaz, software, componentes, documentación, marcas y elementos propios están protegidos por los derechos correspondientes. Estos términos no transfieren propiedad intelectual sobre la plataforma. La empresa conserva los derechos que le correspondan sobre su propio contenido y datos.
+
+15. Limitación razonable de responsabilidad
+ZYNKO busca ofrecer un servicio estable y seguro, pero pueden existir interrupciones, errores, eventos externos o fallas de proveedores de terceros. En la medida permitida por la normativa aplicable, ZYNKO no será responsable por pérdidas indirectas derivadas de usos indebidos, credenciales comprometidas por la empresa, fallas de servicios externos o decisiones tomadas exclusivamente con base en información ingresada por usuarios. Esta cláusula no excluye responsabilidades que legalmente no puedan limitarse.
+
+16. Cambios en estos Términos y Condiciones
+Estos términos pueden actualizarse para reflejar cambios legales, operativos, comerciales, de seguridad o funcionalidad. Cada publicación genera una nueva versión con su fecha correspondiente. Durante el registro se conserva la versión aceptada y la fecha de aceptación. Cuando un cambio requiera una nueva aceptación de usuarios existentes, ZYNKO podrá solicitarla dentro de la plataforma.
+
+17. Ley aplicable y disposiciones obligatorias
+La relación se interpretará conforme a la legislación aplicable a la entidad que presta el servicio y a las normas imperativas que correspondan al cliente. Si alguna disposición resulta inválida o inaplicable, las demás continuarán vigentes en la medida permitida por la ley.
+
+18. Contacto y soporte
+Las consultas relacionadas con estos Términos y Condiciones, seguridad, privacidad o administración de la cuenta deben realizarse mediante los canales oficiales de soporte informados dentro de ZYNKO o por el proveedor del servicio.',1,NULL,NOW());
