@@ -263,10 +263,17 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Se conserva la creación automática cuando el proveedor la permite.
 
 
-## V2.25.0
+## V2.25.1
 - Paquete de distribución limpio: `.env` y `storage/installed.lock` ya no forman parte del ZIP de instalación.
 - Instalador apto para instalación fresca local/hosting: genera `.env` y el lock al finalizar.
 - Verificación previa de PHP, PDO MySQL, OpenSSL, cURL y permisos de escritura.
 - Detección de URL mejorada para HTTPS y proxies (`X-Forwarded-Proto` / `X-Forwarded-Host`).
 - Base de datos compatible con creación automática o bases precreadas por cPanel/hosting con prefijos administrables.
 - Vista previa del nombre final evita duplicar el prefijo cuando ya forma parte del nombre.
+
+
+## V2.25.1
+- Front controller `index.php` en la raíz para hosting cuyo DocumentRoot apunta al proyecto.
+- `.htaccess` raíz desactiva listado de directorios, enruta recursos públicos y protege carpetas privadas.
+- Defensa adicional con `.htaccess` dentro de app/database/docs/routes/storage/websocket.
+- Compatible con acceso limpio desde la raíz sin tener que escribir `/public`.
