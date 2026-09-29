@@ -1,0 +1,43 @@
+ZYNKO - SEO / GOOGLE SEARCH CONSOLE - V2.28.1
+================================================
+
+ARCHIVOS SEO VISIBLES EN EL PROYECTO
+1. /robots.txt
+2. /sitemap.xml
+3. /SEO-APLICAR.txt
+4. /SEO-README.txt
+5. /public/robots.php        -> genera robots.txt con el dominio real
+6. /public/sitemap.php       -> genera sitemap.xml con el dominio real
+7. /public/site.webmanifest
+8. /public/assets/img/og-zynko.png
+
+ADMINISTRACION
+Dashboard > Configuración > SEO y posicionamiento
+
+Desde ahí la cuenta administradora principal puede cambiar:
+- Nombre del sitio
+- URL pública / canonical
+- Meta description
+- Locale Open Graph
+- Cuenta X / Twitter
+- Token HTML de Google Search Console
+- Token de Bing Webmaster Tools
+
+COMPORTAMIENTO
+- La portada pública / es indexable.
+- Login, registro, recuperación, verificación y dashboard permanecen noindex/nofollow.
+- robots.txt bloquea rutas internas y anuncia sitemap.xml.
+- sitemap.xml publica únicamente páginas públicas que realmente deben indexarse.
+- canonical, Open Graph, Twitter Card y JSON-LD usan la configuración SEO.
+- Si SEO > URL pública está vacía, se usa APP_URL del .env.
+
+GOOGLE SEARCH CONSOLE
+1. Publica el proyecto con HTTPS.
+2. En Configuración > SEO y posicionamiento coloca la URL pública real.
+3. Preferido: crea una propiedad de tipo Dominio y valida el TXT en DNS.
+4. Si usas verificación por etiqueta HTML, pega solo el token en Google Search Console.
+5. Envía https://TU-DOMINIO/sitemap.xml
+6. Comprueba https://TU-DOMINIO/robots.txt
+
+IMPORTANTE
+No indexar las áreas privadas del SaaS. El objetivo del SEO es posicionar la portada pública y futuras páginas públicas de marketing, no pantallas internas del sistema.

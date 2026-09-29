@@ -1,0 +1,31 @@
+# ZYNKO robots.txt
+# Archivo físico de respaldo. En Apache, /.htaccess sirve la versión dinámica de public/robots.php.
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /database/
+Disallow: /docs/
+Disallow: /routes/
+Disallow: /storage/
+Disallow: /websocket/
+Disallow: /api.php
+Disallow: /webchat-api.php
+Disallow: /install.php
+Disallow: /*?page=login
+Disallow: /*?page=register
+Disallow: /*?page=verify-email
+Disallow: /*?page=forgot-password
+Disallow: /*?page=reset-password
+Disallow: /*?page=dashboard
+Disallow: /*?page=inbox
+Disallow: /*?page=channels
+Disallow: /*?page=webchat
+Disallow: /*?page=users
+Disallow: /*?page=chatbot
+Disallow: /*?page=integrations
+Disallow: /*?page=billing
+Disallow: /*?page=email
+Disallow: /*?page=settings
+Disallow: /*?page=onboarding
+
+# La URL absoluta del sitemap la genera public/robots.php usando SEO > URL pública o APP_URL.

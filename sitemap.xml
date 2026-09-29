@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ ZYNKO sitemap.xml - archivo físico de respaldo/documentación.
+ En Apache, /.htaccess sirve dinámicamente public/sitemap.php para insertar el dominio configurado.
+ La portada pública es actualmente la única URL indexable del sistema.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>

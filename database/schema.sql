@@ -312,7 +312,15 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.28.0');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.28.1');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
+('seo_site_name','ZYNKO'),
+('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),
+('seo_site_url',''),
+('seo_locale','es_HN'),
+('seo_twitter',''),
+('seo_google_verification',''),
+('seo_bing_verification','');
 
 
 -- V2.27.3 · Términos y Condiciones administrables

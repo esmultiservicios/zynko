@@ -1,18 +1,21 @@
-ZYNKO - SEO TECNICO V2.28.0
+ZYNKO - SEO TECNICO V2.28.1
 
-ARCHIVOS / FUNCIONES
-- /robots.txt se genera dinámicamente desde public/robots.php.
-- /sitemap.xml se genera dinámicamente desde public/sitemap.php.
-- APP_URL del .env define el dominio canónico usado en robots, sitemap, Open Graph y datos estructurados.
+IMPLEMENTADO
+- /robots.txt físico visible en la raíz y copia en /public.
+- /sitemap.xml físico visible en la raíz y copia en /public.
+- En Apache, ambos endpoints son servidos dinámicamente por robots.php y sitemap.php para usar el dominio configurado.
+- Administrador SEO en Dashboard > Configuración > SEO y posicionamiento.
+- URL pública/canonical administrable con fallback a APP_URL.
+- Meta title/description, robots, canonical, Open Graph, Twitter Card y JSON-LD.
+- Tokens HTML para Google Search Console y Bing Webmaster Tools.
 - La portada pública / es indexable.
-- Login, registro, recuperación, verificación y todo el dashboard llevan noindex/nofollow.
-- APIs, instalador y directorios privados se excluyen de rastreo.
-- La portada incluye title, description, canonical, Open Graph, Twitter Card y JSON-LD (Organization, SoftwareApplication y WebSite).
-- site.webmanifest y una imagen social 1200x630 están incluidos.
+- Login, registro, recuperación, verificación y dashboard llevan noindex/nofollow.
+- APIs, instalador y directorios privados quedan fuera del rastreo.
+- site.webmanifest e imagen social 1200x630 incluidos.
 
 ANTES DE PUBLICAR
-1. En .env configura APP_URL con el dominio HTTPS real, sin slash final. Ejemplo: APP_URL=https://zynko.tudominio.com
-2. Opcional: ajusta SEO_SITE_NAME, SEO_DESCRIPTION y SEO_LOCALE.
-3. Abre /robots.txt y /sitemap.xml en producción y confirma que muestran el dominio correcto.
-4. Registra /sitemap.xml en Google Search Console y Bing Webmaster Tools.
-5. No indexes el dashboard: ZYNKO ya lo bloquea intencionalmente.
+1. Configura la URL pública desde Dashboard > Configuración > SEO y posicionamiento o APP_URL en .env.
+2. Abre /robots.txt y /sitemap.xml en producción.
+3. Verifica Search Console preferiblemente con propiedad de Dominio/DNS.
+4. Envía /sitemap.xml en Google Search Console y Bing Webmaster Tools.
+5. Cuando ZYNKO tenga nuevas páginas públicas reales, agrégalas al generador public/sitemap.php; no agregues pantallas privadas.

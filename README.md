@@ -424,3 +424,37 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Login, registro, recuperación, verificación y área privada quedan con `noindex,nofollow`.
 - `site.webmanifest`, imagen social y guía `SEO-README.txt`.
 - El dominio canónico se controla desde `.env`, evitando URLs hardcodeadas.
+
+
+### V2.28.2 · SEO físico + administrador de posicionamiento
+- Agrega `robots.txt` y `sitemap.xml` visibles físicamente en la raíz del proyecto y en `public/`.
+- Mantiene generación dinámica en Apache para que ambos endpoints usen el dominio real configurado.
+- Agrega `SEO-APLICAR.txt` con guía de Search Console y publicación.
+- Incorpora **Configuración > SEO y posicionamiento** para la cuenta administradora principal.
+- Permite administrar nombre del sitio, URL canonical, meta description, locale, Twitter/X y tokens de Google/Bing.
+- La portada pública consume la configuración SEO guardada y mantiene fallback al `.env`.
+- Conserva `noindex,nofollow` en login, registro, recuperación, verificación y todas las áreas privadas.
+
+
+### V2.28.3 · Rail NIVO restaurado al ancho completo
+- Recupera el ancho completo de la columna derecha de NIVO Web Chat.
+- Evita que la vista previa y la tarjeta de acompañamiento se encojan al ancho del contenido.
+- Restaura una altura visual premium para la vista previa y la tarjeta de NIVO.
+- Mantiene el comportamiento responsive en escritorio, tablet y móvil.
+- Conserva intactos SEO, Search Console, Términos y la identidad visual de NIVO.
+
+
+### V2.28.4 · NIVO limpio, altura sincronizada y animación restaurada
+- Corrige la colisión del `aside` interno de NIVO Web Chat con el sidebar global; elimina el fondo navy accidental.
+- Sincroniza en escritorio la altura del rail derecho con el card **Diseño y comportamiento**.
+- Mantiene Vista previa y la tarjeta de NIVO dentro de esa misma altura, sin desbordes.
+- Restaura movimiento sutil de la mascota en la tarjeta NIVO de **NIVO Web Chat** y **NIVO · IA**.
+- Añade animación suave también a la mascota acompañante, respetando `prefers-reduced-motion`.
+- Conserva comportamiento responsive en escritorio, tablet y móvil sin tocar SEO, Términos ni funciones existentes.
+
+
+### V2.28.5 · KPIs NIVO interactivos y estado inactivo corregido
+- Corrige la animación de entrada de las métricas para que no bloquee el movimiento al pasar el mouse.
+- Restaura hover premium en las cards de uso de NIVO Web Chat: elevación, sombra, borde, icono y valor.
+- Cambia el estado Inactivo de NIVO IA a una señal ámbar profesional, reservando el verde únicamente para Activo/Conectado.
+- Mantiene responsive, identidad NIVO, SEO, Search Console y Términos ya aprobados.

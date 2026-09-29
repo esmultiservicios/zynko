@@ -2,11 +2,15 @@
 $env=envConfig($root.'/.env');
 $scheme=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')?'https':'http';
 $host=$_SERVER['HTTP_HOST']??'localhost';
-$configured=trim((string)($env['APP_URL']??''));
+$seo=[];try{$rows=appDb()->query("SELECT setting_key,setting_value FROM system_settings WHERE setting_key LIKE 'seo_%'")->fetchAll();foreach($rows as $r)$seo[$r['setting_key']]=$r['setting_value'];}catch(Throwable $e){}
+$configured=trim((string)($seo['seo_site_url']??''));if($configured==='')$configured=trim((string)($env['APP_URL']??''));
 $baseUrl=$configured!==''?rtrim($configured,'/'):$scheme.'://'.$host;
-$siteName=trim((string)($env['SEO_SITE_NAME']??'ZYNKO'))?:'ZYNKO';
-$description=trim((string)($env['SEO_DESCRIPTION']??'Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'));
-$locale=trim((string)($env['SEO_LOCALE']??'es_HN'))?:'es_HN';
+$siteName=trim((string)($seo['seo_site_name']??($env['SEO_SITE_NAME']??'ZYNKO')))?:'ZYNKO';
+$description=trim((string)($seo['seo_description']??($env['SEO_DESCRIPTION']??'Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.')));
+$locale=trim((string)($seo['seo_locale']??($env['SEO_LOCALE']??'es_HN')))?:'es_HN';
+$twitter=trim((string)($seo['seo_twitter']??($env['SEO_TWITTER']??'')));
+$googleVerification=trim((string)($seo['seo_google_verification']??''));
+$bingVerification=trim((string)($seo['seo_bing_verification']??''));
 $ogImage=$baseUrl.'/assets/img/og-zynko.png';
 $canonical=$baseUrl.'/';
 $schema=[
@@ -21,11 +25,13 @@ $schema=[
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ZYNKO | Plataforma omnicanal para conversaciones y atención al cliente</title>
 <meta name="description" content="<?=htmlspecialchars($description,ENT_QUOTES,'UTF-8')?>">
+<?php if($googleVerification!==''):?><meta name="google-site-verification" content="<?=htmlspecialchars($googleVerification,ENT_QUOTES,'UTF-8')?>"><?php endif?>
+<?php if($bingVerification!==''):?><meta name="msvalidate.01" content="<?=htmlspecialchars($bingVerification,ENT_QUOTES,'UTF-8')?>"><?php endif?>
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <link rel="canonical" href="<?=htmlspecialchars($canonical,ENT_QUOTES,'UTF-8')?>">
 <meta property="og:type" content="website"><meta property="og:site_name" content="<?=htmlspecialchars($siteName,ENT_QUOTES,'UTF-8')?>"><meta property="og:locale" content="<?=htmlspecialchars($locale,ENT_QUOTES,'UTF-8')?>">
 <meta property="og:title" content="ZYNKO | Atención omnicanal desde un solo lugar"><meta property="og:description" content="<?=htmlspecialchars($description,ENT_QUOTES,'UTF-8')?>"><meta property="og:url" content="<?=htmlspecialchars($canonical,ENT_QUOTES,'UTF-8')?>"><meta property="og:image" content="<?=htmlspecialchars($ogImage,ENT_QUOTES,'UTF-8')?>"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="ZYNKO | Atención omnicanal"><meta name="twitter:description" content="<?=htmlspecialchars($description,ENT_QUOTES,'UTF-8')?>"><meta name="twitter:image" content="<?=htmlspecialchars($ogImage,ENT_QUOTES,'UTF-8')?>">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="ZYNKO | Atención omnicanal"><meta name="twitter:description" content="<?=htmlspecialchars($description,ENT_QUOTES,'UTF-8')?>"><meta name="twitter:image" content="<?=htmlspecialchars($ogImage,ENT_QUOTES,'UTF-8')?>"><?php if($twitter!==''):?><meta name="twitter:site" content="<?=htmlspecialchars($twitter,ENT_QUOTES,'UTF-8')?>"><?php endif?>
 <meta name="theme-color" content="#0f766e"><link rel="icon" href="assets/img/favicon.svg"><link rel="manifest" href="site.webmanifest">
 <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css"><link rel="stylesheet" href="assets/css/seo-home.css?v=<?=filemtime(__DIR__.'/../../public/assets/css/seo-home.css')?>">
 <script type="application/ld+json"><?=json_encode($schema,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)?></script>

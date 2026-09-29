@@ -933,3 +933,228 @@ body:not(.sidebar-hidden) form .panel{max-width:100%!important;overflow:hidden!i
     min-width:0!important;
   }
 }
+
+/* ZYNKO V2.28.1 · SEO Manager */
+.seo-admin-panel .panel-head{align-items:center;gap:18px}
+.seo-admin-panel .status-chip{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;padding:8px 12px;border:1px solid #bfe9e1;border-radius:999px;background:#effcf8;color:#087f6d;font-size:12px;font-weight:800}
+.seo-file-status{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.seo-file-status>div{display:flex;align-items:flex-start;gap:11px;padding:13px 14px;border:1px solid #dbe5ec;border-radius:14px;background:#fbfdff}
+.seo-file-status>div>i{display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:10px;background:#eaf9f5;color:#089981}
+.seo-file-status span{display:flex;min-width:0;flex-direction:column;gap:3px}
+.seo-file-status b{font-size:13px;color:#10263a}
+.seo-file-status small{line-height:1.45;color:#718096}
+.seo-admin-panel textarea{resize:vertical;min-height:92px}
+@media(max-width:860px){.seo-file-status{grid-template-columns:1fr}.seo-admin-panel .panel-head{align-items:flex-start}.seo-admin-panel .status-chip{display:none}}
+
+
+/* ZYNKO V2.28.2 · Identidad visual NIVO restaurada */
+.nivo-page-welcome{align-items:center!important;gap:18px!important}.nivo-welcome-tools{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}.nivo-identity-card{display:flex;align-items:center;gap:10px;min-width:188px;padding:7px 11px 7px 7px;border:1px solid #dce9e6;border-radius:14px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.07)}.nivo-identity-card img{width:46px;height:46px;object-fit:contain;object-position:center;border-radius:11px;background:#f4fbf9}.nivo-identity-card span{display:grid;gap:2px;min-width:0}.nivo-identity-card b{font-size:13px;line-height:1.2;color:var(--text,#122033)}.nivo-identity-card small{font-size:10px;line-height:1.25;color:var(--muted,#64748b);white-space:nowrap}.nivo-webchat-rail{min-width:0;display:grid;gap:14px;align-self:start;position:sticky;top:88px}.nivo-webchat-rail .webchat-preview{position:static!important;top:auto!important}.nivo-companion-card{overflow:hidden;border:1px solid #dce9e6;border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,23,42,.07)}.nivo-companion-copy{padding:14px 16px 10px;display:grid;gap:4px}.nivo-companion-copy b{font-size:13px;color:var(--text,#122033)}.nivo-companion-copy small{font-size:11px;line-height:1.45;color:var(--muted,#64748b)}.nivo-companion-visual{height:164px;display:flex;align-items:flex-end;justify-content:center;overflow:hidden;background:linear-gradient(180deg,#f8fffd 0%,#eefaf7 100%)}.nivo-companion-visual img{display:block;width:min(78%,230px);height:185px;object-fit:contain;object-position:center bottom;transform:translateY(8px)}
+@media(max-width:1180px){.nivo-webchat-rail{position:static!important;top:auto!important;grid-template-columns:minmax(0,1fr) minmax(240px,.45fr);align-items:start}.nivo-companion-card{height:100%}.nivo-companion-visual{min-height:220px;height:calc(100% - 70px)}}
+@media(max-width:760px){.nivo-page-welcome{align-items:flex-start!important}.nivo-welcome-tools{width:100%;margin-left:0;justify-content:flex-start}.nivo-identity-card{min-width:0;flex:1 1 190px}.nivo-webchat-rail{grid-template-columns:1fr}.nivo-companion-visual{height:180px;min-height:0}.nivo-companion-visual img{height:200px}.nivo-welcome-tools .status-badge{flex:0 0 auto}}
+
+
+/* ZYNKO V2.28.3 · Rail NIVO a ancho completo y altura restaurada */
+.nivo-webchat-page .webchat-layout{grid-template-columns:minmax(0,1fr) minmax(340px,380px)!important;align-items:start!important}
+.nivo-webchat-page .nivo-webchat-rail{width:100%!important;min-width:340px!important;display:grid!important;grid-template-columns:1fr!important;gap:16px!important;justify-self:stretch!important;align-self:start!important;position:sticky!important;top:88px!important}
+.nivo-webchat-page .nivo-webchat-rail>*{width:100%!important;max-width:none!important;min-width:0!important}
+.nivo-webchat-page .webchat-preview,.nivo-webchat-page .nivo-companion-card{width:100%!important;margin:0!important}
+.nivo-webchat-page .preview-stage{width:100%!important;min-height:500px!important;padding:18px 18px 28px!important;display:flex!important;align-items:stretch!important;justify-content:center!important;overflow:hidden!important}
+.nivo-webchat-page .preview-chat{width:100%!important;max-width:100%!important;min-height:348px!important;display:flex!important;flex-direction:column!important;align-self:center!important}
+.nivo-webchat-page .preview-head{min-height:96px!important;align-items:flex-start!important}
+.nivo-webchat-page .preview-head>div{min-width:0!important}
+.nivo-webchat-page .preview-head b,.nivo-webchat-page .preview-head small{display:block!important;white-space:normal!important}
+.nivo-webchat-page .preview-body{flex:1 1 auto!important;min-height:0!important}
+.nivo-webchat-page .preview-body span{max-width:78%!important}
+.nivo-webchat-page .preview-input{margin-top:auto!important}
+.nivo-webchat-page .preview-launcher{right:20px!important;bottom:20px!important}
+.nivo-webchat-page .nivo-companion-visual{height:220px!important;min-height:220px!important}
+.nivo-webchat-page .nivo-companion-visual img{width:min(88%,260px)!important;height:220px!important;transform:translateY(10px)!important}
+@media(max-width:1360px){.nivo-webchat-page .webchat-layout{grid-template-columns:minmax(0,1fr) minmax(320px,360px)!important}.nivo-webchat-page .nivo-webchat-rail{min-width:320px!important}.nivo-webchat-page .preview-stage{min-height:470px!important}}
+@media(max-width:1180px){.nivo-webchat-page .webchat-layout{grid-template-columns:1fr!important}.nivo-webchat-page .nivo-webchat-rail{min-width:0!important;position:static!important;top:auto!important;grid-template-columns:minmax(0,1fr) minmax(260px,.42fr)!important}.nivo-webchat-page .preview-stage{min-height:430px!important}.nivo-webchat-page .nivo-companion-card{height:100%!important}.nivo-webchat-page .nivo-companion-visual{height:calc(100% - 70px)!important;min-height:230px!important}.nivo-webchat-page .nivo-companion-visual img{height:210px!important}}
+@media(max-width:760px){.nivo-webchat-page .nivo-webchat-rail{grid-template-columns:1fr!important}.nivo-webchat-page .preview-stage{min-height:360px!important;padding:16px 16px 24px!important}.nivo-webchat-page .preview-chat{min-height:310px!important}.nivo-webchat-page .nivo-companion-visual{height:190px!important;min-height:190px!important}.nivo-webchat-page .nivo-companion-visual img{height:200px!important}}
+
+
+/* ZYNKO V2.28.4 · Rail NIVO limpio, altura sincronizada y mascota animada */
+.nivo-webchat-page .webchat-layout{align-items:start!important}
+.nivo-webchat-page .nivo-webchat-rail{
+  width:100%!important;
+  min-width:340px!important;
+  display:grid!important;
+  grid-template-columns:1fr!important;
+  grid-template-rows:minmax(0,1fr) minmax(210px,30%)!important;
+  gap:16px!important;
+  justify-self:stretch!important;
+  align-self:start!important;
+  position:sticky!important;
+  top:88px!important;
+  padding:0!important;
+  margin:0!important;
+  background:transparent!important;
+  color:inherit!important;
+  overflow:hidden!important;
+}
+.nivo-webchat-page .nivo-webchat-rail>.webchat-preview,
+.nivo-webchat-page .nivo-webchat-rail>.nivo-companion-card{
+  width:100%!important;
+  max-width:none!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+}
+.nivo-webchat-page .nivo-webchat-rail>.webchat-preview{
+  display:flex!important;
+  flex-direction:column!important;
+  height:100%!important;
+  overflow:hidden!important;
+}
+.nivo-webchat-page .webchat-preview .panel-head{flex:0 0 auto!important}
+.nivo-webchat-page .preview-stage{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  padding:18px 18px 22px!important;
+  display:flex!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+}
+.nivo-webchat-page .preview-chat{
+  width:100%!important;
+  max-width:100%!important;
+  min-height:0!important;
+  height:100%!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+.nivo-webchat-page .preview-head{flex:0 0 auto!important;min-height:92px!important}
+.nivo-webchat-page .preview-body{flex:1 1 auto!important;min-height:120px!important}
+.nivo-webchat-page .preview-input{flex:0 0 auto!important}
+.nivo-webchat-page .nivo-companion-card{
+  display:flex!important;
+  flex-direction:column!important;
+  height:100%!important;
+  overflow:hidden!important;
+  background:var(--surface,#fff)!important;
+}
+.nivo-webchat-page .nivo-companion-copy{flex:0 0 auto!important}
+.nivo-webchat-page .nivo-companion-visual{
+  flex:1 1 auto!important;
+  height:auto!important;
+  min-height:0!important;
+  background:#f6fcfa!important;
+}
+.nivo-webchat-page .nivo-companion-visual img{
+  width:min(82%,250px)!important;
+  height:100%!important;
+  max-height:220px!important;
+  object-fit:contain!important;
+  object-position:center bottom!important;
+}
+
+/* NIVO no queda estático: movimiento sutil y continuo en Web Chat e IA */
+.nivo-identity-card{position:relative!important;overflow:visible!important;isolation:isolate}
+.nivo-identity-card img{animation:nivoMascotFloat 3.2s ease-in-out infinite!important;will-change:transform,filter}
+.nivo-identity-card:after{content:"";position:absolute;left:19px;bottom:5px;width:34px;height:7px;border-radius:50%;background:rgba(13,128,107,.12);filter:blur(4px);z-index:-1;animation:nivoMascotShadow 3.2s ease-in-out infinite}
+.nivo-companion-visual img{animation:nivoMascotWave 4.1s ease-in-out infinite!important;transform-origin:50% 82%!important;will-change:transform}
+@keyframes nivoMascotFloat{0%,100%{transform:translateY(0) rotate(0deg);filter:drop-shadow(0 5px 7px rgba(13,128,107,.05))}25%{transform:translateY(-3px) rotate(-1.2deg)}50%{transform:translateY(-6px) rotate(.8deg);filter:drop-shadow(0 9px 10px rgba(13,128,107,.12))}75%{transform:translateY(-2px) rotate(1.1deg)}}
+@keyframes nivoMascotShadow{0%,100%{transform:scaleX(1);opacity:.8}50%{transform:scaleX(.78);opacity:.45}}
+@keyframes nivoMascotWave{0%,100%{transform:translateY(8px) rotate(0deg)}25%{transform:translateY(4px) rotate(-1deg)}50%{transform:translateY(1px) rotate(1.2deg)}75%{transform:translateY(5px) rotate(-.6deg)}}
+@media(prefers-reduced-motion:reduce){.nivo-identity-card img,.nivo-identity-card:after,.nivo-companion-visual img{animation:none!important}}
+
+@media(max-width:1180px){
+  .nivo-webchat-page .nivo-webchat-rail{
+    height:auto!important;
+    min-width:0!important;
+    position:static!important;
+    top:auto!important;
+    grid-template-columns:minmax(0,1fr) minmax(260px,.42fr)!important;
+    grid-template-rows:auto!important;
+    overflow:visible!important;
+  }
+  .nivo-webchat-page .nivo-webchat-rail>.webchat-preview,
+  .nivo-webchat-page .nivo-webchat-rail>.nivo-companion-card{height:auto!important}
+  .nivo-webchat-page .preview-stage{min-height:430px!important}
+  .nivo-webchat-page .preview-chat{min-height:350px!important;height:auto!important}
+  .nivo-webchat-page .nivo-companion-visual{min-height:230px!important}
+  .nivo-webchat-page .nivo-companion-visual img{height:220px!important;max-height:220px!important}
+}
+@media(max-width:760px){
+  .nivo-page-welcome{gap:14px!important}
+  .nivo-welcome-tools{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;width:100%!important;gap:10px!important}
+  .nivo-identity-card{width:100%!important;min-width:0!important;max-width:100%!important}
+  .nivo-identity-card small{white-space:normal!important}
+  .nivo-webchat-page .nivo-webchat-rail{grid-template-columns:1fr!important}
+  .nivo-webchat-page .preview-stage{min-height:360px!important;padding:16px!important}
+  .nivo-webchat-page .preview-chat{min-height:320px!important}
+  .nivo-webchat-page .nivo-companion-visual{min-height:190px!important}
+  .nivo-webchat-page .nivo-companion-visual img{height:200px!important;max-height:200px!important}
+}
+@media(max-width:480px){
+  .nivo-welcome-tools{grid-template-columns:1fr!important}
+  .nivo-welcome-tools .status-badge{justify-self:start!important}
+  .nivo-identity-card{padding-right:9px!important}
+}
+
+
+/* ZYNKO V2.28.5 · KPIs NIVO interactivos + estado inactivo semántico */
+/* La animación de entrada ya no conserva el transform al finalizar; así el hover vuelve a responder. */
+.nivo-webchat-page .webchat-kpi.kpi-enter{
+  animation-name:webchatKpiEnter!important;
+  animation-duration:.45s!important;
+  animation-timing-function:ease!important;
+  animation-fill-mode:backwards!important;
+}
+.nivo-webchat-page .webchat-kpi{
+  transform:translate3d(0,0,0);
+  transform-origin:center;
+  transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important;
+  will-change:transform;
+}
+@media (hover:hover) and (pointer:fine){
+  .nivo-webchat-page .webchat-kpi:hover{
+    transform:translate3d(0,-6px,0) scale(1.012)!important;
+    box-shadow:0 16px 34px rgba(15,35,55,.12)!important;
+    border-color:rgba(15,118,110,.34)!important;
+    background:#fff!important;
+  }
+  .nivo-webchat-page .webchat-kpi:hover::after{
+    transform:scale(1.45) translate3d(-3px,-2px,0)!important;
+    opacity:1!important;
+  }
+  .nivo-webchat-page .webchat-kpi:hover>span{
+    transform:translateY(-1px) scale(1.1) rotate(-3deg)!important;
+    box-shadow:0 9px 20px rgba(7,139,118,.16)!important;
+  }
+  .nivo-webchat-page .webchat-kpi:hover b{
+    transform:scale(1.065)!important;
+    color:#078b76!important;
+  }
+}
+/* Inactivo no puede usar el verde reservado para estados activos/conectados. */
+.nivo-page-welcome .status-badge.inactive{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:7px!important;
+  background:#fff7e8!important;
+  color:#8a5600!important;
+  border:1px solid #f2cf8e!important;
+  box-shadow:0 5px 14px rgba(138,86,0,.06)!important;
+}
+.nivo-page-welcome .status-badge.inactive i{
+  color:#d58a00!important;
+  margin-right:0!important;
+}
+.nivo-page-welcome .status-badge.connected{
+  background:#e9f8f4!important;
+  color:#08705c!important;
+  border:1px solid #ccefe4!important;
+}
+.nivo-page-welcome .status-badge.connected i{color:#0fa98b!important}
+@media(max-width:760px){
+  .nivo-webchat-page .webchat-kpi{will-change:auto}
+}
+@media(prefers-reduced-motion:reduce){
+  .nivo-webchat-page .webchat-kpi.kpi-enter{animation:none!important}
+  .nivo-webchat-page .webchat-kpi{transition:border-color .18s ease,box-shadow .18s ease!important}
+}
