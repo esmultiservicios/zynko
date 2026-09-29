@@ -36,7 +36,7 @@ CREATE TABLE channels (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id 
 CREATE TABLE contacts (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(160), phone VARCHAR(40), email VARCHAR(190), avatar_url VARCHAR(500), custom_fields JSON NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX(tenant_id,phone), INDEX(tenant_id,email));
 CREATE TABLE contact_identities (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, channel_id BIGINT UNSIGNED NOT NULL, external_id VARCHAR(190) NOT NULL, profile_json JSON NULL, UNIQUE KEY uq_identity(channel_id,external_id));
 CREATE TABLE contact_external_refs (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, external_system VARCHAR(80) NOT NULL, external_id VARCHAR(190) NOT NULL, UNIQUE KEY uq_ext(tenant_id,external_system,external_id));
-CREATE TABLE conversations (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, channel_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, assigned_user_id BIGINT UNSIGNED NULL, team_id BIGINT UNSIGNED NULL, status ENUM('open','pending','resolved','closed') NOT NULL DEFAULT 'open', priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal', unread_count INT NOT NULL DEFAULT 0, last_message_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,status,last_message_at));
+CREATE TABLE conversations (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, channel_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, assigned_user_id BIGINT UNSIGNED NULL, team_id BIGINT UNSIGNED NULL, status ENUM('open','pending','resolved','closed') NOT NULL DEFAULT 'open', priority ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal', unread_count INT NOT NULL DEFAULT 0, last_message_at DATETIME NULL, archived_at DATETIME NULL, deleted_at DATETIME NULL, deleted_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,status,last_message_at), INDEX(tenant_id,archived_at), INDEX(tenant_id,deleted_at));
 CREATE TABLE messages (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, external_message_id VARCHAR(190) NULL, direction ENUM('in','out') NOT NULL, sender_type ENUM('contact','user','bot','system') NOT NULL, sender_user_id BIGINT UNSIGNED NULL, type VARCHAR(40) NOT NULL DEFAULT 'text', body TEXT NULL, media_json JSON NULL, status VARCHAR(40) NULL, sent_at DATETIME NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_external(tenant_id,external_message_id), INDEX(conversation_id,sent_at));
 CREATE TABLE media_library (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, original_name VARCHAR(255) NOT NULL, stored_path VARCHAR(500) NOT NULL, mime_type VARCHAR(120) NOT NULL, size_bytes BIGINT UNSIGNED NOT NULL, purpose ENUM('branding','chat','template','attachment') NOT NULL DEFAULT 'attachment', uploaded_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,purpose));
 CREATE TABLE conversation_notes (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, body TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
@@ -273,7 +273,21 @@ CREATE TABLE IF NOT EXISTS inbox_preferences (
   channel_type VARCHAR(40) NOT NULL DEFAULT 'all',
   assignment_filter VARCHAR(30) NOT NULL DEFAULT 'all',
   priority_filter VARCHAR(30) NOT NULL DEFAULT 'all',
+  category_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  state_filter VARCHAR(30) NOT NULL DEFAULT 'active',
+  attention_filter VARCHAR(30) NOT NULL DEFAULT 'all',
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS conversation_audit_logs(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  action VARCHAR(40) NOT NULL,
+  details_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_conv_audit(tenant_id,conversation_id,created_at)
 );
 
 
@@ -312,7 +326,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.1');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.3');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

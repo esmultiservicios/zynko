@@ -1881,3 +1881,332 @@ body:has(.inbox-premium-toolbar) .followup-submit{margin-top:1px!important}
 @media(max-width:1050px) and (min-width:761px){body:has(.inbox-premium-toolbar) .inbox-layout{grid-template-columns:minmax(270px,300px) minmax(360px,1fr)!important}.chat-head .chat-actions{gap:5px!important}.chat-head .chat-actions .soft{padding:7px 9px!important}.info{display:none!important}}
 @media(max-width:760px){body:has(.inbox-premium-toolbar) .inbox-layout{grid-template-columns:1fr!important;gap:12px!important}.chat-head{align-items:flex-start!important;flex-direction:column!important}.chat-head .chat-actions{width:100%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}.chat-head .chat-actions .soft{width:100%!important;padding:7px 6px!important}.message-wrap{max-width:88%!important}.composer-line .primary span{display:none}.composer-line .primary{width:46px!important;padding:0!important;justify-content:center!important}.customer-facts{grid-template-columns:repeat(3,minmax(0,1fr))!important}.info{display:block!important;max-height:none!important;overflow:visible!important}.info-title{position:static!important;margin:-14px -14px 8px!important}.conversation-scroll{max-height:360px!important}}
 @media(max-width:430px){body:has(.inbox-premium-toolbar) .customer-facts{grid-template-columns:1fr!important}.chat-head .chat-actions{grid-template-columns:1fr!important}.chat-head .chat-actions .soft{min-height:38px!important}.conversation-meta span{font-size:9px!important}.message-wrap{max-width:94%!important}}
+
+/* ZYNKO V2.31.2 · Bandeja final: columnas alineadas, compositor visible y Cliente 360 compacto */
+body:has(.inbox-premium-toolbar) .inbox-layout{
+  align-items:stretch!important;
+  grid-auto-rows:minmax(0,1fr)!important;
+  gap:12px!important;
+}
+body:has(.inbox-premium-toolbar) .inbox-layout>.panel{
+  margin:0!important;
+  height:100%!important;
+  min-height:0!important;
+  align-self:stretch!important;
+  overflow:hidden!important;
+}
+
+/* Lista izquierda: limpia, sin apariencia de enlaces/subrayados */
+body:has(.inbox-premium-toolbar) .conv-list{
+  display:flex!important;
+  flex-direction:column!important;
+}
+body:has(.inbox-premium-toolbar) .conversation-scroll{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:2px 2px 10px!important;
+}
+body:has(.inbox-premium-toolbar) a.conversation,
+body:has(.inbox-premium-toolbar) a.conversation:link,
+body:has(.inbox-premium-toolbar) a.conversation:visited,
+body:has(.inbox-premium-toolbar) a.conversation:hover,
+body:has(.inbox-premium-toolbar) a.conversation:active{
+  color:var(--text)!important;
+  text-decoration:none!important;
+}
+body:has(.inbox-premium-toolbar) .conversation *,
+body:has(.inbox-premium-toolbar) .conversation-line b,
+body:has(.inbox-premium-toolbar) .conversation-copy p,
+body:has(.inbox-premium-toolbar) .conversation-meta span{
+  text-decoration:none!important;
+}
+body:has(.inbox-premium-toolbar) .conversation-line b{
+  color:#10283a!important;
+  font-weight:850!important;
+}
+body:has(.inbox-premium-toolbar) .conversation-copy p{
+  color:#65788b!important;
+  line-height:1.35!important;
+}
+
+/* Centro: encabezado compacto y área de respuesta siempre visible */
+body:has(.inbox-premium-toolbar) .chat{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+}
+body:has(.inbox-premium-toolbar) .chat-head{
+  flex:0 0 auto!important;
+  min-height:72px!important;
+  padding:11px 14px!important;
+}
+body:has(.inbox-premium-toolbar) .chat-head .chat-actions{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  gap:7px!important;
+}
+body:has(.inbox-premium-toolbar) .chat-head .chat-actions .soft{
+  min-width:0!important;
+  height:36px!important;
+  padding:7px 11px!important;
+}
+body:has(.inbox-premium-toolbar) .messages{
+  flex:1 1 auto!important;
+  min-height:120px!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:16px!important;
+}
+body:has(.inbox-premium-toolbar) .pro-composer{
+  position:relative!important;
+  z-index:3!important;
+  flex:0 0 auto!important;
+  width:100%!important;
+  min-height:104px!important;
+  padding:10px 12px 12px!important;
+  background:var(--surface)!important;
+  border-top:1px solid #dfe8ef!important;
+  box-shadow:0 -10px 30px rgba(15,23,42,.055)!important;
+}
+body:has(.inbox-premium-toolbar) .composer-tools{
+  min-height:36px!important;
+  padding:0 0 8px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line{
+  min-height:48px!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:8px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line textarea{
+  width:100%!important;
+  min-height:48px!important;
+  max-height:104px!important;
+  padding:12px 14px!important;
+  font-size:12px!important;
+  line-height:1.45!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line .primary{
+  min-height:48px!important;
+  height:48px!important;
+  padding:0 17px!important;
+}
+
+/* Cliente 360: todo visible dentro de la misma tarjeta, sin scrollbar vertical */
+body:has(.inbox-premium-toolbar) .info{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  padding:12px!important;
+  gap:0!important;
+}
+body:has(.inbox-premium-toolbar) .info-title{
+  position:static!important;
+  flex:0 0 auto!important;
+  margin:-12px -12px 4px!important;
+  padding:11px 12px!important;
+  min-height:48px!important;
+}
+body:has(.inbox-premium-toolbar) .profile{
+  flex:0 0 auto!important;
+  padding:8px 0 9px!important;
+}
+body:has(.inbox-premium-toolbar) .profile .avatar.big{
+  width:54px!important;
+  height:54px!important;
+  font-size:17px!important;
+}
+body:has(.inbox-premium-toolbar) .profile h3{
+  margin:7px 0 2px!important;
+  font-size:13px!important;
+}
+body:has(.inbox-premium-toolbar) .profile small{font-size:9px!important}
+body:has(.inbox-premium-toolbar) .customer-facts{
+  flex:0 0 auto!important;
+  gap:5px!important;
+  margin-bottom:8px!important;
+}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card{
+  min-height:54px!important;
+  padding:7px 6px!important;
+  border-radius:10px!important;
+}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card small{
+  font-size:7.3px!important;
+  line-height:1.1!important;
+}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card b{
+  margin-top:4px!important;
+  font-size:9.5px!important;
+}
+body:has(.inbox-premium-toolbar) .info-form{
+  flex:0 0 auto!important;
+  display:grid!important;
+  gap:7px!important;
+}
+body:has(.inbox-premium-toolbar) .info-form .field,
+body:has(.inbox-premium-toolbar) .followup-form .field{gap:0!important}
+body:has(.inbox-premium-toolbar) .info-form .field label,
+body:has(.inbox-premium-toolbar) .followup-form .field label{
+  margin-bottom:3px!important;
+  font-size:9px!important;
+}
+body:has(.inbox-premium-toolbar) .info input,
+body:has(.inbox-premium-toolbar) .info textarea,
+body:has(.inbox-premium-toolbar) .info select,
+body:has(.inbox-premium-toolbar) .info .select2-selection{
+  min-height:34px!important;
+  height:34px!important;
+  padding-top:6px!important;
+  padding-bottom:6px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+}
+body:has(.inbox-premium-toolbar) .info .select2-selection__rendered{line-height:20px!important;font-size:10px!important}
+body:has(.inbox-premium-toolbar) .info .select2-selection__arrow{height:32px!important}
+body:has(.inbox-premium-toolbar) .info .wide{
+  min-height:34px!important;
+  height:34px!important;
+  padding:6px 9px!important;
+  border-radius:9px!important;
+  font-size:10px!important;
+}
+body:has(.inbox-premium-toolbar) .info-block{
+  flex:0 0 auto!important;
+  margin-top:8px!important;
+  padding-top:8px!important;
+  gap:6px!important;
+}
+body:has(.inbox-premium-toolbar) .info-block-head{min-height:30px!important}
+body:has(.inbox-premium-toolbar) .info-block-head>b{font-size:11px!important}
+body:has(.inbox-premium-toolbar) .icon-mini{width:28px!important;height:28px!important;border-radius:9px!important}
+body:has(.inbox-premium-toolbar) .tag-checks{gap:4px!important}
+body:has(.inbox-premium-toolbar) .tag-check{padding:4px 7px!important;font-size:9px!important}
+body:has(.inbox-premium-toolbar) .info-block-title{
+  align-items:center!important;
+  gap:7px!important;
+}
+body:has(.inbox-premium-toolbar) .info-block-title .info-block-icon{
+  width:30px!important;
+  height:30px!important;
+  border-radius:9px!important;
+}
+body:has(.inbox-premium-toolbar) .info-block-title b{font-size:11px!important}
+body:has(.inbox-premium-toolbar) .info-block-title small{font-size:8.5px!important;line-height:1.25!important}
+body:has(.inbox-premium-toolbar) .followup-form{gap:6px!important}
+body:has(.inbox-premium-toolbar) .followup-submit{margin-top:0!important}
+body:has(.inbox-premium-toolbar) .info-block:last-child{
+  min-height:0!important;
+  overflow:hidden!important;
+}
+body:has(.inbox-premium-toolbar) .info-block:last-child textarea{
+  min-height:34px!important;
+  max-height:48px!important;
+  resize:none!important;
+}
+body:has(.inbox-premium-toolbar) .mini-note{
+  padding:5px 7px!important;
+  gap:1px!important;
+  font-size:8.5px!important;
+}
+
+/* Mantener proporciones y legibilidad cuando el alto de pantalla es menor */
+@media(max-height:820px) and (min-width:1051px){
+  body:has(.inbox-premium-toolbar) .inbox-premium-toolbar{padding:8px 12px!important;margin-bottom:7px!important}
+  body:has(.inbox-premium-toolbar) .inbox-view-title{min-height:24px!important}
+  body:has(.inbox-premium-toolbar) .inbox-view-title small{display:none!important}
+  body:has(.inbox-premium-toolbar) .chat-head{min-height:64px!important;padding:9px 12px!important}
+  body:has(.inbox-premium-toolbar) .pro-composer{min-height:96px!important;padding:8px 10px 10px!important}
+  body:has(.inbox-premium-toolbar) .profile{padding:6px 0!important}
+  body:has(.inbox-premium-toolbar) .profile .avatar.big{width:48px!important;height:48px!important}
+  body:has(.inbox-premium-toolbar) .customer-facts .fact-card{min-height:49px!important}
+  body:has(.inbox-premium-toolbar) .info-form{gap:5px!important}
+  body:has(.inbox-premium-toolbar) .info-block{margin-top:6px!important;padding-top:6px!important;gap:5px!important}
+  body:has(.inbox-premium-toolbar) .info-block-title small{display:none!important}
+  body:has(.inbox-premium-toolbar) .info input,
+  body:has(.inbox-premium-toolbar) .info select,
+  body:has(.inbox-premium-toolbar) .info .select2-selection,
+  body:has(.inbox-premium-toolbar) .info .wide{min-height:31px!important;height:31px!important}
+}
+
+@media(max-width:1050px) and (min-width:761px){
+  body:has(.inbox-premium-toolbar) .info{display:none!important}
+}
+@media(max-width:760px){
+  body:has(.inbox-premium-toolbar) .inbox-layout>.panel{height:auto!important;overflow:visible!important}
+  body:has(.inbox-premium-toolbar) .chat{min-height:540px!important}
+  body:has(.inbox-premium-toolbar) .info{display:flex!important;overflow:visible!important}
+  body:has(.inbox-premium-toolbar) .pro-composer{position:sticky!important;bottom:0!important}
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:430px){
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions .soft{font-size:9px!important;padding:6px 4px!important}
+  body:has(.inbox-premium-toolbar) .customer-facts{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+
+/* ZYNKO V2.31.3 · Bandeja funcional: categorías, archivo, auditoría y foco de atención */
+body:has(.inbox-premium-toolbar) .inbox-filters-advanced{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(120px,1fr)) auto!important;
+  gap:8px!important;
+  align-items:end!important;
+}
+body:has(.inbox-premium-toolbar) .inbox-filters-advanced label{min-width:0!important}
+body:has(.inbox-premium-toolbar) .inbox-filters-advanced .clear-inbox-filters{height:36px!important;min-width:42px!important}
+body:has(.inbox-premium-toolbar) .conversation-category{
+  display:flex!important;align-items:center!important;gap:5px!important;margin-top:5px!important;
+  max-width:100%!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;
+  font-size:8.5px!important;font-weight:700!important;color:#087f6c!important;
+}
+body:has(.inbox-premium-toolbar) .conversation-category i{font-size:8px!important}
+body:has(.inbox-premium-toolbar) .conversation{
+  text-decoration:none!important;
+}
+body:has(.inbox-premium-toolbar) .conversation *{text-decoration:none!important}
+body:has(.inbox-premium-toolbar) .composer-tip{
+  margin-left:auto!important;display:inline-flex!important;align-items:center!important;gap:4px!important;
+  font-size:9px!important;color:var(--muted)!important;white-space:nowrap!important;
+}
+body:has(.inbox-premium-toolbar) .composer-tip kbd{
+  min-width:22px!important;height:20px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  padding:0 5px!important;border:1px solid #d5e1e8!important;border-bottom-width:2px!important;border-radius:6px!important;background:#f7fafb!important;color:#365064!important;font-size:8px!important;
+}
+.conversation-actions-modal{max-width:560px!important}
+.conversation-action-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;padding:4px 0!important}
+.conversation-state-action,.conversation-delete-action{
+  width:100%!important;min-height:86px!important;display:flex!important;align-items:center!important;gap:12px!important;text-align:left!important;
+  padding:14px!important;border:1px solid #dbe6ec!important;border-radius:15px!important;background:#f7fbfb!important;color:#0b2b3b!important;cursor:pointer!important;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;
+}
+.conversation-state-action:hover,.conversation-delete-action:hover{transform:translateY(-2px)!important;box-shadow:0 12px 24px rgba(15,23,42,.08)!important;border-color:#8bd8ca!important}
+.conversation-state-action>i,.conversation-delete-action>i{width:38px!important;height:38px!important;display:grid!important;place-items:center!important;flex:0 0 38px!important;border-radius:12px!important;background:#e6f8f4!important;color:#078571!important;font-size:15px!important}
+.conversation-state-action span,.conversation-delete-action span{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
+.conversation-state-action b,.conversation-delete-action b{font-size:12px!important;line-height:1.2!important}
+.conversation-state-action small,.conversation-delete-action small{font-size:9px!important;line-height:1.35!important;color:#6a7f90!important}
+.conversation-delete-action.danger-action{background:#fff8f7!important;border-color:#f0c6c2!important}
+.conversation-delete-action.danger-action>i{background:#fff0ee!important;color:#b42318!important}
+body:has(.inbox-premium-toolbar) .bulk-bar{flex-wrap:wrap!important;gap:6px!important}
+body:has(.inbox-premium-toolbar) .bulk-bar .soft{height:31px!important;padding:5px 8px!important;font-size:9px!important}
+
+@media(max-width:1450px) and (min-width:1051px){
+  body:has(.inbox-premium-toolbar) .inbox-filters-advanced{grid-template-columns:repeat(3,minmax(0,1fr)) auto!important}
+  body:has(.inbox-premium-toolbar) .inbox-filters-advanced .clear-inbox-filters{grid-column:4!important;grid-row:1 / span 2!important;align-self:stretch!important;height:auto!important}
+}
+@media(max-width:1050px){
+  body:has(.inbox-premium-toolbar) .inbox-filters-advanced{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body:has(.inbox-premium-toolbar) .inbox-filters-advanced .clear-inbox-filters{grid-column:1 / -1!important;width:100%!important;height:38px!important}
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions{flex-wrap:wrap!important}
+  body:has(.inbox-premium-toolbar) .composer-tip{display:none!important}
+}
+@media(max-width:760px){
+  body:has(.inbox-premium-toolbar) .inbox-filters-advanced{grid-template-columns:1fr!important}
+  .conversation-action-grid{grid-template-columns:1fr!important}
+  .conversation-state-action,.conversation-delete-action{min-height:76px!important}
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
+  body:has(.inbox-premium-toolbar) .chat-head .chat-actions .soft{width:100%!important}
+}

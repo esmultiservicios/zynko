@@ -199,20 +199,41 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
  const bar=document.createElement('div');bar.id='zynkoProgress';document.body.appendChild(bar);const start=()=>{bar.classList.add('run');bar.style.width='68%'};window.addEventListener('beforeunload',start);document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a&&!a.target&&!a.hasAttribute('download')&&!a.href.startsWith('javascript:'))start()});window.addEventListener('pageshow',()=>{bar.style.width='100%';setTimeout(()=>{bar.classList.remove('run');bar.style.width='0'},180)});
 })();
 
-// Premium omnichannel inbox: persistent views, bulk productivity and local handoff summary.
+// Premium omnichannel inbox: persistent views, categories, lifecycle and secure actions.
 (()=>{
  const form=document.getElementById('inboxFilters'); if(!form)return;
- const post=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});return r.json()};
- form.querySelectorAll('.inbox-filter').forEach(el=>el.addEventListener('change',async()=>{const fd=new FormData();fd.append('action','inbox_preferences_save');fd.append('channel_type',form.channel.value);fd.append('assignment_filter',form.assignment.value);fd.append('priority_filter',form.priority.value);try{await post(fd)}catch(_){} form.submit()}));
- document.querySelector('.clear-inbox-filters')?.addEventListener('click',async()=>{form.channel.value='all';form.assignment.value='all';form.priority.value='all';const fd=new FormData();fd.append('action','inbox_preferences_save');fd.append('channel_type','all');fd.append('assignment_filter','all');fd.append('priority_filter','all');try{await post(fd)}catch(_){} location.href='?page=inbox'});
+ const post=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});let j={};try{j=await r.json()}catch(_){j={ok:false,message:'El servidor devolvió una respuesta no válida.'}}return j};
+ const savePrefs=async()=>{const fd=new FormData();fd.append('action','inbox_preferences_save');fd.append('channel_type',form.channel?.value||'all');fd.append('assignment_filter',form.assignment?.value||'all');fd.append('priority_filter',form.priority?.value||'all');fd.append('category_id',form.category?.value||'0');fd.append('state_filter',form.state?.value||'active');fd.append('attention_filter',form.attention?.value||'all');try{await post(fd)}catch(_){}};
+ form.querySelectorAll('.inbox-filter').forEach(el=>el.addEventListener('change',async()=>{await savePrefs();form.submit()}));
+ document.querySelector('.clear-inbox-filters')?.addEventListener('click',async()=>{if(form.channel)form.channel.value='all';if(form.assignment)form.assignment.value='all';if(form.priority)form.priority.value='all';if(form.category)form.category.value='0';if(form.state)form.state.value='active';if(form.attention)form.attention.value='all';await savePrefs();location.href='?page=inbox'});
  const toggle=document.getElementById('bulkToggle'),bar=document.getElementById('bulkBar'),count=document.getElementById('bulkCount'),list=document.querySelector('.conv-list');
  const selected=()=>[...document.querySelectorAll('.conversation .bulk-check input:checked')].map(x=>x.closest('.conversation')?.dataset.conversationId).filter(Boolean);
  const update=()=>{if(count)count.textContent=selected().length};
  toggle?.addEventListener('click',()=>{const on=!list.classList.contains('bulk-mode');list.classList.toggle('bulk-mode',on);if(bar)bar.hidden=!on;if(!on)document.querySelectorAll('.bulk-check input').forEach(x=>x.checked=false);update()});
  document.querySelectorAll('.bulk-check input').forEach(x=>{x.addEventListener('click',e=>e.stopPropagation());x.addEventListener('change',update)});
- const bulk=async action=>{const ids=selected();if(!ids.length){showNotify('warning','Sin selección','Selecciona al menos una conversación.');return}const ask=await Swal.fire({title:action==='resolve'?'Resolver conversaciones':'Asignarme conversaciones',text:`Se aplicará a ${ids.length} conversación(es).`,icon:'question',showCancelButton:true,confirmButtonText:'Continuar',cancelButtonText:'Cancelar'});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','conversation_bulk_action');fd.append('bulk_action',action);ids.forEach(id=>fd.append('conversation_ids[]',id));const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Actualizado':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),300)};
- document.getElementById('bulkAssign')?.addEventListener('click',()=>bulk('assign_me'));document.getElementById('bulkResolve')?.addEventListener('click',()=>bulk('resolve'));
+ const bulk=async action=>{const ids=selected();if(!ids.length){showNotify('warning','Sin selección','Selecciona al menos una conversación.');return}const title=action==='resolve'?'Resolver conversaciones':action==='archive'?'Archivar conversaciones':'Asignarme conversaciones';const ask=await Swal.fire({title,text:`Se aplicará a ${ids.length} conversación(es).`,icon:'question',showCancelButton:true,confirmButtonText:'Continuar',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','conversation_bulk_action');fd.append('bulk_action',action);ids.forEach(id=>fd.append('conversation_ids[]',id));const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Actualizado':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),300)};
+ document.getElementById('bulkAssign')?.addEventListener('click',()=>bulk('assign_me'));
+ document.getElementById('bulkResolve')?.addEventListener('click',()=>bulk('resolve'));
+ document.getElementById('bulkArchive')?.addEventListener('click',()=>bulk('archive'));
+ document.querySelectorAll('.conversation-state-action').forEach(btn=>btn.addEventListener('click',async()=>{
+   const action=btn.dataset.action,cid=btn.dataset.conversation;
+   const labels={unread:['Marcar como no leída','La conversación volverá a destacarse en la bandeja.'],resolve:['Resolver conversación','La conversación saldrá de la vista activa, pero conservará todo el historial.'],reopen:['Reabrir conversación','La conversación volverá a la vista activa.'],archive:['Archivar conversación','Se ocultará de la vista activa y podrás restaurarla desde Archivadas.'],restore:['Restaurar conversación','Volverá a estar disponible en la bandeja.']};
+   const meta=labels[action]||['Actualizar conversación','¿Deseas continuar?'];
+   const ask=await Swal.fire({title:meta[0],text:meta[1],icon:'question',showCancelButton:true,confirmButtonText:'Sí, continuar',cancelButtonText:'Cancelar',allowOutsideClick:false});
+   if(!ask.isConfirmed)return;
+   const fd=new FormData();fd.append('action','conversation_mark_state');fd.append('conversation_id',cid);fd.append('conversation_action',action);
+   const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Conversación actualizada':'Error',j.message);if(j.ok)setTimeout(()=>location.href='?page=inbox',350);
+ }));
+ document.querySelector('.conversation-delete-action')?.addEventListener('click',async e=>{
+   const cid=e.currentTarget.dataset.conversation;
+   const ask=await Swal.fire({title:'Eliminar conversación',html:'Esta acción la retirará de la operación normal y dejará registro de auditoría.<br><b>Escribe tu contraseña para autorizar.</b>',icon:'warning',input:'password',inputPlaceholder:'Contraseña actual',inputAttributes:{autocomplete:'current-password'},showCancelButton:true,confirmButtonText:'Autorizar y eliminar',cancelButtonText:'Cancelar',confirmButtonColor:'#b42318',allowOutsideClick:false,preConfirm:value=>{if(!value){Swal.showValidationMessage('Escribe tu contraseña.');return false}return value}});
+   if(!ask.isConfirmed)return;
+   const fd=new FormData();fd.append('action','conversation_secure_delete');fd.append('conversation_id',cid);fd.append('password',ask.value);
+   const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Conversación eliminada':'No se pudo eliminar',j.message);if(j.ok)setTimeout(()=>location.href='?page=inbox',450);
+ });
  document.getElementById('nivoSummaryBtn')?.addEventListener('click',()=>{const box=document.getElementById('nivoSummary'),msgs=[...document.querySelectorAll('#messages .message-wrap')].slice(-6).map(x=>x.innerText.trim()).filter(Boolean);if(!box)return;box.hidden=false;box.innerHTML=msgs.length?`<i class="fa-solid fa-wand-magic-sparkles"></i><div><b>Resumen rápido para transferencia</b><p>${msgs.map(x=>x.replace(/\s+/g,' ')).join(' · ').slice(0,700)}</p><small>Resumen local de los últimos mensajes; no inventa información fuera de la conversación.</small></div>`:'<div>No hay mensajes para resumir.</div>'});
+ const input=document.getElementById('messageInput'),messageForm=document.getElementById('messageForm');
+ input?.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();messageForm?.requestSubmit()}});
 })();
 
 // ZYNKO Premium: inbox filters always expose Select2 search; larger selects remain searchable automatically.

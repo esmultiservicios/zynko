@@ -620,3 +620,21 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Composer de mensajes reorganizado y responsive.
 - NIVO Web Chat refuerza compatibilidad con instalaciones existentes reparando columnas faltantes de bot_profiles en runtime.
 - Respuestas de NIVO se distinguen visualmente en la Bandeja.
+
+
+## V2.31.2
+
+- Bandeja omnicanal final: las tres columnas quedan alineadas desde el mismo borde superior y ocupan la misma altura útil.
+- El compositor de respuesta permanece visible, con textarea y botón Enviar de tamaño cómodo.
+- Cliente 360° se compacta para evitar scrollbar vertical en escritorio sin eliminar sus funciones.
+- Conversaciones reciben una UI más limpia, sin subrayados de enlace y con jerarquía visual consistente.
+- Se preservan NIVO, asignación, resumen, categorías, seguimiento, notas y filtros existentes.
+
+## V2.31.3
+- Bandeja omnicanal con filtro buscable por categorías.
+- Vistas Activas, Resueltas y Archivadas.
+- Filtros de atención: sin leer, seguimiento pendiente y espera superior a 15 minutos.
+- Acciones de resolver/reabrir, archivar/restaurar y marcado no leído.
+- Eliminación segura con autorización por contraseña para Owner/Admin y auditoría.
+- Acciones masivas para asignar, resolver y archivar.
+- Ctrl/Cmd + Enter para envío rápido.
