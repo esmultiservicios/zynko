@@ -90,7 +90,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $db=array_merge($defaults,$_SESSION['install_db']??[]);$mailMethod=$_POST['method']??'SMTP';
 ?><!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Instalar ZYNKO</title><link rel="stylesheet" href="assets/vendor/select2/select2.min.css"><link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css"><link rel="stylesheet" href="assets/css/zynko-ui.css"><style>:root{--p:#13a88a;--n:#0b1625;--bg:#f5f7fb;--line:#e4eaf0;--muted:#6f7f91;--warn:#a76600}*{box-sizing:border-box}html,body{width:100%;max-width:100%;margin:0;overflow-x:clip}body{font:14px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:#152235}.wrap{width:calc(100% - 28px);max-width:960px;margin:4vh auto;min-width:0}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.mark{width:42px;height:42px;border-radius:13px;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:900}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 20px 55px rgba(20,40,60,.08)}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}.steps div{padding:11px;border:1px solid var(--line);border-radius:11px;color:var(--muted)}.steps .on{border-color:var(--p);color:#08705c;background:#f0fbf8}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;min-width:0}.field{display:grid;grid-template-rows:auto minmax(44px,auto) auto;align-content:start;gap:7px;min-width:0;max-width:100%}.field>label{min-height:21px;display:flex;align-items:flex-end}.field.full{grid-template-rows:auto minmax(44px,auto) auto}.field label{font-weight:700}.field input,.field select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font:inherit}.select2-container{width:100%!important;max-width:100%!important;min-width:0!important}.select2-container .select2-selection--single{height:44px!important;border:1px solid var(--line)!important;border-radius:11px!important;background:#fff!important}.select2-container .select2-selection--single .select2-selection__rendered{line-height:42px!important;padding-left:12px!important;color:#152235!important}.select2-container .select2-selection--single .select2-selection__arrow{height:42px!important;right:8px!important}.select2-dropdown{max-width:100vw!important;border:1px solid var(--line)!important;border-radius:11px!important;overflow:hidden;box-shadow:0 12px 28px rgba(20,40,60,.12)}.select2-results__option{padding:10px 12px!important}.select2-results__option--highlighted.select2-results__option--selectable{background:var(--p)!important}.select2-search__field{border:1px solid var(--line)!important;border-radius:8px!important;padding:8px!important}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}.btn:disabled{opacity:.65;cursor:not-allowed}.btn i{width:16px;text-align:center}.primary{background:var(--p);color:#fff}.secondary{background:#eef3f7;color:#203044}.error{padding:12px;border:1px solid #f0c5c5;background:#fff6f6;border-radius:10px;margin-bottom:16px}.note{padding:14px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;color:var(--muted)}.warning{background:#fff9ee;border-color:#f0d8ad;color:#79500a}.mailbox{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:14px}h1{margin:0 0 7px}p{color:var(--muted)}small{color:var(--muted)}@media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.card{padding:20px}.steps div{display:none}.steps .on{display:block}.full{grid-column:auto}.actions .btn{width:100%;text-align:center}}</style>
 <style id="zynko-installer-compact-v2253">
-/* V2.25.3 — installer compact, aligned and responsive */
+/* V2.25.5 — installer compact, aligned and responsive */
 .installer-shell,.install-shell,.wizard-shell{min-height:auto!important}
 .installer-card,.install-card,.wizard-card,.card{
     max-width:980px!important;margin:18px auto!important;
@@ -148,6 +148,37 @@ $db=array_merge($defaults,$_SESSION['install_db']??[]);$mailMethod=$_POST['metho
 }
 @media (max-width:430px){
   .install-steps,.installer-steps,.wizard-steps{grid-template-columns:1fr!important}
+}
+</style>
+
+<link rel="icon" href="assets/img/favicon.svg" type="image/x-icon">
+
+<style id="zynko-installer-fit-v2254">
+html,body{min-height:100%;height:auto!important}
+body{margin:0!important;padding:0!important;overflow-x:hidden!important}
+.wrap,.installer-wrap,.install-wrap,.page-wrap{padding-top:10px!important;padding-bottom:10px!important}
+.installer-card,.install-card,.wizard-card,.card{margin:8px auto!important;max-width:980px!important}
+.installer-card,.install-card,.wizard-card{padding:16px 20px!important}
+.install-brand,.installer-brand,.brand{margin:6px auto 10px!important}
+.install-steps,.installer-steps,.wizard-steps{margin:0 0 12px!important;gap:8px!important}
+.install-steps>* ,.installer-steps>* ,.wizard-steps>*{min-height:36px!important;padding:7px 10px!important}
+.install-content h1,.install-content h2,.installer-content h1,.installer-content h2,.wizard-content h1,.wizard-content h2{margin:0 0 6px!important;line-height:1.15!important}
+.install-content p,.installer-content p,.wizard-content p{margin:0 0 8px!important;line-height:1.35!important}
+.install-content .notice,.installer-content .notice,.wizard-content .notice,.install-content .alert,.installer-content .alert,.wizard-content .alert{margin:8px 0 10px!important;padding:9px 11px!important;line-height:1.3!important}
+.install-content .grid,.installer-content .grid,.wizard-content .grid,.install-content .form-grid,.installer-content .form-grid,.wizard-content .form-grid{gap:8px 12px!important}
+.install-content label,.installer-content label,.wizard-content label{margin:0 0 3px!important;line-height:1.2!important}
+.install-content input,.install-content select,.installer-content input,.installer-content select,.wizard-content input,.wizard-content select{height:36px!important;min-height:36px!important;padding:6px 10px!important}
+.install-content small,.installer-content small,.wizard-content small{margin-top:3px!important;line-height:1.2!important}
+.install-actions,.installer-actions,.wizard-actions{margin-top:10px!important;gap:8px!important}
+.install-actions button,.installer-actions button,.wizard-actions button,.install-actions .btn,.installer-actions .btn,.wizard-actions .btn{min-height:38px!important;padding-top:7px!important;padding-bottom:7px!important}
+@media (min-width:900px) and (min-height:650px){
+ body{overflow-y:auto!important}
+}
+@media(max-width:760px){
+ .installer-card,.install-card,.wizard-card,.card{margin:6px 8px!important}
+ .installer-card,.install-card,.wizard-card{padding:13px!important}
+ .install-steps,.installer-steps,.wizard-steps{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .install-content .grid,.installer-content .grid,.wizard-content .grid,.install-content .form-grid,.installer-content .form-grid,.wizard-content .form-grid{grid-template-columns:1fr!important}
 }
 </style>
 
