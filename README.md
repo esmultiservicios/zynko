@@ -291,3 +291,18 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Reduce espacios verticales, alturas de campos y márgenes sin cambiar el flujo funcional.
 - Mantiene pares de campos alineados y adapta el formulario a tablet/móvil sin desbordes.
 - Conserva instalación local/hosting, prefijos MySQL y protección de archivos runtime.
+
+
+## V2.26.0
+- Instalador: selección premium por tarjetas/radio para Configurar después, SMTP y Microsoft Graph.
+- Configurar después queda seleccionado por defecto y no bloquea la instalación.
+- Campos de correo aparecen únicamente según el método elegido.
+- Prueba de correo disponible solo para SMTP/Graph.
+- Controles y acciones del paso Correo reorganizados y responsive.
+
+
+## V2.26.1
+- El instalador inicia limpio al volver a Bienvenida: no conserva credenciales, prefijo ni datos de intentos anteriores.
+- La base por defecto vuelve a ser `zynko` y el prefijo queda vacío.
+- Se separa el nombre propio de la base del nombre final con prefijo para evitar duplicaciones como `esmultiservicios_esmultiservicios_zynko`.
+- La conexión y el `.env` usan el nombre final real de la base, mientras la UI conserva los campos editables correctamente.
