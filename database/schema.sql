@@ -312,7 +312,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.28.1');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.29.5');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),
@@ -320,7 +320,32 @@ INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_locale','es_HN'),
 ('seo_twitter',''),
 ('seo_google_verification',''),
-('seo_bing_verification','');
+('seo_bing_verification',''),
+('public_parent_name','ES MULTISERVICIOS'),
+('public_parent_url','https://esmultiservicios.com/'),
+('public_social_facebook_url','https://www.facebook.com/esmultiserv'),
+('public_social_facebook_enabled','1'),
+('public_social_facebook_order','1'),
+('public_social_instagram_url',''),
+('public_social_instagram_enabled','0'),
+('public_social_instagram_order','2'),
+('public_social_tiktok_url','https://www.tiktok.com/@evelasquez91'),
+('public_social_tiktok_enabled','1'),
+('public_social_tiktok_order','3'),
+('public_social_youtube_url',''),
+('public_social_youtube_enabled','0'),
+('public_social_youtube_order','4'),
+('public_social_linkedin_url',''),
+('public_social_linkedin_enabled','0'),
+('public_social_linkedin_order','5'),
+('public_social_float_enabled','1'),
+('public_social_float_side','right'),
+('public_social_float_vertical','center'),
+('public_social_footer_enabled','1'),
+('public_turnstile_enabled','0'),
+('public_turnstile_site_key',''),
+('public_turnstile_secret',''),
+('public_turnstile_hostname','');
 
 
 -- V2.27.3 · Términos y Condiciones administrables
@@ -389,3 +414,45 @@ La relación se interpretará conforme a la legislación aplicable a la entidad 
 
 18. Contacto y soporte
 Las consultas relacionadas con estos Términos y Condiciones, seguridad, privacidad o administración de la cuenta deben realizarse mediante los canales oficiales de soporte informados dentro de ZYNKO o por el proveedor del servicio.',1,NULL,NOW());
+
+-- V2.29.4 · Formulario público de contacto
+CREATE TABLE IF NOT EXISTS public_contact_inquiries (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  company VARCHAR(160) NULL,
+  email VARCHAR(190) NOT NULL,
+  phone VARCHAR(50) NULL,
+  subject_code VARCHAR(60) NOT NULL,
+  subject_label VARCHAR(160) NOT NULL,
+  source_code VARCHAR(60) NOT NULL,
+  source_label VARCHAR(190) NOT NULL,
+  message TEXT NOT NULL,
+  ip_address VARCHAR(64) NULL,
+  user_agent VARCHAR(500) NULL,
+  admin_mail_status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+  confirmation_mail_status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_public_contact_created(created_at),
+  INDEX idx_public_contact_email(email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- V2.29.7 · Analítica de visitas del sitio público
+CREATE TABLE IF NOT EXISTS public_site_visits (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  visitor_id CHAR(40) NOT NULL,
+  ip_hash CHAR(64) NULL,
+  referrer_host VARCHAR(190) NULL,
+  device_type VARCHAR(20) NOT NULL DEFAULT 'desktop',
+  browser VARCHAR(40) NULL,
+  user_agent VARCHAR(500) NULL,
+  visited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_public_visit_date(visited_at),
+  INDEX idx_public_visit_visitor(visitor_id,visited_at),
+  INDEX idx_public_visit_device(device_type,visited_at),
+  INDEX idx_public_visit_referrer(referrer_host,visited_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
+('public_whatsapp_enabled','1'),
+('public_whatsapp_number','+504 8912-6844'),
+('public_whatsapp_message','Hola, quiero información sobre ZYNKO.');

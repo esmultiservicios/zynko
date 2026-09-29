@@ -458,3 +458,84 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Restaura hover premium en las cards de uso de NIVO Web Chat: elevación, sombra, borde, icono y valor.
 - Cambia el estado Inactivo de NIVO IA a una señal ámbar profesional, reservando el verde únicamente para Activo/Conectado.
 - Mantiene responsive, identidad NIVO, SEO, Search Console y Términos ya aprobados.
+
+
+### V2.28.6 · Sitio público premium + ES MULTISERVICIOS + redes administrables
+- Refuerza a ZYNKO como solución desarrollada y respaldada por ES MULTISERVICIOS.
+- Mejora la portada pública con microanimaciones, hover premium y aparición progresiva al hacer scroll.
+- Corrige FAQ para que abrir una pregunta no estire visualmente la tarjeta vecina.
+- Agrega acceso de regreso al sitio público desde Login y Crear cuenta.
+- Agrega redes sociales flotantes y en el footer con colores oficiales y alto contraste.
+- Incorpora administración de redes sociales, orden, URL y estado desde Configuración.
+- Restringe la administración pública, SEO, Términos y planes a la empresa principal mediante validación del servidor y de la interfaz.
+- Conserva NIVO, SEO técnico, Search Console, Terms y funciones anteriores.
+
+
+### V2.28.7 · Redes posicionables + Login premium compacto
+- Permite elegir desde Configuración si las redes flotantes aparecen a la izquierda o derecha.
+- Permite elegir posición vertical superior, centro o inferior en escritorio.
+- Permite activar o desactivar de forma independiente redes flotantes y redes del footer.
+- En tablet y móvil las redes flotantes se convierten automáticamente en una barra inferior compacta para no cubrir contenido.
+- Rediseña el acceso “Volver al sitio web” como botón secundario coherente con la UI de ZYNKO.
+- Hace el Login ligeramente más ancho y reduce espacios verticales para una composición más compacta, premium y legible.
+- Conserva permisos globales exclusivamente para la empresa principal y mantiene intactos NIVO, SEO, Search Console, Términos y planes.
+
+
+### V2.28.8 · Política global de botones sin blanco
+- Elimina botones blancos del sitio público y de la aplicación.
+- Las acciones primarias conservan teal; las secundarias usan navy y los controles utilitarios usan superficies teal/navy suaves.
+- `Iniciar sesión` y demás CTAs secundarios de la portada dejan de usar fondo blanco.
+- `Volver al sitio web` adopta botón navy premium y consistente en autenticación/registro.
+- Paginación, botones de icono, controles del header, editor legal y utilidades usan fondos tintados en lugar de blanco.
+- El botón/etiqueta opcional del launcher de NIVO Web Chat también deja de usar fondo blanco.
+- Mantiene contraste correcto en modo oscuro y responsive.
+
+
+### V2.29.1 · Reparación portada pública y showcase premium
+- Corrige la carga de estilos y scripts de la portada pública usando las rutas probadas del proyecto.
+- Elimina la referencia al logo inexistente que causaba imagen rota.
+- Mantiene y mejora la galería de capturas del sistema con zoom y modal.
+- Refuerza NIVO Web Chat, NIVO IA, canales y autorización oficial de Meta.
+- Mejora la tarjeta de Plan Gratis y conserva login/registro premium.
+- Mantiene SEO, robots, sitemap, redes sociales administrables y configuración global.
+
+
+### V2.29.2 · Orden visual, navegación, FAQ y NIVO
+- Restaura el menú público en una sola línea en escritorio y evita saltos de texto.
+- Mejora espaciados para que botones, avisos y tarjetas no queden pegados.
+- Numera las preguntas frecuentes con una UI premium.
+- Refuerza hover y movimiento en tarjetas públicas.
+- Restaura la mascota NIVO de forma visible en el sitio principal.
+- Compacta Crear cuenta para reducir altura sin perder información.
+- Mantiene login, registro, SEO, redes, términos, NIVO Web Chat, NIVO IA y panel interno.
+
+
+### V2.29.4 · Contacto público y navegación más legible
+- Aumenta el tamaño de las etiquetas del menú público manteniendo la navegación en una sola línea en escritorio.
+- Agrega sección Contacto premium con nombre, empresa, correo, teléfono, motivo, origen y mensaje.
+- Registra las consultas públicas en `public_contact_inquiries` para conservar trazabilidad básica.
+- Reutiliza el proveedor de correo principal configurado en ZYNKO (SMTP o Microsoft Graph).
+- Envía notificación al destinatario interno configurado y confirmación automática al visitante.
+- Incorpora protección CSRF, honeypot y límite básico de frecuencia por IP.
+- Usa `showNotify` en el sitio público para confirmar o reportar errores de envío.
+- Mantiene responsive, NIVO, showcase, SEO, redes sociales y funciones aprobadas.
+
+
+### V2.29.5 · Select2 + Turnstile + campos obligatorios
+- Formulario público de contacto migra sus selects a Select2 local.
+- Los campos obligatorios muestran asterisco rojo y conservan validación del navegador y del servidor.
+- Agrega Cloudflare Turnstile configurable desde la empresa principal.
+- Site Key, activación y hostname se administran desde Configuración > Sitio público y redes sociales.
+- Secret Key se guarda cifrada con APP_KEY y no se vuelve a mostrar en texto plano.
+- Turnstile se ejecuta en segundo plano con appearance interaction-only y validación obligatoria contra Siteverify en el servidor.
+- Se conservan honeypot y rate limit existentes como capas adicionales anti-spam.
+
+
+### V2.29.7 · Responsive total, analítica pública, contactos flotantes y confirmación final
+- Navegación móvil real con botón hamburguesa y menú adaptado a pantallas pequeñas.
+- Refuerzo responsive del sitio público y panel administrador.
+- Analítica de visitas del sitio público para la empresa principal: hoy, 7 días, mes, histórico, días, semanas, meses, dispositivos y referidos.
+- NIVO Web Chat integrado en la portada usando el widget administrable de la empresa principal.
+- WhatsApp público flotante configurable desde el panel, por defecto +504 8912-6844, colocado en el lado opuesto a NIVO para evitar superposición.
+- Confirmación premium antes de finalizar la instalación, con resumen de base de datos, administrador, URL, correo, NIVO y seguridad.
+- El instalador acepta correctamente la opción Configurar correo después y crea installed.lock solo después de confirmar.

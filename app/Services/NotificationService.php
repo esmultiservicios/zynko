@@ -72,6 +72,16 @@ final class NotificationService{
   $html=EmailTemplates::channelLifecycle($title,$message,$this->platformSettings($platformTid,'/?page=channels'));
   return $this->directPlatformMail($platformTid,$to,'ZYNKO · '.$title,$html,array_merge(['event'=>'channel_lifecycle'],$meta));
  }
+ public function sendPublicContactAdmin(int $platformTid,string $to,array $data):array{
+  $subject='ZYNKO · Nueva consulta web · '.($data['subject_label']??'Contacto');
+  $html=EmailTemplates::publicContactAdmin($data,$this->platformSettings($platformTid,'/#contacto'));
+  return $this->directPlatformMail($platformTid,$to,$subject,$html,['event'=>'public_contact_admin','inquiry_id'=>$data['inquiry_id']??null,'contact_email'=>$data['email']??'','source'=>$data['source']??'']);
+ }
+ public function sendPublicContactConfirmation(int $platformTid,string $to,array $data):array{
+  $subject='ZYNKO · Recibimos tu consulta';
+  $html=EmailTemplates::publicContactConfirmation($data,$this->platformSettings($platformTid,'/'));
+  return $this->directPlatformMail($platformTid,$to,$subject,$html,['event'=>'public_contact_confirmation','inquiry_id'=>$data['inquiry_id']??null,'source'=>$data['source']??'']);
+ }
  private function logDirect(int $tid,string $to,string $subject,array $cfg,array $res,array $meta=[]):void{
   try{
    $event=(string)($meta['event']??'system');

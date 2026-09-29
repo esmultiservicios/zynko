@@ -179,5 +179,37 @@ final class EmailTemplates
         return self::shell('CANALES E INTEGRACIONES',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'CANAL');
     }
 
+    public static function publicContactAdmin(array $data,array $settings): string {
+        $name=self::e($data['name']??'');
+        $company=self::e($data['company']??'');
+        $email=self::e($data['email']??'');
+        $phone=self::e($data['phone']??'');
+        $subject=self::e($data['subject_label']??($data['subject']??'Consulta general'));
+        $source=self::e($data['source_label']??($data['source']??'No indicado'));
+        $message=nl2br(self::e($data['message']??''));
+        $content='<p style="margin:0">Se recibió una nueva consulta desde el formulario público de ZYNKO.</p>'
+            .'<div style="margin-top:20px;padding:17px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
+            .'<div style="font-size:14px;line-height:1.8"><strong>Nombre:</strong> '.$name
+            .($company!==''?'<br><strong>Empresa:</strong> '.$company:'')
+            .'<br><strong>Correo:</strong> '.$email
+            .($phone!==''?'<br><strong>Teléfono:</strong> '.$phone:'')
+            .'<br><strong>Consulta:</strong> '.$subject
+            .'<br><strong>Cómo conoció ZYNKO:</strong> '.$source.'</div></div>'
+            .'<div style="margin-top:18px;padding:17px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
+            .'<strong style="color:'.self::NAVY.'">Mensaje</strong><div style="margin-top:8px;color:'.self::TEXT.';font-size:14px;line-height:1.7">'.$message.'</div></div>';
+        return self::shell('CONTACTO PÚBLICO','Nueva consulta desde ZYNKO',$content,$settings,'NUEVA CONSULTA');
+    }
+
+    public static function publicContactConfirmation(array $data,array $settings): string {
+        $name=self::e($data['name']??'');
+        $subject=self::e($data['subject_label']??($data['subject']??'tu consulta'));
+        $content='<p style="margin:0">Hola'.($name!==''?', <strong>'.$name.'</strong>':'').'. Recibimos correctamente tu consulta sobre <strong>'.$subject.'</strong>.</p>'
+            .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
+            .'<strong style="color:'.self::NAVY.'">Tu mensaje ya está en revisión</strong>'
+            .'<div style="margin-top:7px;color:'.self::MUTED.';font-size:13px;line-height:1.6">El equipo de ES MULTISERVICIOS recibió la información que enviaste desde el sitio de ZYNKO. Te responderemos utilizando los datos de contacto proporcionados.</div></div>'
+            .'<p style="margin:18px 0 0;color:'.self::MUTED.';font-size:13px">Este correo confirma únicamente la recepción de tu solicitud.</p>';
+        return self::shell('CONFIRMACIÓN DE CONTACTO','Recibimos tu consulta',$content,$settings,'RECIBIDO');
+    }
+
     public static function generic(string $eyebrow,string $title,string $message,array $settings,string $badge='NOTIFICACIÓN'): string { return self::shell($eyebrow,$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,$badge); }
 }
