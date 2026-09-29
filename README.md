@@ -256,3 +256,8 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 ## V2.24.1
 - KPIs de NIVO Web Chat con entrada escalonada, elevación al hover, movimiento de icono y contador animado.
 - Respeta `prefers-reduced-motion` por accesibilidad.
+
+
+## V2.24.2
+- Instalador: aviso visible para hosting que requieren crear previamente la base de datos y asignar el usuario MySQL con permisos antes de continuar.
+- Se conserva la creación automática cuando el proveedor la permite.
