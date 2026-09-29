@@ -340,3 +340,41 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Normaliza APP_URL eliminando /public cuando el dominio ya apunta al document root público.
 - Unifica botones del instalador con acabados navy/teal, sin botones blancos.
 - Versión runtime, UI y schema sincronizada en 2.26.7.
+
+
+## V2.26.8
+- NIVO Web Chat muestra la mascota oficial de NIVO en el encabezado, aprovechando el espacio visual disponible sin interferir con la configuración.
+- NIVO · IA incorpora la misma mascota e identidad visual para mantener consistencia entre módulos.
+- Diseño responsive y compacto para escritorio, tablet y móvil.
+- Versión visual sincronizada en 2.26.8.
+
+
+## V2.27.0
+- NIVO Web Chat aprovecha el rail derecho con una escena viva de la mascota, mensaje contextual y estado animado.
+- NIVO gana microanimaciones sutiles en Web Chat y NIVO · IA, respetando reduced-motion.
+- Responsive: el acompañante se reorganiza en tablet y móvil sin crear espacios muertos.
+
+
+## V2.27.0
+- Estados visuales auditados: verde queda reservado para activo/conectado/autorizado.
+- NIVO inactivo ahora usa badge gris neutro, sin señal visual contradictoria.
+- Reglas e instalaciones desactivadas comparten el mismo lenguaje visual semántico.
+- Se preservan las mejoras visuales y la mascota animada de NIVO de V2.26.9.
+
+### V2.27.1
+- Repara la columna lateral de NIVO Web Chat para que la vista previa conserve su ancho correcto.
+- Evita que la mascota NIVO divida/comprima la vista previa en escritorio.
+- Mantiene a NIVO vivo en un bloque propio debajo de la vista previa y adapta el layout en tablet/móvil.
+- Conserva los estados semánticos de V2.27.0.
+
+
+### V2.27.2
+- Restaura el ancho premium original del panel Vista previa de NIVO Web Chat.
+- Iguala visualmente el alto del rail lateral con Diseño y comportamiento.
+- NIVO ocupa el espacio inferior disponible sin comprimir ni deformar la vista previa.
+- Ajustes responsive para escritorio, tablet y móvil.
+
+
+## V2.27.3
+- NIVO Web Chat mantiene el ancho y alto aprobados del rail lateral.
+- Se elimina el fondo oscuro del contenedor lateral; Vista previa y NIVO quedan como tarjetas claras independientes sobre el fondo normal del sistema.
