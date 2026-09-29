@@ -263,7 +263,7 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Se conserva la creación automática cuando el proveedor la permite.
 
 
-## V2.25.5
+## V2.25.6
 - Paquete de distribución limpio: `.env` y `storage/installed.lock` ya no forman parte del ZIP de instalación.
 - Instalador apto para instalación fresca local/hosting: genera `.env` y el lock al finalizar.
 - Verificación previa de PHP, PDO MySQL, OpenSSL, cURL y permisos de escritura.
@@ -272,21 +272,21 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Vista previa del nombre final evita duplicar el prefijo cuando ya forma parte del nombre.
 
 
-## V2.25.5
+## V2.25.6
 - Front controller `index.php` en la raíz para hosting cuyo DocumentRoot apunta al proyecto.
 - `.htaccess` raíz desactiva listado de directorios, enruta recursos públicos y protege carpetas privadas.
 - Defensa adicional con `.htaccess` dentro de app/database/docs/routes/storage/websocket.
 - Compatible con acceso limpio desde la raíz sin tener que escribir `/public`.
 
 
-## V2.25.5
+## V2.25.6
 - `.gitignore` reforzado: `.env`, `.env.*`, `storage/installed.lock`, logs y cache runtime no se versionan.
 - `.env.example` se conserva como plantilla versionable.
 - El MASTER de distribución no contiene `.env` ni `storage/installed.lock`.
 - Se conservan las carpetas runtime mediante `.gitkeep` sin subir su contenido local.
 
 
-## V2.25.5
+## V2.25.6
 - Asistente de instalación compactado y alineado en todos sus pasos.
 - Reduce espacios verticales, alturas de campos y márgenes sin cambiar el flujo funcional.
 - Mantiene pares de campos alineados y adapta el formulario a tablet/móvil sin desbordes.
