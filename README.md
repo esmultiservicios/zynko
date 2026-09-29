@@ -301,8 +301,28 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Controles y acciones del paso Correo reorganizados y responsive.
 
 
-## V2.26.1
+## V2.26.2
 - El instalador inicia limpio al volver a Bienvenida: no conserva credenciales, prefijo ni datos de intentos anteriores.
 - La base por defecto vuelve a ser `zynko` y el prefijo queda vacío.
 - Se separa el nombre propio de la base del nombre final con prefijo para evitar duplicaciones como `esmultiservicios_esmultiservicios_zynko`.
 - La conexión y el `.env` usan el nombre final real de la base, mientras la UI conserva los campos editables correctamente.
+
+
+## V2.26.2 — Plantilla de correo unificada
+- El instalador y el panel usan `app/Services/EmailTemplates.php` como única plantilla visual transaccional.
+- Las pruebas SMTP y Microsoft Graph del instalador usan exactamente el mismo diseño premium que las pruebas del dashboard.
+- Los correos conservan el mismo shell visual y cambian título, etiqueta, contenido y llamada a la acción según el evento.
+
+
+## V2.26.4
+- El correo de la cuenta creada por el instalador se precarga automáticamente en el login al pulsar Ir a ZYNKO.
+- El valor de instalación se usa solo como ayuda de primer acceso y se limpia después de iniciar sesión correctamente.
+- Versión runtime, UI y schema sincronizada en 2.26.4.
+
+
+## V2.26.4
+- Plantilla transaccional unificada con bloque informativo de NIVO.
+- NIVO se presenta como asistente inteligente para chat e IA, con transferencia humana cuando corresponde.
+- Correo de bienvenida de instalación usa una plantilla dedicada de cuenta creada, sin etiquetarlo como alerta crítica.
+- El mismo lenguaje visual se conserva para pruebas, seguridad, facturación y notificaciones generales.
+- Versión runtime, UI y schema sincronizada en 2.26.4.

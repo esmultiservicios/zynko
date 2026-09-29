@@ -1,5 +1,18 @@
 <?php
-function testEmailHtml(string $company='ZYNKO'): string { $c=htmlspecialchars($company,ENT_QUOTES,'UTF-8'); return '<!doctype html><html><body style="margin:0;background:#f4f7fb;font-family:Arial,sans-serif;color:#0f172a"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f7fb;padding:32px 12px"><tr><td align="center"><table role="presentation" width="600" style="max-width:600px;width:100%;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0"><tr><td style="padding:26px 30px;background:#0f172a;color:#fff"><b style="font-size:22px">ZYNKO</b><div style="font-size:12px;color:#b8c4d4;margin-top:4px">Omnichannel SaaS · '.$c.'</div></td></tr><tr><td style="padding:34px 30px"><div style="display:inline-block;padding:7px 10px;border-radius:999px;background:#e9fbf6;color:#087d69;font-size:12px;font-weight:bold">CONFIGURACIÓN VALIDADA</div><h1 style="font-size:24px;margin:18px 0 10px">Correo funcionando correctamente</h1><p style="color:#64748b;line-height:1.65;margin:0">ZYNKO completó la prueba del proveedor de correo. Esta cuenta ya puede utilizarse para las notificaciones del sistema.</p><div style="margin-top:24px;padding:16px;border:1px solid #dce7ee;border-radius:12px;background:#f8fafc"><b>Prueba completada</b><div style="font-size:13px;color:#64748b;margin-top:5px">No necesitas realizar ninguna acción adicional.</div></div></td></tr><tr><td style="padding:20px 30px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">Mensaje automático de ZYNKO · No compartas credenciales por correo.</td></tr></table></td></tr></table></body></html>'; }
+/**
+ * Installer mail preview uses the same transactional template engine as the dashboard.
+ * This keeps SMTP/Graph tests visually identical everywhere in ZYNKO.
+ */
+function testEmailHtml(string $company='ZYNKO'): string {
+  global $root;
+  require_once $root.'/app/Services/EmailTemplates.php';
+  $company=trim($company)!==''?trim($company):'ZYNKO';
+  return EmailTemplates::test([
+    'company_name'=>$company,
+    'app_title'=>'ZYNKO',
+    'app_url'=>function_exists('appUrl')?appUrl():'',
+  ]);
+}
 
 session_start();
 $root=dirname(__DIR__); $envFile=$root.'/.env'; $lock=$root.'/storage/installed.lock';
@@ -119,7 +132,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
         $type=(int)$pdo->query("SELECT correo_tipo_id FROM correo_tipo WHERE codigo='email_tests' LIMIT 1")->fetchColumn();if(!$type)throw new Exception('No existe el tipo de correo de prueba.');
         if($method==='SMTP'){$server=trim($_POST['server']??'');$port=(int)($_POST['port']??587);$secure=strtolower($_POST['smtp_secure']??'tls');$secret=$_POST['smtp_password']??'';if($server===''||$port<1||$port>65535||!in_array($secure,['tls','ssl'],true)||$secret==='')throw new Exception('Completa servidor, puerto, seguridad y contraseña SMTP.');$st=$pdo->prepare("INSERT INTO correo(tenant_id,correo_tipo_id,nombre,metodo_envio,server,correo,destinatario,password,port,smtp_secure,estado,is_default) VALUES(?,?,'Principal','SMTP',?,?,?,?,?,?,1,1)");$st->execute([$tid,$type,$server,$sender,(trim($_POST['recipient']??'')!==''?trim($_POST['recipient']):($_SESSION['install_owner_email']??'')),encryptSecret($secret,$key),$port,$secure]);}
         else{$gt=trim($_POST['graph_tenant']??'');$cid=trim($_POST['client_id']??'');$sec=$_POST['client_secret']??'';$guser=trim($_POST['graph_user']??$sender);if($gt===''||$cid===''||$sec===''||!filter_var($guser,FILTER_VALIDATE_EMAIL))throw new Exception('Completa Tenant ID, Client ID, Client Secret y buzón de Microsoft Graph.');$st=$pdo->prepare("INSERT INTO correo(tenant_id,correo_tipo_id,nombre,metodo_envio,correo,destinatario,tenant_graph_id,client_id,client_secret,graph_user,save_to_sent_items,estado,is_default) VALUES(?,?,'Principal','GRAPH',?,?,?,?,?,?,1,1,1)");$st->execute([$tid,$type,$sender,(trim($_POST['recipient']??'')!==''?trim($_POST['recipient']):($_SESSION['install_owner_email']??'')),$gt,$cid,encryptSecret($sec,$key),$guser]);}
-        $pdo->prepare("INSERT INTO notification_preferences(tenant_id,correo_tipo_id,email_enabled,in_app_enabled) SELECT ?,correo_tipo_id,1,1 FROM correo_tipo WHERE activo=1 ON DUPLICATE KEY UPDATE email_enabled=VALUES(email_enabled),in_app_enabled=VALUES(in_app_enabled)")->execute([$tid]);$_SESSION['mail_configured']=true;try{require_once $root.'/app/Services/NotificationService.php';(new NotificationService($pdo,$root))->send($tid,'critical',(string)($_SESSION['install_owner_email']??''),'Tu cuenta de ZYNKO fue creada','Tu cuenta principal y tu empresa fueron creadas correctamente. Ya puedes ingresar a ZYNKO con el correo registrado.',['dedupe_key'=>'install-welcome:'.$tid]);}catch(Throwable $mailWelcomeError){}
+        $pdo->prepare("INSERT INTO notification_preferences(tenant_id,correo_tipo_id,email_enabled,in_app_enabled) SELECT ?,correo_tipo_id,1,1 FROM correo_tipo WHERE activo=1 ON DUPLICATE KEY UPDATE email_enabled=VALUES(email_enabled),in_app_enabled=VALUES(in_app_enabled)")->execute([$tid]);$_SESSION['mail_configured']=true;try{require_once $root.'/app/Services/NotificationService.php';(new NotificationService($pdo,$root))->sendAccountCreated($tid,(string)($_SESSION['install_owner_email']??''));}catch(Throwable $mailWelcomeError){}
       } else { $_SESSION['mail_configured']=false; }
       finalizeInstall($lock);header('Location: ?step=5');exit;
     }catch(Throwable $e){$error='Correo no guardado: '.$e->getMessage();$step=4;}
