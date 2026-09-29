@@ -536,7 +536,7 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Refuerzo responsive del sitio público y panel administrador.
 - Analítica de visitas del sitio público para la empresa principal: hoy, 7 días, mes, histórico, días, semanas, meses, dispositivos y referidos.
 - NIVO Web Chat integrado en la portada usando el widget administrable de la empresa principal.
-- WhatsApp público flotante configurable desde el panel, por defecto +504 8912-6844, colocado en el lado opuesto a NIVO para evitar superposición.
+- WhatsApp público flotante configurable desde el panel, por defecto +504 8913-6844, colocado en el lado opuesto a NIVO para evitar superposición.
 - Confirmación premium antes de finalizar la instalación, con resumen de base de datos, administrador, URL, correo, NIVO y seguridad.
 - El instalador acepta correctamente la opción Configurar correo después y crea installed.lock solo después de confirmar.
 
@@ -612,3 +612,11 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - NIVO utiliza únicamente conocimiento aprobado y publicado.
 - Mantiene transferencia automática a humano cuando el asistente no tiene información suficiente.
 - Agrega respuesta inmediata en el widget, indicador “Escribiendo…” y sondeo de respaldo además de WebSocket.
+
+
+## V2.31.1
+- Bandeja omnicanal premium: acciones alineadas, conversaciones y panel Cliente 360° mejorados.
+- Seguimientos con campos y botón Programar estilizados.
+- Composer de mensajes reorganizado y responsive.
+- NIVO Web Chat refuerza compatibilidad con instalaciones existentes reparando columnas faltantes de bot_profiles en runtime.
+- Respuestas de NIVO se distinguen visualmente en la Bandeja.
