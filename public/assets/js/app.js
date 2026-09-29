@@ -92,29 +92,43 @@ $$('.user-actions').forEach(b=>b.addEventListener('click',()=>{const u=JSON.pars
 // ZYNKO final interaction pass: fullscreen, plans and new conversations.
 (()=>{const $=(s,c=document)=>c.querySelector(s),$$=(s,c=document)=>[...c.querySelectorAll(s)];
  const ajax=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});return r.json()};
- // Pantalla completa persistente: el documento anfitrión permanece en fullscreen y
- // la navegación interna ocurre dentro de un frame del mismo origen. Así cambiar de
- // Dashboard a Bandeja/Canales/etc. no saca al usuario de pantalla completa.
- const fsKey='zynko.fullscreen.persistent';
- const inFsFrame=()=>window.self!==window.top&&window.frameElement?.id==='zynkoFullscreenFrame';
- const topDoc=()=>{try{return window.top.document}catch(_){return document}};
- const syncFsIcon=()=>{const i=$('#fullscreenBtn i');if(!i)return;let active=false;try{active=!!topDoc().fullscreenElement||inFsFrame()}catch(_){}i.className=active?'fa-solid fa-compress':'fa-solid fa-expand';};
- const buildFsFrame=(href)=>{
-   let frame=document.getElementById('zynkoFullscreenFrame');
-   if(!frame){frame=document.createElement('iframe');frame.id='zynkoFullscreenFrame';frame.title='ZYNKO · Pantalla completa';frame.setAttribute('allow','fullscreen');Object.assign(frame.style,{position:'fixed',inset:'0',width:'100%',height:'100%',border:'0',background:'#fff',zIndex:'2147483646'});document.body.appendChild(frame);}
-   frame.src=href||location.href;return frame;
+ // V2.30.3 · Pantalla completa nativa del navegador.
+ // Usa la Fullscreen API para ocultar la interfaz del navegador y la barra de tareas
+ // mientras ZYNKO esté en modo pantalla completa. ESC permite salir de forma nativa.
+ const fullscreenElement=()=>document.fullscreenElement||document.webkitFullscreenElement||null;
+ const syncFsIcon=()=>{
+   const btn=$('#fullscreenBtn'),i=btn?.querySelector('i');
+   if(!btn||!i)return;
+   const active=!!fullscreenElement();
+   i.className=active?'fa-solid fa-compress':'fa-solid fa-expand';
+   btn.setAttribute('aria-pressed',active?'true':'false');
+   btn.title=active?'Salir de pantalla completa':'Pantalla completa · oculta la barra de tareas';
  };
- const enterPersistentFullscreen=async()=>{
-   if(inFsFrame()){try{localStorage.setItem(fsKey,'1');const td=topDoc();if(!td.fullscreenElement)await td.documentElement.requestFullscreen();}catch(_){}syncFsIcon();return;}
-   try{localStorage.setItem(fsKey,'1');if(!document.fullscreenElement)await document.documentElement.requestFullscreen();buildFsFrame(location.href);}catch(e){localStorage.removeItem(fsKey);showNotify('error','No se pudo cambiar la vista','El navegador bloqueó el modo de pantalla completa.');}
+ const enterFullscreen=async()=>{
+   try{
+     const el=document.documentElement;
+     if(el.requestFullscreen)await el.requestFullscreen({navigationUI:'hide'});
+     else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+     else throw new Error('Fullscreen API no disponible');
+     syncFsIcon();
+     showNotify('success','Pantalla completa','ZYNKO está en pantalla completa. Presiona ESC para salir.');
+   }catch(e){
+     showNotify('error','No se pudo activar pantalla completa','El navegador bloqueó la solicitud o no es compatible.');
+   }
  };
- const exitPersistentFullscreen=async()=>{
-   localStorage.removeItem(fsKey);
-   if(inFsFrame()){try{const td=topDoc();td.getElementById('zynkoFullscreenFrame')?.remove();if(td.fullscreenElement)await td.exitFullscreen();}catch(_){}return;}
-   document.getElementById('zynkoFullscreenFrame')?.remove();try{if(document.fullscreenElement)await document.exitFullscreen();}catch(_){}syncFsIcon();
+ const exitFullscreen=async()=>{
+   try{
+     if(document.exitFullscreen)await document.exitFullscreen();
+     else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
+   }catch(_){}
+   syncFsIcon();
  };
- $('#fullscreenBtn')?.addEventListener('click',async()=>{let active=false;try{active=!!topDoc().fullscreenElement||inFsFrame()}catch(_){}if(active)await exitPersistentFullscreen();else await enterPersistentFullscreen();});
- document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&!inFsFrame()){localStorage.removeItem(fsKey);document.getElementById('zynkoFullscreenFrame')?.remove();}syncFsIcon();});
+ $('#fullscreenBtn')?.addEventListener('click',async()=>{
+   if(fullscreenElement())await exitFullscreen();
+   else await enterFullscreen();
+ });
+ document.addEventListener('fullscreenchange',syncFsIcon);
+ document.addEventListener('webkitfullscreenchange',syncFsIcon);
  syncFsIcon();
  $$('.plan-edit').forEach(b=>b.addEventListener('click',()=>{const p=JSON.parse(b.dataset.plan),m=$('#planModal'),f=$('#planForm');f.reset();f.plan_id.value=p.id;f.name.value=p.name;f.monthly_price.value=p.monthly_price;f.currency.value=p.currency;f.max_users.value=p.max_users||0;f.max_channels.value=p.max_channels||0;f.max_webchat_sites.value=p.max_webchat_sites||0;f.max_daily_chats.value=p.max_daily_chats||0;f.features.value=(JSON.parse(p.features_json||'[]')||[]).join('\n');f.active.checked=String(p.active)==='1';f.is_default_free.checked=String(p.is_default_free)==='1';let allowed=[];try{allowed=JSON.parse(p.allowed_channels_json||'[]')||[]}catch(_){allowed=[]}f.querySelectorAll('input[name="allowed_channels[]"][type=checkbox]').forEach(x=>x.checked=allowed.length?allowed.includes(x.value):true);let mods={};try{mods=JSON.parse(p.module_access_json||'{}')||{}}catch(_){mods={}};['users','chatbot','integrations','api','email','settings'].forEach(k=>{const el=f.querySelector(`[name=module_${k}]`);if(el)el.checked=!!mods[k]});$('#planTitle').textContent='Editar plan';m.classList.add('open');if(window.jQuery)jQuery(f).find('.select2').trigger('change')}));
  $('#planForm')?.addEventListener('submit',async e=>{e.preventDefault();const j=await ajax(new FormData(e.currentTarget));showNotify(j.ok?'success':'error',j.message,j.ok?'Plan guardado':'Error');if(j.ok)setTimeout(()=>location.reload(),450)});

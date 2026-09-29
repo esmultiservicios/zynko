@@ -1809,3 +1809,8 @@ body.dark .icon-btn:hover,body.dark .pagination button:hover:not(:disabled),body
   justify-self:center!important;
   margin-inline:auto!important;
 }
+
+
+/* V2.30.3 · Estado visual del botón de pantalla completa nativa */
+#fullscreenBtn[aria-pressed="true"]{background:#e8f7f3!important;border-color:#bfe4da!important;color:#087966!important;}
+body.dark #fullscreenBtn[aria-pressed="true"]{background:#183b35!important;border-color:#2f645a!important;color:#8de1cf!important;}

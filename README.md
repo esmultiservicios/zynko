@@ -585,3 +585,18 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Centra la mascota e imágenes de NIVO en sus contenedores principales.
 - Sustituye el textarea simple de características del plan por un editor visual con agregar, ordenar y eliminar.
 - Alinea Plan activo y Plan Gratis predeterminado en una misma fila y elimina el rótulo redundante Estado del plan.
+
+
+### V2.30.2 · Vista ampliada sin cubrir la barra de tareas
+- Sustituye el fullscreen nativo del navegador por una vista ampliada interna de ZYNKO.
+- Mantiene visibles las pestañas/barra del navegador y la barra de tareas de Windows.
+- Conserva la navegación entre módulos dentro de la vista ampliada.
+- El mismo botón permite entrar y salir, actualizando icono, tooltip y estado accesible.
+- No modifica NIVO, analítica, planes, SEO, contactos ni otras funciones aprobadas.
+
+
+## V2.30.3 · Pantalla completa nativa
+- Restaura el modo de pantalla completa real mediante la Fullscreen API del navegador.
+- Oculta la interfaz del navegador y la barra de tareas mientras el modo está activo.
+- El mismo botón permite entrar/salir y ESC sale de forma nativa.
+- No modifica módulos, NIVO, planes, analítica ni el resto de la interfaz.
