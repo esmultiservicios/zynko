@@ -332,3 +332,11 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Ajuste final de plantilla de correo: badge sin saltos de línea y bloque NIVO horizontal.
 - NIVO utiliza el robot institucional en correos cuando APP_URL es público; mantiene fallback seguro si no hay URL pública.
 - Diseño transaccional unificado y compatible con Outlook mediante tablas HTML.
+
+
+## V2.26.7
+- Corrige la URL pública usada por plantillas de correo para que NIVO cargue su imagen real desde assets/img/nivo-email.png.
+- La prueba de correo del dashboard ahora recibe app_url y muestra el robot de NIVO en lugar del fallback NI.
+- Normaliza APP_URL eliminando /public cuando el dominio ya apunta al document root público.
+- Unifica botones del instalador con acabados navy/teal, sin botones blancos.
+- Versión runtime, UI y schema sincronizada en 2.26.7.
