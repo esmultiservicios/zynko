@@ -1429,8 +1429,8 @@ body.dark .icon-btn:hover,body.dark .pagination button:hover:not(:disabled),body
 @media(max-width:980px){
   .main{margin-left:0!important}
   header{left:0!important;padding:0 14px!important}
-  .app aside{left:-270px!important;width:248px!important;z-index:220!important;transition:left .2s ease!important;box-shadow:18px 0 40px rgba(8,22,37,.22)}
-  .app.menu-open aside{left:0!important}
+  #sidebar{left:-270px!important;width:248px!important;z-index:220!important;transition:left .2s ease!important;box-shadow:18px 0 40px rgba(8,22,37,.22)}
+  .app.menu-open #sidebar{left:0!important}
   #menu{display:grid!important;place-items:center!important;width:40px!important;height:40px!important;border-radius:10px!important}
   .side-collapse{display:none!important}
   main{padding:84px 16px 20px!important}
@@ -1473,3 +1473,59 @@ body.dark .icon-btn:hover,body.dark .pagination button:hover:not(:disabled),body
 .whatsapp-admin-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:#dcf8e8;color:#149a53;font-size:21px}
 .whatsapp-admin-head>div{display:grid;gap:3px}.whatsapp-admin-head b{color:#10283a}.whatsapp-admin-head small{color:#64748b;line-height:1.45}.whatsapp-admin-grid{margin:0!important}
 @media(max-width:700px){.whatsapp-admin-head{grid-template-columns:46px minmax(0,1fr)}.whatsapp-admin-head .switch-line{grid-column:1/-1;width:100%!important}.whatsapp-admin-grid{grid-template-columns:1fr!important}}
+
+
+/* V2.29.9 · Dashboard KPIs restaurados y ordenados */
+.premium-kpis.dashboard-summary-kpis{
+  display:grid!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:16px!important;
+  width:100%!important;
+  margin:0!important;
+}
+.premium-kpis.dashboard-summary-kpis>article{
+  display:grid!important;
+  grid-template-columns:52px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:14px!important;
+  min-height:96px!important;
+  padding:18px 20px!important;
+  border:1px solid var(--line)!important;
+  border-radius:16px!important;
+  background:var(--surface)!important;
+  box-shadow:var(--shadow)!important;
+}
+.premium-kpis.dashboard-summary-kpis>article .kpi-icon{
+  width:52px!important;
+  height:52px!important;
+  border-radius:15px!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#e8f8f4!important;
+  color:#0b8c78!important;
+  font-size:18px!important;
+}
+.premium-kpis.dashboard-summary-kpis>article>div{
+  display:grid!important;
+  gap:3px!important;
+  min-width:0!important;
+}
+.premium-kpis.dashboard-summary-kpis>article b{
+  display:block!important;
+  margin:0!important;
+  font-size:28px!important;
+  line-height:1!important;
+  color:var(--text)!important;
+  letter-spacing:-.03em!important;
+}
+.premium-kpis.dashboard-summary-kpis>article small{
+  display:block!important;
+  margin:0!important;
+  color:var(--muted)!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+}
+@media(max-width:760px){
+  .premium-kpis.dashboard-summary-kpis{grid-template-columns:1fr!important}
+  .premium-kpis.dashboard-summary-kpis>article{min-height:88px!important;padding:16px!important}
+}

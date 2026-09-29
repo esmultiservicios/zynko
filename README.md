@@ -539,3 +539,27 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - WhatsApp público flotante configurable desde el panel, por defecto +504 8912-6844, colocado en el lado opuesto a NIVO para evitar superposición.
 - Confirmación premium antes de finalizar la instalación, con resumen de base de datos, administrador, URL, correo, NIVO y seguridad.
 - El instalador acepta correctamente la opción Configurar correo después y crea installed.lock solo después de confirmar.
+
+
+### V2.29.8 · Reparación responsive del administrador y accesos públicos
+- Corrige el selector responsive que afectaba por error a cualquier elemento `aside` dentro del administrador y desplazaba el detalle de analítica fuera del layout.
+- El comportamiento móvil del sidebar queda limitado exclusivamente a `#sidebar`.
+- Conserva intacto el módulo de analítica dentro del flujo normal del Dashboard.
+- Los accesos públicos de Iniciar sesión y Crear cuenta se abren en una pestaña nueva para no sacar al visitante del sitio principal.
+- Conserva analítica, NIVO Web Chat, WhatsApp flotante, Turnstile, contacto, SEO, Términos y configuración existentes.
+
+
+### V2.29.8 · Dashboard reparado y accesos públicos en nueva pestaña
+- Corrige el conflicto de CSS que trataba el panel lateral de analítica como si fuera el sidebar principal.
+- Limita todas las reglas globales del menú lateral exclusivamente a `#sidebar`.
+- Mantiene la analítica dentro del Dashboard, con su layout normal y responsive.
+- Convierte el bloque lateral de detalle de analítica a un contenedor normal para evitar futuras colisiones.
+- Los enlaces públicos de Iniciar sesión y Crear cuenta se abren en una pestaña nueva desde header, menú móvil, hero, Plan Gratis, CTA y footer.
+- Conserva NIVO Web Chat, WhatsApp flotante, analítica, Turnstile, formulario de contacto, SEO, redes, Términos y el instalador premium.
+
+
+### V2.29.9 · Dashboard y acceso público corregidos
+- Restaura los KPIs del Dashboard con tarjetas premium, iconos y espaciado correcto.
+- El dominio raíz vuelve a mostrar siempre el sitio público, incluso cuando existe una sesión administrativa activa.
+- Login y Crear cuenta continúan abriendo en pestaña nueva desde el sitio público.
+- Mantiene intactos NIVO Web Chat, WhatsApp flotante, analítica, contacto, Turnstile, SEO y configuración existente.
