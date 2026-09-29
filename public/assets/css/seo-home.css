@@ -701,3 +701,10 @@ body.lightbox-open{overflow:hidden}
 .feature-grid>article,.capability-grid>article,.showcase-grid>article,.metric-grid>article{height:100%!important;align-self:stretch!important}
 .capability-card{display:grid!important;align-content:start!important}.showcase-card{display:flex!important;flex-direction:column!important}.showcase-copy{flex:1 1 auto!important}
 @media(max-width:760px){.footer-socials a{width:38px!important;height:38px!important}}
+
+/* V2.30.1 · Centrado consistente de imágenes públicas */
+.hero-side-visual img,
+.showcase-media img{
+  object-position:center center!important;
+}
+.hero-side-visual img{margin-inline:auto!important}

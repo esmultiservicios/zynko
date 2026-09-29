@@ -250,3 +250,37 @@ document.querySelector('#legalTermsForm')?.addEventListener('submit',async e=>{e
 
 // V2.22.0 · modal icons + platform version
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.modal-head>div:first-child').forEach(h=>{if(h.querySelector('.modal-title-icon'))return;h.classList.add('modal-title-with-icon');const icon=document.createElement('span');icon.className='modal-title-icon';icon.innerHTML='<i class="fa-solid fa-layer-group"></i>';h.prepend(icon)});document.getElementById('systemVersionForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]'),old=b.innerHTML;b.disabled=true;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Guardando…';try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(f)}),j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Versión actualizada':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),450)}catch(x){showNotify('error','Error',x.message)}finally{b.disabled=false;b.innerHTML=old}})});
+
+
+// ZYNKO V2.30.1 · Editor visual de características del plan
+(()=>{
+ const form=document.getElementById('planForm'),input=document.getElementById('planFeaturesInput'),list=document.getElementById('planFeaturesList'),empty=document.getElementById('planFeaturesEmpty'),counter=document.getElementById('planFeaturesCount'),addBtn=document.getElementById('planFeatureAdd');
+ if(!form||!input||!list)return;
+ const clean=s=>String(s||'').replace(/\s+/g,' ').trim();
+ const rows=()=>[...list.querySelectorAll('.plan-feature-row')];
+ const sync=()=>{
+   const values=rows().map(r=>clean(r.querySelector('input')?.value)).filter(Boolean);
+   input.value=values.join('\n');
+   if(counter)counter.textContent=values.length+' '+(values.length===1?'característica':'características');
+   if(empty)empty.hidden=rows().length>0;
+   rows().forEach((r,i)=>{const n=r.querySelector('.plan-feature-number');if(n)n.textContent=String(i+1).padStart(2,'0');const up=r.querySelector('[data-feature-up]'),down=r.querySelector('[data-feature-down]');if(up)up.disabled=i===0;if(down)down.disabled=i===rows().length-1;});
+ };
+ const makeRow=(value='')=>{
+   const row=document.createElement('div');row.className='plan-feature-row';
+   row.innerHTML='<span class="plan-feature-number">01</span><input type="text" maxlength="180" placeholder="Ej. Soporte prioritario" aria-label="Característica del plan"><div class="plan-feature-actions"><button type="button" class="icon-btn" data-feature-up title="Subir"><i class="fa-solid fa-arrow-up"></i></button><button type="button" class="icon-btn" data-feature-down title="Bajar"><i class="fa-solid fa-arrow-down"></i></button><button type="button" class="icon-btn danger" data-feature-remove title="Eliminar"><i class="fa-solid fa-trash"></i></button></div>';
+   const field=row.querySelector('input');field.value=value;
+   field.addEventListener('input',sync);
+   row.querySelector('[data-feature-remove]').addEventListener('click',()=>{row.remove();sync();});
+   row.querySelector('[data-feature-up]').addEventListener('click',()=>{const prev=row.previousElementSibling;if(prev)list.insertBefore(row,prev);sync();});
+   row.querySelector('[data-feature-down]').addEventListener('click',()=>{const next=row.nextElementSibling;if(next)list.insertBefore(next,row);sync();});
+   list.appendChild(row);sync();return row;
+ };
+ const load=()=>{list.innerHTML='';const vals=String(input.value||'').split(/\r?\n/).map(clean).filter(Boolean);vals.forEach(makeRow);sync();};
+ const reset=()=>{input.value='';list.innerHTML='';sync();};
+ addBtn?.addEventListener('click',()=>{const row=makeRow('');row.querySelector('input')?.focus();});
+ form.addEventListener('submit',sync,true);
+ document.querySelectorAll('.plan-edit').forEach(btn=>btn.addEventListener('click',()=>setTimeout(load,0)));
+ document.querySelectorAll('[data-open="planModal"]').forEach(btn=>btn.addEventListener('click',()=>setTimeout(()=>{form.reset();if(form.plan_id)form.plan_id.value='';reset();document.getElementById('planTitle').textContent='Crear plan';if(window.jQuery)jQuery(form).find('.select2').trigger('change');},0)));
+ window.ZynkoPlanFeatures={load,reset,sync,add:makeRow};
+ sync();
+})();

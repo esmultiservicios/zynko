@@ -1644,3 +1644,168 @@ body.dark .icon-btn:hover,body.dark .pagination button:hover:not(:disabled),body
 #planModal .billing-option.is-fixed{background:#f1faf7!important;border-color:#cfe9e2!important}
 #planModal .billing-option.is-fixed .billing-option-icon{background:#dff4ee!important}
 @media(max-width:640px){#planModal .modal-card{height:calc(100dvh - 16px)!important}#planModal .billing-option{min-height:50px!important}}
+
+
+/* V2.30.1 · Cierre final de espaciado, NIVO y editor de planes */
+.analytics-head-actions{
+  display:flex!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:8px!important;
+}
+.analytics-range-btn{
+  flex:0 0 auto!important;
+  min-width:92px!important;
+  white-space:nowrap!important;
+}
+.dashboard-grid + .dashboard-attention-panel{
+  margin-top:30px!important;
+}
+.dashboard-attention-panel{
+  scroll-margin-top:90px;
+}
+
+/* NIVO: etiqueta completa en dos líneas y mascota siempre centrada. */
+.preview-launcher-label{
+  max-width:190px!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  line-height:1.25!important;
+  text-align:center!important;
+  justify-content:center!important;
+  overflow-wrap:anywhere!important;
+}
+.preview-launcher-brand img,
+.preview-brand-avatar img,
+.nivo-companion-visual img,
+.nivo-identity-card img,
+.auth-nivo-strip img,
+.hero-side-visual img,
+.avatar-img{
+  object-position:center center!important;
+}
+.preview-brand-avatar,
+.nivo-companion-visual,
+.nivo-identity-card .nivo-identity-mascot,
+.auth-nivo-strip,
+.hero-side-visual{
+  justify-items:center!important;
+}
+.nivo-companion-visual img,
+.auth-nivo-strip img,
+.hero-side-visual img{
+  margin-inline:auto!important;
+}
+
+/* Características del plan: editor visual ordenado sin cambiar el formato guardado. */
+#planModal .plan-features-field{gap:10px!important}
+#planModal .plan-features-head{
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+}
+#planModal .plan-features-head>div{display:grid!important;gap:2px!important;min-width:0!important}
+#planModal .plan-features-head label{font-size:12.5px!important;color:#10283a!important}
+#planModal .plan-features-head small{font-size:10.5px!important;color:#73869a!important;line-height:1.4!important}
+#planModal .plan-features-head .secondary-action{min-height:38px!important;white-space:nowrap!important}
+#planModal .plan-feature-builder{
+  border:1px solid #dce7ed!important;
+  border-radius:14px!important;
+  overflow:hidden!important;
+  background:#f8fbfc!important;
+}
+#planModal .plan-feature-toolbar{
+  min-height:44px!important;
+  padding:9px 12px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  border-bottom:1px solid #e2ebef!important;
+  background:#f3f8fa!important;
+}
+#planModal .plan-feature-toolbar span{display:inline-flex!important;align-items:center!important;gap:7px!important;color:#17384e!important;font-size:11.5px!important;font-weight:850!important}
+#planModal .plan-feature-toolbar span i{color:#0a8b75!important}
+#planModal .plan-feature-toolbar b{font-size:10.5px!important;color:#73869a!important;white-space:nowrap!important}
+#planModal .plan-feature-list{display:grid!important;gap:8px!important;padding:10px!important;max-height:188px!important;overflow-y:auto!important}
+#planModal .plan-feature-row{
+  display:grid!important;
+  grid-template-columns:34px minmax(0,1fr) auto!important;
+  gap:9px!important;
+  align-items:center!important;
+  min-height:46px!important;
+  padding:6px 7px!important;
+  border:1px solid #e0e9ed!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  transition:border-color .16s ease,box-shadow .16s ease,transform .16s ease!important;
+}
+#planModal .plan-feature-row:focus-within{border-color:#a9d9ce!important;box-shadow:0 0 0 3px rgba(15,169,139,.08)!important;transform:translateY(-1px)!important}
+#planModal .plan-feature-number{width:30px!important;height:30px!important;border-radius:9px!important;display:grid!important;place-items:center!important;background:#eaf8f4!important;color:#0a8b75!important;font-size:10.5px!important;font-weight:900!important}
+#planModal .plan-feature-row input{min-height:36px!important;border:0!important;background:transparent!important;padding:6px 4px!important;box-shadow:none!important}
+#planModal .plan-feature-actions{display:flex!important;align-items:center!important;gap:4px!important}
+#planModal .plan-feature-actions .icon-btn{width:32px!important;height:32px!important;min-height:32px!important;border-radius:9px!important;padding:0!important}
+#planModal .plan-feature-empty{min-height:82px!important;padding:14px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:11px!important;color:#75889b!important;text-align:left!important}
+#planModal .plan-feature-empty[hidden]{display:none!important}
+#planModal .plan-feature-empty>i{width:34px!important;height:34px!important;border-radius:10px!important;display:grid!important;place-items:center!important;background:#eaf8f4!important;color:#0a8b75!important}
+#planModal .plan-feature-empty>div{display:grid!important;gap:2px!important}
+#planModal .plan-feature-empty b{font-size:11.5px!important;color:#29445b!important}
+#planModal .plan-feature-empty small{font-size:10px!important;line-height:1.4!important}
+
+/* Estado y predeterminado alineados en la misma fila; sin el rótulo redundante “Estado del plan”. */
+#planModal .plan-state-row{gap:8px!important}
+#planModal .plan-toggle-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+#planModal .plan-toggle-card{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:42px minmax(0,1fr)!important;
+  gap:10px!important;
+  align-items:center!important;
+  min-height:66px!important;
+  padding:10px 12px!important;
+  border:1px solid #dce7ed!important;
+  border-radius:13px!important;
+  background:#fff!important;
+  cursor:pointer!important;
+}
+#planModal .plan-toggle-card:hover{border-color:#b9ded5!important;background:#f7fcfa!important}
+#planModal .plan-toggle-card>input{position:absolute!important;opacity:0!important;pointer-events:none!important}
+#planModal .plan-toggle-control{width:40px!important;height:23px!important;border-radius:999px!important;background:#cbd5e1!important;position:relative!important;transition:.18s!important}
+#planModal .plan-toggle-control:after{content:''!important;position:absolute!important;width:17px!important;height:17px!important;left:3px!important;top:3px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 2px 5px rgba(15,23,42,.16)!important;transition:.18s!important}
+#planModal .plan-toggle-card>input:checked + .plan-toggle-control{background:#0fa98b!important}
+#planModal .plan-toggle-card>input:checked + .plan-toggle-control:after{left:20px!important}
+#planModal .plan-toggle-card>div{display:grid!important;gap:2px!important;min-width:0!important}
+#planModal .plan-toggle-card b{font-size:11.5px!important;color:#142c3f!important}
+#planModal .plan-toggle-card small{font-size:9.8px!important;color:#7b8c9e!important;line-height:1.35!important}
+#planModal .plan-default-card{order:2!important}
+#planModal .plan-default-help{display:flex!important;align-items:flex-start!important;gap:6px!important;margin-top:1px!important}
+#planModal .plan-default-help i{margin-top:2px!important;color:#0a8b75!important}
+
+@media(max-width:760px){
+  .analytics-head-actions{width:100%!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+  .analytics-range-btn{min-width:0!important;width:100%!important;padding-inline:5px!important}
+  .dashboard-grid + .dashboard-attention-panel{margin-top:24px!important}
+  .preview-launcher-label{max-width:170px!important}
+  #planModal .plan-features-head{align-items:stretch!important;flex-direction:column!important}
+  #planModal .plan-features-head .secondary-action{width:100%!important;justify-content:center!important}
+  #planModal .plan-toggle-grid{grid-template-columns:1fr!important}
+  #planModal .plan-feature-row{grid-template-columns:30px minmax(0,1fr)!important}
+  #planModal .plan-feature-actions{grid-column:2!important;justify-content:flex-end!important}
+}
+
+/* V2.30.1 · Centrado consistente de imágenes de identidad */
+.nivo-identity-card img,
+.nivo-brand-orb img,
+.preview-launcher-brand img,
+.nivo-companion-visual img,
+.nivo-ai-explainer-brand img,
+.auth-nivo-strip img,
+.avatar-img{
+  display:block!important;
+  object-position:center center!important;
+  justify-self:center!important;
+  margin-inline:auto!important;
+}

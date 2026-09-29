@@ -576,3 +576,12 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Corrige contraste y presentación de redes sociales del footer.
 - Refuerza alturas consistentes de tarjetas que comparten una misma fila.
 - Conserva SEO, Turnstile, analítica, contacto, WhatsApp, permisos y funcionalidades anteriores.
+
+
+### V2.30.1 · Ajustes finales de cierre premium
+- Mantiene Días, Semanas y Meses alineados en una sola fila.
+- Separa claramente Conversaciones que requieren atención del bloque superior del Dashboard.
+- Permite leer completa la etiqueta de NIVO Web Chat en dos líneas.
+- Centra la mascota e imágenes de NIVO en sus contenedores principales.
+- Sustituye el textarea simple de características del plan por un editor visual con agregar, ordenar y eliminar.
+- Alinea Plan activo y Plan Gratis predeterminado en una misma fila y elimina el rótulo redundante Estado del plan.
