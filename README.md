@@ -314,15 +314,21 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Los correos conservan el mismo shell visual y cambian título, etiqueta, contenido y llamada a la acción según el evento.
 
 
-## V2.26.4
+## V2.26.5
 - El correo de la cuenta creada por el instalador se precarga automáticamente en el login al pulsar Ir a ZYNKO.
 - El valor de instalación se usa solo como ayuda de primer acceso y se limpia después de iniciar sesión correctamente.
-- Versión runtime, UI y schema sincronizada en 2.26.4.
+- Versión runtime, UI y schema sincronizada en 2.26.5.
 
 
-## V2.26.4
+## V2.26.5
 - Plantilla transaccional unificada con bloque informativo de NIVO.
 - NIVO se presenta como asistente inteligente para chat e IA, con transferencia humana cuando corresponde.
 - Correo de bienvenida de instalación usa una plantilla dedicada de cuenta creada, sin etiquetarlo como alerta crítica.
 - El mismo lenguaje visual se conserva para pruebas, seguridad, facturación y notificaciones generales.
-- Versión runtime, UI y schema sincronizada en 2.26.4.
+- Versión runtime, UI y schema sincronizada en 2.26.5.
+
+
+## V2.26.5
+- Ajuste final de plantilla de correo: badge sin saltos de línea y bloque NIVO horizontal.
+- NIVO utiliza el robot institucional en correos cuando APP_URL es público; mantiene fallback seguro si no hay URL pública.
+- Diseño transaccional unificado y compatible con Outlook mediante tablas HTML.

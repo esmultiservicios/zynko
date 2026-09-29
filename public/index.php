@@ -30,7 +30,7 @@ function mainTenantId(): int { try{return (int)appDb()->query('SELECT MIN(id) FR
 function isPlatformOwner(): bool { return isset($_SESSION['user']) && (int)$_SESSION['user']['tenant_id']===mainTenantId() && in_array($_SESSION['user']['role']??'', ['owner','admin'],true); }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.26.4';
+$releaseVersion='2.26.5';
 $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings(setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL,updated_by BIGINT UNSIGNED NULL,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
 $pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES(?,?)")->execute(['app_version',$releaseVersion]);
 try{$current=(string)$pdo->query("SELECT setting_value FROM system_settings WHERE setting_key='app_version'")->fetchColumn();if($current===''||version_compare($current,$releaseVersion,'<')){$pdo->prepare("UPDATE system_settings SET setting_value=? WHERE setting_key='app_version'")->execute([$releaseVersion]);}}catch(Throwable $e){}
