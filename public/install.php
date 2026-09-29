@@ -54,7 +54,37 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
   $action=$_POST['action']??'';
   if($action==='database'){
     foreach($defaults as $k=>$v) $_SESSION['install_db'][$k]=trim((string)($_POST[$k]??$v));
-    try{$d=$_SESSION['install_db'];$base=preg_replace('/[^a-zA-Z0-9_]/','',$d['database']);$prefix=preg_replace('/[^a-zA-Z0-9_]/','',$d['db_prefix']??'');if(!$base||$base!==$d['database'])throw new Exception('Nombre de base de datos inválido. Usa solo letras, números y guion bajo.');if($prefix!==($d['db_prefix']??''))throw new Exception('Prefijo inválido. Usa solo letras, números y guion bajo.');$safe=($prefix!==''&&!str_starts_with($base,$prefix))?$prefix.$base:$base;$pdo=pdoDb($d,false);try{$pdo->exec("CREATE DATABASE IF NOT EXISTS `$safe` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");}catch(Throwable $createError){$probe=$d;$probe['database']=$safe;try{pdoDb($probe,true);}catch(Throwable $connectError){throw new Exception('El hosting no permitió crear la base y tampoco existe una base accesible con ese nombre. Créala en el panel del hosting o revisa prefijo/credenciales.');}}$_SESSION['install_db']['database']=$safe;$_SESSION['install_db']['db_prefix']=$prefix;header('Location: ?step=3');exit;}catch(Throwable $e){$error='No se pudo conectar: '.$e->getMessage();$step=2;}
+    try{$d=$_SESSION['install_db'];$base=preg_replace('/[^a-zA-Z0-9_]/','',$d['database']);$prefix=preg_replace('/[^a-zA-Z0-9_]/','',$d['db_prefix']??'');if(!$base||$base!==$d['database'])throw new Exception('Nombre de base de datos inválido. Usa solo letras, números y guion bajo.');if($prefix!==($d['db_prefix']??''))throw new Exception('Prefijo inválido. Usa solo letras, números y guion bajo.');$safe=($prefix!==''&&!str_starts_with($base,$prefix))?$prefix.$base:$base;
+      // Primero probar la base final. En cPanel normalmente la BD ya debe existir y el usuario debe estar asignado.
+      $probe=$d;$probe['database']=$safe;
+      try{
+        pdoDb($probe,true);
+      }catch(Throwable $directError){
+        // Si no pudimos abrirla, intentamos crearla solo para hostings que sí conceden CREATE DATABASE.
+        try{
+          $serverPdo=pdoDb($d,false);
+          $serverPdo->exec("CREATE DATABASE IF NOT EXISTS `$safe` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+          pdoDb($probe,true);
+        }catch(Throwable $createOrConnectError){
+          $msg=$directError->getMessage();
+          $detail=$createOrConnectError->getMessage();
+          $combined=$msg.' '.$detail;
+          if(preg_match('/Access denied|SQLSTATE\\[HY000\\] \\[1045\\]/i',$combined)){
+            throw new Exception("La base `$safe` existe o fue indicada, pero MySQL rechazó el usuario o la contraseña. Verifica las credenciales y que el usuario `{$d['username']}` esté asignado a esa base en cPanel con los permisos necesarios.");
+          }
+          if(preg_match('/1044|access denied for user.*database/i',$combined)){
+            throw new Exception("La base `$safe` existe, pero el usuario `{$d['username']}` no tiene permisos para usarla. Asígnalo a la base desde cPanel → MySQL Databases y concede los permisos necesarios.");
+          }
+          if(preg_match('/1049|Unknown database/i',$combined)){
+            throw new Exception("La base `$safe` no existe o MySQL no puede verla. Créala primero desde cPanel y asigna el usuario `{$d['username']}`.");
+          }
+          if(preg_match('/2002|Connection refused|No such file|php_network_getaddresses|server has gone away/i',$combined)){
+            throw new Exception("No fue posible conectar con el servidor MySQL `{$d['host']}:{$d['port']}`. Revisa el Host MySQL indicado por tu proveedor; en algunos hosting no es `localhost`.");
+          }
+          throw new Exception("No fue posible abrir la base `$safe` con el usuario `{$d['username']}`. MySQL respondió: ".$msg);
+        }
+      }
+      $_SESSION['install_db']['database']=$safe;$_SESSION['install_db']['db_prefix']=$prefix;header('Location: ?step=3');exit;}catch(Throwable $e){$error='No se pudo conectar: '.$e->getMessage();$step=2;}
   }
   if($action==='install'){
     try{
@@ -90,7 +120,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 $db=array_merge($defaults,$_SESSION['install_db']??[]);$mailMethod=$_POST['method']??'SMTP';
 ?><!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Instalar ZYNKO</title><link rel="stylesheet" href="assets/vendor/select2/select2.min.css"><link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css"><link rel="stylesheet" href="assets/css/zynko-ui.css"><style>:root{--p:#13a88a;--n:#0b1625;--bg:#f5f7fb;--line:#e4eaf0;--muted:#6f7f91;--warn:#a76600}*{box-sizing:border-box}html,body{width:100%;max-width:100%;margin:0;overflow-x:clip}body{font:14px/1.5 Inter,system-ui,sans-serif;background:var(--bg);color:#152235}.wrap{width:calc(100% - 28px);max-width:960px;margin:4vh auto;min-width:0}.brand{display:flex;align-items:center;gap:12px;margin-bottom:22px}.mark{width:42px;height:42px;border-radius:13px;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:900}.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 20px 55px rgba(20,40,60,.08)}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}.steps div{padding:11px;border:1px solid var(--line);border-radius:11px;color:var(--muted)}.steps .on{border-color:var(--p);color:#08705c;background:#f0fbf8}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;min-width:0}.field{display:grid;grid-template-rows:auto minmax(44px,auto) auto;align-content:start;gap:7px;min-width:0;max-width:100%}.field>label{min-height:21px;display:flex;align-items:flex-end}.field.full{grid-template-rows:auto minmax(44px,auto) auto}.field label{font-weight:700}.field input,.field select{width:100%;min-height:44px;border:1px solid var(--line);border-radius:11px;padding:10px 12px;font:inherit}.select2-container{width:100%!important;max-width:100%!important;min-width:0!important}.select2-container .select2-selection--single{height:44px!important;border:1px solid var(--line)!important;border-radius:11px!important;background:#fff!important}.select2-container .select2-selection--single .select2-selection__rendered{line-height:42px!important;padding-left:12px!important;color:#152235!important}.select2-container .select2-selection--single .select2-selection__arrow{height:42px!important;right:8px!important}.select2-dropdown{max-width:100vw!important;border:1px solid var(--line)!important;border-radius:11px!important;overflow:hidden;box-shadow:0 12px 28px rgba(20,40,60,.12)}.select2-results__option{padding:10px 12px!important}.select2-results__option--highlighted.select2-results__option--selectable{background:var(--p)!important}.select2-search__field{border:1px solid var(--line)!important;border-radius:8px!important;padding:8px!important}.full{grid-column:1/-1}.actions{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:22px;flex-wrap:wrap}.btn{border:0;border-radius:11px;padding:11px 16px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}.btn:disabled{opacity:.65;cursor:not-allowed}.btn i{width:16px;text-align:center}.primary{background:var(--p);color:#fff}.secondary{background:#eef3f7;color:#203044}.error{padding:12px;border:1px solid #f0c5c5;background:#fff6f6;border-radius:10px;margin-bottom:16px}.note{padding:14px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;color:var(--muted)}.warning{background:#fff9ee;border-color:#f0d8ad;color:#79500a}.mailbox{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:14px}h1{margin:0 0 7px}p{color:var(--muted)}small{color:var(--muted)}@media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.card{padding:20px}.steps div{display:none}.steps .on{display:block}.full{grid-column:auto}.actions .btn{width:100%;text-align:center}}</style>
 <style id="zynko-installer-compact-v2253">
-/* V2.25.7 — installer compact, aligned and responsive */
+/* V2.25.8 — installer compact, aligned and responsive */
 .installer-shell,.install-shell,.wizard-shell{min-height:auto!important}
 .installer-card,.install-card,.wizard-card,.card{
     max-width:980px!important;margin:18px auto!important;
