@@ -325,3 +325,386 @@ body:has(.inbox-premium-toolbar) main{height:calc(100dvh - 68px);overflow:hidden
 @media(max-width:520px){.login-card .form-line{align-items:flex-start!important;flex-direction:column!important;gap:4px!important}.login-card .form-line>a{justify-content:flex-start!important}}
 /* NIVO Web Chat */
 .webchat-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr);gap:18px}.switch-stack{display:flex;gap:18px;flex-wrap:wrap}.preview-stage{min-height:430px;background:#eef3f6;border:1px solid var(--line);border-radius:18px;padding:28px;display:flex;align-items:flex-end;justify-content:flex-end;position:relative}.preview-chat{width:min(100%,330px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 45px rgba(15,23,42,.14);overflow:hidden}.preview-head{background:#0f172a;color:#fff;padding:15px;display:flex;gap:11px;align-items:center}.preview-head small{display:block;color:#b8c5d1}.nivo-orb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#14b8a6}.preview-body{min-height:180px;padding:18px;background:#f8fafc}.preview-body span{display:inline-block;background:#fff;border:1px solid #dce5eb;border-radius:14px 14px 14px 4px;padding:11px 13px;color:#334155}.preview-input{margin:12px;border:1px solid #dce5eb;border-radius:12px;padding:11px;color:#94a3b8;display:flex;justify-content:space-between}.preview-launcher{position:absolute;right:14px;bottom:14px;width:56px;height:56px;border:0;border-radius:50%;color:#fff;font-size:20px;box-shadow:0 12px 28px rgba(15,23,42,.22)}.embed-box{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center;background:#f8fafc;border:1px solid var(--line);padding:16px;border-radius:14px}.embed-box>div{grid-column:1/-1}.embed-box code{overflow:auto;white-space:nowrap;background:#0f172a;color:#d5f5ef;border-radius:10px;padding:12px}.installation-form{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin:18px 0}.installation-list{display:grid;gap:10px}.installation-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto auto;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:13px}.installation-row small{display:block;color:var(--muted);margin-top:3px}.icon-btn.danger{color:#b42318}@media(max-width:900px){.webchat-layout{grid-template-columns:1fr}.installation-form{grid-template-columns:1fr}.embed-box{grid-template-columns:1fr}.installation-row{grid-template-columns:auto minmax(0,1fr) auto auto}.installation-row .status-badge{grid-column:2/-1;justify-self:start}}
+
+
+/* V2.12.3 — UI canonical: NIVO Web Chat + Select2 */
+.nivo-webchat-page{display:block;width:100%;min-width:0}
+.nivo-webchat-page .welcome{margin-bottom:16px}
+.nivo-webchat-page .webchat-layout{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(320px,.55fr);gap:18px;align-items:start;width:100%;min-width:0;margin:0 0 18px}
+.nivo-webchat-page .webchat-layout>.panel{position:static!important;inset:auto!important;float:none!important;transform:none!important;width:100%!important;max-width:none!important;min-width:0!important;height:auto!important;margin:0!important;overflow:visible!important}
+.nivo-webchat-page .webchat-preview{padding:18px!important}
+.nivo-webchat-page .webchat-preview .panel-head{margin-bottom:14px!important}
+.nivo-webchat-page .preview-stage{width:100%;min-height:420px;padding:22px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.nivo-webchat-page .preview-chat{width:min(100%,310px)}
+.nivo-webchat-page .preview-launcher{right:18px;bottom:18px}
+.nivo-webchat-page #webchatWidgetForm .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 18px}
+.nivo-webchat-page #webchatWidgetForm .field{min-width:0}
+.nivo-webchat-page #webchatWidgetForm .field>label:first-child{font-size:12px;line-height:1.35;color:var(--text);font-weight:700}
+.nivo-webchat-page #webchatWidgetForm input[type=color]{appearance:none;-webkit-appearance:none;width:100%;height:44px;padding:5px;border:1px solid var(--line);border-radius:11px;background:var(--surface);cursor:pointer}
+.nivo-webchat-page #webchatWidgetForm input[type=color]::-webkit-color-swatch-wrapper{padding:0}.nivo-webchat-page #webchatWidgetForm input[type=color]::-webkit-color-swatch{border:0;border-radius:7px}
+.nivo-webchat-page .switch-stack{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.nivo-webchat-page .switch-line{position:relative;display:inline-grid!important;grid-template-columns:38px minmax(0,auto)!important;align-items:center!important;column-gap:12px!important;min-height:40px!important;width:auto!important;max-width:100%;padding:8px 10px!important;border:1px solid var(--line);border-radius:11px;background:var(--surface2);font-size:12px;font-weight:700;line-height:1.3;cursor:pointer}
+.nivo-webchat-page .switch-line input[type=checkbox]{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.nivo-webchat-page .switch-line>.switch-control{position:relative!important;display:block!important;flex:0 0 38px!important;width:38px!important;height:22px!important;border-radius:999px!important;background:#aab6c5!important;margin:0!important}
+.nivo-webchat-page .switch-line>.switch-control:after{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(15,23,42,.2);transition:left .18s ease}
+.nivo-webchat-page .switch-line input:checked+.switch-control{background:var(--accent)!important}.nivo-webchat-page .switch-line input:checked+.switch-control:after{left:19px!important}.nivo-webchat-page .switch-label-text{display:block!important;min-width:0!important;color:var(--text)!important;font-size:12px!important;font-weight:700!important;line-height:1.3!important;white-space:normal!important}
+.nivo-webchat-page #webchatWidgetForm .field.full>.switch-line{display:flex!important;width:100%!important}
+.nivo-webchat-page #webchatWidgetForm .field-help{display:block;margin-top:5px;color:var(--muted);line-height:1.45}
+.nivo-webchat-page #webchatWidgetForm .form-actions{display:flex;justify-content:flex-end;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.nivo-webchat-page #webchatWidgetForm .form-actions .primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px}
+.channel-badge.webchat{color:var(--accent2)}.channel-icon.webchat{background:#e7f8f4;color:var(--accent2)}
+
+/* Select2 canonical sizing — selection and dropdown always share one geometry */
+.select2-container{width:100%!important;max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+.select2-container--default .select2-selection--single{height:42px!important;min-height:42px!important;display:flex!important;align-items:center!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--surface)!important;overflow:hidden!important;box-sizing:border-box!important}
+.select2-container--default .select2-selection--single .select2-selection__rendered{width:100%!important;line-height:40px!important;padding:0 38px 0 12px!important;color:var(--text)!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.select2-container--default .select2-selection--single .select2-selection__arrow{height:40px!important;top:0!important;right:8px!important}
+.select2-container--open{z-index:100500!important}
+.select2-container--open .select2-dropdown{box-sizing:border-box!important;border:1px solid var(--line)!important;border-radius:10px!important;overflow:hidden!important;box-shadow:0 14px 38px rgba(15,23,42,.16)!important;background:var(--surface)!important}
+.select2-search--dropdown{padding:7px!important;background:var(--surface)!important;border-bottom:1px solid var(--line)!important}
+.select2-search--dropdown .select2-search__field{width:100%!important;height:36px!important;min-height:36px!important;padding:7px 10px!important;margin:0!important;box-sizing:border-box!important;border:1px solid var(--line)!important;border-radius:8px!important;background:var(--surface2)!important;color:var(--text)!important;outline:none!important}
+.select2-results{background:var(--surface)!important}.select2-results__options{max-height:240px!important;overflow-y:auto!important;overflow-x:hidden!important;padding:4px!important}.select2-results__option{min-height:38px!important;padding:9px 10px!important;border-radius:7px!important;display:flex!important;align-items:center!important;white-space:normal!important;line-height:1.35!important}.select2-results__option--highlighted[aria-selected]{background:var(--accent)!important;color:#fff!important}
+.inbox-filters .select2-container{display:block!important;width:100%!important}.inbox-filters .select2-container--default .select2-selection--single{width:100%!important;height:40px!important;min-height:40px!important;background:var(--surface)!important;border:1px solid var(--line)!important}.inbox-filters .select2-container--default .select2-selection--single .select2-selection__rendered{line-height:38px!important}.inbox-filters .select2-container--default .select2-selection--single .select2-selection__arrow{height:38px!important}
+@media(max-width:1180px){.nivo-webchat-page .webchat-layout{grid-template-columns:1fr}.nivo-webchat-page .preview-stage{min-height:360px}.nivo-webchat-page .webchat-preview{order:2}}
+@media(max-width:760px){.nivo-webchat-page #webchatWidgetForm .settings-grid{grid-template-columns:1fr}.nivo-webchat-page .switch-stack{display:grid;grid-template-columns:1fr}.nivo-webchat-page .switch-line{width:100%!important}.nivo-webchat-page .preview-stage{min-height:340px;padding:16px}}
+
+
+/* ZYNKO V2.13 — consistencia visual global, badges, Web Chat y Suscripciones */
+.ui-badge{display:inline-flex!important;align-items:center!important;justify-content:center;gap:7px;min-height:30px;padding:5px 10px;border:1px solid var(--line,#e2e8f0);border-radius:999px;background:var(--surface2,#f8fafc);color:var(--text,#122033);font-size:12px;font-weight:750;line-height:1;white-space:nowrap;text-transform:none}.ui-badge i{font-size:7px}.ui-badge.success{background:#eaf8f4;border-color:#ccefe5;color:#08705c}.ui-badge.success i{color:#10a88a}.ui-badge.muted{background:#f4f6f8;color:#64748b}.ui-badge.danger{background:#fff1f1;border-color:#ffd7d7;color:#a92727}.ui-badge.role{background:#f7f9fc;color:#24364b}.user-card>.ui-badge{justify-self:start}
+#experience{scroll-margin-top:92px}.hash-focus{animation:zynkoFocus 1.35s ease}@keyframes zynkoFocus{0%,100%{box-shadow:var(--shadow)}45%{box-shadow:0 0 0 4px rgba(16,168,138,.16),var(--shadow)}}
+/* Plan modal: ancho estable, menor altura visual y sin reflujo al cambiar controles */
+#planModal{padding:22px!important;overflow:auto!important}#planModal .modal-card{width:820px!important;max-width:calc(100vw - 44px)!important;min-width:min(820px,calc(100vw - 44px))!important;max-height:calc(100dvh - 44px)!important;height:auto!important;padding:24px!important;overflow-y:auto!important;overflow-x:hidden!important}#planModal .settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:16px 18px!important}#planModal .field.full{grid-column:1/-1!important}#planModal textarea[name="features"]{min-height:88px!important;max-height:120px!important;resize:vertical}#planModal .plan-status-field{gap:8px!important}#planModal .plan-active-switch{min-height:58px!important;padding:10px 12px!important}#planModal .modal-actions{margin-top:0!important;padding-top:16px!important}
+/* Web Chat: configuración compacta, clara y sin colisiones */
+.nivo-webchat-page .settings-grid{align-items:start}.nivo-webchat-page .switch-line{display:flex!important;flex-direction:row!important;align-items:center!important;gap:10px!important;width:100%!important;max-width:100%!important;min-height:42px!important;padding:8px 10px!important;margin:0!important;border:1px solid var(--line,#e2e8f0)!important;border-radius:10px!important;background:var(--surface2,#f8fafc)!important;overflow:visible!important}.nivo-webchat-page .switch-line>input[type="checkbox"]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}.nivo-webchat-page .switch-control{display:block!important;position:relative!important;flex:0 0 40px!important;width:40px!important;min-width:40px!important;height:22px!important;border-radius:999px!important;background:#b8c6d5!important}.nivo-webchat-page .switch-control:after{content:""!important;position:absolute!important;display:block!important;width:16px!important;height:16px!important;left:3px!important;top:3px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(15,23,42,.2)!important;transition:.18s!important}.nivo-webchat-page input[type="checkbox"]:checked+.switch-control{background:var(--accent,#13a88a)!important}.nivo-webchat-page input[type="checkbox"]:checked+.switch-control:after{left:21px!important}.nivo-webchat-page .switch-label-text{display:block!important;position:static!important;width:auto!important;height:auto!important;min-width:0!important;flex:1 1 auto!important;background:transparent!important;color:var(--text,#122033)!important;border-radius:0!important;font-weight:700!important;font-size:13px!important;line-height:1.35!important;white-space:normal!important;overflow:visible!important}.nivo-webchat-page .switch-label-text:after{display:none!important}.nivo-webchat-page .switch-stack{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}.nivo-webchat-page input[type="color"]{height:42px!important;padding:4px!important;cursor:pointer}.nivo-webchat-page .form-actions{display:flex!important;justify-content:flex-end!important;margin-top:18px!important;padding-top:16px!important;border-top:1px solid var(--line,#e2e8f0)!important}.nivo-webchat-page .field.full>.switch-line{max-width:100%!important}.webchat-preview{align-self:start!important;position:sticky;top:88px}
+@media(max-width:900px){#planModal .modal-card{width:calc(100vw - 32px)!important;min-width:0!important;max-width:calc(100vw - 32px)!important}#planModal .settings-grid{grid-template-columns:1fr!important}#planModal .field.full{grid-column:auto!important}.nivo-webchat-page .switch-stack{grid-template-columns:1fr!important}.webchat-preview{position:static!important}}
+
+/* ZYNKO 2.13.1 — unified readable toggle controls */
+.nivo-webchat-page .switch-line{display:inline-flex!important;align-items:center!important;gap:10px!important;width:auto!important;max-width:100%!important;min-height:42px!important;padding:8px 12px!important;border:1px solid var(--line)!important;border-radius:11px!important;background:var(--surface2)!important;cursor:pointer!important;position:relative!important}
+.nivo-webchat-page .switch-line>input[type="checkbox"]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;min-width:1px!important;margin:0!important;padding:0!important;pointer-events:none!important}
+.nivo-webchat-page .switch-line>.switch-control{display:block!important;position:relative!important;flex:0 0 42px!important;width:42px!important;min-width:42px!important;height:24px!important;border-radius:999px!important;background:#aebdce!important;margin:0!important;padding:0!important}
+.nivo-webchat-page .switch-line>.switch-control:after{content:""!important;position:absolute!important;display:block!important;width:18px!important;height:18px!important;left:3px!important;top:3px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(15,23,42,.22)!important;transition:left .18s ease!important}
+.nivo-webchat-page .switch-line>input:checked+.switch-control{background:#0d9b83!important}
+.nivo-webchat-page .switch-line>input:checked+.switch-control:after{left:21px!important}
+.nivo-webchat-page .switch-line>.switch-label-text{display:block!important;position:static!important;flex:0 1 auto!important;width:auto!important;min-width:0!important;height:auto!important;background:transparent!important;border-radius:0!important;margin:0!important;padding:0!important;color:var(--text)!important;font-weight:700!important;line-height:1.35!important;white-space:normal!important}
+.nivo-webchat-page .switch-line>.switch-label-text:after{content:none!important;display:none!important}
+.nivo-webchat-page .switch-stack{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}
+.nivo-webchat-page .switch-stack .switch-line{flex:0 0 auto!important}
+.nivo-webchat-page .field.full>.switch-line{width:100%!important;justify-content:flex-start!important}
+
+#planModal .plan-active-switch>span.plan-active-copy{display:grid!important;position:static!important;width:auto!important;height:auto!important;min-width:0!important;flex:1 1 auto!important;background:transparent!important;border-radius:0!important;padding:0!important;margin:0!important;gap:2px!important;line-height:1.3!important}
+#planModal .plan-active-switch>span.plan-active-copy:after{content:none!important;display:none!important}
+#planModal .plan-active-copy b{display:block!important;color:var(--text)!important;font-size:14px!important}
+#planModal .plan-active-copy small{display:block!important;color:var(--muted)!important;font-size:12px!important;font-weight:500!important}
+#planModal .plan-active-switch>span:first-of-type:after{content:""!important;display:block!important}
+
+/* Channel email configured state */
+.channel-state.email-ready{color:#08705c!important;background:#eefbf7!important;border-color:#ccefe4!important}
+/* ZYNKO V2.15 · NIVO premium controls */
+.nivo-webchat-page .privacy-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.nivo-webchat-page .compact-switch{margin-top:10px!important}.nivo-hours{padding:14px;border:1px solid var(--line);border-radius:13px;background:var(--surface2)}.nivo-hours .switch-line{margin-bottom:12px}.hours-row{display:flex;align-items:center;gap:10px;max-width:360px}.hours-row input{min-width:130px}.day-pills{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}.day-pills label{cursor:pointer}.day-pills input{position:absolute;opacity:0;pointer-events:none}.day-pills span{display:inline-flex;align-items:center;justify-content:center;min-width:42px;height:34px;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:var(--surface);font-size:12px;font-weight:700}.day-pills input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}@media(max-width:760px){.nivo-webchat-page .privacy-grid{grid-template-columns:1fr}.hours-row{max-width:none}.hours-row input{min-width:0;flex:1}}
+/* ZYNKO V2.17 · NIVO Knowledge Hub */
+.solution-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:14px}.solution-card{display:grid;grid-template-columns:46px 1fr 38px;gap:12px;align-items:start;border:1px solid var(--border,#dce5ee);border-radius:16px;padding:16px;background:var(--card,#fff);min-height:142px}.solution-icon{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:#e8f7f4;color:#0f766e;font-size:18px}.solution-card b{font-size:15px}.solution-card p{font-size:12px;line-height:1.55;color:var(--muted,#64748b);margin:6px 0 10px}.solution-card small{color:var(--muted,#64748b)}.knowledge-import-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}.knowledge-state{display:inline-flex;width:max-content;align-items:center;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;margin-top:5px}.knowledge-state.approved{background:#e8f7f4;color:#0f766e}.knowledge-state.pending{background:#fff7e6;color:#9a6700}.nivo-playground{display:grid;grid-template-columns:minmax(210px,.35fr) minmax(0,1fr);gap:14px;align-items:end}.nivo-playground .nivo-test-result{grid-column:1/-1}@media(max-width:760px){.knowledge-import-meta,.nivo-playground{grid-template-columns:1fr}.solution-card{grid-template-columns:42px 1fr 36px}.nivo-playground .nivo-test-result{grid-column:auto}}
+
+/* ZYNKO V2.17.1 — canonical switches: identical visual language to Login */
+.switch-line,
+.nivo-webchat-page .switch-line,
+#planModal .plan-active-switch,
+.plan-card .switch-line,
+.small-modal .switch-line,
+.channel-admin-control .switch-line{
+  position:relative!important;
+  display:inline-flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+  width:auto!important;
+  max-width:100%!important;
+  min-height:22px!important;
+  padding:0!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  line-height:1.35!important;
+  white-space:normal!important;
+  cursor:pointer!important;
+}
+.switch-line>input[type="checkbox"],
+.nivo-webchat-page .switch-line>input[type="checkbox"],
+#planModal .plan-active-switch>input[type="checkbox"]{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-width:1px!important;
+  margin:0!important;
+  padding:0!important;
+  opacity:0!important;
+  overflow:hidden!important;
+  clip:rect(0 0 0 0)!important;
+  clip-path:inset(50%)!important;
+  pointer-events:none!important;
+}
+.switch-line>span:first-of-type,
+.switch-line>.switch-control,
+.nivo-webchat-page .switch-line>.switch-control,
+#planModal .plan-active-switch>span:first-of-type{
+  position:relative!important;
+  display:block!important;
+  flex:0 0 38px!important;
+  width:38px!important;
+  min-width:38px!important;
+  height:22px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:99px!important;
+  background:#cbd5e1!important;
+  box-shadow:none!important;
+  transition:background .2s ease!important;
+}
+.switch-line>span:first-of-type:after,
+.switch-line>.switch-control:after,
+.nivo-webchat-page .switch-line>.switch-control:after,
+#planModal .plan-active-switch>span:first-of-type:after{
+  content:""!important;
+  position:absolute!important;
+  display:block!important;
+  width:16px!important;
+  height:16px!important;
+  left:3px!important;
+  top:3px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 1px 3px rgba(15,23,42,.16)!important;
+  transform:none!important;
+  transition:left .2s ease!important;
+}
+.switch-line>input[type="checkbox"]:checked+span:first-of-type,
+.switch-line>input[type="checkbox"]:checked+.switch-control,
+.nivo-webchat-page .switch-line>input[type="checkbox"]:checked+.switch-control,
+#planModal .plan-active-switch>input[type="checkbox"]:checked+span:first-of-type{
+  background:#0d9b83!important;
+}
+.switch-line>input[type="checkbox"]:checked+span:first-of-type:after,
+.switch-line>input[type="checkbox"]:checked+.switch-control:after,
+.nivo-webchat-page .switch-line>input[type="checkbox"]:checked+.switch-control:after,
+#planModal .plan-active-switch>input[type="checkbox"]:checked+span:first-of-type:after{
+  left:19px!important;
+  transform:none!important;
+}
+.switch-line>.switch-label-text,
+.nivo-webchat-page .switch-line>.switch-label-text{
+  display:block!important;
+  position:static!important;
+  flex:0 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  font-size:13px!important;
+  font-weight:600!important;
+  line-height:1.35!important;
+  white-space:normal!important;
+}
+.switch-line>.switch-label-text:after{content:none!important;display:none!important}
+.nivo-webchat-page .switch-stack{display:flex!important;align-items:center!important;gap:22px!important;flex-wrap:wrap!important}
+.nivo-webchat-page .switch-stack .switch-line{flex:0 0 auto!important}
+.nivo-webchat-page .field.full>.switch-line{width:auto!important}
+#planModal .plan-active-switch{min-height:22px!important}
+#planModal .plan-active-copy{gap:2px!important}
+
+/* Links styled as application buttons never show browser underline. */
+a.soft,a.primary,a.secondary-action,.channel-tile-actions a,.actions-inline a,.btn,.button{
+  text-decoration:none!important;
+}
+a.soft:hover,a.soft:focus,a.primary:hover,a.primary:focus,a.secondary-action:hover,a.secondary-action:focus,.channel-tile-actions a:hover,.channel-tile-actions a:focus{
+  text-decoration:none!important;
+}
+
+
+/* NIVO IA · Human-hours card: premium layout, isolated from generic field rules. */
+.nivo-hours{display:block!important;padding:18px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface2)!important;overflow:visible!important}
+.nivo-hours-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:22px!important;margin:0 0 18px!important;padding:0 0 16px!important;border-bottom:1px solid var(--line)!important}
+.nivo-hours-copy{display:grid!important;gap:4px!important;min-width:0!important}.nivo-hours-copy strong{font-size:14px!important;line-height:1.35!important}.nivo-hours-copy small{color:var(--muted)!important;line-height:1.45!important}
+.nivo-hours .nivo-hours-switch{flex:0 0 auto!important;margin:0!important;padding:0!important;align-self:center!important}
+.nivo-hours-body{display:grid!important;gap:15px!important}.nivo-hours .hours-row{display:grid!important;grid-template-columns:minmax(140px,190px) auto minmax(140px,190px)!important;align-items:end!important;gap:12px!important;max-width:440px!important;margin:0!important}.nivo-hours .hours-control{display:grid!important;gap:7px!important}.nivo-hours .hours-control>label,.nivo-hours-message>label{font-size:12px!important;font-weight:700!important;line-height:1.3!important;margin:0!important}.nivo-hours .hours-control>input{width:100%!important;margin:0!important}.nivo-hours .hours-separator{display:grid!important;place-items:center!important;min-height:40px!important;color:var(--muted)!important;font-weight:700!important}
+.nivo-hours .day-pills{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin:0!important}.nivo-hours .day-pills label{display:inline-flex!important;margin:0!important}.nivo-hours .day-pills input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}.nivo-hours .day-pills span{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:44px!important;height:36px!important;padding:0 10px!important;border:1px solid var(--line)!important;border-radius:9px!important;background:var(--surface)!important;font-size:12px!important;font-weight:700!important}.nivo-hours .day-pills input:checked+span{background:var(--accent)!important;border-color:var(--accent)!important;color:#fff!important}.nivo-hours-message{display:grid!important;gap:7px!important}.nivo-hours-message textarea{margin:0!important}
+@media(max-width:760px){.nivo-hours-head{display:grid!important;gap:14px!important}.nivo-hours .nivo-hours-switch{align-self:start!important}.nivo-hours .hours-row{grid-template-columns:1fr!important;max-width:none!important}.nivo-hours .hours-separator{display:none!important}}
+
+/* V2.18 · Premium visual consistency — cards, Select2, toggles and checks */
+.panel,.solution-card,.plan-card,.integration-card,.record-card,.channel-card,.channel-tile,.premium-kpis>article{
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease!important;
+}
+.panel:hover,.solution-card:hover,.plan-card:hover,.integration-card:hover,.record-card:hover,.channel-card:hover,.channel-tile:hover,.premium-kpis>article:hover{
+  transform:translateY(-2px);box-shadow:0 12px 28px rgba(15,23,42,.07);border-color:rgba(13,155,131,.28)!important;
+}
+/* NIVO: every major block keeps deliberate breathing room. */
+#solutions{margin-bottom:20px!important}.nivo-grid{gap:20px!important;align-items:stretch!important;margin-bottom:20px!important}
+.nivo-grid>.panel{height:100%;display:flex!important;flex-direction:column!important;margin:0!important}
+.nivo-grid>.panel .panel-head{flex:0 0 auto}.nivo-grid>.panel .empty-compact{flex:1 1 auto;min-height:170px}
+#knowledge .knowledge-import-meta{margin-top:auto!important;padding-top:18px!important;border-top:1px solid var(--line)!important;display:grid!important;grid-template-columns:1fr 1fr;gap:12px!important}
+#knowledge .nivo-upload{margin-top:12px!important;background:var(--surface2)!important;border-radius:13px!important}
+.solution-cards{gap:16px!important}.solution-card{padding:16px!important;background:var(--surface)!important}
+/* Select2 is the standard selector throughout ZYNKO. */
+.select2-container{width:100%!important;min-width:0!important}.select2-container .select2-selection--single{height:42px!important;min-height:42px!important;display:flex!important;align-items:center!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--surface)!important;box-shadow:none!important}.select2-container .select2-selection__rendered{width:100%!important;line-height:40px!important;padding:0 36px 0 12px!important;color:var(--text)!important}.select2-container .select2-selection__arrow{height:40px!important;right:8px!important}.select2-container--focus .select2-selection--single,.select2-container--open .select2-selection--single{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(13,155,131,.10)!important}.select2-dropdown{border-radius:10px!important;overflow:hidden!important;box-shadow:0 14px 34px rgba(15,23,42,.12)!important}.select2-results__option{padding:9px 12px!important}.select2-results__option--highlighted{background:var(--accent)!important;color:#fff!important}
+/* Native checkboxes: one premium language everywhere (webhook/event selections, lists). */
+.check-grid label{cursor:pointer!important;transition:border-color .18s ease,background .18s ease,transform .18s ease!important}.check-grid label:hover{border-color:rgba(13,155,131,.4)!important;background:#f4fbf9!important;transform:translateY(-1px)}
+.check-grid input[type="checkbox"]{appearance:none!important;-webkit-appearance:none!important;width:20px!important;height:20px!important;min-width:20px!important;border:1.5px solid #aab8c8!important;border-radius:6px!important;background:#fff!important;display:grid!important;place-content:center!important;cursor:pointer!important;transition:.16s ease!important}.check-grid input[type="checkbox"]:before{content:"";width:10px;height:6px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(-45deg) scale(0);margin-top:-2px;transition:transform .12s ease}.check-grid input[type="checkbox"]:checked{background:var(--accent)!important;border-color:var(--accent)!important}.check-grid input[type="checkbox"]:checked:before{transform:rotate(-45deg) scale(1)}
+/* Version is visible but discreet in the sidebar company block. */
+.aside-company .app-version{margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:6px;color:#8fa1b5!important;font-size:10px!important;letter-spacing:.02em}.aside-company .app-version i{font-size:9px}
+@media(max-width:760px){#knowledge .knowledge-import-meta{grid-template-columns:1fr}.nivo-grid{gap:14px!important}.panel:hover,.solution-card:hover,.plan-card:hover,.integration-card:hover,.record-card:hover,.channel-card:hover,.channel-tile:hover,.premium-kpis>article:hover{transform:none}}
+
+/* ZYNKO V2.19 — premium consistency */
+.user-action-wrap{position:relative;justify-self:end}.user-action-toggle{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:9px!important}.action-chevron{font-size:10px;transition:transform .18s ease}.user-action-wrap.open .action-chevron{transform:rotate(180deg)}.user-action-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:120;width:280px;padding:8px;background:var(--panel,#fff);border:1px solid var(--line,#e2e8f0);border-radius:14px;box-shadow:0 18px 42px rgba(15,23,42,.16);display:none}.user-action-wrap.open .user-action-menu{display:grid;gap:4px}.user-action-menu button{width:100%;border:0;background:transparent;color:var(--text,#122033);padding:10px 11px;border-radius:10px;display:grid;grid-template-columns:28px 1fr;gap:9px;text-align:left;align-items:center;cursor:pointer}.user-action-menu button:hover{background:var(--surface2,#f5f8fa);transform:none}.user-action-menu button>i{width:28px;height:28px;border-radius:8px;background:#eaf8f4;color:#078b76;display:grid;place-items:center}.user-action-menu b,.user-action-menu small{display:block}.user-action-menu small{margin-top:2px;color:var(--muted,#64748b);font-size:11px;font-weight:500}.notification-settings-grid{align-items:start!important}.notification-cooldown{grid-column:1/-1!important;max-width:none!important}.notification-cooldown .hint{display:block!important;margin-top:4px!important;max-width:760px!important;line-height:1.5!important}.notification-actions{margin-top:22px!important;padding-top:18px!important;border-top:1px solid var(--line)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:18px!important;flex-wrap:wrap!important}.notification-actions .hint{display:inline-flex!important;align-items:center!important;gap:7px!important;line-height:1.4!important;color:var(--muted,#64748b)!important}.notification-actions .hint i{color:#0fa98b}.preview-launcher,.nivo-webchat-page .preview-launcher{display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important;line-height:1!important}.preview-launcher i,.preview-launcher svg{display:block;margin:auto}.user-card{overflow:visible!important}@media(max-width:760px){.user-action-wrap{justify-self:start;width:100%}.user-action-toggle{width:100%}.user-action-menu{left:0;right:auto;width:min(300px,calc(100vw - 52px))}.notification-actions{align-items:stretch!important;flex-direction:column!important}.notification-actions>*{width:100%}}
+
+/* V2.20 · Estándar UI global: notificaciones y modales premium */
+body.modal-open,body.zynko-dialog-open{overflow:hidden!important}
+.modal-shell{align-items:center!important;justify-items:center!important;overflow:auto!important}
+.modal-shell .modal-card{margin:auto!important;position:relative!important}
+.modal-head .modal-close{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 38px!important;padding:0!important}
+.modal-head .modal-close i{margin:0!important;line-height:1!important}
+.zynko-notify-host{position:fixed;top:20px;right:20px;z-index:10000;display:grid;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+.zynko-notify{pointer-events:auto;display:grid;grid-template-columns:38px minmax(0,1fr) 32px;gap:11px;align-items:center;padding:13px 12px;border:1px solid var(--line,#e5eaf1);border-radius:14px;background:var(--surface,#fff);box-shadow:0 18px 45px rgba(15,23,42,.16);opacity:0;transform:translateY(-8px);transition:.18s ease}
+.zynko-notify.show{opacity:1;transform:none}.zynko-notify-icon{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-weight:900}.zynko-notify.success .zynko-notify-icon{background:#e8f8f3;color:#07856f}.zynko-notify.error .zynko-notify-icon{background:#fff0f0;color:#b42318}.zynko-notify.warning .zynko-notify-icon{background:#fff7e6;color:#a15c00}.zynko-notify.info .zynko-notify-icon{background:#edf5ff;color:#2563a8}.zynko-notify b{display:block;margin-bottom:2px}.zynko-notify p{margin:0;color:var(--muted,#64748b);line-height:1.4}.zynko-notify>button{width:30px;height:30px;padding:0!important;display:grid;place-items:center;background:transparent!important;color:var(--muted,#64748b)!important;border:0!important;border-radius:8px!important}
+@media(max-width:600px){.zynko-notify-host{top:12px;right:12px;width:calc(100vw - 24px)}}
+/* V2.21 · spacing, sessions, guided setup and account-persisted dashboard */
+#solutions,.nivo-grid,.panel.spaced,.dashboard-grid,.dashboard-widget{margin-top:20px!important;margin-bottom:20px!important}.panel+.panel{margin-top:20px}.nivo-hours{padding:18px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface2)!important}.nivo-hours-head{padding-bottom:16px!important;margin-bottom:16px!important;border-bottom:1px solid var(--line)!important}.nivo-hours-body{display:grid!important;gap:18px!important}.nivo-hours .hours-row{margin:0!important}.nivo-hours .day-pills{margin-top:2px!important}.nivo-hours-message{padding-top:2px!important}.user-action-menu{z-index:500!important}.sessions-modal{width:min(760px,calc(100vw - 28px))!important}.session-list{display:grid;gap:10px}.session-item{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--surface2)}.session-icon{width:40px;height:40px;border-radius:11px;background:#e9f8f4;color:#078b76;display:grid;place-items:center}.session-item small{display:block;color:var(--muted);margin-top:3px}.session-item .soft{white-space:nowrap}.premium-link{text-decoration:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;padding:9px 12px!important;border:1px solid rgba(13,155,131,.22)!important;border-radius:10px!important;background:#eefaf7!important;color:#087d6c!important;font-weight:800!important;transition:.18s ease!important}.premium-link:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(15,23,42,.08);border-color:var(--accent)!important}.widget-hidden{display:none!important}.dashboard-choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.premium-check{display:flex;align-items:center;gap:10px;padding:13px;border:1px solid var(--line);border-radius:12px;cursor:pointer;background:var(--surface2)}.premium-check input{position:absolute;opacity:0}.premium-check span{width:22px;height:22px;border:1.5px solid #aab8c8;border-radius:6px;display:grid;place-items:center;color:transparent;background:#fff}.premium-check input:checked+span{background:var(--accent);border-color:var(--accent);color:#fff}.premium-steps{display:grid!important;grid-template-columns:repeat(6,1fr)!important;gap:10px!important}.premium-steps span{display:grid!important;grid-template-columns:32px 1fr!important;grid-template-rows:auto auto!important;column-gap:9px!important;align-items:center!important;padding:13px!important;border:1px solid var(--line)!important;border-radius:12px!important;background:var(--surface2)!important}.premium-steps b{grid-row:1/3;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#eef3f7;color:var(--muted)}.premium-steps em{font-style:normal;font-weight:800}.premium-steps small{color:var(--muted)}.premium-steps .done b,.premium-steps .active b{background:#e7f8f3;color:#078b76}.premium-steps .active{border-color:rgba(13,155,131,.38)!important;box-shadow:0 0 0 3px rgba(13,155,131,.07)}.onboarding-actions{display:grid;grid-template-columns:1fr 1fr;gap:14px}.onboarding-task{text-decoration:none!important;color:var(--text)!important;border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;grid-template-columns:42px 1fr auto;gap:12px;align-items:center;background:var(--surface2);transition:.18s ease}.onboarding-task:hover{transform:translateY(-2px);border-color:rgba(13,155,131,.35);box-shadow:0 12px 28px rgba(15,23,42,.07)}.onboarding-task>i:first-child{width:40px;height:40px;border-radius:11px;background:#e7f8f3;color:#078b76;display:grid;place-items:center}.onboarding-task small{display:block;margin-top:3px;color:var(--muted)}
+/* Email editor must stay inside content and never slide below the sidebar. */
+body .mail-fields,body .settings-grid{min-width:0!important}body .field{min-width:0!important}body .field input,body .field textarea,body .field select{max-width:100%!important;box-sizing:border-box!important}.mail-profile-grid,.notification-settings-grid{gap:16px!important}.mail-profile{overflow:hidden!important}.mail-profile-actions{display:flex!important;gap:8px!important;align-items:center!important;flex-wrap:wrap!important}
+@media(max-width:900px){.premium-steps{grid-template-columns:1fr 1fr!important}.onboarding-actions,.dashboard-choice-grid{grid-template-columns:1fr}.session-item{grid-template-columns:38px 1fr}.session-item .soft{grid-column:1/-1;width:100%}}
+
+
+/* ZYNKO V2.21.4 — regression-safe layout cleanup */
+.nivo-hours-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;column-gap:28px!important;row-gap:12px!important;padding:0 0 18px!important;margin:0 0 20px!important}
+.nivo-hours-copy{display:flex!important;flex-direction:column!important;align-items:flex-start!important;gap:7px!important}
+.nivo-hours-copy strong,.nivo-hours-copy small{display:block!important;margin:0!important;padding:0!important}
+.nivo-hours-copy small{max-width:720px!important}
+.nivo-hours-body{padding-top:2px!important}
+.notification-settings-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:18px!important;width:100%!important}
+.notification-settings-grid>.field{width:100%!important;min-width:0!important;margin:0!important}
+.notification-cooldown{grid-column:1/-1!important;display:grid!important;gap:8px!important}
+.notification-cooldown .select2-container{width:100%!important;max-width:100%!important}
+.notification-cooldown .hint{display:block!important;width:auto!important;max-width:780px!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;line-height:1.55!important;margin:0!important}
+.notification-actions{clear:both!important;width:100%!important;min-width:0!important;margin-top:22px!important;padding-top:18px!important}
+.notification-actions>.hint{flex:1 1 320px!important;width:auto!important;max-width:none!important;white-space:normal!important;word-break:normal!important}
+body[data-page="email"] .panel.spaced{overflow:visible!important}
+#sessionsModal.open{display:grid!important;place-items:center!important}
+#sessionsModal .sessions-modal{margin:auto!important}
+@media(max-width:760px){.nivo-hours-head{grid-template-columns:1fr!important}.notification-settings-grid{grid-template-columns:1fr!important}.notification-cooldown{grid-column:1!important}}
+
+/* ZYNKO v2.21.5 — NIVO human-hours + email edit layout hardening */
+.nivo-hours-card{margin-top:22px!important;border:1px solid var(--line,#e2e8f0)!important;border-radius:14px!important;background:var(--surface2,#f8fafc)!important;overflow:hidden!important}
+.nivo-hours-head{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:24px!important;padding:18px 20px!important;border-bottom:1px solid var(--line,#e2e8f0)!important}
+.nivo-hours-copy{display:grid!important;gap:8px!important;min-width:0!important}
+.nivo-hours-copy strong{display:block!important;margin:0!important;line-height:1.35!important}
+.nivo-hours-copy small{display:block!important;margin:0!important;line-height:1.55!important;color:var(--muted,#64748b)!important}
+.nivo-hours-head .switch-line{margin:0!important;white-space:nowrap!important;align-self:center!important}
+.nivo-hours-body{padding:20px!important;display:grid!important;gap:18px!important}
+body:not(.sidebar-hidden) .main{overflow-x:clip!important}
+body:not(.sidebar-hidden) .main>main{overflow-x:clip!important}
+body:not(.sidebar-hidden) .main>main>.panel,body:not(.sidebar-hidden) .main>main>form{max-width:100%!important}
+body:not(.sidebar-hidden) form .panel{max-width:100%!important;overflow:hidden!important}
+@media(max-width:760px){.nivo-hours-head{grid-template-columns:1fr!important;gap:14px!important;padding:16px!important}.nivo-hours-head .switch-line{white-space:normal!important}.nivo-hours-body{padding:16px!important}}
+
+/* ZYNKO v2.22.0 · global premium alignment */
+.switch-line{display:inline-flex!important;align-items:center!important;gap:12px!important;min-height:34px!important;width:auto!important;max-width:100%!important;vertical-align:middle!important}
+.switch-line>input+span,.switch-line>.switch-control{flex:0 0 auto!important;margin:0!important}
+.switch-label-text,.switch-line{line-height:1.25!important}.switch-label-text{display:inline-block!important;margin:0!important;white-space:normal!important}
+#ruleModal .field:has(.switch-line){display:flex!important;align-items:center!important;min-height:46px!important}
+.modal-title-with-icon{display:grid!important;grid-template-columns:42px minmax(0,1fr)!important;gap:12px!important;align-items:center!important;min-width:0!important}.modal-title-with-icon>span:last-child{min-width:0!important}.modal-title-icon{width:40px;height:40px;border-radius:12px;background:#e9f8f4;color:#078b76;display:grid!important;place-items:center!important;font-size:16px}.modal-title-with-icon b,.modal-title-with-icon small{display:block!important}.modal-title-with-icon small{margin-top:3px!important}
+.sessions-modal{width:min(900px,calc(100vw - 30px))!important}.session-item{grid-template-columns:48px minmax(0,1fr) auto!important;padding:16px!important;gap:14px!important}.session-title-row{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}.session-meta-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 18px;margin-top:9px;color:var(--muted);font-size:12px}.session-meta-grid b{color:var(--text)}.session-main details{margin-top:9px}.session-main summary{cursor:pointer;color:var(--accent);font-weight:700;font-size:12px}.session-main details small{margin-top:6px!important;overflow-wrap:anywhere}.mail-config-actions{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}.platform-version-panel .settings-grid{align-items:end!important}.version-save-field{display:flex!important;align-items:flex-end!important;height:100%!important}.version-save-field button{width:max-content!important}.nivo-hours-copy{padding-right:12px!important}.nivo-hours-copy strong{margin-bottom:2px!important}.nivo-hours-head{min-height:82px!important}
+@media(max-width:760px){.session-item{grid-template-columns:42px minmax(0,1fr)!important}.session-item>.soft{grid-column:1/-1!important}.session-meta-grid{grid-template-columns:1fr!important}.mail-config-actions>*{width:100%!important}}
+
+/* ZYNKO V2.23 — modal system normalization: one robust premium structure */
+.modal-shell .modal-card{width:min(760px,calc(100vw - 40px));max-width:100%;min-width:0;max-height:calc(100dvh - 40px);overflow:auto;padding:22px;border-radius:18px}
+.modal-shell .modal-head{display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:18px!important;width:100%!important;min-width:0!important;margin:0 0 22px!important;padding:0 0 16px!important;border-bottom:1px solid var(--line)!important}
+.modal-shell .modal-head>div,.modal-shell .modal-title-with-icon{display:flex!important;flex:1 1 auto!important;align-items:flex-start!important;gap:12px!important;width:auto!important;min-width:0!important;max-width:calc(100% - 58px)!important;margin:0!important;padding:0!important}
+.modal-shell .modal-title-icon{display:grid!important;place-items:center!important;width:40px!important;height:40px!important;min-width:40px!important;flex:0 0 40px!important;border-radius:12px!important;background:#eaf8f5!important;color:var(--accent2)!important;font-size:16px!important}
+.modal-shell .modal-title-copy{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:4px!important;flex:1 1 auto!important;width:auto!important;min-width:0!important;max-width:none!important;margin:0!important;padding:0!important}
+.modal-shell .modal-title-copy b,.modal-shell .modal-head>div>b{display:block!important;width:auto!important;max-width:100%!important;margin:0!important;font-size:15px!important;line-height:1.35!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important}
+.modal-shell .modal-title-copy small,.modal-shell .modal-head>div>small{display:block!important;width:auto!important;max-width:100%!important;margin:0!important;font-size:12px!important;line-height:1.5!important;color:var(--muted)!important;white-space:normal!important;overflow-wrap:normal!important;word-break:normal!important}
+.modal-shell .modal-head .modal-close{flex:0 0 40px!important;width:40px!important;height:40px!important;min-width:40px!important;margin:0!important}
+.modal-shell .modal-card form{width:100%!important;min-width:0!important}
+.modal-shell .field,.modal-shell .settings-grid{min-width:0!important}
+.modal-shell .field>label{display:block;margin:0 0 8px!important;line-height:1.35!important}
+.modal-shell .field input:not([type=checkbox]):not([type=radio]),.modal-shell .field textarea,.modal-shell .field select{width:100%!important;min-width:0!important}
+.modal-shell .modal-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:10px!important;width:100%!important;margin-top:20px!important;padding-top:18px!important;border-top:1px solid var(--line)!important}
+#ruleModal .switch-line{display:inline-grid!important;grid-template-columns:40px minmax(0,max-content)!important;align-items:center!important;gap:10px!important;width:auto!important;min-height:36px!important;white-space:nowrap!important}
+#ruleModal .switch-line>span.switch-control{width:40px!important;height:22px!important;min-width:40px!important;margin:0!important}
+#ruleModal .switch-line>span.switch-label-text{width:auto!important;height:auto!important;background:transparent!important;position:static!important;border-radius:0!important;color:var(--text)!important;line-height:1.3!important}
+#ruleModal .switch-line>span.switch-label-text:after{display:none!important}
+#integrationModal .check-grid label{font-weight:600!important;color:var(--text)!important}
+#integrationModal .check-grid input[type=checkbox]{accent-color:var(--accent)!important}
+.sessions-modal{width:min(880px,calc(100vw - 40px))!important}
+#sessionsList{display:block!important;width:100%!important;min-height:74px!important}
+.session-list{display:grid!important;gap:12px!important;width:100%!important}
+.session-item{display:grid!important;grid-template-columns:46px minmax(0,1fr) auto!important;gap:14px!important;align-items:start!important;width:100%!important;padding:15px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface2)!important}
+.session-icon{display:grid!important;place-items:center!important;width:44px!important;height:44px!important;border-radius:12px!important;background:#eaf8f5!important;color:var(--accent2)!important}
+.session-main{display:grid!important;gap:10px!important;min-width:0!important}.session-title-row{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}.session-meta-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px 16px!important;color:var(--muted)!important;font-size:11px!important}.session-meta-grid span{min-width:0!important;overflow-wrap:anywhere!important}.session-item details{font-size:11px!important;color:var(--muted)!important}.session-item details small{display:block!important;margin-top:6px!important;overflow-wrap:anywhere!important}.session-revoke-one{align-self:center!important;white-space:nowrap!important}
+@media(max-width:700px){.modal-shell .modal-card{width:calc(100vw - 24px)!important;padding:18px!important}.session-item{grid-template-columns:42px minmax(0,1fr)!important}.session-revoke-one{grid-column:1/-1!important;width:100%!important}.session-meta-grid{grid-template-columns:1fr!important}.modal-shell .modal-actions{flex-direction:column-reverse!important;align-items:stretch!important}.modal-shell .modal-actions button{width:100%!important}}
+
+
+/* ZYNKO V2.23.2 — channels uniform height + session visibility */
+.channel-grid{align-items:stretch!important;grid-auto-rows:1fr!important}
+.channel-grid .channel-tile{height:230px!important;min-height:230px!important;max-height:230px!important;box-sizing:border-box!important}
+.channel-tile-copy{min-height:0!important}.channel-tile-actions{margin-top:auto!important;flex:0 0 auto!important}
+#sessionsList .empty-compact{min-height:110px!important;display:grid!important;place-items:center!important;text-align:center!important;gap:5px!important;padding:20px!important;border:1px dashed var(--line)!important;border-radius:14px!important;background:var(--surface2)!important}
+@media(max-width:760px){.channel-grid .channel-tile{height:auto!important;min-height:205px!important;max-height:none!important}}
+
+/* ZYNKO V2.23.3 — channel row alignment */
+.channel-cards.channel-grid{
+  align-items:start!important;
+  grid-auto-rows:230px!important;
+  row-gap:20px!important;
+}
+.channel-cards.channel-grid>.channel-card.channel-tile{
+  margin:0!important;
+  height:230px!important;
+  min-height:230px!important;
+  max-height:230px!important;
+  align-self:start!important;
+  box-sizing:border-box!important;
+}
+@media(max-width:760px){
+  .channel-cards.channel-grid{grid-auto-rows:auto!important}
+  .channel-cards.channel-grid>.channel-card.channel-tile{height:auto!important;min-height:205px!important;max-height:none!important}
+}
+
+/* V2.23.4 · active session manager */
+.sessions-modal-actions{justify-content:space-between!important}.danger-btn{border:0;border-radius:10px;background:#b42318;color:#fff;padding:11px 14px;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:8px}.danger-btn:hover{filter:brightness(.96);transform:translateY(-1px)}
+
+/* ZYNKO V2.23.5 — active sessions live manager */
+#sessionsModal .sessions-modal{height:560px!important;min-height:560px!important;max-height:min(560px,calc(100dvh - 32px))!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#sessionsModal .modal-head{flex:0 0 auto!important}
+#sessionsList{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;padding:18px 2px!important;margin:0!important}
+#sessionsModal .sessions-modal-actions{flex:0 0 auto!important;margin-top:0!important}
+.sessions-loading,.sessions-empty{height:100%;min-height:250px;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:9px!important;text-align:center!important;padding:28px!important;border:1px dashed var(--line)!important;border-radius:16px!important;background:var(--surface2)!important;color:var(--muted)!important}
+.sessions-loading>i{font-size:26px;color:var(--accent)!important}.sessions-empty-icon{width:58px;height:58px;border-radius:18px;background:#e8f8f4;color:var(--accent);display:grid;place-items:center;font-size:25px}.sessions-empty b,.sessions-loading b{color:var(--text)!important;font-size:15px}.sessions-empty span:last-child,.sessions-loading span{max-width:430px;line-height:1.5}.sessions-empty.error .sessions-empty-icon{background:#fff1f0;color:#b42318}
+@media(max-width:700px){#sessionsModal .sessions-modal{height:calc(100dvh - 24px)!important;min-height:0!important;max-height:calc(100dvh - 24px)!important}}
+/* ZYNKO V2.24.0 — alignment, NIVO usage and special schedules */
+.webchat-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:20px 0}.webchat-kpi{min-width:0;display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px solid var(--line);border-radius:14px;background:var(--panel,#fff)}.webchat-kpi>span{width:42px;height:42px;min-width:42px;border-radius:12px;background:#e9f8f4;color:#078b76;display:grid;place-items:center}.webchat-kpi>span i{display:block;margin:auto;line-height:1}.webchat-kpi b{display:block;font-size:21px;line-height:1.1}.webchat-kpi small{display:block;margin-top:4px;color:var(--muted);white-space:normal}.nivo-special-dates{border-top:1px solid var(--line);padding-top:18px}.nivo-special-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}.nivo-special-head>div{display:grid;gap:4px;min-width:0}.nivo-special-head small{color:var(--muted)}#specialDatesList{display:grid;gap:10px}.special-date-row{display:grid;grid-template-columns:minmax(145px,1fr) minmax(190px,1.25fr) minmax(120px,.8fr) minmax(120px,.8fr) 42px;gap:10px;align-items:center}.special-date-row input,.special-date-row select{width:100%;min-width:0}.channel-icon,.modal-title-icon,.session-icon,.webchat-kpi>span,.onboarding-task>i:first-child,.user-action-menu button>i,.nivo-orb,.mark{align-items:center!important;justify-content:center!important;text-align:center!important}.channel-icon i,.modal-title-icon i,.session-icon i,.webchat-kpi i,.onboarding-task>i:first-child,.user-action-menu button>i,.nivo-orb i{display:block!important;margin:auto!important;line-height:1!important}.icon-btn{display:inline-grid!important;place-items:center!important;padding:0!important}.icon-btn i{display:block!important;margin:auto!important;line-height:1!important}
+@media(max-width:900px){.webchat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.special-date-row{grid-template-columns:1fr 1fr}.special-date-row .icon-btn{width:42px;height:42px}}
+@media(max-width:560px){.webchat-kpis{grid-template-columns:1fr}.nivo-special-head{align-items:stretch;flex-direction:column}.nivo-special-head .soft{width:100%}.special-date-row{grid-template-columns:1fr}.special-date-row .icon-btn{width:100%}}
+.solution-icon{display:grid!important;place-items:center!important;text-align:center!important}.solution-icon i{display:block!important;margin:auto!important;line-height:1!important}
+
+/* V2.24.1 · KPIs NIVO con interacción premium */
+.webchat-kpi{position:relative;overflow:hidden;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;background:var(--panel,#fff)}
+.webchat-kpi::after{content:"";position:absolute;inset:auto -28px -36px auto;width:90px;height:90px;border-radius:50%;background:rgba(15,118,110,.055);transition:transform .28s ease,opacity .28s ease;pointer-events:none}
+.webchat-kpi:hover{transform:translateY(-5px);box-shadow:0 14px 30px rgba(15,35,55,.10);border-color:rgba(15,118,110,.28)}
+.webchat-kpi:hover::after{transform:scale(1.35);opacity:.9}
+.webchat-kpi>span{transition:transform .22s ease,box-shadow .22s ease}
+.webchat-kpi:hover>span{transform:scale(1.08) rotate(-3deg);box-shadow:0 8px 18px rgba(7,139,118,.13)}
+.webchat-kpi b{transition:transform .2s ease;color .2s ease;transform-origin:left center}
+.webchat-kpi:hover b{transform:scale(1.06);color:#078b76}
+.webchat-kpi.kpi-enter{animation:webchatKpiEnter .45s ease both}
+.webchat-kpi.kpi-enter:nth-child(2){animation-delay:.06s}.webchat-kpi.kpi-enter:nth-child(3){animation-delay:.12s}.webchat-kpi.kpi-enter:nth-child(4){animation-delay:.18s}
+@keyframes webchatKpiEnter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media (prefers-reduced-motion:reduce){.webchat-kpi,.webchat-kpi>span,.webchat-kpi b{transition:none!important}.webchat-kpi.kpi-enter{animation:none!important}}

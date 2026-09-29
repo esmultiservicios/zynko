@@ -94,3 +94,165 @@ ZYNKO incluye `app/Services/EmailTemplates.php`, una plantilla transaccional res
 - Al pulsar nuevamente el botón de pantalla completa o salir con ESC, se limpia el modo persistente.
 
 - V2.10: Channel catalog modal readability and switch alignment corrected globally.
+
+
+## ZYNKO V2.13 — NIVO Web Chat + UI
+- NIVO Web Chat aparece y se filtra explícitamente en la Bandeja omnicanal.
+- Widget configurable como icono flotante cerrado o ventana abierta al cargar.
+- Conversaciones Web Chat usan el mismo Inbox, agentes, NIVO y WebSocket.
+- Badges consistentes para roles/estados.
+- Modal de planes más ancho y estable.
+- Acceso Experiencia enfoca correctamente la sección.
+
+
+## NIVO Web Chat · identidad multiempresa
+- NIVO se presenta por defecto como asistente virtual de la empresa/tenant que utiliza el widget.
+- La identidad visible del asistente puede personalizarse por empresa sin cambiar la propiedad de la plataforma.
+- El pie del widget identifica discretamente la plataforma como `Powered by ZYNKO · NIVO`.
+- Se conserva el modo flotante cerrado o ventana abierta configurado por cada widget.
+
+## ZYNKO V2.15 — NIVO Web Chat + NIVO IA Premium
+### NIVO Web Chat
+1. CTA opcional junto al launcher flotante.
+2. Notificación sonora configurable para nuevas respuestas.
+3. Aviso y enlace de privacidad configurable antes de enviar.
+4. Captura de nombre/correo configurable y posibilidad de exigir los datos seleccionados.
+5. Contador de respuestas no leídas cuando el widget está minimizado.
+
+### NIVO IA
+1. Palabras/frases de transferencia a humano configurables por empresa.
+2. Horario de atención humana con días, horas y mensaje fuera de horario.
+3. Tono operativo configurable: profesional, cercano o breve.
+4. Longitud máxima de respuestas obtenidas desde conocimiento autorizado.
+5. Transferencia segura configurable: confianza mínima + auto-handoff, conservando reglas y fuentes aprobadas.
+
+Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, dominios autorizados, branding por tenant y los estilos de switches establecidos en V2.14.
+
+## ZYNKO V2.16 — Centro de notificaciones premium
+- Notificación premium de seguridad al iniciar sesión, usando el SMTP o Microsoft Graph activo del tenant.
+- Alertas configurables para nuevos mensajes, handoff de NIVO y eventos críticos.
+- NIVO Web Chat notifica mensajes entrantes y solicitudes de atención humana.
+- Anti-spam configurable por conversación: 0, 5, 10, 15, 30 o 60 minutos; 10 minutos recomendado.
+- Plantillas HTML responsive con branding de empresa y CTA a ZYNKO.
+- Registro de envíos/errores en notification_log.
+- NotificationService reutilizable para que los conectores de WhatsApp, Messenger, Instagram y futuros canales invoquen el mismo flujo al procesar mensajes entrantes reales.
+
+## ZYNKO V2.17 — NIVO Knowledge Hub
+- Centro de conocimiento por Solución → Módulo → Fuente.
+- CAMI e IZZY se crean automáticamente para la empresa principal de la plataforma cuando todavía no existen soluciones.
+- Nuevas soluciones y módulos pueden agregarse sin reprogramar NIVO.
+- Fuentes manuales pueden asociarse a una solución/módulo; archivos importados entran a revisión antes de publicarse.
+- NIVO solo consulta conocimiento aprobado/publicado y el Playground permite probar por solución.
+- Base preparada para relacionar contactos/clientes con soluciones y futuras APIs mediante `nivo_contact_solutions`.
+- Se conserva el comportamiento, reglas, handoff, Web Chat, correo/notificaciones y estilos existentes.
+
+## ZYNKO V2.18 — Premium UI consistency
+- NIVO Knowledge Hub aligned with consistent spacing and equal-height cards.
+- Select2 standardized for application selects, including knowledge solution/module selectors.
+- Global premium hover movement for cards without changing functional behavior.
+- Switches keep the login visual standard; rule switch markup normalized.
+- Event checkboxes use one clean custom visual language.
+- System version is shown discreetly in the sidebar company block.
+
+## ZYNKO V2.19 — usuarios, correo y consistencia visual
+- Launcher de NIVO centrado con icono vectorial estable.
+- Acciones de usuario en dropdown premium: editar, restablecer contraseña por correo y cerrar sesiones.
+- Formularios de edición/fotografía de usuario conectados a acciones reales.
+- Correo y notificaciones reorganizado para evitar solapamientos y mantener jerarquía visual.
+
+
+## ZYNKO V2.20 — Estándar global de interacción
+- `showNotify` local unificado para success, error, info y warning.
+- `Swal.fire` premium local para confirmaciones y mensajes de decisión.
+- Eliminados los fallbacks a `alert()`, `confirm()` y `prompt()` nativos.
+- API `ZynkoModal` y estilo global para modales centrados, responsive, ESC/X y sin cierre accidental por clic exterior.
+
+## ZYNKO V2.21 — UX premium + sesiones + dashboard persistente
+- Espaciado global reforzado entre tarjetas y secciones, incluido NIVO IA.
+- Menús de acciones se cierran al ejecutar una opción.
+- Administrador puede ver sesiones activas por usuario, cerrar una sesión o todas.
+- Horario humano de NIVO reorganizado con separación consistente.
+- Correo/notificaciones protegido contra desbordes y solapamientos al editar.
+- Inicio guiado rediseñado como recorrido premium y accionable.
+- Dashboard configurable por usuario; la selección se guarda en base de datos, no depende de cookies/localStorage.
+- Enlaces de acción como Abrir bandeja usan CTA premium consistente.
+
+
+## ZYNKO V2.21.5 — Correcciones de regresión
+- Ver sesiones abre el modal de sesiones y permite revocar accesos individuales.
+- Horario humano de NIVO con jerarquía y separación consistente.
+- Correo y notificaciones evita compresión/solapamiento de textos y acciones.
+- Versión visible sincronizada a 2.21.5.
+
+
+## ZYNKO V2.22.0 — Premium consistency
+- Switches alineados globalmente.
+- Prueba de correo desde Correo y notificaciones usando la plantilla premium central.
+- Sesiones activas con IP, navegador, sistema, tipo, inicio, expiración y cierre individual.
+- Iconografía uniforme en modales personalizados.
+- Versión administrable solo por el propietario de la plataforma.
+
+
+## ZYNKO V2.23.0 — Modal system + isolated Web Chat
+- Normalización estructural de modales premium, títulos, iconos, formularios y acciones.
+- NIVO Web Chat reforzado con Shadow DOM y aislamiento del host para evitar colisiones con CSS del sitio cliente.
+- Sesiones activas con layout de detalle robusto.
+- Switches y checkboxes alineados dentro de modales NIVO e Integraciones.
+
+
+## ZYNKO V2.23.1 — Email CTA compatibility
+- CTA de correos transaccionales usa estructura compatible con Outlook/Microsoft 365.
+- En entornos locales (.test/localhost) no se imprime una URL local inutilizable en el correo.
+- La versión se actualiza automáticamente desde V2.23.0 a V2.23.1.
+
+
+## ZYNKO V2.23.2 — Canales uniformes + sesiones reales
+- Todas las tarjetas de Canales usan la misma altura en escritorio, incluso cuando el catálogo ocupa varias filas.
+- Cada release del core eleva automáticamente `app_version` cuando la versión publicada es anterior a la release instalada.
+- Todo inicio de sesión, con o sin «Recordarme», se registra en `user_sessions` con IP, navegador, sistema, inicio y expiración.
+- «Ver sesiones» muestra las sesiones activas reales y permite revocar accesos individuales.
+
+
+## ZYNKO V2.23.3 — Alineación de canales
+- Todas las tarjetas del catálogo de canales parten de la misma línea superior y conservan el mismo alto en escritorio.
+- Se elimina el margen heredado de `.panel` dentro del grid de canales para evitar desplazamientos visuales.
+
+
+## ZYNKO V2.23.4
+- Corrige el administrador de sesiones activas para sesiones ya abiertas antes de la actualización.
+- Registra automáticamente la sesión PHP actual si aún no estaba inventariada.
+- Permite revocar una sesión individual o todas desde el mismo modal.
+
+## ZYNKO V2.23.5
+- Sesiones activas ahora se consultan en vivo al abrir el modal; no dependen del snapshot cargado con la página.
+- Corregido error JavaScript de escape de contenido que impedía renderizar sesiones aunque existieran.
+- Modal de sesiones con alto fijo, scroll interno y estados premium de carga/vacío/error.
+- Revocación individual y total mantiene el estado visual sincronizado.
+
+
+## ZYNKO V2.23.6 — Mostrar todos los registros
+- Los selectores “Mostrar X registros” incluyen ahora la opción **Todos**.
+- La selección se aplica realmente a los listados del panel y se combina con la búsqueda existente.
+- Usuarios incorpora 10, 25, 50 y Todos sin alterar el diseño premium ni Select2.
+
+
+## V2.23.7
+- Todos los diálogos de confirmación ZYNKO asignan iconos contextuales a botones Confirmar/Cancelar de forma centralizada.
+- Se mantiene soporte para iconos explícitos cuando una acción requiere uno particular.
+
+
+## V2.23.8
+- Correo de prueba: se eliminó completamente el CTA/app_url del payload de prueba para impedir que clientes de correo rendericen URLs locales como texto o sintaxis tipo `[URL]Texto`.
+
+
+## V2.24.0
+- NIVO Web Chat refuerza aislamiento visual mediante Shadow DOM + reset interno para evitar CSS del sitio anfitrión.
+- KPIs de uso del widget: sitios registrados, autorizados, detectados y visitantes.
+- NIVO IA admite fechas cerradas y horarios especiales por fecha.
+- Alineación global reforzada para contenedores de iconos.
+- Instalador admite prefijo opcional del hosting para la base de datos y conserva detección automática de APP_URL.
+
+
+## V2.24.1
+- KPIs de NIVO Web Chat con entrada escalonada, elevación al hover, movimiento de icono y contador animado.
+- Respeta `prefers-reduced-motion` por accesibilidad.
