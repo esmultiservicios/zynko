@@ -600,3 +600,15 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Oculta la interfaz del navegador y la barra de tareas mientras el modo está activo.
 - El mismo botón permite entrar/salir y ESC sale de forma nativa.
 - No modifica módulos, NIVO, planes, analítica ni el resto de la interfaz.
+
+
+## V2.30.7 · NIVO autónomo + WhatsApp universal
+
+- Corrige el acceso flotante de WhatsApp para escritorio, tablet y móvil con apertura robusta y fallback.
+- Refuerza NIVO Web Chat para responder inmediatamente cuando NIVO IA está activo.
+- Agrega autocorrección de la tabla de reglas de NIVO en runtime para instalaciones existentes.
+- Agrega reglas iniciales seguras para la empresa principal cuando NIVO está activo y todavía no existe conocimiento configurado.
+- Mejora coincidencia de reglas y conocimiento normalizando acentos y palabras irrelevantes.
+- NIVO utiliza únicamente conocimiento aprobado y publicado.
+- Mantiene transferencia automática a humano cuando el asistente no tiene información suficiente.
+- Agrega respuesta inmediata en el widget, indicador “Escribiendo…” y sondeo de respaldo además de WebSocket.
