@@ -4,9 +4,13 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# SEO técnico dinámico: usa APP_URL del .env para generar URLs canónicas.
+RewriteRule ^robots\.txt$ public/robots.php [L,NC]
+RewriteRule ^sitemap\.xml$ public/sitemap.php [L,NC]
+
 # Block direct web access to private project directories/files.
 RewriteRule ^(?:app|database|docs|routes|storage|websocket)(?:/|$) - [F,L,NC]
-RewriteRule ^(?:\.env|README(?:\.md)?|composer\.(?:json|lock))$ - [F,L,NC]
+RewriteRule ^(?:\.env|README(?:\.md)?|CORE-README(?:\.txt)?|SEO-README(?:\.txt)?|composer\.(?:json|lock))$ - [F,L,NC]
 
 # Public files/endpoints are served from /public while keeping the clean root URL.
 RewriteCond %{DOCUMENT_ROOT}/public/$1 -f [OR]

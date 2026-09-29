@@ -400,11 +400,27 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Runtime, interfaz y schema sincronizados en **2.27.5**.
 
 
-### V2.27.7 · Corrección de espaciado del encabezado legal
+### V2.27.8 · Corrección de espaciado del encabezado legal
 - Corrige el encabezado del modal legal que visualmente quedaba pegado al borde superior.
 - Aumenta el aire vertical real del header y centra correctamente icono, título y subtítulo.
 - Reubica el botón de cierre con separación uniforme respecto a los bordes.
 - Mantiene versión y fecha alineadas en escritorio sin comprimir el título.
 - Ajusta el espaciado de tablet y móvil sin provocar desbordes.
 - Mantiene footer fijo, scroll exclusivo en el cuerpo y edición de términos desde el Dashboard.
-- Runtime, interfaz y schema sincronizados en **2.27.7**.
+- Runtime, interfaz y schema sincronizados en **2.27.8**.
+
+
+### V2.27.9 · Corrección visual del botón Cancelar en Términos
+- Corrige el botón Cancelar del footer administrativo para que conserve ancho, alto, icono y texto correctamente alineados.
+- Evita que las reglas del botón X del header afecten al botón Cancelar del footer.
+- Iguala la altura visual de Cancelar y Publicar nueva versión.
+- Mantiene responsive, editor WYSIWYG, versionado y modal público sin cambios funcionales.
+
+
+### V2.28.0 · SEO técnico y portada pública indexable
+- Nueva portada pública optimizada para buscadores sin exponer el dashboard.
+- `robots.txt` y `sitemap.xml` dinámicos basados en `APP_URL`.
+- Metadatos SEO, canonical, Open Graph, Twitter Card y JSON-LD.
+- Login, registro, recuperación, verificación y área privada quedan con `noindex,nofollow`.
+- `site.webmanifest`, imagen social y guía `SEO-README.txt`.
+- El dominio canónico se controla desde `.env`, evitando URLs hardcodeadas.
