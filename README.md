@@ -638,3 +638,11 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Eliminación segura con autorización por contraseña para Owner/Admin y auditoría.
 - Acciones masivas para asignar, resolver y archivar.
 - Ctrl/Cmd + Enter para envío rápido.
+
+## V2.31.4
+- Cliente 360° con tipografía legible, campos ordenados y scroll vertical únicamente cuando el contenido excede el alto disponible.
+- Alineación de las tres columnas de la Bandeja preservada en escritorio.
+- Herramientas del compositor centradas vertical y horizontalmente.
+- Selector de emojis ampliado con categorías: frecuentes, caras, gestos, corazones y objetos.
+- Responsive reforzado para la Bandeja y el selector de emojis.
+

@@ -2210,3 +2210,111 @@ body:has(.inbox-premium-toolbar) .bulk-bar .soft{height:31px!important;padding:5
   body:has(.inbox-premium-toolbar) .chat-head .chat-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important}
   body:has(.inbox-premium-toolbar) .chat-head .chat-actions .soft{width:100%!important}
 }
+
+/* ZYNKO V2.31.4 · Bandeja: Cliente 360 legible, compositor centrado y emojis premium */
+body:has(.inbox-premium-toolbar) .inbox-layout{
+  grid-template-columns:minmax(285px,310px) minmax(500px,1fr) minmax(300px,330px)!important;
+  align-items:stretch!important;
+}
+body:has(.inbox-premium-toolbar) .inbox-layout>.panel{min-height:0!important;height:100%!important}
+body:has(.inbox-premium-toolbar) .info{
+  height:100%!important;
+  max-height:100%!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-gutter:stable;
+  padding:14px!important;
+}
+body:has(.inbox-premium-toolbar) .info::-webkit-scrollbar{width:8px}
+body:has(.inbox-premium-toolbar) .info::-webkit-scrollbar-thumb{background:#c8d8df;border-radius:999px;border:2px solid transparent;background-clip:padding-box}
+body:has(.inbox-premium-toolbar) .info::-webkit-scrollbar-track{background:transparent}
+body:has(.inbox-premium-toolbar) .info-title{margin:-14px -14px 8px!important;padding:13px 14px!important;position:sticky!important;top:-14px!important;z-index:4!important}
+body:has(.inbox-premium-toolbar) .profile{padding:12px 0!important}
+body:has(.inbox-premium-toolbar) .profile .avatar.big{width:58px!important;height:58px!important;font-size:18px!important}
+body:has(.inbox-premium-toolbar) .profile h3{font-size:14px!important;margin:8px 0 3px!important}
+body:has(.inbox-premium-toolbar) .profile small{font-size:10px!important;line-height:1.35!important}
+body:has(.inbox-premium-toolbar) .customer-facts{gap:7px!important;margin-bottom:12px!important}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card{min-height:64px!important;padding:9px 8px!important;justify-content:flex-start!important}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card small{font-size:8.5px!important;line-height:1.2!important;font-weight:800!important;letter-spacing:.035em!important}
+body:has(.inbox-premium-toolbar) .customer-facts .fact-card b{font-size:10.5px!important;line-height:1.3!important;margin-top:6px!important}
+body:has(.inbox-premium-toolbar) .info-form .field label,
+body:has(.inbox-premium-toolbar) .followup-form .field label{font-size:11px!important;line-height:1.25!important;margin-bottom:6px!important}
+body:has(.inbox-premium-toolbar) .info input,
+body:has(.inbox-premium-toolbar) .info textarea,
+body:has(.inbox-premium-toolbar) .info select,
+body:has(.inbox-premium-toolbar) .info .select2-selection{font-size:11px!important;min-height:39px!important;height:39px!important}
+body:has(.inbox-premium-toolbar) .info .select2-selection__rendered{font-size:11px!important;line-height:37px!important}
+body:has(.inbox-premium-toolbar) .info .select2-selection__arrow{height:37px!important}
+body:has(.inbox-premium-toolbar) .info .wide{font-size:11px!important;min-height:39px!important;height:39px!important}
+body:has(.inbox-premium-toolbar) .info-block{margin-top:11px!important;padding-top:11px!important;gap:8px!important}
+body:has(.inbox-premium-toolbar) .info-block-head>b,
+body:has(.inbox-premium-toolbar) .info-block-title b{font-size:12px!important}
+body:has(.inbox-premium-toolbar) .info-block-title small{display:block!important;font-size:9.5px!important;line-height:1.35!important}
+body:has(.inbox-premium-toolbar) .followup-form{gap:8px!important}
+body:has(.inbox-premium-toolbar) .followup-form input{width:100%!important}
+
+/* Herramientas del compositor perfectamente centradas */
+body:has(.inbox-premium-toolbar) .composer-tools{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:7px!important;
+  min-height:38px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-tools button{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  vertical-align:middle!important;
+  line-height:1!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0 11px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-tools button:not(#nivoAssist){width:36px!important;min-width:36px!important;padding:0!important}
+body:has(.inbox-premium-toolbar) .composer-tools button i{margin:0!important;line-height:1!important}
+body:has(.inbox-premium-toolbar) #nivoAssist{gap:7px!important;min-width:84px!important}
+
+/* Emoji picker por categorías, estilo mensajería moderna */
+body:has(.inbox-premium-toolbar) .emoji-picker-premium{
+  position:absolute!important;
+  left:12px!important;
+  bottom:104px!important;
+  z-index:40!important;
+  width:min(390px,calc(100% - 24px))!important;
+  max-height:300px!important;
+  padding:10px!important;
+  border:1px solid #dce7ec!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 20px 45px rgba(15,23,42,.16)!important;
+  overflow:hidden!important;
+}
+body:has(.inbox-premium-toolbar) .emoji-tabs{display:flex!important;align-items:center!important;gap:5px!important;padding:0 0 8px!important;border-bottom:1px solid #e7eef2!important;overflow-x:auto!important;scrollbar-width:none}
+body:has(.inbox-premium-toolbar) .emoji-tabs::-webkit-scrollbar{display:none}
+body:has(.inbox-premium-toolbar) .emoji-tabs .emoji-tab{width:38px!important;min-width:38px!important;height:34px!important;padding:0!important;border-radius:9px!important;background:#f5f8fa!important;border:1px solid transparent!important;font-size:18px!important}
+body:has(.inbox-premium-toolbar) .emoji-tabs .emoji-tab.active{background:#e4f7f2!important;border-color:#bfe6dc!important;box-shadow:inset 0 -2px 0 #0b8a72!important}
+body:has(.inbox-premium-toolbar) .emoji-groups{padding-top:9px!important;max-height:225px!important;overflow-y:auto!important}
+body:has(.inbox-premium-toolbar) .emoji-group{display:none!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:4px!important}
+body:has(.inbox-premium-toolbar) .emoji-group.active{display:grid!important}
+body:has(.inbox-premium-toolbar) .emoji-group button{width:100%!important;min-width:0!important;height:38px!important;padding:0!important;border:0!important;background:transparent!important;border-radius:9px!important;font-size:22px!important;transition:transform .15s ease,background .15s ease!important}
+body:has(.inbox-premium-toolbar) .emoji-group button:hover{background:#eef8f5!important;transform:scale(1.12)!important}
+
+@media(max-width:1280px) and (min-width:1051px){
+ body:has(.inbox-premium-toolbar) .inbox-layout{grid-template-columns:minmax(270px,290px) minmax(430px,1fr) minmax(285px,305px)!important}
+ body:has(.inbox-premium-toolbar) .customer-facts{grid-template-columns:1fr!important}
+ body:has(.inbox-premium-toolbar) .customer-facts .fact-card{min-height:48px!important}
+}
+@media(max-height:820px) and (min-width:1051px){
+ body:has(.inbox-premium-toolbar) .info{overflow-y:auto!important}
+ body:has(.inbox-premium-toolbar) .profile{padding:7px 0!important}
+ body:has(.inbox-premium-toolbar) .profile .avatar.big{width:46px!important;height:46px!important}
+ body:has(.inbox-premium-toolbar) .info-block-title small{display:block!important}
+}
+@media(max-width:760px){
+ body:has(.inbox-premium-toolbar) .info{height:auto!important;max-height:none!important;overflow:visible!important;padding:14px!important}
+ body:has(.inbox-premium-toolbar) .emoji-picker-premium{position:fixed!important;left:12px!important;right:12px!important;bottom:82px!important;width:auto!important;max-height:42vh!important}
+ body:has(.inbox-premium-toolbar) .emoji-group{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+}
+@media(max-width:430px){body:has(.inbox-premium-toolbar) .emoji-group{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
+
