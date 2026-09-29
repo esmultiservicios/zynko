@@ -1529,3 +1529,118 @@ body.dark .icon-btn:hover,body.dark .pagination button:hover:not(:disabled),body
   .premium-kpis.dashboard-summary-kpis{grid-template-columns:1fr!important}
   .premium-kpis.dashboard-summary-kpis>article{min-height:88px!important;padding:16px!important}
 }
+
+/* V2.30.0 · Cierre premium: analítica, planes, NIVO y alturas consistentes */
+.site-analytics-panel>.panel-head{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  align-items:center!important;
+  gap:16px!important;
+}
+.analytics-head-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(92px,1fr))!important;
+  gap:8px!important;
+  flex-wrap:nowrap!important;
+  width:auto!important;
+}
+.analytics-range-btn{white-space:nowrap!important;min-width:92px!important}
+@media(max-width:700px){
+  .site-analytics-panel>.panel-head{grid-template-columns:1fr!important;align-items:stretch!important}
+  .analytics-head-actions{width:100%!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .analytics-range-btn{min-width:0!important;font-size:11px!important;padding-inline:6px!important}
+}
+
+/* Tarjetas de una misma fila: misma altura sin forzar contenido interno */
+.dashboard-grid,.premium-kpis,.kpis,.channel-cards.channel-grid,.webchat-kpis,.analytics-kpis,.billing-plan-matrix,.settings-grid,.nivo-grid{align-items:stretch!important}
+.dashboard-grid>.panel,.premium-kpis>article,.kpis>article,.channel-cards.channel-grid>.channel-card,.webchat-kpis>.webchat-kpi,.analytics-kpis>.analytics-kpi,.billing-plan-matrix>.billing-plan-box{height:100%!important;align-self:stretch!important}
+.dashboard-grid>.panel{display:flex!important;flex-direction:column!important}
+.dashboard-grid>.panel>.empty-compact{flex:1 1 auto!important}
+
+/* Sitios autorizados: metadata legible + edición */
+.installation-row{grid-template-columns:auto minmax(0,1fr) auto auto auto auto!important;gap:10px!important;align-items:center!important}
+.installation-copy{min-width:0!important;display:grid!important;gap:5px!important}
+.installation-copy>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.installation-copy>small{display:flex!important;flex-wrap:wrap!important;gap:6px 12px!important;color:var(--muted)!important}
+.installation-copy>small span{position:relative;white-space:nowrap}
+.installation-copy>small span+span:before{content:'•';margin-right:10px;color:#9aaabd}
+.webchat-install-edit-modal{width:min(720px,calc(100vw - 28px))!important;max-width:720px!important}
+.webchat-install-help{display:flex;gap:10px;align-items:flex-start;margin-top:14px;padding:12px 13px;border-radius:12px;background:#f2faf7;border:1px solid #d5ebe4;color:#60758a;font-size:12px;line-height:1.5}
+.webchat-install-help i{color:#0c9179;margin-top:2px}
+@media(max-width:760px){
+  .installation-row{grid-template-columns:auto minmax(0,1fr) auto!important}
+  .installation-row>.status-badge{grid-column:2/3;justify-self:start}
+  .installation-row>.icon-btn{grid-row:2}
+  .installation-row>.install-edit{grid-column:1}.installation-row>.install-toggle{grid-column:2;justify-self:start}.installation-row>.install-delete{grid-column:3}
+  .installation-copy>small{display:grid!important;gap:2px!important}.installation-copy>small span+span:before{display:none}
+}
+
+/* Vista previa NIVO fiel a lo que se inserta en otros sitios */
+.nivo-brand-orb{overflow:hidden!important;background:#fff!important;border:1px solid rgba(255,255,255,.35)!important}
+.nivo-brand-orb img{width:100%!important;height:100%!important;object-fit:contain!important;display:block!important}
+.preview-head>div{min-width:0!important;display:grid!important;gap:2px!important}
+.preview-ai-state{display:inline-flex!important;align-items:center!important;gap:5px!important;width:max-content!important;margin-top:5px!important;padding:3px 7px!important;border-radius:999px!important;background:rgba(255,255,255,.13)!important;color:#dffaf4!important;font-size:9px!important;font-weight:850!important}
+.preview-launcher-wrap{position:absolute!important;right:18px!important;bottom:18px!important;display:flex!important;align-items:center!important;gap:9px!important;z-index:4!important}
+.preview-launcher-label{display:inline-flex!important;align-items:center!important;max-width:210px!important;padding:9px 11px!important;border-radius:12px!important;border:1px solid #cce8e1!important;background:#eef9f6!important;color:#17384e!important;box-shadow:0 8px 20px rgba(15,23,42,.10)!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.preview-launcher.preview-launcher-brand{position:relative!important;right:auto!important;bottom:auto!important;overflow:hidden!important;padding:6px!important;display:grid!important;place-items:center!important}
+.preview-launcher-brand img{width:100%!important;height:100%!important;object-fit:contain!important;border-radius:50%!important;background:#fff!important;display:block!important}
+@media(max-width:760px){.preview-launcher-label{max-width:160px!important;font-size:10px!important}.preview-launcher-wrap{right:14px!important;bottom:14px!important}}
+
+/* NIVO IA: explicar claramente cómo trabaja con Web Chat */
+.nivo-ai-explainer{margin:14px 0 16px;padding:18px;border:1px solid #d4e9e3;border-radius:18px;background:linear-gradient(135deg,#fbfefd 0%,#f1faf7 100%);display:grid;gap:16px;box-shadow:0 14px 34px rgba(15,23,42,.045)}
+.nivo-ai-explainer-brand{display:flex;align-items:center;gap:13px}.nivo-ai-explainer-brand img{width:62px;height:62px;object-fit:contain;border-radius:16px;background:#fff;border:1px solid #deebe7}.nivo-ai-explainer-brand span{display:grid;gap:3px}.nivo-ai-explainer-brand small{font-size:10px;letter-spacing:.12em;font-weight:900;color:#0b8b75}.nivo-ai-explainer-brand b{font-size:16px;color:#10283a}
+.nivo-ai-flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.nivo-ai-flow>span{display:grid;grid-template-columns:34px minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:center;padding:12px;border-radius:13px;background:#fff;border:1px solid #dce9e5}.nivo-ai-flow>span>i{grid-row:1/3;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:#e8f7f3;color:#0b8c76}.nivo-ai-flow b{font-size:12px}.nivo-ai-flow small{font-size:10.5px;line-height:1.42;color:#6b7e91}
+.nivo-ai-connection{display:flex;gap:11px;align-items:center;padding:12px 14px;border-radius:13px;background:#fff7e9;border:1px solid #f2d9a9;color:#80591a}.nivo-ai-connection.is-on{background:#eaf9f4;border-color:#c5e8dd;color:#096d5b}.nivo-ai-connection>i{width:38px;height:38px;display:grid;place-items:center;border-radius:11px;background:rgba(255,255,255,.72)}.nivo-ai-connection>span{display:grid;gap:2px}.nivo-ai-connection small{color:#64798b}
+@media(max-width:980px){.nivo-ai-flow{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.nivo-ai-flow{grid-template-columns:1fr}.nivo-ai-connection{align-items:flex-start}}
+
+/* Crear/Editar plan: modal ancho, compacto y siempre dentro de pantalla */
+#planModal{padding:14px!important;align-items:center!important;justify-content:center!important}
+#planModal .modal-card{
+  width:min(1120px,calc(100vw - 28px))!important;
+  max-width:1120px!important;
+  height:min(760px,calc(100dvh - 28px))!important;
+  max-height:calc(100dvh - 28px)!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:grid!important;
+  grid-template-rows:auto minmax(0,1fr)!important;
+  border-radius:20px!important;
+}
+#planModal .modal-head{padding:17px 20px!important;margin:0!important;border-bottom:1px solid var(--line)!important;background:var(--surface)!important;position:relative!important;z-index:2!important}
+#planModal #planForm{min-height:0!important;display:grid!important;grid-template-rows:minmax(0,1fr) auto!important;overflow:hidden!important}
+#planModal #planForm>.settings-grid{min-height:0!important;overflow-y:auto!important;padding:18px 20px 12px!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:13px 14px!important;align-content:start!important}
+#planModal #planForm>.settings-grid>.field.full{grid-column:1/-1!important}
+#planModal #planForm>.settings-grid>.field:nth-of-type(1){grid-column:1/-1!important}
+#planModal #planForm>.settings-grid>.field:nth-of-type(6),#planModal #planForm>.settings-grid>.field:nth-of-type(7){grid-column:span 2!important}
+#planModal .field{gap:5px!important}#planModal .field label{font-size:12px!important}#planModal input,#planModal select{min-height:40px!important;padding-top:8px!important;padding-bottom:8px!important}#planModal textarea{min-height:82px!important;max-height:120px!important;resize:vertical!important}
+#planModal .billing-plan-matrix{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+#planModal .billing-plan-box{padding:14px!important;border-radius:14px!important;background:#f8fbfc!important;border-color:#dce7ed!important}
+#planModal .billing-plan-box>label{display:flex!important;align-items:center!important;gap:8px!important;margin-bottom:10px!important;font-size:12px!important;color:#10283a!important}
+#planModal .billing-check-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#planModal .billing-check-grid label{min-height:42px!important;padding:9px 10px!important;border-radius:10px!important;background:#fff!important;border:1px solid #dfe9ee!important;gap:9px!important;font-size:11.5px!important;line-height:1.25!important;transition:border-color .16s ease,background .16s ease,transform .16s ease!important}
+#planModal .billing-check-grid label:hover{border-color:#b9ded5!important;background:#f3fbf8!important;transform:translateY(-1px)!important}
+#planModal .billing-check-grid input[type=checkbox]{width:16px!important;height:16px!important;min-width:16px!important;margin:0!important}
+#planModal .modal-actions{margin:0!important;padding:12px 20px!important;border-top:1px solid var(--line)!important;background:var(--surface)!important;position:relative!important;z-index:2!important}
+#planModal .plan-status-field{padding-top:2px!important}
+@media(max-width:980px){#planModal #planForm>.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#planModal #planForm>.settings-grid>.field:nth-of-type(6),#planModal #planForm>.settings-grid>.field:nth-of-type(7){grid-column:auto!important}}
+@media(max-width:640px){#planModal{padding:8px!important}#planModal .modal-card{width:calc(100vw - 16px)!important;height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important}#planModal #planForm>.settings-grid{grid-template-columns:1fr!important;padding:14px!important}#planModal #planForm>.settings-grid>.field,#planModal #planForm>.settings-grid>.field.full,#planModal #planForm>.settings-grid>.field:nth-of-type(1){grid-column:1!important}#planModal .billing-plan-matrix{grid-template-columns:1fr!important}#planModal .billing-check-grid{grid-template-columns:1fr 1fr!important}#planModal .modal-actions{padding:10px 14px!important}}
+@media(max-width:430px){#planModal .billing-check-grid{grid-template-columns:1fr!important}}
+
+/* V2.30.0 · Refinamiento final de planes y grids paralelos */
+.grid2{align-items:stretch!important}
+.grid2>.panel{height:100%!important;align-self:stretch!important}
+#planModal .modal-card{height:min(680px,calc(100dvh - 28px))!important}
+#planModal .billing-plan-box-head{display:grid!important;grid-template-columns:40px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;margin-bottom:11px!important;padding-bottom:11px!important;border-bottom:1px solid #e2ebef!important}
+#planModal .billing-box-icon{width:38px!important;height:38px!important;border-radius:11px!important;display:grid!important;place-items:center!important;background:#e8f7f3!important;color:#0b8c76!important;font-size:15px!important}
+#planModal .billing-plan-box-head>div{display:grid!important;gap:2px!important;min-width:0!important}
+#planModal .billing-plan-box-head b{font-size:12.5px!important;color:#10283a!important}
+#planModal .billing-plan-box-head small{font-size:10.5px!important;line-height:1.4!important;color:#73869a!important}
+#planModal .billing-option{display:grid!important;grid-template-columns:16px 32px minmax(0,1fr)!important;align-items:center!important;gap:8px!important;min-height:54px!important;padding:8px 9px!important}
+#planModal .billing-option-icon{width:32px!important;height:32px!important;display:grid!important;place-items:center!important;border-radius:9px!important;background:#eef8f5!important;color:#0a8b75!important;font-size:12px!important}
+#planModal .billing-option-copy{display:grid!important;gap:1px!important;min-width:0!important}
+#planModal .billing-option-copy b{font-size:11.5px!important;line-height:1.25!important;color:#142c3f!important;overflow-wrap:anywhere!important}
+#planModal .billing-option-copy small{font-size:9.5px!important;line-height:1.3!important;color:#8493a4!important}
+#planModal .billing-option.is-fixed{background:#f1faf7!important;border-color:#cfe9e2!important}
+#planModal .billing-option.is-fixed .billing-option-icon{background:#dff4ee!important}
+@media(max-width:640px){#planModal .modal-card{height:calc(100dvh - 16px)!important}#planModal .billing-option{min-height:50px!important}}

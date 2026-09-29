@@ -72,7 +72,7 @@
       jQuery(contactForm).find('.contact-select2').each(function(){
         const $el=jQuery(this);
         if($el.hasClass('select2-hidden-accessible'))return;
-        $el.select2({width:'100%',minimumResultsForSearch:Infinity,placeholder:$el.data('placeholder')||'Selecciona una opción',dropdownCssClass:'zynko-contact-select2-dropdown'});
+        $el.select2({width:'100%',minimumResultsForSearch:0,placeholder:$el.data('placeholder')||'Selecciona una opción',dropdownCssClass:'zynko-contact-select2-dropdown'});
       });
     }
 

@@ -563,3 +563,16 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - El dominio raíz vuelve a mostrar siempre el sitio público, incluso cuando existe una sesión administrativa activa.
 - Login y Crear cuenta continúan abriendo en pestaña nueva desde el sitio público.
 - Mantiene intactos NIVO Web Chat, WhatsApp flotante, analítica, contacto, Turnstile, SEO y configuración existente.
+
+
+### V2.30.0 · Cierre visual y funcional premium
+- Alinea los filtros Días / Semanas / Meses de analítica en una sola fila.
+- Habilita búsqueda real en Select2 del formulario público.
+- Permite editar nombre/etiqueta y dominio de sitios autorizados de NIVO Web Chat.
+- Sustituye la referencia técnica a `</body>` por una instrucción amigable.
+- Rediseña el modal Crear/Editar plan para mantenerse dentro del viewport y ordenar canales/módulos.
+- Integra la mascota de NIVO en launcher, encabezado y vista previa real del widget.
+- Muestra estado de NIVO IA dentro del Web Chat y explica su integración con reglas, conocimiento y transferencia humana.
+- Corrige contraste y presentación de redes sociales del footer.
+- Refuerza alturas consistentes de tarjetas que comparten una misma fila.
+- Conserva SEO, Turnstile, analítica, contacto, WhatsApp, permisos y funcionalidades anteriores.
