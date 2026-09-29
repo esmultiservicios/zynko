@@ -2318,3 +2318,133 @@ body:has(.inbox-premium-toolbar) .emoji-group button:hover{background:#eef8f5!im
 }
 @media(max-width:430px){body:has(.inbox-premium-toolbar) .emoji-group{grid-template-columns:repeat(6,minmax(0,1fr))!important}}
 
+
+/* ZYNKO V2.31.5 · Login móvil compacto y visible sin scroll excesivo */
+@media (max-width:620px){
+  .auth-login{
+    min-height:100svh!important;
+    padding:8px!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+  }
+  .auth-login .login-card{
+    width:min(100%,460px)!important;
+    margin:4px auto!important;
+    padding:14px 16px 16px!important;
+    border-radius:18px!important;
+  }
+  .auth-login .auth-site-back{
+    min-height:38px!important;
+    margin-bottom:9px!important;
+    padding:7px 10px!important;
+    font-size:12px!important;
+  }
+  .auth-login .login-brand{
+    padding:0 0 7px!important;
+  }
+  .auth-login .login-brand .brandmark{
+    width:38px!important;
+    height:38px!important;
+    border-radius:11px!important;
+  }
+  .auth-login .login-card h1{
+    font-size:25px!important;
+    margin:0 0 4px!important;
+  }
+  .auth-login .login-card>p{
+    font-size:13px!important;
+    line-height:1.35!important;
+  }
+  .auth-login .auth-inline-highlights{
+    gap:6px!important;
+    margin:9px 0!important;
+  }
+  .auth-login .auth-inline-highlights span{
+    padding:5px 8px!important;
+    font-size:10.5px!important;
+  }
+  .auth-login .auth-nivo-strip{
+    grid-template-columns:minmax(0,1fr) 58px!important;
+    gap:9px!important;
+    min-height:72px!important;
+    margin:0 0 10px!important;
+    padding:9px 11px!important;
+    border-radius:14px!important;
+    justify-items:stretch!important;
+  }
+  .auth-login .auth-nivo-copy{
+    gap:2px!important;
+  }
+  .auth-login .auth-nivo-copy b{
+    font-size:12px!important;
+    line-height:1.2!important;
+  }
+  .auth-login .auth-nivo-copy small{
+    font-size:10.5px!important;
+    line-height:1.3!important;
+  }
+  .auth-login .auth-nivo-strip img{
+    width:56px!important;
+    height:56px!important;
+    justify-self:center!important;
+  }
+  .auth-login .login-card form{
+    gap:6px!important;
+  }
+  .auth-login .login-card .field{
+    gap:3px!important;
+  }
+  .auth-login .login-card .field label{
+    font-size:12px!important;
+  }
+  .auth-login .login-card input{
+    min-height:40px!important;
+    padding:8px 10px!important;
+    font-size:14px!important;
+  }
+  .auth-login .login-card .form-line{
+    min-height:34px!important;
+    margin:0!important;
+    display:grid!important;
+    grid-template-columns:auto 1fr!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .auth-login .login-card .form-line>a{
+    min-height:34px!important;
+    justify-content:flex-end!important;
+    font-size:12px!important;
+  }
+  .auth-login .switch-line{
+    min-height:34px!important;
+    font-size:11px!important;
+  }
+  .auth-login .login-card form>button{
+    min-height:40px!important;
+    margin-top:2px!important;
+    font-size:13px!important;
+  }
+  .auth-login .login-signup{
+    margin-top:9px!important;
+    padding:8px 10px!important;
+    gap:3px!important;
+  }
+  .auth-login .login-signup>span,
+  .auth-login .login-signup small{
+    font-size:10.5px!important;
+  }
+  .auth-login .login-signup>a{
+    font-size:12.5px!important;
+  }
+  .auth-login .login-meta{
+    margin-top:9px!important;
+    font-size:11px!important;
+  }
+}
+
+@media (max-width:380px){
+  .auth-login .login-card{padding:12px 13px 14px!important}
+  .auth-login .auth-inline-highlights span{font-size:10px!important;padding:5px 7px!important}
+  .auth-login .auth-nivo-strip{grid-template-columns:minmax(0,1fr) 50px!important}
+  .auth-login .auth-nivo-strip img{width:48px!important;height:48px!important}
+}

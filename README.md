@@ -646,3 +646,8 @@ Se conserva el comportamiento multiempresa, WebSocket, Bandeja omnicanal, domini
 - Selector de emojis ampliado con categorías: frecuentes, caras, gestos, corazones y objetos.
 - Responsive reforzado para la Bandeja y el selector de emojis.
 
+
+
+## V2.31.5
+- Login móvil compactado para reducir scroll sin eliminar NIVO, accesos ni opciones del formulario.
+- Ajustados espacios, tipografía, campos, botón, tarjeta NIVO y acciones en pantallas pequeñas.
