@@ -292,11 +292,12 @@ CREATE TABLE IF NOT EXISTS contact_category_map (contact_id BIGINT UNSIGNED NOT 
 CREATE TABLE IF NOT EXISTS conversation_followups (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, follow_up_at DATETIME NOT NULL, status ENUM('pending','done','cancelled') NOT NULL DEFAULT 'pending', note VARCHAR(500) NULL, created_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,status,follow_up_at));
 CREATE TABLE IF NOT EXISTS contact_activity (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NULL, action VARCHAR(80) NOT NULL, detail VARCHAR(500) NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,contact_id,created_at));
 
--- Preferencias personales de interfaz (tema/ayuda). Runtime también la crea para instalaciones existentes.
+-- Preferencias personales de interfaz sincronizadas por usuario (tema, ayuda y estado visual entre dispositivos). Runtime también la crea/actualiza para instalaciones existentes.
 CREATE TABLE IF NOT EXISTS user_preferences (
   user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
   theme ENUM('system','light','dark') NOT NULL DEFAULT 'system',
   context_help TINYINT(1) NOT NULL DEFAULT 1,
+  ui_preferences_json JSON NULL,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -326,7 +327,7 @@ CREATE TABLE IF NOT EXISTS conversation_audit_logs(
 
 
 -- NIVO Web Chat
-CREATE TABLE IF NOT EXISTS webchat_widgets(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,channel_id BIGINT UNSIGNED NULL,name VARCHAR(120) NOT NULL DEFAULT 'NIVO Web Chat',public_key CHAR(40) NOT NULL UNIQUE,enabled TINYINT(1) NOT NULL DEFAULT 1,position VARCHAR(30) NOT NULL DEFAULT 'bottom-right',display_mode ENUM('launcher','open') NOT NULL DEFAULT 'launcher',offset_x INT NOT NULL DEFAULT 24,offset_y INT NOT NULL DEFAULT 24,accent_color VARCHAR(20) NOT NULL DEFAULT '#0F766E',launcher_icon VARCHAR(30) NOT NULL DEFAULT 'nivo',launcher_label VARCHAR(80) NULL,sound_enabled TINYINT(1) NOT NULL DEFAULT 1,privacy_enabled TINYINT(1) NOT NULL DEFAULT 0,privacy_text VARCHAR(240) NULL,privacy_url VARCHAR(500) NULL,welcome_title VARCHAR(160) NOT NULL DEFAULT '¡Hola! Soy NIVO',assistant_subtitle VARCHAR(190) NULL,welcome_message VARCHAR(500) NOT NULL DEFAULT '¿En qué puedo ayudarte hoy?',ask_name TINYINT(1) NOT NULL DEFAULT 1,ask_email TINYINT(1) NOT NULL DEFAULT 0,profile_required TINYINT(1) NOT NULL DEFAULT 0,allow_multiple_domains TINYINT(1) NOT NULL DEFAULT 1,experience_json JSON NULL,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(tenant_id,enabled));
+CREATE TABLE IF NOT EXISTS webchat_widgets(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,channel_id BIGINT UNSIGNED NULL,name VARCHAR(120) NOT NULL DEFAULT 'NIVO Web Chat',public_key CHAR(40) NOT NULL UNIQUE,enabled TINYINT(1) NOT NULL DEFAULT 1,position VARCHAR(30) NOT NULL DEFAULT 'bottom-right',display_mode ENUM('launcher','open') NOT NULL DEFAULT 'launcher',offset_x INT NOT NULL DEFAULT 24,offset_y INT NOT NULL DEFAULT 24,accent_color VARCHAR(20) NOT NULL DEFAULT '#0F766E',launcher_icon VARCHAR(30) NOT NULL DEFAULT 'nivo',launcher_label VARCHAR(255) NULL,sound_enabled TINYINT(1) NOT NULL DEFAULT 1,privacy_enabled TINYINT(1) NOT NULL DEFAULT 0,privacy_text VARCHAR(240) NULL,privacy_url VARCHAR(500) NULL,welcome_title VARCHAR(160) NOT NULL DEFAULT '¡Hola! Soy NIVO',assistant_subtitle VARCHAR(190) NULL,welcome_message VARCHAR(500) NOT NULL DEFAULT '¿En qué puedo ayudarte hoy?',ask_name TINYINT(1) NOT NULL DEFAULT 1,ask_email TINYINT(1) NOT NULL DEFAULT 0,profile_required TINYINT(1) NOT NULL DEFAULT 0,allow_multiple_domains TINYINT(1) NOT NULL DEFAULT 1,experience_json JSON NULL,created_by BIGINT UNSIGNED NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX(tenant_id,enabled));
 CREATE TABLE IF NOT EXISTS webchat_installations(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,domain VARCHAR(255) NOT NULL,label VARCHAR(120) NULL,enabled TINYINT(1) NOT NULL DEFAULT 1,created_by BIGINT UNSIGNED NULL,first_seen_at DATETIME NULL,last_seen_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_widget_domain(widget_id,domain),INDEX(tenant_id,enabled));
 CREATE TABLE IF NOT EXISTS webchat_visitors(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,widget_id BIGINT UNSIGNED NOT NULL,visitor_token CHAR(64) NOT NULL UNIQUE,contact_id BIGINT UNSIGNED NULL,conversation_id BIGINT UNSIGNED NULL,name VARCHAR(160) NULL,email VARCHAR(190) NULL,origin_domain VARCHAR(255) NULL,last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX(tenant_id,widget_id),INDEX(conversation_id));
 
@@ -360,7 +361,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.9');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.30');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

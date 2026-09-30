@@ -103,3 +103,45 @@
     if(r.isConfirmed)form.submit();
   });
 })();
+
+
+/* ZYNKO V2.31.12 · Tooltip premium global */
+(()=>{
+  const tip=document.createElement('div');tip.className='zynko-tooltip';tip.setAttribute('role','tooltip');document.body.appendChild(tip);let current=null,hideTimer=0;
+  const prepare=root=>{(root.matches?.('[title]')?[root]:[]).concat([...(root.querySelectorAll?.('[title]')||[])]).forEach(el=>{const value=(el.getAttribute('title')||'').trim();if(!value)return;el.dataset.zynkoTooltip=value;el.removeAttribute('title');if(!el.hasAttribute('aria-label')&&!el.textContent.trim())el.setAttribute('aria-label',value)})};
+  const place=el=>{const r=el.getBoundingClientRect(),tr=tip.getBoundingClientRect(),pad=10;let top=r.top-tr.height-9,placement='top';if(top<pad){top=r.bottom+9;placement='bottom'}let left=r.left+r.width/2-tr.width/2;left=Math.max(pad,Math.min(left,innerWidth-tr.width-pad));tip.style.left=Math.round(left)+'px';tip.style.top=Math.round(top)+'px';tip.dataset.placement=placement};
+  const show=el=>{const value=el?.dataset?.zynkoTooltip;if(!value)return;clearTimeout(hideTimer);current=el;tip.textContent=value;tip.classList.add('is-visible');requestAnimationFrame(()=>place(el))};
+  const hide=()=>{hideTimer=setTimeout(()=>{tip.classList.remove('is-visible');current=null},55)};
+  prepare(document);
+  document.addEventListener('mouseover',e=>{const el=e.target.closest?.('[data-zynko-tooltip]');if(el)show(el)});
+  document.addEventListener('mouseout',e=>{const el=e.target.closest?.('[data-zynko-tooltip]');if(el&&!el.contains(e.relatedTarget))hide()});
+  document.addEventListener('focusin',e=>{const el=e.target.closest?.('[data-zynko-tooltip]');if(el)show(el)});
+  document.addEventListener('focusout',e=>{if(e.target.closest?.('[data-zynko-tooltip]'))hide()});
+  window.addEventListener('scroll',()=>{if(current)place(current)},{passive:true});window.addEventListener('resize',()=>{if(current)place(current)},{passive:true});
+  new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1)prepare(n)}))).observe(document.body,{childList:true,subtree:true});
+})();
+
+
+/* ZYNKO · RTE universal seguro: conserva el valor plano de backend para no romper lógica existente. */
+(()=>{
+ const EXCLUDE='[hidden],.legal-html-source,[data-no-rte],.swal2-textarea';
+ const esc=s=>String(s??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]||m));
+ const enhance=ta=>{
+  if(!ta||ta.dataset.zynkoRteReady==='1'||ta.matches(EXCLUDE)||ta.closest('.legal-rich-editor-shell,.zynko-rte-shell'))return;
+  if(ta.type==='hidden'||getComputedStyle(ta).display==='none')return;
+  ta.dataset.zynkoRteReady='1';
+  const shell=document.createElement('div');shell.className='zynko-rte-shell';
+  const toolbar=document.createElement('div');toolbar.className='zynko-rte-toolbar';toolbar.setAttribute('role','toolbar');toolbar.innerHTML='<select class="zynko-rte-format" aria-label="Formato"><option value="div">Párrafo</option><option value="h4">Título corto</option></select><span></span><button type="button" data-rte-cmd="bold" title="Negrita"><i class="fa-solid fa-bold"></i></button><button type="button" data-rte-cmd="italic" title="Cursiva"><i class="fa-solid fa-italic"></i></button><button type="button" data-rte-cmd="underline" title="Subrayado"><i class="fa-solid fa-underline"></i></button><span></span><button type="button" data-rte-cmd="insertUnorderedList" title="Lista"><i class="fa-solid fa-list-ul"></i></button><button type="button" data-rte-cmd="insertOrderedList" title="Lista numerada"><i class="fa-solid fa-list-ol"></i></button><button type="button" data-rte-link title="Agregar enlace"><i class="fa-solid fa-link"></i></button><span></span><button type="button" data-rte-align="left" title="Alinear izquierda"><i class="fa-solid fa-align-left"></i></button><button type="button" data-rte-align="center" title="Centrar"><i class="fa-solid fa-align-center"></i></button><button type="button" data-rte-align="justify" title="Justificar"><i class="fa-solid fa-align-justify"></i></button><button type="button" data-rte-cmd="removeFormat" title="Limpiar formato"><i class="fa-solid fa-eraser"></i></button>';
+  const editor=document.createElement('div');editor.className='zynko-rte-editor';editor.contentEditable='true';editor.spellcheck=true;editor.setAttribute('role','textbox');editor.setAttribute('aria-multiline','true');editor.dataset.placeholder=ta.placeholder||'Escribe aquí…';
+  const status=document.createElement('div');status.className='zynko-rte-status';status.innerHTML='<span><i class="fa-solid fa-pen-nib"></i> Editor de texto enriquecido</span><span class="zynko-rte-count">0 caracteres</span>';
+  ta.parentNode.insertBefore(shell,ta);shell.append(toolbar,editor,status,ta);ta.classList.add('zynko-rte-native');
+  const render=()=>{editor.innerHTML='';const lines=String(ta.value||'').split(/\r?\n/);lines.forEach((line,i)=>{const d=document.createElement('div');if(!line&&i===lines.length-1)d.innerHTML='<br>';else d.textContent=line;editor.appendChild(d)});updateCount()};
+  const updateCount=()=>{const c=shell.querySelector('.zynko-rte-count');if(c)c.textContent=new Intl.NumberFormat('es-HN').format((editor.innerText||'').length)+' caracteres'};
+  const sync=()=>{let val=(editor.innerText||'').replace(/\u00a0/g,' ');const max=parseInt(ta.getAttribute('maxlength')||'0',10);if(max>0&&val.length>max){val=val.slice(0,max);ta.value=val;render();return}ta.value=val;ta.dispatchEvent(new Event('input',{bubbles:true}));updateCount()};
+  editor.addEventListener('input',sync);toolbar.querySelectorAll('[data-rte-cmd]').forEach(b=>b.addEventListener('click',()=>{editor.focus();document.execCommand(b.dataset.rteCmd,false,null);sync()}));toolbar.querySelectorAll('[data-rte-align]').forEach(b=>b.addEventListener('click',()=>{editor.focus();document.execCommand({left:'justifyLeft',center:'justifyCenter',justify:'justifyFull'}[b.dataset.rteAlign]||'justifyLeft',false,null);sync()}));toolbar.querySelector('.zynko-rte-format')?.addEventListener('change',e=>{editor.focus();document.execCommand('formatBlock',false,e.target.value==='h4'?'H4':'DIV');sync()});toolbar.querySelector('[data-rte-link]')?.addEventListener('click',async()=>{const r=await Swal.fire({title:'Agregar enlace',input:'url',inputPlaceholder:'https://ejemplo.com',showCancelButton:true,confirmButtonText:'Agregar',cancelButtonText:'Cancelar',allowOutsideClick:false});if(r.isConfirmed&&r.value){editor.focus();document.execCommand('createLink',false,r.value);sync()}});
+  ta.addEventListener('invalid',()=>{setTimeout(()=>editor.focus(),0)});ta.form?.addEventListener('submit',sync,true);render();
+ };
+ const scan=root=>root.querySelectorAll?.('textarea:not(.legal-html-source):not([hidden]):not([data-no-rte])').forEach(enhance);
+ const start=()=>{scan(document);new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.matches?.('textarea'))enhance(n);scan(n)}}))).observe(document.body,{childList:true,subtree:true})};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();

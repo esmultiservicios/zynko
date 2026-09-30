@@ -1025,3 +1025,264 @@ Cada empresa usa su propia API Key y solo puede operar sobre sus canales. Flujo 
 4. Enviar `Authorization: Bearer TU_CLAVE` y un `Idempotency-Key` único por mensaje para evitar duplicados.
 
 Las identidades externas se guardan en `contact_identities`, por lo que Messenger/Instagram no se mezclan con correos o teléfonos. La entrega final hacia Meta/Telegram/etc. depende del conector/proveedor autorizado del canal; la API de ZYNKO no inventa una autorización del proveedor.
+
+
+## V2.31.11 — Documentación, exportaciones y limpieza visual
+
+### Cómo usar ZYNKO desde otro sistema
+
+Primero ve a **Integraciones → Crear clave API**. La llave pertenece únicamente a la empresa que la genera.
+
+La URL de los ejemplos dentro de ZYNKO se construye automáticamente con la URL publicada del sistema, por lo que no es necesario cambiar manualmente el dominio al mover ZYNKO entre ambientes.
+
+#### Consultar canales
+
+```bash
+curl "https://TU-ZYNKO.com/api.php?r=v1/channels" \
+  -H "Authorization: Bearer TU_CLAVE_API"
+```
+
+Respuesta de ejemplo:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "channels": [
+      {
+        "id": 12,
+        "type": "whatsapp",
+        "name": "WhatsApp Business",
+        "status": "connected"
+      }
+    ]
+  }
+}
+```
+
+#### Ingresar un mensaje recibido desde IZZY, CAMI u otro sistema
+
+```bash
+curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/receive" \
+  -H "Authorization: Bearer TU_CLAVE_API" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: whatsapp-msg-987654" \
+  -d '{
+    "channel_id": 12,
+    "from": "+50499999999",
+    "contact_name": "Juan Pérez",
+    "message": "Hola, necesito información"
+  }'
+```
+
+Flujo:
+
+**Sistema externo → ZYNKO → canal correspondiente → conversación → NIVO IA → respuesta/handoff.**
+
+Respuesta de NIVO:
+
+```json
+{
+  "nivo": {
+    "reply": "¡Hola Juan! Soy NIVO...",
+    "handoff": false,
+    "source": "rule"
+  }
+}
+```
+
+#### Enviar un mensaje saliente
+
+```bash
+curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/send" \
+  -H "Authorization: Bearer TU_CLAVE_API" \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: izzy-000123" \
+  -d '{
+    "channel_id": 12,
+    "to": "+50499999999",
+    "contact_name": "Juan Pérez",
+    "message": "Su solicitud ya fue procesada."
+  }'
+```
+
+`messages/send` registra el mensaje para el canal correspondiente. La entrega final por WhatsApp, Messenger, Instagram u otro proveedor requiere que el conector oficial de ese canal esté autorizado y operativo.
+
+### Cambios visuales y funcionales de esta versión
+
+- Se agregó una sección pública **Documentación e integración** al sitio web de ZYNKO.
+- La documentación pública y la documentación del panel usan automáticamente la URL publicada de ZYNKO.
+- Empresas incluye descarga directa del directorio en **Excel** y **PDF**.
+- El directorio de Empresas permanece visible aunque no existan registros e incluye búsqueda, botón X, cantidad de registros y paginación.
+- Se ajustó la alineación del botón **Restablecer** en la Bandeja omnicanal.
+- Se reorganizó **Experiencia avanzada** de NIVO Web Chat con márgenes, separación y tarjetas internas uniformes.
+- Se reorganizó **NIVO IA omnicanal** para mantener el mismo lenguaje visual limpio del bloque Comportamiento de NIVO.
+- Se mantuvo intacta la lógica funcional existente de NIVO, Web Chat, empresas, planes, API y bandeja.
+
+## Corrección final NIVO Web Chat
+
+- Se corrigió la salida visible de JavaScript al final de NIVO Web Chat protegiendo el snippet incrustado dentro del script de administración.
+- La mascota NIVO del panel lateral ahora tiene una animación visible y continua con movimiento, sombra y halo sutil.
+- El espacio lateral de NIVO Web Chat ahora incluye estado del motor NIVO IA, sitios autorizados, actividad del canal y recordatorio de operación centralizada.
+- Se mantiene intacta la lógica de instalaciones, copia de snippet, edición de dominios, autorización/desautorización, respuestas rápidas y configuración del widget.
+
+
+## V2.31.13 · Experiencia visual y edición
+- Preferencia de pantalla completa persistente: ZYNKO intenta restaurarla al navegar y muestra un control de reingreso cuando el navegador exige interacción.
+- Acceso **Visitar sitio** disponible desde el header superior.
+- Todos los textarea visibles usan un RTE reutilizable con almacenamiento plano compatible para no alterar la lógica existente.
+- Rail de NIVO Web Chat balanceado con Vista previa, NIVO Web Chat + NIVO IA y Centro operativo dentro del alto de Diseño y comportamiento.
+- Mascota NIVO animada y Centro operativo con interacción visual limpia.
+- Hover premium y sutil aplicado a cards principales del panel.
+
+
+## ZYNKO V2.31.15
+- Corrige la documentación API del panel y del sitio público para reflejar la estructura real de `messages/receive` (`data.nivo`) y el estado `queued`/HTTP 202 de `messages/send`.
+- Los ejemplos del panel de Integraciones toman `seo_site_url` o `APP_URL` como URL publicada, en lugar del host temporal del navegador.
+- Fullscreen persistente: al navegar entre módulos, el documento principal permanece en pantalla completa y la navegación ocurre dentro de un iframe del mismo origen. Al salir con ESC o con el botón, se conserva el módulo actual.
+
+
+## V2.31.16 · Integraciones compactas y copiar
+- Reorganiza la documentación de Integraciones para eliminar espacios muertos dentro de las tarjetas.
+- Agrega botones Copiar en comandos cURL y respuestas de ejemplo dentro del panel y sitio público.
+- Todas estas acciones muestran confirmación mediante showNotify.
+- Alinea Restablecer con Canal, Asignación, Prioridad, Categoría, Vista y Atención en Bandeja.
+
+
+## V2.31.17
+- Reglas de NIVO ahora pueden editarse además de eliminarse.
+- Copiado global con confirmación visual y fallback compatible con HTTP/local.
+- NIVO Web Chat confirma la copia del código de inserción y mejora su encabezado.
+- Directorio de Usuarios agrega exportación ejecutiva Excel/PDF.
+- Exportes de Empresas/Usuarios reciben formato visual administrativo mejorado.
+- Se normaliza el espaciado de iconos en uploads, búsquedas y acciones.
+
+
+## ZYNKO V2.31.18 — Ajustes NIVO IA
+- Movimiento premium al hover en las 4 etapas de NIVO IA + Web Chat.
+- Switch de OpenAI alineado horizontalmente con su label y descripción.
+- Probar NIVO reorganizado: solución en primera fila, RTE en segunda y resultado debajo.
+- Notificaciones showNotify reforzadas para acciones de NIVO y prueba del asistente.
+- Switch de Regla activa alineado al inicio del modal.
+
+
+## ZYNKO V2.31.19 — NIVO IA, directorios, Open Graph, Integraciones y Planes
+
+- IA externa: animación premium en flujo NIVO → OpenAI → Humano y tarjetas de métricas.
+- Usuarios: toolbar en una sola línea en escritorio, vistas Detalle/Miniatura, búsqueda con estado “No hay resultados”, Excel/PDF conservados.
+- Empresas: vistas Detalle/Miniatura persistentes y estado vacío profesional conservando filtros, paginación y exportaciones.
+- Configuración SEO: Locale Open Graph convertido a Select2 con idiomas/regiones comunes y ayuda contextual; Honduras usa es_HN.
+- Integraciones: movimiento premium en las cuatro tarjetas de “Cómo usar ZYNKO desde otro sistema”.
+- Suscripciones: Planes disponibles distribuye 1 plan al 100%, 2 planes al 50% y hasta 3 planes por fila; responsive en resoluciones menores.
+- Sin cambios adicionales de base de datos.
+
+
+## V2.31.20 · Dashboard, directorios y canales premium
+- Corrige separación visual en todos los inputs de archivo y fotografías.
+- Agrega KPIs y filtros al directorio de Usuarios, respetando KPI → filtros → directorio.
+- Mantiene Mostrar X registros con Todos (total), búsqueda, Detalle/Miniatura y Excel/PDF en una línea de directorio.
+- Mejora los menús de acciones en vistas miniatura para Usuarios y Empresas.
+- Rediseña el bloque Canales del Dashboard y agrega iconos a Días/Semanas/Meses.
+- Uniforma los cards de Canales a tres por fila en escritorio y mayor altura para leer correctamente su contenido.
+
+
+## V2.31.21 · Excel real, PDF por vista y directorios consistentes
+
+- Los reportes Excel de Usuarios, Empresas y Planes ahora son archivos XLSX Open XML reales, eliminando la advertencia de formato/extensión de Microsoft Excel.
+- La generación XLSX no depende de librerías externas ni de ZipArchive: ZYNKO construye un paquete Office Open XML válido directamente desde PHP.
+- Los PDF de Usuarios, Empresas y Planes respetan la vista activa: Detalle genera tarjetas amplias y Miniatura genera un directorio compacto en dos columnas.
+- Los reportes PDF incluyen encabezado corporativo, total, fecha/hora, paginación y pie administrativo.
+- Suscripciones adopta la misma regla visual del directorio de Usuarios: KPI → filtros → listado, con Mostrar X/Todos, búsqueda, Detalle/Miniatura, Excel y PDF.
+- La vista Miniatura de Usuarios y Empresas muestra un botón visible «Acciones» con dropdown, sin depender del icono de tres puntos.
+- Se mantiene la vista seleccionada y los enlaces PDF se sincronizan con Detalle/Miniatura.
+
+
+## ZYNKO V2.31.23
+- Refuerza visualmente la advertencia de autorización oficial de Meta en Canales.
+- Agrega compatibilidad automática para columnas de empresas en instalaciones existentes.
+- Corrige los XLSX para incluir estilos predeterminados completos y evitar reparaciones de Excel.
+- Mantiene exportaciones de Empresas/Usuarios/Planes compatibles incluso cuando los listados están vacíos.
+
+## V2.31.23 · Usuarios: XLSX estable y menú de acciones inteligente
+
+- Se reemplazó la generación XLSX frágil por un paquete Office Open XML válido y compatible con Excel.
+- Si PHP tiene `ZipArchive`, ZYNKO lo utiliza; si no está disponible, usa el empaquetador ZIP interno sin cambiar el formato XLSX.
+- Se validó el libro generado con un lector Office Open XML y contiene correctamente encabezados y filas de usuarios.
+- La vista Miniatura de Usuarios mantiene el mismo dropdown de acciones de la vista Detalle.
+- El menú calcula automáticamente si debe abrir arriba o abajo y ajusta su posición horizontal al viewport para no cortarse.
+- No hay cambios de estructura de base de datos en esta versión; `schema.sql` solo actualiza la versión del proyecto.
+
+
+## V2.31.24 · Empresas + Usuarios + XLSX estable
+- Empresas: Vista Detalle ahora es un registro de ancho completo; Miniatura conserva tarjetas compactas.
+- Usuarios y Empresas: menú Acciones unificado con posicionamiento inteligente arriba/abajo/izquierda/derecha según espacio disponible.
+- Excel: corregido el empaquetado XLSX con ZipArchive usando addFromString; elimina archivos vacíos/corruptos en servidores con extensión ZIP activa.
+- No hay cambios estructurales de base de datos en esta versión. El script de actualización no requiere ejecución.
+
+
+## V2.31.25 — Usuarios y Empresas: acciones inteligentes
+- Unifica el tamaño del botón Acciones en vista detalle y miniatura.
+- Los menús se renderizan como portal sobre el documento para evitar cortes por overflow o scroll del directorio.
+- Calcula apertura arriba, abajo, izquierda o derecha según el espacio disponible.
+- Refuerza la vista detalle de Empresas a ancho completo.
+- No requiere cambios de base de datos.
+
+## V2.31.25 · Directorios uniformes (Usuarios, Empresas y Suscripciones)
+- Empresas: la vista Detalle ahora usa una fila completa y horizontal con empresa, propietario, indicadores, plan y acciones claramente separados.
+- Empresas: la vista Miniatura mantiene tarjetas compactas, con el mismo botón Acciones de tamaño fijo usado en Detalle.
+- Empresas: se corrigió el icono de Editar empresa por uno compatible con Font Awesome disponible en el proyecto.
+- Usuarios y Empresas: los menús Acciones se renderizan como menús flotantes sobre el documento y calculan automáticamente si deben abrir arriba, abajo, izquierda o derecha, sin crear scroll dentro del directorio.
+- Suscripciones: la vista Detalle ahora es un directorio horizontal real; la vista Miniatura conserva tarjetas de hasta 3 por fila.
+- Suscripciones: las acciones del plan se agrupan en el mismo patrón Acciones usado por Usuarios y Empresas.
+- No requiere cambios de base de datos.
+
+
+## V2.31.26 · Directorios uniformes + acceso directo a Canales
+
+- Empresas y Suscripciones mantienen el mismo patrón visual de Usuarios: vista Detalle realmente amplia, vista Miniatura compacta y menú Acciones consistente.
+- Los menús de acciones se posicionan de forma inteligente según el espacio disponible para evitar cortes por overflow.
+- El indicador `Canales conectados/configurados · Auto` del header ahora es un acceso directo al módulo Canales.
+- El valor mostrado representa `canales con estado connected / total de canales configurados` para la empresa activa.
+- Se mantiene el esquema responsive, estilos premium y comportamiento de fullscreen ya existente.
+
+## V2.31.27 · Planes públicos dinámicos + etiqueta editable de NIVO Web Chat
+
+- El sitio público deja de tener una tarjeta de Plan Gratis hardcodeada.
+- Todos los planes activos creados desde Suscripciones se publican automáticamente en el sitio, con Plan Gratis primero y los demás ordenados por precio.
+- El catálogo público se adapta a 1, 2 o 3+ planes con tarjetas responsive, límites, características y CTA consistentes.
+- Los metadatos Schema.org del software exponen también el catálogo activo de planes.
+- La etiqueta flotante de NIVO Web Chat deja de ser estática: el administrador puede cambiar todo el texto.
+- Se agregó un editor compacto con negrita parcial o total y vista previa en tiempo real.
+- El widget interpreta únicamente formato seguro de negrita y conserva aislamiento Shadow DOM.
+- El valor predeterminado queda como **NIVO Web Chat** · ¿Necesitas ayuda?, manteniendo compatibilidad con configuraciones anteriores.
+- No requiere cambios estructurales de base de datos.
+
+
+## V2.31.29 · Planes públicos premium + etiqueta NIVO con rich text
+- Cuando existe un único plan activo, el sitio público conserva la composición amplia original: contenido a la izquierda y tarjeta del plan a la derecha.
+- Cuando existen dos o más planes activos, se muestran en una cuadrícula premium de 2 columnas; los planes adicionales continúan en filas de 2.
+- En móvil los planes pasan automáticamente a una sola columna.
+- Se evita repetir características como “NIVO Web Chat incluido” cuando ya vienen dentro del catálogo del plan.
+- El texto flotante de NIVO Web Chat ahora tiene editor enriquecido compacto con negrita, cursiva, limpiar formato y hasta 2 líneas.
+- La vista previa del administrador interpreta el formato real en lugar de mostrar los marcadores de formato.
+- La etiqueta pública de NIVO responde al hover con desplazamiento y realce suave, manteniendo compatibilidad con reduced-motion.
+- `launcher_label` se amplía a `VARCHAR(255)` y el `ZYNKO_UPDATE_DB_COMPLETO.sql` acumulativo único queda actualizado con todos los cambios vigentes.
+
+
+## V2.31.29 · Sitio público limpio + UPDATE_DB estable
+
+- Se eliminan del sitio público mensajes internos sobre Suscripciones, catálogo y sincronización administrativa.
+- La sección pública de planes usa únicamente textos orientados a visitantes y clientes.
+- El archivo acumulativo de actualización de base de datos queda con nombre estable `ZYNKO_UPDATE_DB_COMPLETO.sql`, sin versión en el nombre.
+- `database/schema.sql` permanece como esquema completo de instalación y se mantiene actualizado con la estructura vigente.
+
+
+## V2.31.30 · Preferencias sincronizadas + UPDATE_DB portable
+
+- Las preferencias visuales que antes dependían solo del navegador ahora se sincronizan por usuario en `user_preferences.ui_preferences_json`.
+- Se sincronizan entre equipos las vistas Detalle/Miniatura de Usuarios, Empresas y Suscripciones, además del estado contraído/oculto del menú lateral.
+- El tema claro/oscuro continúa persistido por usuario en base de datos; `localStorage` queda únicamente como caché/fallback para evitar parpadeos durante la carga.
+- Se agregó una acción genérica y validada `ui_preference` para futuras preferencias de interfaz sin crear cookies ni columnas por cada ajuste.
+- `ZYNKO_UPDATE_DB_COMPLETO.sql` ya no contiene `USE zynko` ni referencias rígidas al nombre de la base: trabaja con `DATABASE()` y la base que esté seleccionada en phpMyAdmin/cliente SQL.
+- Esto corrige el error `#1044 - Access denied ... to database 'zynko'` en producción cuando el hosting usa un nombre como `esmultiservicios_zynko`.
+- `database/schema.sql` permanece como esquema completo de instalación limpia y el UPDATE acumulativo conserva solo los cambios necesarios para instalaciones existentes.

@@ -53,7 +53,7 @@ $filterQuery='&channel='.urlencode($channelFilter).'&assignment='.urlencode($ass
   <label><span>Categoría</span><select name="category" class="select2 inbox-filter category-filter"><option value="0">Todas las categorías</option><?php foreach($categories as $cat):?><option value="<?=$cat['id']?>" <?=$categoryFilter===(int)$cat['id']?'selected':''?>><?=htmlspecialchars($cat['name'])?></option><?php endforeach?></select></label>
   <label><span>Vista</span><select name="state" class="select2 inbox-filter"><option value="active" <?=$stateFilter==='active'?'selected':''?>>Activas</option><option value="resolved" <?=$stateFilter==='resolved'?'selected':''?>>Resueltas</option><option value="archived" <?=$stateFilter==='archived'?'selected':''?>>Archivadas</option></select></label>
   <label><span>Atención</span><select name="attention" class="select2 inbox-filter"><option value="all" <?=$attentionFilter==='all'?'selected':''?>>Todas</option><option value="unread" <?=$attentionFilter==='unread'?'selected':''?>>Sin leer</option><option value="followup" <?=$attentionFilter==='followup'?'selected':''?>>Con seguimiento</option><option value="waiting" <?=$attentionFilter==='waiting'?'selected':''?>>Esperando +15 min</option></select></label>
-  <button class="soft clear-inbox-filters" type="button" title="Limpiar filtros"><i class="fa-solid fa-rotate-left"></i><span>Restablecer</span></button>
+  <div class="inbox-reset-field"><span class="inbox-filter-label-spacer" aria-hidden="true">&nbsp;</span><button class="soft clear-inbox-filters" type="button" title="Limpiar filtros"><i class="fa-solid fa-rotate-left"></i><span>Restablecer</span></button></div>
  </form>
 </div>
 <div class="inbox-layout">

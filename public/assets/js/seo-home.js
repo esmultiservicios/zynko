@@ -15,6 +15,10 @@
     };
   }
 
+  const publicFallbackCopy=text=>{const ta=document.createElement('textarea');ta.value=text;ta.setAttribute('readonly','');ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand('copy')}catch(_){ok=false}ta.remove();return ok};
+  const publicCopyText=async text=>{if(!text)return false;try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(text);return true}}catch(_){}return publicFallbackCopy(text)};
+  document.addEventListener('click',async event=>{const btn=event.target.closest('[data-copy-target]');if(!btn)return;const target=document.getElementById(btn.dataset.copyTarget||'');if(!target)return;const ok=await publicCopyText(target.textContent.trim());showNotify(ok?'success':'error',ok?'Copiado':'No se pudo copiar',ok?'El ejemplo quedó listo para pegar donde lo necesites.':'El navegador bloqueó el acceso al portapapeles.');if(ok){btn.classList.add('copied');setTimeout(()=>btn.classList.remove('copied'),900)}});
+
   const reduced=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const header=document.querySelector('.site-header');
   const onScroll=()=>header?.classList.toggle('scrolled',window.scrollY>8);
