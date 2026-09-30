@@ -210,7 +210,9 @@ function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
         $pdo->prepare('UPDATE webchat_widgets SET allow_multiple_domains=0 WHERE tenant_id=?')->execute([$tenantId]);
     }
     if($maxSites>0){
-        $q=$pdo->prepare('SELECT id FROM webchat_installations WHERE tenant_id=? AND enabled=1 ORDER BY id');$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
+        $isPlatformTenant=function_exists('mainTenantId')&&$tenantId===mainTenantId();
+        $sql='SELECT id FROM webchat_installations WHERE tenant_id=? AND enabled=1'.($isPlatformTenant?" AND NOT (created_by IS NULL AND label='Sitio principal ZYNKO')":'').' ORDER BY id';
+        $q=$pdo->prepare($sql);$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
         foreach(array_slice($ids,$maxSites) as $id)$pdo->prepare('UPDATE webchat_installations SET enabled=0 WHERE id=? AND tenant_id=?')->execute([$id,$tenantId]);
     }
     // Al bajar de plan, las conexiones externas que ya no estén permitidas quedan desconectadas.

@@ -3882,3 +3882,12 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
   }
   .billing-plan-directory.view-detail .plan-limits{grid-template-columns:1fr!important}
 }
+
+
+/* ZYNKO V2.31.39 · Instalaciones NIVO únicas por sitio */
+.webchat-official-note{display:flex;align-items:flex-start;gap:12px;margin:12px 0 4px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
+.webchat-official-note>i{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:var(--accent);flex:0 0 auto}
+.webchat-official-note b,.webchat-official-note small{display:block}.webchat-official-note small{margin-top:3px;color:var(--muted)}
+.installation-site-card.is-official{border-color:color-mix(in srgb,var(--accent) 34%,var(--line));box-shadow:0 8px 24px color-mix(in srgb,var(--accent) 8%,transparent)}
+.installation-site-card.is-official .installation-row{background:color-mix(in srgb,var(--accent) 4%,var(--panel))}
+@media(max-width:700px){.webchat-official-note{padding:12px}.site-embed-box code{font-size:12px}.installation-site-card .installation-row{align-items:flex-start}}

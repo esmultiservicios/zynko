@@ -42,7 +42,10 @@ foreach($publicPlans as $plan){
 }
 $publicNivoWidget=null;$publicNivoInstallationKey='';$publicNivoPosition='bottom-right';
 try{
-  $pdo=appDb();$platformTid=mainTenantId();$domain=strtolower(preg_replace('/:\d+$/','',$host));
+  $pdo=appDb();$platformTid=mainTenantId();
+  $requestDomain=strtolower(preg_replace('/:\d+$/','',$host));
+  $configuredHost=(string)(parse_url($baseUrl,PHP_URL_HOST)?:'');
+  $domain=strtolower(preg_replace('/^www\./','',preg_replace('/:\d+$/','',$configuredHost!==''?$configuredHost:$requestDomain)));
   if($platformTid>0){
     $q=$pdo->prepare('SELECT * FROM webchat_widgets WHERE tenant_id=? ORDER BY enabled DESC,id ASC LIMIT 1');$q->execute([$platformTid]);$publicNivoWidget=$q->fetch()?:null;
     if(!$publicNivoWidget){
@@ -52,9 +55,17 @@ try{
       $q=$pdo->prepare('SELECT * FROM webchat_widgets WHERE id=?');$q->execute([(int)$pdo->lastInsertId()]);$publicNivoWidget=$q->fetch()?:null;
     }
     if($publicNivoWidget&&(!empty($publicNivoWidget['enabled']))&&$domain!==''){
-      $iq=$pdo->prepare('SELECT id,installation_key FROM webchat_installations WHERE tenant_id=? AND widget_id=? AND domain=? LIMIT 1');$iq->execute([$platformTid,(int)$publicNivoWidget['id'],$domain]);$existingInstall=$iq->fetch();
-      if($existingInstall){$publicNivoInstallationKey=(string)($existingInstall['installation_key']??'');if($publicNivoInstallationKey===''){$publicNivoInstallationKey=bin2hex(random_bytes(20));$pdo->prepare('UPDATE webchat_installations SET installation_key=?,enabled=1,label=? WHERE id=?')->execute([$publicNivoInstallationKey,'Sitio principal ZYNKO',(int)$existingInstall['id']]);}else{$pdo->prepare('UPDATE webchat_installations SET enabled=1,label=? WHERE id=?')->execute(['Sitio principal ZYNKO',(int)$existingInstall['id']]);}}
-      else{$publicNivoInstallationKey=bin2hex(random_bytes(20));$pdo->prepare("INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,'Sitio principal ZYNKO',1,NULL)")->execute([$platformTid,(int)$publicNivoWidget['id'],$publicNivoInstallationKey,$domain]);}
+      // El sitio público de ZYNKO siempre tiene una sola instalación automática.
+      $aq=$pdo->prepare('SELECT * FROM webchat_installations WHERE tenant_id=? AND widget_id=? ORDER BY id');$aq->execute([$platformTid,(int)$publicNivoWidget['id']]);$aliases=[];
+      foreach($aq->fetchAll() as $row){$norm=preg_replace('/^www\./','',strtolower(preg_replace('/:\d+$/','',(string)$row['domain'])));if($norm===$domain)$aliases[]=$row;}
+      $existingInstall=null;
+      if($aliases){$existingInstall=$aliases[0];foreach($aliases as $row){if(strtolower((string)$row['domain'])===$domain){$existingInstall=$row;break;}}foreach($aliases as $row){if((int)$row['id']!==(int)$existingInstall['id'])$pdo->prepare('DELETE FROM webchat_installations WHERE id=? AND tenant_id=?')->execute([(int)$row['id'],$platformTid]);}}
+      if($existingInstall){
+        $publicNivoInstallationKey=trim((string)($existingInstall['installation_key']??''));if($publicNivoInstallationKey==='')$publicNivoInstallationKey=bin2hex(random_bytes(20));
+        $pdo->prepare("UPDATE webchat_installations SET installation_key=?,domain=?,enabled=1,label='Sitio principal ZYNKO',created_by=NULL WHERE id=? AND tenant_id=?")->execute([$publicNivoInstallationKey,$domain,(int)$existingInstall['id'],$platformTid]);
+      }else{
+        $publicNivoInstallationKey=bin2hex(random_bytes(20));$pdo->prepare("INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,'Sitio principal ZYNKO',1,NULL)")->execute([$platformTid,(int)$publicNivoWidget['id'],$publicNivoInstallationKey,$domain]);
+      }
       $publicNivoPosition=(string)($publicNivoWidget['position']??'bottom-right');
     }else{$publicNivoWidget=null;$publicNivoInstallationKey='';}
   }

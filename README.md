@@ -1,3 +1,16 @@
+## V2.31.39 · NIVO Web Chat por sitio, código visible y sitio oficial automático
+
+- El sitio principal de ZYNKO se registra y mantiene automáticamente con una sola instalación.
+- Se consolidan automáticamente variantes duplicadas `www` / sin `www` del dominio principal de ZYNKO.
+- El sitio oficial de ZYNKO no necesita que el administrador pegue manualmente su script: la portada pública carga su clave única automáticamente.
+- Cada sitio externo autorizado muestra siempre su código único dentro de su propia tarjeta.
+- Instalaciones antiguas sin `installation_key` reciben una clave automáticamente al abrir NIVO Web Chat.
+- `www.dominio.com` y `dominio.com` se consideran el mismo sitio para evitar duplicados accidentales.
+- El sitio oficial de ZYNKO no puede desactivarse, editarse ni eliminarse desde las acciones normales.
+- Los límites de sitios por plan siguen aplicándose a los sitios externos; la instalación oficial interna de ZYNKO no consume ese cupo.
+- El widget vuelve a validarse correctamente en el dominio principal mediante la misma regla segura de clave + dominio.
+- Se mantiene `ZYNKO_UPDATE_DB_COMPLETO.sql` como único script acumulativo.
+
 ## V2.31.38 · Vista detalle de planes legible y límites NIVO por plan
 
 - Se eliminó el scroll interno que recortaba características en la vista Detalle de Suscripciones.
