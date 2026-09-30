@@ -72,6 +72,13 @@ final class NotificationService{
   $html=EmailTemplates::channelLifecycle($title,$message,$this->platformSettings($platformTid,'/?page=channels'));
   return $this->directPlatformMail($platformTid,$to,'ZYNKO · '.$title,$html,array_merge(['event'=>'channel_lifecycle'],$meta));
  }
+
+ public function sendAdministrativeEvent(int $platformTid,string $to,string $title,string $message,array $meta=[]):array{
+  $page=preg_replace('/[^a-z0-9_-]/i','',(string)($meta['page']??'dashboard'))?:'dashboard';
+  $settings=$this->platformSettings($platformTid,'/?page='.$page);
+  $html=EmailTemplates::generic('ACTIVIDAD DE CUENTA',$title,$message,$settings,'ACTUALIZACIÓN');
+  return $this->directPlatformMail($platformTid,$to,'ZYNKO · '.$title,$html,array_merge(['event'=>'admin_action'],$meta));
+ }
  public function sendPublicContactAdmin(int $platformTid,string $to,array $data):array{
   $subject='ZYNKO · Nueva consulta web · '.($data['subject_label']??'Contacto');
   $html=EmailTemplates::publicContactAdmin($data,$this->platformSettings($platformTid,'/#contacto'));

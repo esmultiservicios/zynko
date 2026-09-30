@@ -49,6 +49,18 @@ SET @sql := IF(@exists=0,'ALTER TABLE `webchat_widgets` ADD COLUMN `experience_j
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 4) PLANES + IA EXTERNA
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='max_monthly_chats');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `max_monthly_chats` INT NULL AFTER `max_daily_chats`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='is_featured');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `is_featured` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_default_free`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='featured_label');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `featured_label` VARCHAR(60) NULL AFTER `is_featured`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='external_ai_included');
 SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `external_ai_included` TINYINT(1) NOT NULL DEFAULT 0 AFTER `features_json`','SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
@@ -228,22 +240,75 @@ SET @launcher_len := (SELECT COALESCE(MAX(CHARACTER_MAXIMUM_LENGTH),0) FROM INFO
 SET @sql := IF(@exists=0,'ALTER TABLE `webchat_widgets` ADD COLUMN `launcher_label` VARCHAR(255) NULL AFTER `launcher_icon`',IF(@launcher_len<255,'ALTER TABLE `webchat_widgets` MODIFY COLUMN `launcher_label` VARCHAR(255) NULL','SELECT 1'));
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
--- 12) PLAN GRATIS: IA EXTERNA DESACTIVADA POR DEFECTO
+-- 11.1) CONECTORES DISPONIBLES ACTUALMENTE
+-- Mientras Instagram y otros conectores sigan en desarrollo, no se permite vincularlos.
+UPDATE `channel_connector_catalog` SET `connector_ready`=0,`linkable`=0 WHERE `code`='instagram';
+
+-- 12) CATALOGO COMERCIAL OFICIAL ZYNKO
+-- Los códigos son estables y permiten ejecutar este UPDATE más de una vez sin duplicar planes.
 UPDATE `subscription_plans`
-SET `external_ai_included`=0,
-    `external_ai_monthly_tokens`=NULL,
-    `external_ai_channels_json`=JSON_ARRAY()
-WHERE `is_default_free`=1;
+SET `code`='free'
+WHERE `is_default_free`=1 AND (`code` IS NULL OR `code`='')
+ORDER BY `id` LIMIT 1;
+
+UPDATE `subscription_plans` SET `code`='starter' WHERE LOWER(`name`)='starter' AND (`code` IS NULL OR `code`='') ORDER BY `id` LIMIT 1;
+UPDATE `subscription_plans` SET `code`='pro' WHERE LOWER(`name`)='pro' AND (`code` IS NULL OR `code`='') ORDER BY `id` LIMIT 1;
+UPDATE `subscription_plans` SET `code`='business' WHERE LOWER(`name`)='business' AND (`code` IS NULL OR `code`='') ORDER BY `id` LIMIT 1;
+
+INSERT INTO `subscription_plans` (`code`,`name`,`monthly_price`,`currency`,`max_users`,`max_channels`,`max_webchat_sites`,`max_daily_chats`,`max_monthly_chats`,`allowed_channels_json`,`module_access_json`,`features_json`,`external_ai_included`,`external_ai_monthly_tokens`,`external_ai_channels_json`,`is_default_free`,`is_featured`,`featured_label`,`active`)
+VALUES
+('free','Gratis',0,'USD',NULL,1,1,5,NULL,JSON_ARRAY('webchat'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',0,'integrations',0,'email',0,'settings',0,'api',0),JSON_ARRAY('NIVO Web Chat incluido','1 sitio autorizado para NIVO Web Chat','5 chats nuevos por día','Mensajes ilimitados dentro de cada chat','Usuarios de ZYNKO ilimitados'),0,NULL,JSON_ARRAY(),1,0,NULL,1),
+('starter','Starter',19,'USD',NULL,2,2,NULL,500,JSON_ARRAY('webchat','whatsapp','messenger'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',0,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','2 sitios autorizados para NIVO Web Chat','1 conexión externa a elegir: WhatsApp o Messenger','500 chats nuevos por mes','API para conectar sitios y sistemas externos','Bandeja omnicanal y contactos','Usuarios de ZYNKO ilimitados'),0,NULL,JSON_ARRAY(),0,0,NULL,1),
+('pro','Pro',49,'USD',NULL,4,5,NULL,3000,JSON_ARRAY('webchat','whatsapp','messenger'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Capacidad de hasta 3 conexiones externas según canales habilitados','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados'),1,NULL,JSON_ARRAY('webchat','whatsapp','messenger','api'),0,1,'Más popular',1),
+('business','Business',99,'USD',NULL,11,10,NULL,10000,JSON_ARRAY('webchat','whatsapp','messenger'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','10 sitios autorizados para NIVO Web Chat','Capacidad de hasta 10 conexiones externas según canales habilitados','10,000 chats nuevos por mes','API completa con mayor capacidad','NIVO IA y automatizaciones avanzadas','Reportes avanzados y auditoría completa','Soporte prioritario','Usuarios de ZYNKO ilimitados'),1,NULL,JSON_ARRAY('webchat','whatsapp','messenger','api'),0,0,NULL,1)
+ON DUPLICATE KEY UPDATE
+`name`=VALUES(`name`),`monthly_price`=VALUES(`monthly_price`),`currency`=VALUES(`currency`),`max_users`=VALUES(`max_users`),`max_channels`=VALUES(`max_channels`),`max_webchat_sites`=VALUES(`max_webchat_sites`),`max_daily_chats`=VALUES(`max_daily_chats`),`max_monthly_chats`=VALUES(`max_monthly_chats`),`allowed_channels_json`=VALUES(`allowed_channels_json`),`module_access_json`=VALUES(`module_access_json`),`features_json`=VALUES(`features_json`),`external_ai_included`=VALUES(`external_ai_included`),`external_ai_monthly_tokens`=VALUES(`external_ai_monthly_tokens`),`external_ai_channels_json`=VALUES(`external_ai_channels_json`),`is_default_free`=VALUES(`is_default_free`),`is_featured`=VALUES(`is_featured`),`featured_label`=VALUES(`featured_label`),`active`=VALUES(`active`);
+
+-- Evita que exista más de un Plan Gratis predeterminado.
+UPDATE `subscription_plans` SET `is_default_free`=0 WHERE `code`<>'free' AND `is_default_free`=1;
+
+
+-- 12.5) NIVO WEB CHAT - CODIGO UNICO POR SITIO AUTORIZADO
+-- Cada instalación recibe una clave propia. El mismo código no puede reutilizarse en otro dominio.
+CREATE TABLE IF NOT EXISTS `webchat_installations` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `widget_id` BIGINT UNSIGNED NOT NULL,
+  `installation_key` CHAR(40) NULL,
+  `domain` VARCHAR(255) NOT NULL,
+  `label` VARCHAR(120) NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_by` BIGINT UNSIGNED NULL,
+  `first_seen_at` DATETIME NULL,
+  `last_seen_at` DATETIME NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_widget_domain` (`widget_id`,`domain`),
+  INDEX (`tenant_id`,`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cada instalación recibe una clave propia. El mismo código no puede reutilizarse en otro dominio.
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_installations' AND COLUMN_NAME='installation_key');
+SET @sql := IF(@exists=0,'ALTER TABLE `webchat_installations` ADD COLUMN `installation_key` CHAR(40) NULL AFTER `widget_id`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+UPDATE `webchat_installations`
+SET `installation_key`=SHA1(CONCAT(UUID(),'-',`id`,'-',RAND()))
+WHERE `installation_key` IS NULL OR `installation_key`='';
+
+ALTER TABLE `webchat_installations` MODIFY COLUMN `installation_key` CHAR(40) NOT NULL;
+SET @idx_exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_installations' AND INDEX_NAME='uq_installation_key');
+SET @sql := IF(@idx_exists=0,'ALTER TABLE `webchat_installations` ADD UNIQUE KEY `uq_installation_key` (`installation_key`)','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 -- 13) VERSION ACTUAL
 INSERT INTO `system_settings` (`setting_key`,`setting_value`)
-VALUES ('app_version','2.31.33')
+VALUES ('app_version','2.31.37')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 -- ------------------------------------------------------------
 -- 14) VERIFICACION FINAL - BASE ACTUALMENTE SELECCIONADA
 -- ------------------------------------------------------------
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.33' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.37' AS version_objetivo;
 
 SELECT
   TABLE_NAME,
@@ -256,7 +321,8 @@ WHERE TABLE_SCHEMA=@db_name
     (TABLE_NAME='tenants' AND COLUMN_NAME IN ('business_id','contact_phone','registration_source')) OR
     (TABLE_NAME='bot_profiles' AND COLUMN_NAME='channel_policy_json') OR
     (TABLE_NAME='webchat_widgets' AND COLUMN_NAME IN ('experience_json','launcher_label')) OR
-    (TABLE_NAME='subscription_plans' AND COLUMN_NAME IN ('external_ai_included','external_ai_monthly_tokens','external_ai_channels_json')) OR
+    (TABLE_NAME='webchat_installations' AND COLUMN_NAME='installation_key') OR
+    (TABLE_NAME='subscription_plans' AND COLUMN_NAME IN ('max_monthly_chats','is_featured','featured_label','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json')) OR
     (TABLE_NAME='conversations' AND COLUMN_NAME IN ('archived_at','deleted_at','deleted_by')) OR
     (TABLE_NAME='inbox_preferences' AND COLUMN_NAME IN ('category_id','state_filter','attention_filter')) OR
     (TABLE_NAME='user_preferences' AND COLUMN_NAME='ui_preferences_json')
@@ -275,6 +341,7 @@ SELECT
      AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='bot_profiles' AND COLUMN_NAME='channel_policy_json')
      AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_widgets' AND COLUMN_NAME='experience_json')
      AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_widgets' AND COLUMN_NAME='launcher_label' AND CHARACTER_MAXIMUM_LENGTH>=255)
+     AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_installations' AND COLUMN_NAME='installation_key')
      AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='external_ai_included')
      AND EXISTS(SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='user_preferences' AND COLUMN_NAME='ui_preferences_json')
     THEN 'OK - BASE ACTUALIZADA CORRECTAMENTE'

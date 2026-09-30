@@ -16,6 +16,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         max_channels INT NULL,
         max_webchat_sites INT NULL,
         max_daily_chats INT NULL,
+        max_monthly_chats INT NULL,
         allowed_channels_json JSON NULL,
         module_access_json JSON NULL,
         features_json JSON NULL,
@@ -23,18 +24,23 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         external_ai_monthly_tokens BIGINT UNSIGNED NULL,
         external_ai_channels_json JSON NULL,
         is_default_free TINYINT(1) NOT NULL DEFAULT 0,
+        is_featured TINYINT(1) NOT NULL DEFAULT 0,
+        featured_label VARCHAR(60) NULL,
         active TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     zynkoPlanColumn($pdo,'subscription_plans','code','code VARCHAR(50) NULL UNIQUE AFTER id');
     zynkoPlanColumn($pdo,'subscription_plans','max_webchat_sites','max_webchat_sites INT NULL AFTER max_channels');
     zynkoPlanColumn($pdo,'subscription_plans','max_daily_chats','max_daily_chats INT NULL AFTER max_webchat_sites');
-    zynkoPlanColumn($pdo,'subscription_plans','allowed_channels_json','allowed_channels_json JSON NULL AFTER max_daily_chats');
+    zynkoPlanColumn($pdo,'subscription_plans','max_monthly_chats','max_monthly_chats INT NULL AFTER max_daily_chats');
+    zynkoPlanColumn($pdo,'subscription_plans','allowed_channels_json','allowed_channels_json JSON NULL AFTER max_monthly_chats');
     zynkoPlanColumn($pdo,'subscription_plans','module_access_json','module_access_json JSON NULL AFTER allowed_channels_json');
     zynkoPlanColumn($pdo,'subscription_plans','external_ai_included','external_ai_included TINYINT(1) NOT NULL DEFAULT 0 AFTER features_json');
     zynkoPlanColumn($pdo,'subscription_plans','external_ai_monthly_tokens','external_ai_monthly_tokens BIGINT UNSIGNED NULL AFTER external_ai_included');
     zynkoPlanColumn($pdo,'subscription_plans','external_ai_channels_json','external_ai_channels_json JSON NULL AFTER external_ai_monthly_tokens');
     zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER external_ai_channels_json');
+    zynkoPlanColumn($pdo,'subscription_plans','is_featured','is_featured TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
+    zynkoPlanColumn($pdo,'subscription_plans','featured_label','featured_label VARCHAR(60) NULL AFTER is_featured');
     $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_subscriptions(
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         tenant_id BIGINT UNSIGNED NOT NULL,
@@ -69,21 +75,21 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
 
     $modules=json_encode([
         'dashboard'=>1,'inbox'=>1,'channels'=>1,'webchat'=>1,'billing'=>1,'onboarding'=>1,
-        'users'=>0,'chatbot'=>0,'integrations'=>0,'email'=>0,'settings'=>0,'api'=>0
+        'users'=>1,'chatbot'=>0,'integrations'=>0,'email'=>0,'settings'=>0,'api'=>0
     ],JSON_UNESCAPED_SLASHES);
     $channels=json_encode(['webchat'],JSON_UNESCAPED_SLASHES);
     $features=json_encode([
-        'NIVO Web Chat incluido','1 sitio web autorizado','Hasta 5 chats nuevos por día','1 usuario propietario'
+        'NIVO Web Chat incluido','1 sitio autorizado para NIVO Web Chat','5 chats nuevos por día','Mensajes ilimitados dentro de cada chat','Usuarios de ZYNKO ilimitados'
     ],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
     $q=$pdo->query("SELECT id FROM subscription_plans WHERE code='free' ORDER BY id LIMIT 1");
     $free=(int)($q->fetchColumn()?:0);
     if(!$free){$q=$pdo->query("SELECT id FROM subscription_plans WHERE is_default_free=1 ORDER BY id LIMIT 1");$free=(int)($q->fetchColumn()?:0);}
     if(!$free){
-        $st=$pdo->prepare("INSERT INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,allowed_channels_json,module_access_json,features_json,is_default_free,active) VALUES('free','Gratis',0,'HNL',1,1,1,5,?,?,?,1,1)");
+        $st=$pdo->prepare("INSERT INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,is_default_free,is_featured,featured_label,active) VALUES('free','Gratis',0,'USD',NULL,1,1,5,NULL,?,?,?,1,0,NULL,1)");
         $st->execute([$channels,$modules,$features]);
     }else{
         $pdo->prepare("UPDATE subscription_plans SET is_default_free=0,code=NULL WHERE id<>? AND (is_default_free=1 OR code='free')")->execute([$free]);
-        $pdo->prepare("UPDATE subscription_plans SET code='free',name=IF(name='', 'Gratis', name),monthly_price=0,max_users=1,max_channels=1,max_webchat_sites=1,max_daily_chats=5,allowed_channels_json=?,module_access_json=?,features_json=COALESCE(features_json,?),is_default_free=1,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
+        $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,is_default_free=1,is_featured=0,featured_label=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
     }
 }
 
@@ -110,14 +116,14 @@ function zynkoDecodeMap(mixed $value): array{
 function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): array{
     if($platformOwner)return [
         'unrestricted'=>true,'has_plan'=>true,'plan_id'=>0,'plan_code'=>'platform','plan_name'=>'Plataforma','subscription_status'=>'active',
-        'max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]
+        'max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'max_monthly_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]
     ];
     try{
         $q=$pdo->prepare("SELECT sp.*,ts.status subscription_status FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id WHERE ts.tenant_id=? LIMIT 1");
         $q->execute([$tenantId]);$p=$q->fetch();
         if(!$p){
             // Preserve existing installations that predate commercial plan enforcement.
-            return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
+            return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'max_monthly_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
         }
         $mods=zynkoDecodeMap($p['module_access_json']??null);
         $channels=zynkoDecodeList($p['allowed_channels_json']??null);
@@ -127,12 +133,12 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
         return [
             'unrestricted'=>false,'has_plan'=>true,'plan_id'=>(int)$p['id'],'plan_code'=>(string)($p['code']??''),'plan_name'=>(string)$p['name'],'subscription_status'=>$status,
             'max_users'=>$p['max_users']!==null?(int)$p['max_users']:null,'max_channels'=>$p['max_channels']!==null?(int)$p['max_channels']:null,
-            'max_webchat_sites'=>$p['max_webchat_sites']!==null?(int)$p['max_webchat_sites']:null,'max_daily_chats'=>$p['max_daily_chats']!==null?(int)$p['max_daily_chats']:null,
+            'max_webchat_sites'=>$p['max_webchat_sites']!==null?(int)$p['max_webchat_sites']:null,'max_daily_chats'=>$p['max_daily_chats']!==null?(int)$p['max_daily_chats']:null,'max_monthly_chats'=>$p['max_monthly_chats']!==null?(int)$p['max_monthly_chats']:null,
             'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active,
             'external_ai_included'=>(int)($p['external_ai_included']??0)===1,'external_ai_monthly_tokens'=>$p['external_ai_monthly_tokens']!==null?(int)$p['external_ai_monthly_tokens']:null,'external_ai_channels'=>$externalAiChannels
         ];
     }catch(Throwable $e){
-        return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
+        return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'max_monthly_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
     }
 }
 
@@ -163,8 +169,32 @@ function zynkoPlanLimit(array $ctx,string $key): ?int{
     return $i>0?$i:null;
 }
 
+
+function zynkoPlanExternalConnectionLimit(array $ctx): ?int{
+    $total=zynkoPlanLimit($ctx,'max_channels');
+    if($total===null)return null;
+    // NIVO Web Chat ocupa el canal base del tenant; el resto son conexiones externas.
+    return max(0,$total-1);
+}
+
+function zynkoPlanExternalConnectionUsage(PDO $pdo,int $tenantId): int{
+    try{$q=$pdo->prepare("SELECT COUNT(*) FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected'");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
+}
+
+function zynkoPlanRequireModule(array $ctx,string $module): void{
+    if(!zynkoPlanAllowsModule($ctx,$module)){
+        $name=(string)($ctx['plan_name']??'actual');
+        if(empty($ctx['active']))throw new RuntimeException('La suscripción de esta empresa no está activa. Revisa Facturación para continuar.');
+        throw new RuntimeException('Esta función no está incluida en tu plan '.$name.'.');
+    }
+}
+
 function zynkoPlanDailyChatUsage(PDO $pdo,int $tenantId): int{
     try{$q=$pdo->prepare("SELECT COUNT(*) FROM conversations c JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.tenant_id=? AND ch.type='webchat' AND DATE(c.created_at)=CURDATE()");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
+}
+
+function zynkoPlanMonthlyChatUsage(PDO $pdo,int $tenantId): int{
+    try{$q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND created_at<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
 }
 
 function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
@@ -182,5 +212,26 @@ function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
     if($maxSites>0){
         $q=$pdo->prepare('SELECT id FROM webchat_installations WHERE tenant_id=? AND enabled=1 ORDER BY id');$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
         foreach(array_slice($ids,$maxSites) as $id)$pdo->prepare('UPDATE webchat_installations SET enabled=0 WHERE id=? AND tenant_id=?')->execute([$id,$tenantId]);
+    }
+    // Al bajar de plan, las conexiones externas que ya no estén permitidas quedan desconectadas.
+    if($channels){
+        $placeholders=implode(',',array_fill(0,count($channels),'?'));
+        $args=array_merge([$tenantId],$channels);
+        $pdo->prepare("UPDATE channels SET status='disconnected' WHERE tenant_id=? AND type<>'webchat' AND type NOT IN ($placeholders)")->execute($args);
+    }
+    $maxChannels=$p['max_channels']!==null?(int)$p['max_channels']:0;
+    if($maxChannels>0){
+        $externalLimit=max(0,$maxChannels-1);
+        $q=$pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected' ORDER BY id");$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
+        foreach(array_slice($ids,$externalLimit) as $id)$pdo->prepare("UPDATE channels SET status='disconnected' WHERE id=? AND tenant_id=?")->execute([$id,$tenantId]);
+    }
+    $mods=zynkoDecodeMap($p['module_access_json']??null);
+    if(empty($mods['api'])){
+        $pdo->prepare('UPDATE api_keys SET revoked_at=COALESCE(revoked_at,NOW()) WHERE tenant_id=?')->execute([$tenantId]);
+        $pdo->prepare('UPDATE outgoing_webhooks SET active=0 WHERE tenant_id=?')->execute([$tenantId]);
+    }
+    if(empty($mods['chatbot'])){
+        $pdo->prepare('UPDATE bot_profiles SET enabled=0 WHERE tenant_id=?')->execute([$tenantId]);
+        try{$pdo->prepare('UPDATE tenant_ai_settings SET enabled=0 WHERE tenant_id=?')->execute([$tenantId]);}catch(Throwable $e){}
     }
 }

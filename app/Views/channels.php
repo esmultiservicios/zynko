@@ -6,7 +6,7 @@ $catalog=[]; try{$q=appDb()->query("SELECT code,name,icon_class,icon_style,descr
 if(!$catalog)$catalog=[
  'whatsapp'=>['WhatsApp Business','fa-brands fa-whatsapp','whatsapp','Mensajes, multimedia, documentos y atención en tiempo real.',true,true,true],
  'messenger'=>['Messenger','fa-brands fa-facebook-messenger','messenger','Conversaciones de páginas de Facebook conectadas a la empresa.',true,true,true],
- 'instagram'=>['Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',true,true,true],
+ 'instagram'=>['Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',false,false,false],
 ];
 $statusLabels=['pending'=>'Pendiente de autorización','connected'=>'Conectado','warning'=>'Requiere atención','disconnected'=>'Desconectado'];
 ?>

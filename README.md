@@ -1,4 +1,21 @@
-# ZYNKO — Plataforma SaaS omnicanal
+## V2.31.37 · Código único por sitio para NIVO Web Chat
+
+- Cada dominio autorizado genera su propio código de instalación.
+- El código se muestra únicamente después de autorizar el sitio.
+- El backend valida clave de instalación + dominio real de origen.
+- Se corrigió la validación anterior que podía aceptar el host de ZYNKO como sustituto del dominio visitante.
+- Los códigos antiguos basados en la clave global del widget siguen funcionando únicamente si el dominio está autorizado, para no romper instalaciones existentes.
+- El sitio público principal de ZYNKO mantiene autorización automática del dominio propio, pero usa su clave de instalación única.
+
+# ZYNKO
+
+## V2.31.36 · Planes comerciales oficiales
+- Catálogo oficial: Gratis, Starter, Pro y Business.
+- API externa disponible desde planes de pago.
+- Límites mensuales de chats para planes pagados.
+- Planes destacados administrables en el sitio público.
+- Un único `ZYNKO_UPDATE_DB_COMPLETO.sql` acumulativo e idempotente.
+ — Plataforma SaaS omnicanal
 
 **Nombre oficial de la plataforma:** **ZYNKO**  
 **Asistente inteligente oficial:** **NIVO**  
@@ -1304,3 +1321,15 @@ curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/send" \
 - Las respuestas de ejemplo conservan el patrón compacto: texto a la izquierda y botón Copiar completo a la derecha.
 - Admin / Integraciones: se aplica el mismo comportamiento responsive sin ocultar el texto del botón.
 - Se reforzó la adaptación para pantallas de 360 px y menores sin alterar desktop, tablet ni la lógica de copiado.
+
+
+## V2.31.36 — Cumplimiento real de límites por plan
+
+Los límites configurados en Suscripciones se aplican en backend, no solo en la interfaz: módulos, canales permitidos, conexiones externas, sitios autorizados de NIVO Web Chat, chats diarios/mensuales, API y NIVO IA. Al cambiar o reducir un plan, ZYNKO reaplica los permisos del tenant y desconecta o desactiva capacidades que ya no están incluidas. La API valida plan y estado de suscripción en cada solicitud.
+
+### V2.31.36 · Notificaciones administrativas transaccionales
+- Se centralizaron correos para cambios materiales de cuenta/configuración: empresa, usuarios administrados, NIVO IA, API, webhooks, configuración, NIVO Web Chat y conocimiento de NIVO.
+- Cada cambio material notifica al propietario de la empresa afectada y al administrador principal de ZYNKO, evitando duplicados cuando ambos correos coinciden.
+- No se envían correos por acciones operativas de alta frecuencia (mensajes, asignaciones, búsquedas, notas, preferencias o consultas) para evitar spam.
+- Los correos nunca incluyen secretos, contraseñas temporales, claves API ni secretos de webhook.
+- Se conserva el flujo especializado existente para solicitudes/asignaciones de plan, altas de cuenta y eventos de seguridad.

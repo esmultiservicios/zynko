@@ -107,7 +107,7 @@ final class EmailTemplates
             .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
             .'<div style="font-size:14px;line-height:1.75"><strong>Plan:</strong> '.$name.'<br><strong>Precio:</strong> '.$price.'<br><strong>Estado:</strong> '.self::e($status)
             .'<br><strong>Sitios Web Chat:</strong> '.self::e(($plan['max_webchat_sites']??null)?:'Ilimitados')
-            .'<br><strong>Chats nuevos/día:</strong> '.self::e(($plan['max_daily_chats']??null)?:'Ilimitados').'</div></div>';
+            .'<br><strong>Chats nuevos:</strong> '.self::e(!empty($plan['max_daily_chats'])?($plan['max_daily_chats'].'/día'):(!empty($plan['max_monthly_chats'])?(number_format((int)$plan['max_monthly_chats']).'/mes'):'Ilimitados')).'</div></div>';
         return self::shell('PLANES Y SUSCRIPCIONES','Plan '.$verb,$content,$settings,'PLAN '.strtoupper($verb));
     }
 
