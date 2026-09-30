@@ -211,7 +211,7 @@ function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
     }
     if($maxSites>0){
         $isPlatformTenant=function_exists('mainTenantId')&&$tenantId===mainTenantId();
-        $sql='SELECT id FROM webchat_installations WHERE tenant_id=? AND enabled=1'.($isPlatformTenant?" AND NOT (created_by IS NULL AND label='Sitio principal ZYNKO')":'').' ORDER BY id';
+        $sql='SELECT id FROM webchat_installations WHERE tenant_id=? AND enabled=1'.($isPlatformTenant?" AND created_by IS NOT NULL":'').' ORDER BY id';
         $q=$pdo->prepare($sql);$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
         foreach(array_slice($ids,$maxSites) as $id)$pdo->prepare('UPDATE webchat_installations SET enabled=0 WHERE id=? AND tenant_id=?')->execute([$id,$tenantId]);
     }

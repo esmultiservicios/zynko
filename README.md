@@ -1,3 +1,12 @@
+## V2.31.41 · Etiquetas editables por sitio NIVO y límites por plan preservados
+
+- Cada instalación de NIVO Web Chat conserva su `installation_key` única; renombrar una etiqueta no cambia ni regenera la clave.
+- El sitio principal de ZYNKO vuelve a permitir editar su nombre / etiqueta desde el botón de edición, manteniendo bloqueado su dominio, activación y eliminación por seguridad.
+- Los sitios externos continúan permitiendo editar tanto etiqueta como dominio autorizado.
+- El sitio principal deja de depender del texto exacto `Sitio principal ZYNKO` para ser identificado internamente, evitando que una etiqueta personalizada rompa la lógica automática.
+- El sitio oficial sigue sin consumir cupo del plan; los sitios externos continúan sujetos a `max_webchat_sites`.
+- No se agregan cambios estructurales nuevos de base de datos respecto a V2.31.40; `ZYNKO_UPDATE_DB_COMPLETO.sql` permanece como acumulativo.
+
 ## V2.31.40 · NIVO Web Chat restaurado, sitio oficial automático y código único visible
 
 - Corrige instalaciones existentes que aún no tenían la columna o la clave `installation_key` sin exigir un UPDATE manual previo.

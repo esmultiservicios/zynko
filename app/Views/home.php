@@ -77,7 +77,7 @@ try{
       if($aliases){$existingInstall=$aliases[0];foreach($aliases as $row){if(strtolower((string)$row['domain'])===$domain){$existingInstall=$row;break;}}foreach($aliases as $row){if((int)$row['id']!==(int)$existingInstall['id'])$pdo->prepare('DELETE FROM webchat_installations WHERE id=? AND tenant_id=?')->execute([(int)$row['id'],$platformTid]);}}
       if($existingInstall){
         $publicNivoInstallationKey=trim((string)($existingInstall['installation_key']??''));if($publicNivoInstallationKey==='')$publicNivoInstallationKey=bin2hex(random_bytes(20));
-        $pdo->prepare("UPDATE webchat_installations SET installation_key=?,domain=?,enabled=1,label='Sitio principal ZYNKO',created_by=NULL WHERE id=? AND tenant_id=?")->execute([$publicNivoInstallationKey,$domain,(int)$existingInstall['id'],$platformTid]);
+        $pdo->prepare("UPDATE webchat_installations SET installation_key=?,domain=?,enabled=1,label=CASE WHEN label IS NULL OR TRIM(label)='' THEN 'Sitio principal ZYNKO' ELSE label END,created_by=NULL WHERE id=? AND tenant_id=?")->execute([$publicNivoInstallationKey,$domain,(int)$existingInstall['id'],$platformTid]);
       }else{
         $publicNivoInstallationKey=bin2hex(random_bytes(20));$pdo->prepare("INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,'Sitio principal ZYNKO',1,NULL)")->execute([$platformTid,(int)$publicNivoWidget['id'],$publicNivoInstallationKey,$domain]);
       }
