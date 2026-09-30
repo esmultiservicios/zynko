@@ -42,10 +42,25 @@ foreach($publicPlans as $plan){
 }
 $publicNivoWidget=null;$publicNivoInstallationKey='';$publicNivoPosition='bottom-right';
 try{
-  $pdo=appDb();$platformTid=mainTenantId();
+  $pdo=appDb();
+  try{
+    if(!$pdo->query("SHOW COLUMNS FROM webchat_installations LIKE 'installation_key'")->fetch())$pdo->exec("ALTER TABLE webchat_installations ADD installation_key CHAR(40) NULL AFTER widget_id");
+    $missing=$pdo->query("SELECT id FROM webchat_installations WHERE installation_key IS NULL OR installation_key=''")->fetchAll(PDO::FETCH_COLUMN);
+    if($missing){$fill=$pdo->prepare("UPDATE webchat_installations SET installation_key=? WHERE id=?");foreach($missing as $mid)$fill->execute([bin2hex(random_bytes(20)),(int)$mid]);}
+  }catch(Throwable $ignore){}
+  $platformTid=mainTenantId();
   $requestDomain=strtolower(preg_replace('/:\d+$/','',$host));
   $configuredHost=(string)(parse_url($baseUrl,PHP_URL_HOST)?:'');
-  $domain=strtolower(preg_replace('/^www\./','',preg_replace('/:\d+$/','',$configuredHost!==''?$configuredHost:$requestDomain)));
+  // Para el widget institucional manda el host REAL solicitado; APP_URL/SEO no debe romper localhost.
+  $domain=strtolower(preg_replace('/^www\./','',preg_replace('/:\d+$/','',$requestDomain!==''?$requestDomain:$configuredHost)));
+  // Si este dominio ya tiene una instalación oficial, úsala aunque el tenant plataforma no sea MIN(id).
+  if($domain!==''){
+    $allOfficial=$pdo->query("SELECT wi.*,w.tenant_id widget_tenant_id,w.enabled widget_enabled FROM webchat_installations wi JOIN webchat_widgets w ON w.id=wi.widget_id WHERE wi.enabled=1 AND w.enabled=1 ORDER BY CASE WHEN wi.label='Sitio principal ZYNKO' THEN 0 ELSE 1 END,wi.id")->fetchAll();
+    foreach($allOfficial as $candidate){
+      $candidateDomain=preg_replace('/^www\./','',strtolower(preg_replace('/:\d+$/','',(string)$candidate['domain'])));
+      if($candidateDomain===$domain){$platformTid=(int)$candidate['widget_tenant_id'];break;}
+    }
+  }
   if($platformTid>0){
     $q=$pdo->prepare('SELECT * FROM webchat_widgets WHERE tenant_id=? ORDER BY enabled DESC,id ASC LIMIT 1');$q->execute([$platformTid]);$publicNivoWidget=$q->fetch()?:null;
     if(!$publicNivoWidget){

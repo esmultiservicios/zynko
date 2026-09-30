@@ -3884,7 +3884,7 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
 }
 
 
-/* ZYNKO V2.31.39 · Instalaciones NIVO únicas por sitio */
+/* ZYNKO V2.31.40 · NIVO Web Chat auto-reparable y códigos visibles */
 .webchat-official-note{display:flex;align-items:flex-start;gap:12px;margin:12px 0 4px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--accent) 28%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 7%,var(--panel))}
 .webchat-official-note>i{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));color:var(--accent);flex:0 0 auto}
 .webchat-official-note b,.webchat-official-note small{display:block}.webchat-official-note small{margin-top:3px;color:var(--muted)}

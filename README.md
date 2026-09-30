@@ -1,3 +1,14 @@
+## V2.31.40 · NIVO Web Chat restaurado, sitio oficial automático y código único visible
+
+- Corrige instalaciones existentes que aún no tenían la columna o la clave `installation_key` sin exigir un UPDATE manual previo.
+- El sitio público utiliza el host real solicitado (`zynko.test`, producción u otro ambiente) para localizar/generar su instalación oficial.
+- El widget institucional vuelve a cargar tanto en localhost como en producción.
+- El Admin genera automáticamente claves faltantes y vuelve a mostrar el bloque **Código único / Copiar código**.
+- El sitio oficial queda identificado como automático y no puede editarse, apagarse ni borrarse.
+- Los sitios externos muestran su script únicamente después de autorizar su dominio.
+- La validación de dominio normaliza `www`, puertos y URLs para evitar falsos bloqueos entre ambientes.
+- Se mantiene `ZYNKO_UPDATE_DB_COMPLETO.sql` como único UPDATE acumulativo.
+
 ## V2.31.39 · NIVO Web Chat por sitio, código visible y sitio oficial automático
 
 - El sitio principal de ZYNKO se registra y mantiene automáticamente con una sola instalación.

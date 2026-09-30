@@ -1,5 +1,11 @@
 <?php
 $title='NIVO Web Chat'; require __DIR__.'/partials/top.php'; $tid=(int)$_SESSION['user']['tenant_id'];
+try{
+ $schemaPdo=appDb();
+ if(!$schemaPdo->query("SHOW COLUMNS FROM webchat_installations LIKE 'installation_key'")->fetch())$schemaPdo->exec("ALTER TABLE webchat_installations ADD installation_key CHAR(40) NULL AFTER widget_id");
+ $missingSchema=$schemaPdo->query("SELECT id FROM webchat_installations WHERE installation_key IS NULL OR installation_key=''")->fetchAll(PDO::FETCH_COLUMN);
+ if($missingSchema){$fillSchema=$schemaPdo->prepare("UPDATE webchat_installations SET installation_key=? WHERE id=?");foreach($missingSchema as $mid)$fillSchema->execute([bin2hex(random_bytes(20)),(int)$mid]);}
+}catch(Throwable $ignore){}
 $q=appDb()->prepare('SELECT * FROM webchat_widgets WHERE tenant_id=? ORDER BY id LIMIT 1');$q->execute([$tid]);$w=$q->fetch();$tq=appDb()->prepare('SELECT name FROM tenants WHERE id=? LIMIT 1');$tq->execute([$tid]);$tenantName=(string)($tq->fetchColumn()?:($_SESSION['user']['company']??'Tu empresa'));$assistantSubtitle=trim((string)($w['assistant_subtitle']??''));if($assistantSubtitle==='')$assistantSubtitle='Asistente virtual de '.$tenantName;$experience=json_decode((string)($w['experience_json']??'{}'),true)?:[];$nivoAiEnabled=false;try{$bq=appDb()->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bq->execute([$tid]);$nivoAiEnabled=(int)($bq->fetchColumn()?:0)===1;}catch(Throwable $e){}$launcherPreview=trim((string)($w['launcher_label']??''));if($launcherPreview===''||mb_strtolower(str_replace('**','',$launcherPreview))==='¿necesitas ayuda?')$launcherPreview='**NIVO Web Chat** · ¿Necesitas ayuda?';$launcherEditorHtml=htmlspecialchars($launcherPreview,ENT_QUOTES,'UTF-8');$launcherEditorHtml=preg_replace('/\*\*(.+?)\*\*/us','<strong>$1</strong>',$launcherEditorHtml);$launcherEditorHtml=preg_replace('/__(.+?)__/us','<em>$1</em>',$launcherEditorHtml);$launcherEditorHtml=nl2br($launcherEditorHtml,false);$launcherPreviewHtml=$launcherEditorHtml;
 $inst=[];$officialSiteId=0;$officialDomain='';$isPlatformTenant=false;$webStats=['sites'=>0,'active'=>0,'detected'=>0,'visitors'=>0];
 if($w){
@@ -9,8 +15,12 @@ if($w){
   $missing=$pdo->prepare("SELECT id FROM webchat_installations WHERE tenant_id=? AND widget_id=? AND (installation_key IS NULL OR installation_key='')");$missing->execute([$tid,$w['id']]);
   foreach($missing->fetchAll(PDO::FETCH_COLUMN) as $missingId){$pdo->prepare('UPDATE webchat_installations SET installation_key=? WHERE id=? AND tenant_id=?')->execute([bin2hex(random_bytes(20)),(int)$missingId,$tid]);}
   if($isPlatformTenant){
-   $configured='';$sq=$pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key='seo_site_url' LIMIT 1");$sq->execute();$configured=trim((string)($sq->fetchColumn()?:''));
-   $candidateHost=$configured!==''?(string)parse_url($configured,PHP_URL_HOST):'';if($candidateHost==='')$candidateHost=(string)($_SERVER['HTTP_HOST']??'');
+   // El sitio oficial se determina por el host real del ambiente actual.
+   $candidateHost=(string)($_SERVER['HTTP_HOST']??'');
+   if($candidateHost===''){
+     $sq=$pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key='seo_site_url' LIMIT 1");$sq->execute();
+     $configured=trim((string)($sq->fetchColumn()?:''));$candidateHost=(string)(parse_url($configured,PHP_URL_HOST)?:'');
+   }
    $candidateHost=strtolower(preg_replace('/:\\d+$/','',$candidateHost));$officialDomain=preg_replace('/^www\\./','',$candidateHost);
    if($officialDomain!==''){
     $aq=$pdo->prepare('SELECT * FROM webchat_installations WHERE tenant_id=? AND widget_id=? ORDER BY id');$aq->execute([$tid,$w['id']]);$aliases=[];
@@ -29,7 +39,13 @@ if($w){
  $q=appDb()->prepare('SELECT wi.*,u.name created_by_name FROM webchat_installations wi LEFT JOIN users u ON u.id=wi.created_by WHERE wi.tenant_id=? AND wi.widget_id=? ORDER BY CASE WHEN wi.id=? THEN 0 ELSE 1 END,wi.created_at DESC');$q->execute([$tid,$w['id'],$officialSiteId]);$inst=$q->fetchAll();$webStats['sites']=count($inst);foreach($inst as $site){if(!empty($site['enabled']))$webStats['active']++;if(!empty($site['last_seen_at']))$webStats['detected']++;}try{$sq=appDb()->prepare('SELECT COUNT(*) FROM webchat_visitors WHERE tenant_id=? AND widget_id=?');$sq->execute([$tid,$w['id']]);$webStats['visitors']=(int)$sq->fetchColumn();}catch(Throwable $e){}
 }
 $base=((!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')?'https':'http').'://'.($_SERVER['HTTP_HOST']??'localhost').rtrim(dirname($_SERVER['SCRIPT_NAME']??'/'),'/');
-$siteSnippets=[];foreach($inst as $site){$siteKey=(string)($site['installation_key']??'');if($siteKey!==''){$siteSnippets[(int)$site['id']]=str_replace('\\/','/','<script src="'.$base.'/nivo-widget.js" data-zynko-key="'.$siteKey.'" async></script>');}}
+$siteSnippets=[];foreach($inst as &$site){
+ $siteKey=trim((string)($site['installation_key']??''));
+ if($siteKey===''){
+   try{$siteKey=bin2hex(random_bytes(20));appDb()->prepare('UPDATE webchat_installations SET installation_key=? WHERE id=? AND tenant_id=?')->execute([$siteKey,(int)$site['id'],$tid]);$site['installation_key']=$siteKey;}catch(Throwable $ignore){$siteKey='';}
+ }
+ if($siteKey!=='')$siteSnippets[(int)$site['id']]=str_replace('\\/','/','<script src="'.$base.'/nivo-widget.js" data-zynko-key="'.$siteKey.'" async></script>');
+}unset($site);
 $siteLimit=zynkoPlanLimit($zynkoPlanContext,'max_webchat_sites');$dailyLimit=zynkoPlanLimit($zynkoPlanContext,'max_daily_chats');$monthlyLimit=zynkoPlanLimit($zynkoPlanContext,'max_monthly_chats');$dailyUsage=zynkoPlanDailyChatUsage(appDb(),$tid);$monthlyUsage=zynkoPlanMonthlyChatUsage(appDb(),$tid);
 $activeSitesForPlan=0;foreach($inst as $site){if(empty($site['enabled']))continue;if($isPlatformTenant&&$officialSiteId>0&&(int)$site['id']===$officialSiteId)continue;$activeSitesForPlan++;}$siteLimitReached=$siteLimit!==null&&$activeSitesForPlan>=$siteLimit;
 ?>
