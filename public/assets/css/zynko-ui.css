@@ -3701,7 +3701,7 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
   }
 }
 
-/* ZYNKO V2.31.32 · Admin: botones Copiar legibles y títulos completos en cualquier pantalla */
+/* ZYNKO V2.31.33 · Admin: botones Copiar legibles y títulos completos en cualquier pantalla */
 @media(max-width:700px){
   .api-doc-card .api-doc-title{
     display:grid!important;
@@ -3768,5 +3768,44 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
     min-width:84px!important;
     padding-inline:9px!important;
     font-size:10.5px!important;
+  }
+}
+
+
+/* ZYNKO V2.31.33 · Copiar uniforme: mismo label grande en toda la documentación del Admin */
+.api-doc-card .api-copy-btn,
+.api-doc-card .api-copy-mini{
+  width:auto!important;
+  min-width:96px!important;
+  height:38px!important;
+  padding:0 12px!important;
+  font-size:12px!important;
+  line-height:1!important;
+  border-radius:10px!important;
+  gap:6px!important;
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  justify-content:center!important;
+}
+.api-doc-card .api-copy-btn i,
+.api-doc-card .api-copy-mini i{font-size:12px!important}
+@media(max-width:430px){
+  .api-doc-card .api-copy-btn,
+  .api-doc-card .api-copy-mini{
+    width:auto!important;
+    min-width:96px!important;
+    height:38px!important;
+    padding:0 12px!important;
+    font-size:12px!important;
+    justify-self:end!important;
+  }
+}
+@media(max-width:360px){
+  .api-doc-card .api-copy-btn,
+  .api-doc-card .api-copy-mini{
+    min-width:92px!important;
+    height:38px!important;
+    padding-inline:10px!important;
+    font-size:11.5px!important;
   }
 }

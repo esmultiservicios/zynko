@@ -890,7 +890,7 @@ body.lightbox-open{overflow:hidden}
   }
 }
 
-/* ZYNKO V2.31.32 · Documentación pública: acciones de copiar sin comprimir títulos */
+/* ZYNKO V2.31.33 · Documentación pública: acciones de copiar sin comprimir títulos */
 @media(max-width:700px){
   .integration-docs-section .docs-code-head{
     display:flex!important;
@@ -949,5 +949,44 @@ body.lightbox-open{overflow:hidden}
     min-width:86px!important;
     padding-inline:9px!important;
     font-size:10.5px!important;
+  }
+}
+
+
+/* ZYNKO V2.31.33 · Copiar uniforme: mismo label grande en todos los bloques públicos */
+.integration-docs-section .docs-copy-btn,
+.integration-docs-section .docs-copy-mini{
+  width:auto!important;
+  min-width:96px!important;
+  height:38px!important;
+  padding:0 12px!important;
+  font-size:12px!important;
+  line-height:1!important;
+  border-radius:11px!important;
+  gap:6px!important;
+  flex:0 0 auto!important;
+  white-space:nowrap!important;
+  justify-content:center!important;
+}
+.integration-docs-section .docs-copy-btn i,
+.integration-docs-section .docs-copy-mini i{font-size:12px!important}
+@media(max-width:430px){
+  .integration-docs-section .docs-copy-btn,
+  .integration-docs-section .docs-copy-mini{
+    width:auto!important;
+    min-width:96px!important;
+    height:38px!important;
+    padding:0 12px!important;
+    font-size:12px!important;
+    justify-self:end!important;
+  }
+}
+@media(max-width:360px){
+  .integration-docs-section .docs-copy-btn,
+  .integration-docs-section .docs-copy-mini{
+    min-width:92px!important;
+    height:38px!important;
+    padding-inline:10px!important;
+    font-size:11.5px!important;
   }
 }

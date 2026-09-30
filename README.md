@@ -1298,7 +1298,7 @@ curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/send" \
 - Se conserva `ZYNKO_UPDATE_DB_COMPLETO.sql` como único UPDATE acumulativo y `database/schema.sql` como esquema completo.
 
 
-## V2.31.32 · Responsive final de botones Copiar
+## V2.31.33 · Responsive final de botones Copiar
 - Sitio público: los encabezados de documentación ya no compiten por espacio con el botón Copiar en móvil.
 - En móvil, el título conserva su ancho completo y el botón Copiar pasa a una línea propia alineado a la derecha.
 - Las respuestas de ejemplo conservan el patrón compacto: texto a la izquierda y botón Copiar completo a la derecha.
