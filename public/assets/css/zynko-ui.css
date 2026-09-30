@@ -3816,3 +3816,69 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
 .webchat-install-flow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 4px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:color-mix(in srgb,var(--accent) 6%,var(--panel));color:var(--text)}
 .webchat-install-flow span{display:inline-flex;align-items:center;gap:8px;font-weight:800}.webchat-install-flow span b{width:25px;height:25px;border-radius:999px;display:grid;place-items:center;background:var(--accent);color:#fff;font-size:12px}.webchat-install-flow>i{color:var(--muted);font-size:12px}.installation-site-card{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--panel)}.installation-site-card .installation-row{border:0!important;border-radius:0!important}.site-embed-box{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center;padding:14px 16px;border-top:1px solid var(--line);background:var(--soft)}.site-embed-box>div{grid-column:1/-1}.site-embed-box>div b{display:block}.site-embed-box>div small{display:block;color:var(--muted);margin-top:3px}.site-embed-box code{min-width:0;overflow:auto;white-space:nowrap;background:#0f172a;color:#d5f5ef;border-radius:10px;padding:12px}.site-embed-box .secondary-action{white-space:nowrap}
 @media(max-width:900px){.site-embed-box{grid-template-columns:1fr}.site-embed-box .secondary-action{width:100%;justify-content:center}.webchat-install-flow>i{transform:rotate(90deg)}}
+
+/* ZYNKO V2.31.38 · Suscripciones detalle legible y sin recortes */
+.billing-plan-directory.view-detail .plan-card{
+  min-height:164px!important;
+  align-items:stretch!important;
+}
+.billing-plan-directory.view-detail .plan-card-head,
+.billing-plan-directory.view-detail .plan-limits,
+.billing-plan-directory.view-detail .plan-features,
+.billing-plan-directory.view-detail .plan-actions{
+  align-self:stretch!important;
+}
+.billing-plan-directory.view-detail .plan-card-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:14px!important;
+}
+.billing-plan-directory.view-detail .plan-limits{
+  align-content:center!important;
+}
+.billing-plan-directory.view-detail .plan-limits span{
+  min-width:0!important;
+  white-space:normal!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+}
+.billing-plan-directory.view-detail .plan-features{
+  max-height:none!important;
+  overflow:visible!important;
+  align-content:center!important;
+  grid-auto-rows:minmax(28px,auto)!important;
+}
+.billing-plan-directory.view-detail .plan-features span{
+  min-width:0!important;
+  white-space:normal!important;
+  line-height:1.35!important;
+  overflow-wrap:anywhere!important;
+  align-items:flex-start!important;
+}
+.billing-plan-directory.view-detail .plan-features span>i{
+  flex:0 0 auto!important;
+  margin-top:3px!important;
+}
+@media(min-width:1351px){
+  .billing-plan-directory.view-detail .plan-card{
+    grid-template-columns:minmax(280px,.95fr) minmax(360px,1.15fr) minmax(440px,1.5fr) 180px!important;
+  }
+}
+@media(max-width:1500px) and (min-width:1351px){
+  .billing-plan-directory.view-detail .plan-features{grid-template-columns:1fr!important;gap:7px!important}
+}
+@media(max-width:1350px){
+  .billing-plan-directory.view-detail .plan-card{min-height:0!important}
+  .billing-plan-directory.view-detail .plan-features{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:900px){
+  .billing-plan-directory.view-detail .plan-features{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  .billing-plan-directory.view-detail .plan-card-head{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+  }
+  .billing-plan-directory.view-detail .plan-limits{grid-template-columns:1fr!important}
+}

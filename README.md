@@ -1,3 +1,12 @@
+## V2.31.38 · Vista detalle de planes legible y límites NIVO por plan
+
+- Se eliminó el scroll interno que recortaba características en la vista Detalle de Suscripciones.
+- Los límites y características ahora crecen con la tarjeta, permiten salto de línea y se leen completos.
+- Se reforzó el layout responsive de la vista Detalle sin alterar la vista Miniatura.
+- Se mantiene la aplicación real de `max_webchat_sites`: no se pueden autorizar ni reactivar más sitios NIVO Web Chat que los permitidos por el plan asignado.
+- Cada sitio autorizado conserva su código único de instalación.
+- `ZYNKO_UPDATE_DB_COMPLETO.sql` sigue siendo el único UPDATE acumulativo.
+
 ## V2.31.37 · Código único por sitio para NIVO Web Chat
 
 - Cada dominio autorizado genera su propio código de instalación.
