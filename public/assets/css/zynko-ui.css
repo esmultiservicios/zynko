@@ -3610,3 +3610,93 @@ button>i:first-child,a>i:first-child,.primary>i:first-child,.soft>i:first-child,
 .preview-launcher-label{white-space:normal!important;line-height:1.25!important;overflow:visible!important;text-overflow:clip!important;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease!important}
 .preview-launcher-wrap:hover .preview-launcher-label{transform:translateY(-4px) scale(1.015);box-shadow:0 12px 28px rgba(15,23,42,.15)!important;border-color:#a8d9cf!important}
 @media(max-width:720px){.launcher-label-toolbar{gap:8px!important}.launcher-label-toolbar button span{display:none}.launcher-label-toolbar button{width:36px!important;padding:0!important;justify-content:center!important}.launcher-rte-actions{width:auto!important}}
+
+/* ZYNKO V2.31.31 · Botones y acciones totalmente responsive en Admin */
+button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-toggle,.company-action-toggle,.plan-action-toggle{
+  max-width:100%;
+}
+.api-doc-title>div,
+.api-subhead>b{
+  min-width:0;
+}
+.api-doc-title b,
+.api-doc-title small,
+.api-subhead>b{
+  overflow-wrap:anywhere;
+}
+.api-copy-btn,.api-copy-mini{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+@media(max-width:700px){
+  .api-doc-title{
+    display:grid!important;
+    grid-template-columns:auto minmax(0,1fr) auto!important;
+    align-items:start!important;
+    gap:10px!important;
+  }
+  .api-copy-btn{
+    min-width:92px!important;
+    height:40px!important;
+    padding:0 12px!important;
+  }
+  .api-copy-btn span{
+    display:inline!important;
+  }
+  .api-subhead{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .api-copy-mini{
+    min-width:84px!important;
+    height:36px!important;
+    padding:0 10px!important;
+  }
+  .panel-head,.head-actions,.modal-actions,.company-directory-actions,.users-toolbar-actions{
+    min-width:0!important;
+  }
+  .head-actions,.company-directory-actions,.users-toolbar-actions{
+    flex-wrap:wrap!important;
+  }
+  .head-actions>button,.head-actions>.soft,.head-actions>.primary,
+  .company-directory-actions>button,.company-directory-actions>a,
+  .users-toolbar-actions>button,.users-toolbar-actions>a{
+    min-width:0!important;
+  }
+}
+@media(max-width:430px){
+  .api-doc-card{
+    padding:13px!important;
+  }
+  .api-doc-title{
+    grid-template-columns:auto minmax(0,1fr)!important;
+  }
+  .api-copy-btn{
+    grid-column:1/-1!important;
+    width:100%!important;
+    min-width:0!important;
+    justify-self:stretch!important;
+  }
+  .api-subhead{
+    grid-template-columns:1fr!important;
+    align-items:stretch!important;
+  }
+  .api-copy-mini{
+    width:100%!important;
+    min-width:0!important;
+    justify-self:stretch!important;
+  }
+  .modal-actions button,.modal-actions .soft,.modal-actions .primary,.modal-actions .danger-btn{
+    width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    text-align:center!important;
+    justify-content:center!important;
+  }
+  .company-export-btn{
+    min-width:0!important;
+    white-space:normal!important;
+  }
+}

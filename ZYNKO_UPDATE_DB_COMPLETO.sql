@@ -237,13 +237,13 @@ WHERE `is_default_free`=1;
 
 -- 13) VERSION ACTUAL
 INSERT INTO `system_settings` (`setting_key`,`setting_value`)
-VALUES ('app_version','2.31.30')
+VALUES ('app_version','2.31.31')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 -- ------------------------------------------------------------
 -- 14) VERIFICACION FINAL - BASE ACTUALMENTE SELECCIONADA
 -- ------------------------------------------------------------
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.30' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.31' AS version_objetivo;
 
 SELECT
   TABLE_NAME,

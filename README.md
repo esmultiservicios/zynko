@@ -1286,3 +1286,13 @@ curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/send" \
 - `ZYNKO_UPDATE_DB_COMPLETO.sql` ya no contiene `USE zynko` ni referencias rígidas al nombre de la base: trabaja con `DATABASE()` y la base que esté seleccionada en phpMyAdmin/cliente SQL.
 - Esto corrige el error `#1044 - Access denied ... to database 'zynko'` en producción cuando el hosting usa un nombre como `esmultiservicios_zynko`.
 - `database/schema.sql` permanece como esquema completo de instalación limpia y el UPDATE acumulativo conserva solo los cambios necesarios para instalaciones existentes.
+
+
+## V2.31.31 · Responsive integral de botones
+
+- Corregidos los botones Copiar del sitio público para que el texto permanezca visible en móvil.
+- Los encabezados de ejemplos de API se reorganizan sin romper el diseño en pantallas angostas.
+- En teléfonos muy estrechos, las acciones pasan a ancho completo para conservar icono y texto.
+- Aplicada la misma corrección a la documentación de Integraciones del panel administrativo.
+- Reforzado el comportamiento responsive de grupos de acciones, modales y barras de herramientas sin cambiar la estructura visual de escritorio.
+- Se conserva `ZYNKO_UPDATE_DB_COMPLETO.sql` como único UPDATE acumulativo y `database/schema.sql` como esquema completo.

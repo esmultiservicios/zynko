@@ -800,3 +800,92 @@ body.lightbox-open{overflow:hidden}
 .public-plan-grid.public-plan-count-multiple .public-plan-card{padding:27px}
 @media(max-width:1040px){.public-single-plan-layout{grid-template-columns:1fr;gap:30px}.public-single-plan-card{justify-self:start;max-width:620px}.public-plan-grid.public-plan-count-multiple{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.public-single-plan-copy h2{font-size:34px}.public-single-plan-copy>p{font-size:15px}.public-single-plan-copy ul{gap:12px;margin-top:22px}.public-plan-grid.public-plan-count-multiple{grid-template-columns:1fr}.public-single-plan-card{padding:20px}}
+
+/* ZYNKO V2.31.31 · Responsive integral de botones en sitio público */
+.integration-docs-section button,
+.integration-docs-section .btn{
+  max-width:100%;
+  min-width:0;
+}
+.docs-code-head>div{
+  min-width:0;
+}
+.docs-code-head>div>div{
+  min-width:0;
+}
+.docs-code-head b,
+.docs-code-head small,
+.docs-response-head>b{
+  overflow-wrap:anywhere;
+}
+.docs-copy-btn,
+.docs-copy-mini{
+  flex:0 0 auto;
+  white-space:nowrap;
+}
+.docs-response-head{
+  min-width:0;
+  flex-wrap:wrap;
+}
+@media(max-width:700px){
+  .docs-code-head{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:start!important;
+    gap:10px!important;
+  }
+  .docs-code-head>div{
+    min-width:0!important;
+  }
+  .docs-copy-btn{
+    width:auto!important;
+    min-width:92px!important;
+    height:40px!important;
+    padding:0 12px!important;
+  }
+  .docs-copy-btn span{
+    display:inline!important;
+  }
+  .docs-response-head{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center!important;
+    gap:10px!important;
+  }
+  .docs-copy-mini{
+    min-width:84px!important;
+    height:36px!important;
+    padding:0 10px!important;
+  }
+}
+@media(max-width:430px){
+  .docs-code-card{
+    padding:13px!important;
+  }
+  .docs-code-head{
+    grid-template-columns:1fr!important;
+  }
+  .docs-code-head>div{
+    width:100%!important;
+  }
+  .docs-copy-btn{
+    width:100%!important;
+    min-width:0!important;
+    justify-self:stretch!important;
+  }
+  .docs-response-head{
+    grid-template-columns:1fr!important;
+    align-items:stretch!important;
+  }
+  .docs-copy-mini{
+    width:100%!important;
+    min-width:0!important;
+    justify-self:stretch!important;
+  }
+  .docs-base-card .btn{
+    width:100%!important;
+    min-width:0!important;
+    white-space:normal!important;
+    text-align:center!important;
+  }
+}
