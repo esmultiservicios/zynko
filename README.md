@@ -1296,3 +1296,11 @@ curl -X POST "https://TU-ZYNKO.com/api.php?r=v1/messages/send" \
 - Aplicada la misma corrección a la documentación de Integraciones del panel administrativo.
 - Reforzado el comportamiento responsive de grupos de acciones, modales y barras de herramientas sin cambiar la estructura visual de escritorio.
 - Se conserva `ZYNKO_UPDATE_DB_COMPLETO.sql` como único UPDATE acumulativo y `database/schema.sql` como esquema completo.
+
+
+## V2.31.32 · Responsive final de botones Copiar
+- Sitio público: los encabezados de documentación ya no compiten por espacio con el botón Copiar en móvil.
+- En móvil, el título conserva su ancho completo y el botón Copiar pasa a una línea propia alineado a la derecha.
+- Las respuestas de ejemplo conservan el patrón compacto: texto a la izquierda y botón Copiar completo a la derecha.
+- Admin / Integraciones: se aplica el mismo comportamiento responsive sin ocultar el texto del botón.
+- Se reforzó la adaptación para pantallas de 360 px y menores sin alterar desktop, tablet ni la lógica de copiado.
