@@ -1019,3 +1019,29 @@ body.lightbox-open{overflow:hidden}
   .social-float.align-bottom{bottom:174px!important}
   .social-float a{width:44px!important;height:44px!important;border-radius:13px!important}
 }
+
+/* ZYNKO V2.31.44 · Redes sociales fijas en móvil/tablet */
+@media(max-width:920px){
+  .social-float{
+    position:fixed!important;
+    top:320px!important;
+    bottom:auto!important;
+    transform:none!important;
+    z-index:2147482500!important;
+  }
+  .social-float.side-left{left:12px!important;right:auto!important}
+  .social-float.side-right{right:12px!important;left:auto!important}
+  .social-float.align-top,.social-float.align-center,.social-float.align-bottom{
+    top:320px!important;
+    bottom:auto!important;
+    transform:none!important;
+  }
+}
+@media(max-width:620px){
+  .social-float,
+  .social-float.align-top,.social-float.align-center,.social-float.align-bottom{
+    top:320px!important;
+    bottom:auto!important;
+    transform:none!important;
+  }
+}
