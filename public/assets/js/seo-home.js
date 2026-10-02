@@ -79,6 +79,7 @@
         $el.select2({width:'100%',minimumResultsForSearch:0,placeholder:$el.data('placeholder')||'Selecciona una opción',dropdownCssClass:'zynko-contact-select2-dropdown'});
       });
     }
+    document.documentElement.classList.remove('select2-preload');
 
     const syncSource=()=>{
       const other=source?.value==='other';

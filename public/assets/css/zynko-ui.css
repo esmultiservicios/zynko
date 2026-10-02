@@ -3894,3 +3894,113 @@ button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-tog
 
 /* V2.31.41 · Campo de dominio bloqueado únicamente para el sitio oficial */
 .webchat-install-edit-modal input.is-readonly{background:#f4f8f8;cursor:not-allowed;opacity:.78}
+
+
+/* ZYNKO V2.31.45 · carga visual estable, compositor y guía NIVO */
+html.select2-preload select:not(.no-select2){visibility:hidden!important;opacity:0!important}
+body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn{min-width:118px!important;height:50px!important;min-height:50px!important;padding:0 18px!important;border-radius:13px!important;justify-content:center!important;box-shadow:0 9px 20px rgba(15,118,110,.18)!important;font-size:12px!important;font-weight:850!important}
+body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn i{font-size:13px!important}
+@media(max-width:760px){body:has(.inbox-premium-toolbar) .composer-line{grid-template-columns:1fr!important;align-items:stretch!important}.composer-line .composer-send-btn{width:100%!important;min-width:0!important;height:48px!important}.composer-line .composer-send-btn span{display:inline!important}}
+.nivo-install-doc-panel .panel-head b>i{color:#0f8d78;margin-right:7px}.nivo-install-doc-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-top:14px}.nivo-install-doc-grid article{display:flex;gap:10px;padding:13px;border:1px solid var(--line);border-radius:14px;background:var(--surface2);min-width:0}.nivo-install-doc-grid article>span{width:30px;height:30px;flex:0 0 30px;border-radius:10px;background:#0f8d78;color:#fff;display:grid;place-items:center;font-weight:900}.nivo-install-doc-grid b,.nivo-install-doc-grid small{display:block}.nivo-install-doc-grid small{margin-top:4px;color:var(--muted);line-height:1.45}.nivo-install-doc-note{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding:12px 13px;border:1px solid #cce8e1;border-radius:13px;background:#f0faf7;color:#476277;font-size:11px;line-height:1.5}.nivo-install-doc-note i{color:#0f8d78;margin-top:2px}@media(max-width:1100px){.nivo-install-doc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:650px){.nivo-install-doc-grid{grid-template-columns:1fr}.nivo-install-doc-panel .panel-head{align-items:stretch!important}.nivo-install-doc-panel .panel-head>a{width:100%;justify-content:center}}
+
+/* ZYNKO V2.31.47 · NIVO Fuentes Web */
+.nivo-web-knowledge{overflow:visible}.nivo-web-source-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0 18px}.nivo-web-source-info>span{display:grid;grid-template-columns:38px minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:start;padding:13px 14px;border:1px solid var(--line,#dfe7ee);border-radius:14px;background:var(--surface2,#f8fafc)}.nivo-web-source-info>span>i{grid-row:1/3;width:38px;height:38px;border-radius:11px;background:#e8f7f3;color:#0d9279;display:grid;place-items:center}.nivo-web-source-info b{font-size:12px}.nivo-web-source-info small{font-size:11px;color:var(--muted,#64748b);line-height:1.45}.nivo-web-source-list{display:grid;gap:12px}.nivo-web-source-card{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:start;padding:15px;border:1px solid var(--line,#dfe7ee);border-radius:15px;background:var(--panel,#fff);transition:.18s ease}.nivo-web-source-card:hover{transform:translateY(-2px);box-shadow:0 14px 30px rgba(15,23,42,.07);border-color:rgba(15,118,110,.22)}.nivo-web-source-icon{width:44px;height:44px;border-radius:13px;background:#e8f7f3;color:#0d9279;display:grid;place-items:center;font-size:17px}.nivo-web-source-main{display:grid;gap:4px;min-width:0}.nivo-web-source-title{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.nivo-web-source-main>a{color:#0d7f70;text-decoration:none;font-size:12px;font-weight:750;overflow-wrap:anywhere}.nivo-web-source-main>a:hover{text-decoration:underline}.nivo-web-source-main>small{color:var(--muted,#64748b);font-size:11px;line-height:1.45}.nivo-web-source-error{color:#b45309!important}.nivo-web-source-actions{display:flex;gap:7px;align-items:center}.nivo-web-source-footer,.nivo-web-source-safety{display:flex;gap:10px;align-items:flex-start;margin-top:15px;padding:12px 14px;border-radius:13px;background:#f2faf8;border:1px solid #d2ebe5;color:#536b7e;font-size:12px;line-height:1.5}.nivo-web-source-footer>i,.nivo-web-source-safety>i{color:#0d9279;margin-top:2px}.nivo-website-modal .modal-card{max-width:760px}@media(max-width:900px){.nivo-web-source-info{grid-template-columns:1fr}.nivo-web-source-card{grid-template-columns:42px minmax(0,1fr)}.nivo-web-source-actions{grid-column:1/-1;justify-content:flex-end;padding-top:4px}}@media(max-width:520px){.nivo-web-source-card{grid-template-columns:1fr}.nivo-web-source-icon{width:40px;height:40px}.nivo-web-source-actions{justify-content:flex-start}.nivo-web-source-actions .icon-btn{width:42px;height:42px}.nivo-web-source-title{align-items:flex-start;flex-direction:column;gap:5px}}
+
+
+/* ZYNKO V2.31.48 · Compositor premium compacto en Bandeja */
+body:has(.inbox-premium-toolbar) .pro-composer{
+  min-height:0!important;
+  padding:8px 10px 10px!important;
+  border-top:1px solid #dfe8ef!important;
+  background:var(--surface)!important;
+  box-shadow:0 -8px 24px rgba(15,23,42,.045)!important;
+}
+body:has(.inbox-premium-toolbar) .composer-tools{
+  min-height:0!important;
+  padding:0 0 6px!important;
+  gap:6px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) 108px!important;
+  align-items:stretch!important;
+  gap:8px!important;
+  min-height:46px!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line textarea{
+  min-height:46px!important;
+  max-height:112px!important;
+  resize:none!important;
+  padding:12px 14px!important;
+  border-radius:13px!important;
+  border:1px solid var(--line)!important;
+  background:var(--surface2)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45)!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line textarea:focus{
+  border-color:color-mix(in srgb,var(--accent) 55%,var(--line))!important;
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)!important;
+  background:var(--surface)!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn{
+  width:108px!important;
+  min-width:108px!important;
+  height:auto!important;
+  min-height:46px!important;
+  padding:0 14px!important;
+  border-radius:13px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  align-self:stretch!important;
+  box-shadow:0 8px 18px rgba(15,118,110,.16)!important;
+  font-size:12px!important;
+  font-weight:850!important;
+}
+body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn:hover{
+  transform:translateY(-1px)!important;
+  box-shadow:0 10px 22px rgba(15,118,110,.22)!important;
+}
+body:has(.inbox-premium-toolbar) .attachment-preview:empty{
+  display:none!important;
+}
+body:has(.inbox-premium-toolbar) .attachment-preview:not(:empty){
+  margin:0 0 6px!important;
+}
+@media(max-width:760px){
+  body:has(.inbox-premium-toolbar) .pro-composer{
+    padding:8px!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-line{
+    grid-template-columns:minmax(0,1fr) 52px!important;
+    gap:7px!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn{
+    width:52px!important;
+    min-width:52px!important;
+    padding:0!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn span{
+    display:none!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-line .composer-send-btn i{
+    font-size:15px!important;
+  }
+}
+@media(max-width:420px){
+  body:has(.inbox-premium-toolbar) .composer-tools{
+    gap:5px!important;
+    padding-bottom:5px!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-tools button{
+    width:34px!important;
+    min-width:34px!important;
+    height:34px!important;
+    min-height:34px!important;
+  }
+  body:has(.inbox-premium-toolbar) .composer-tools #nivoAssist{
+    width:auto!important;
+    min-width:74px!important;
+  }
+}

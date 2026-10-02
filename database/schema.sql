@@ -364,7 +364,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.41');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.45');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),
@@ -508,3 +508,25 @@ INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('public_whatsapp_enabled','1'),
 ('public_whatsapp_number','+504 8913-6844'),
 ('public_whatsapp_message','Hola, quiero información sobre ZYNKO.');
+
+-- ZYNKO V2.31.47 · Fuentes web configurables para NIVO
+CREATE TABLE IF NOT EXISTS nivo_knowledge_websites (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  name VARCHAR(180) NOT NULL,
+  base_url VARCHAR(500) NOT NULL,
+  crawl_scope ENUM('page','domain') NOT NULL DEFAULT 'domain',
+  exclude_paths TEXT NULL,
+  max_pages SMALLINT UNSIGNED NOT NULL DEFAULT 10,
+  refresh_hours SMALLINT UNSIGNED NOT NULL DEFAULT 24,
+  auto_sync TINYINT(1) NOT NULL DEFAULT 0,
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  sync_status ENUM('never','syncing','ready','error') NOT NULL DEFAULT 'never',
+  pages_count INT UNSIGNED NOT NULL DEFAULT 0,
+  last_error VARCHAR(1000) NULL,
+  last_synced_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_nivo_web_source(tenant_id,base_url),
+  INDEX idx_nivo_web_due(tenant_id,active,auto_sync,last_synced_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

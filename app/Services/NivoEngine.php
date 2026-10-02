@@ -21,6 +21,39 @@ final class NivoEngine
         )));
     }
 
+    private static function expandedWords(string $s): array
+    {
+        $words=self::words($s);$norm=self::norm($s);$extra=[];
+        $maps=[
+            ['needles'=>['solucion','soluciones','producto','productos','servicio','servicios','ofrecen','ofrece'],'add'=>['izzy','cami','zynko','multiservicios']],
+            ['needles'=>['facturacion','factura','pos','inventario','restaurante'],'add'=>['izzy']],
+            ['needles'=>['clinica','medico','paciente','farmacia','operatorio'],'add'=>['cami']],
+            ['needles'=>['omnicanal','chat','webchat','nivo','whatsapp','messenger'],'add'=>['zynko']],
+        ];
+        foreach($maps as $m){foreach($m['needles'] as $n){if(str_contains($norm,$n)){array_push($extra,...$m['add']);break;}}}
+        return array_values(array_unique(array_merge($words,$extra)));
+    }
+
+    private static function knowledgeScore(string $query,string $name,string $content,array $words): int
+    {
+        $q=self::norm($query);$n=self::norm($name);$c=self::norm($content);$score=0;
+        if($q!==''&&($n===$q||str_contains($n,$q)||str_contains($q,$n)))$score+=7;
+        foreach($words as $word){if(mb_strpos($n,$word)!==false)$score+=4;if(mb_strpos($c,$word)!==false)$score+=1;}
+        if(count($words)>=2){$phrase=implode(' ',$words);if($phrase!==''&&mb_strpos($c,$phrase)!==false)$score+=4;}
+        return $score;
+    }
+
+    private static function relevantExcerpt(string $content,array $words,int $limit): string
+    {
+        $parts=preg_split('/\n{2,}|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ])/u',trim($content))?:[];$ranked=[];
+        foreach($parts as $idx=>$part){$part=trim($part);if($part==='')continue;$hay=self::norm($part);$score=0;foreach($words as $w)if(mb_strpos($hay,$w)!==false)$score++;$ranked[]=['text'=>$part,'score'=>$score,'idx'=>$idx];}
+        usort($ranked,fn($a,$b)=>$b['score']<=>$a['score'] ?: $a['idx']<=>$b['idx']);$picked=[];$len=0;
+        foreach($ranked as $r){if($r['score']<=0&&$picked)continue;$t=$r['text'];if($len+mb_strlen($t)>$limit&&$picked)continue;$picked[]=$t;$len+=mb_strlen($t)+2;if($len>=$limit||count($picked)>=3)break;}
+        if(!$picked)$picked=[trim($content)];$reply=implode("
+
+",$picked);return mb_strlen($reply)>$limit?mb_substr($reply,0,$limit).'…':$reply;
+    }
+
     public static function evaluate(PDO $pdo,int $tenantId,int $conversationId,string $message,string $channelType,string $contactName,string $companyName): array
     {
         $result=['enabled'=>false,'reply'=>null,'handoff'=>false,'source'=>null,'confidence'=>'none','channel'=>$channelType,'reason'=>'inactive'];
@@ -49,6 +82,13 @@ final class NivoEngine
             $norm=self::norm($message);$firstName=trim(preg_split('/\s+/u',$contactName)[0]??'');if($firstName===''||self::norm($firstName)==='visitante')$firstName='';
             $english=!empty($policy['language_auto'])&&(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks|thank you)\b/i',$message);
             $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)([!. ,].*)?$/u',$norm);
+            $isCapabilities=(bool)preg_match('/\b(que sabes hacer|que puedes hacer|en que puedes ayudar|como me puedes ayudar|tus funciones|tus capacidades|para que sirves|en que te especializas|cual es tu especialidad|cuales son tus especialidades|que haces|que puedes responder|que temas manejas|que temas conoces|como funcionas|que puedes explicarme)\b/u',$norm);
+            if($isCapabilities){
+                $reply=$english
+                  ? 'I specialize in helping with '.$companyName.' and ZYNKO using the information that has been approved for me. I can explain services, NIVO Web Chat, NIVO AI, plans, channels and integrations, answer common questions, guide you step by step and route your request. If something is outside my approved knowledge, I will say so; I only transfer you to a person when you ask for one or when the configured rules require it.'
+                  : 'Me especializo en orientarte sobre '.$companyName.' y ZYNKO usando la información que tengo aprobada. Puedo explicarte servicios, NIVO Web Chat, NIVO IA, planes, canales e integraciones, responder preguntas frecuentes, guiarte paso a paso y ayudarte a encaminar tu solicitud. Si algo está fuera de mi conocimiento aprobado, te lo diré; solo te transfiero con una persona cuando lo pides o cuando las reglas configuradas realmente lo requieren.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'capabilities','high',false);
+            }
             if($isGreeting){
                 if($english)$reply='Hello'.(!empty($policy['personalized_greeting'])&&$firstName!==''?', '.$firstName:'').'! 👋 I’m NIVO, the virtual assistant for '.$companyName.'. How can I help you today?';
                 else $reply='¡Hola'.(!empty($policy['personalized_greeting'])&&$firstName!==''?', '.$firstName:'').'! 👋 Soy NIVO, el asistente virtual de '.$companyName.'. ¿En qué puedo ayudarte hoy?';
@@ -66,10 +106,10 @@ final class NivoEngine
             foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($norm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false);}}
 
             if(!empty($bot['knowledge_enabled'])){
-                $words=self::words($norm);$q=$pdo->prepare("SELECT name,content FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 200");$q->execute([$tenantId]);$best=null;$score=0;
-                foreach($q->fetchAll() as $r){$hay=self::norm(($r['name']??'').' '.($r['content']??''));$n=0;foreach($words as $word)if(mb_strpos($hay,$word)!==false)$n++;if($n>$score){$score=$n;$best=$r;}}
-                $min=$settings['min_confidence']??'medium';$required=$min==='high'?4:($min==='low'?1:2);
-                if($best&&$score>=$required){$limit=max(180,min(1500,(int)($settings['max_response_length']??700)));$reply=trim((string)$best['content']);if(mb_strlen($reply)>$limit)$reply=mb_substr($reply,0,$limit).'…';$tone=$settings['tone']??'professional';if($tone==='friendly')$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'knowledge:'.($best['name']??''),$score>=4?'high':'medium',false);}
+                $words=self::expandedWords($norm);$q=$pdo->prepare("SELECT name,source_type,source_ref,content FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 350");$q->execute([$tenantId]);$best=null;$score=0;
+                foreach($q->fetchAll() as $r){$n=self::knowledgeScore($message,(string)($r['name']??''),(string)($r['content']??''),$words);if($n>$score){$score=$n;$best=$r;}}
+                $min=$settings['min_confidence']??'medium';$required=$min==='high'?7:($min==='low'?2:4);
+                if($best&&$score>=$required){$limit=max(180,min(1500,(int)($settings['max_response_length']??700)));$reply=self::relevantExcerpt((string)$best['content'],$words,$limit);$tone=$settings['tone']??'professional';if($tone==='friendly')$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';$source='knowledge:'.($best['name']??'');if(($best['source_type']??'')==='url'&&str_contains((string)($best['source_ref']??''),'|')){$parts=explode('|',(string)$best['source_ref'],2);$source.=' · '.($parts[1]??'');}return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,$source,$score>=9?'high':'medium',false);}
             }
 
             // Segunda fase opcional: NIVO local siempre intenta primero. OpenAI solo entra como fallback cuando está conectado, habilitado y permitido por el plan/tenant/canal.

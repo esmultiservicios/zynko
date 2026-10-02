@@ -1,3 +1,29 @@
+## V2.31.48 · Bandeja con compositor premium compacto
+
+- Se eliminó el espacio muerto superior del compositor de mensajes.
+- El botón Enviar quedó integrado visualmente con el campo de respuesta.
+- En escritorio muestra icono + texto; en móvil usa un botón compacto con icono.
+- El área de adjuntos desaparece cuando está vacía y solo ocupa espacio cuando hay archivos.
+- Se conserva el editor enriquecido, NIVO, emojis, adjuntos y Ctrl + Enter.
+- No requiere cambios de base de datos.
+
+## V2.31.47 · NIVO más inteligente + documentación premium sin scroll
+
+- NIVO reconoce preguntas sobre su especialidad, capacidades, funciones y temas que puede atender.
+- Preguntas como “¿en qué te especializas?” ya no caen en fallback ni disparan transferencia innecesaria.
+- La respuesta explica claramente qué puede hacer NIVO y cuándo corresponde transferir a una persona.
+- El ejemplo del código de instalación NIVO en la documentación pública ahora se adapta al ancho disponible y no genera scroll horizontal.
+- Se conserva la lógica, seguridad y estructura funcional existente.
+- No requiere cambios de base de datos.
+
+## V2.31.45 · Documentación NIVO, sesión segura, respuestas inteligentes y UI estable
+
+- Documentación pública y del Admin con flujo completo para configurar NIVO IA, personalizar NIVO Web Chat, autorizar dominios, copiar el código único e instalarlo.
+- Sesiones del Admin con vencimiento por inactividad de 60 minutos y máximo absoluto de 12 horas; Recordarme ya no mantiene la cuenta abierta durante días.
+- NIVO responde directamente preguntas sobre qué sabe hacer / cómo puede ayudar antes de considerar transferencia humana.
+- Botón Enviar de la Bandeja reforzado y responsive, con etiqueta visible también en móvil.
+- Select2 se oculta hasta inicializar para evitar el parpadeo de selects nativos sin estilo.
+
 ## V2.31.41 · Etiquetas editables por sitio NIVO y límites por plan preservados
 
 - Cada instalación de NIVO Web Chat conserva su `installation_key` única; renombrar una etiqueta no cambia ni regenera la clave.
@@ -1375,3 +1401,58 @@ Los límites configurados en Suscripciones se aplican en backend, no solo en la 
 - No se envían correos por acciones operativas de alta frecuencia (mensajes, asignaciones, búsquedas, notas, preferencias o consultas) para evitar spam.
 - Los correos nunca incluyen secretos, contraseñas temporales, claves API ni secretos de webhook.
 - Se conserva el flujo especializado existente para solicitudes/asignaciones de plan, altas de cuenta y eventos de seguridad.
+
+
+## V2.31.47 · NIVO aprende de sitios autorizados + conocimiento inteligente
+
+### Fuentes web configurables
+- Nueva sección **NIVO IA → Fuentes web**.
+- Puedes agregar, editar o eliminar cualquier dominio público autorizado; no hay dominios fijos en código.
+- Alcance configurable: una sola página o todo el dominio público.
+- Rutas excluidas configurables (`/admin`, `/login`, `/checkout`, etc.).
+- Límite de páginas por fuente para controlar consumo y calidad.
+- Sincronización manual desde el Admin.
+- Sincronización periódica opcional con `bin/nivo-knowledge-sync.php` para cPanel/cron.
+- Las páginas sincronizadas se guardan como conocimiento aprobado y trazable por URL.
+- NIVO no navega Internet libremente durante cada respuesta: usa el contenido previamente autorizado/sincronizado.
+- Seguridad SSRF: en producción bloquea localhost, redes privadas y reservadas; en desarrollo permite `.test` cuando el entorno también es local.
+
+### Motor NIVO mejorado
+- Ranking de conocimiento ponderado: el título/nombre de la fuente pesa más que coincidencias aisladas dentro del texto.
+- Expansión semántica básica para relacionar soluciones/servicios con IZZY, CAMI, ZYNKO y ES MULTISERVICIOS.
+- Selección de fragmentos relevantes en lugar de responder siempre con el inicio completo de una fuente larga.
+- La fuente usada queda identificable internamente y, si proviene de web, conserva la URL original.
+- Se agregan reglas corporativas iniciales idempotentes para ES MULTISERVICIOS, IZZY, CAMI y el catálogo de soluciones sin sobrescribir reglas existentes.
+
+### 10 ideas premium para NIVO Web Chat — estado en V2.31.47
+1. **Código único por dominio** — ✅ aplicado; cada sitio autorizado usa su propia clave.
+2. **Apertura automática configurable** — ✅ aplicado; retardo configurable o apertura manual.
+3. **Indicador “NIVO está escribiendo”** — ✅ aplicado para una experiencia más natural.
+4. **Respuestas rápidas** — ✅ aplicado y administrable desde el widget.
+5. **Hora de mensajes** — ✅ aplicado opcionalmente.
+6. **Captura de nombre/correo** — ✅ aplicado, opcional u obligatorio según configuración.
+7. **Consentimiento de privacidad** — ✅ aplicado con texto y enlace administrables.
+8. **Sonido + contador de mensajes no leídos** — ✅ aplicado.
+9. **Protección de envío** — ✅ aplicado con límite de longitud, rate limit y prevención de doble envío.
+10. **Persistencia de apertura/minimizado** — ✅ aplicado por visitante para mejorar continuidad de navegación.
+
+### 10 ideas premium para NIVO IA — estado en V2.31.47
+1. **Fuentes web configurables** — ✅ nuevo; NIVO aprende de dominios autorizados por el Admin.
+2. **Sincronización de una página o dominio completo** — ✅ nuevo.
+3. **Exclusión de rutas privadas/innecesarias** — ✅ nuevo.
+4. **Actualización periódica de conocimiento web** — ✅ nuevo; preparado para cron.
+5. **Conocimiento manual aprobado** — ✅ ya disponible.
+6. **Importación TXT/MD/CSV/JSON con revisión** — ✅ ya disponible.
+7. **Reglas/intenciones prioritarias** — ✅ ya disponible y reforzado con reglas corporativas iniciales.
+8. **Búsqueda ponderada + fragmento relevante** — ✅ nuevo; evita respuestas largas o poco relacionadas.
+9. **Trazabilidad de fuente/URL** — ✅ reforzado; se sabe de dónde obtuvo NIVO la información.
+10. **Fallback controlado: local → IA externa → humano** — ✅ ya disponible; NIVO intenta primero reglas y conocimiento aprobado.
+
+### Sincronización automática de fuentes web
+Para ejecutar las fuentes marcadas como **Sincronización automática**, programa en cPanel/cron una ejecución periódica de:
+
+```bash
+php /ruta/al/proyecto/bin/nivo-knowledge-sync.php
+```
+
+El script solo procesa fuentes activas que ya cumplieron su intervalo configurado.
