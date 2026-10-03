@@ -262,12 +262,12 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
  const $=(s,c=document)=>c.querySelector(s), send=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});return r.json()};
  const bind=(id,reload=false)=>$(id)?.addEventListener('submit',async e=>{e.preventDefault();const j=await send(new FormData(e.currentTarget));showNotify(j.ok?'success':'error',j.ok?'Listo':'Error',j.message);if(j.ok&&reload)setTimeout(()=>location.reload(),300)});
  bind('#contactProfileForm',true);bind('#contactCategoriesForm',true);bind('#followupForm',true);bind('#noteForm',true);bind('#categoryForm',true);
- const form=$('#messageForm'), cid=form?.querySelector('[name=conversation_id]')?.value, box=$('#messages');
- if(!cid||!box)return;
  const esc=v=>{const d=document.createElement('div');d.textContent=v??'';return d.innerHTML};
- const render=rows=>{box.innerHTML=rows.map(m=>{const out=m.direction==='out';let who='';if(out&&m.sender_name)who=`<b class="message-sender">${esc((m.sender_name+' · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;else if(m.sender_type==='bot')who=`<b class="message-sender">${esc(('NIVO · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;let media='';try{media=(JSON.parse(m.media_json||'[]')||[]).map(f=>`<a class="chat-attachment" href="${esc(f.url)}" target="_blank"><i class="fa-solid fa-paperclip"></i>${esc(f.name||'Adjunto')}</a>`).join('')}catch(_){}return `<div class="message-wrap ${out?'out':'in'}">${who}<p class="${out?'me':'them'}">${esc(m.body||'').replace(/\n/g,'<br>')}</p>${media}</div>`}).join('');box.scrollTop=box.scrollHeight};
- let busy=false,last='';const refresh=async()=>{if(busy)return;busy=true;try{const fd=new FormData();fd.append('action','conversation_snapshot');fd.append('conversation_id',cid);const j=await send(fd);if(j.ok){const sig=JSON.stringify(j.data.messages.map(x=>[x.id,x.body,x.status]));if(sig!==last){last=sig;render(j.data.messages)}}}finally{busy=false}};
- document.addEventListener('zynko:realtime',e=>{const d=e.detail;if(String(d?.data?.conversation_id||d?.entity_id||'')===String(cid))refresh();else if(d?.event==='conversation.created')location.reload()});
+ let busy=false,last='',lastCid='';
+ const current=()=>{const form=$('#messageForm'),box=$('#messages'),cid=form?.querySelector('[name=conversation_id]')?.value||'';return {form,box,cid};};
+ const render=(box,rows)=>{box.innerHTML=rows.map(m=>{const out=m.direction==='out';let who='';if(out&&m.sender_name)who=`<b class="message-sender">${esc((m.sender_name+' · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;else if(m.sender_type==='bot')who=`<b class="message-sender">${esc(('NIVO · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;let media='';try{media=(JSON.parse(m.media_json||'[]')||[]).map(f=>`<a class="chat-attachment" href="${esc(f.url)}" target="_blank"><i class="fa-solid fa-paperclip"></i>${esc(f.name||'Adjunto')}</a>`).join('')}catch(_){}return `<div class="message-wrap ${out?'out':'in'}">${who}<p class="${out?'me':'them'}">${esc(m.body||'').replace(/\n/g,'<br>')}</p>${media}</div>`}).join('');box.scrollTop=box.scrollHeight};
+ const refresh=async()=>{const {box,cid}=current();if(!cid||!box||busy)return;if(cid!==lastCid){last='';lastCid=cid}busy=true;try{const fd=new FormData();fd.append('action','conversation_snapshot');fd.append('conversation_id',cid);const j=await send(fd);if(j.ok){const sig=JSON.stringify(j.data.messages.map(x=>[x.id,x.body,x.status]));if(sig!==last){last=sig;render(box,j.data.messages)}}}finally{busy=false}};
+ document.addEventListener('zynko:realtime',e=>{const d=e.detail,cid=current().cid;if(String(d?.data?.conversation_id||d?.entity_id||'')===String(cid))refresh();else if(d?.event==='conversation.created')document.dispatchEvent(new CustomEvent('zynko:inbox-list-refresh'))});
  // If the local WebSocket daemon is not running, the inbox still refreshes without manual reload.
  setInterval(()=>{if(!document.hidden)refresh()},5000);refresh();
 })();
@@ -537,4 +537,83 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  }
  qa('.knowledge-site-sync').forEach(b=>b.addEventListener('click',async()=>{const fd=new FormData();fd.append('action','knowledge_site_sync');fd.append('website_id',b.dataset.id);b.disabled=true;const old=b.innerHTML;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i>';showNotify('info','Sincronizando','NIVO está leyendo el contenido público autorizado.');const j=await send(fd);b.disabled=false;b.innerHTML=old;showNotify(j.ok?'success':'error',j.ok?'Sincronización completada':'No se pudo sincronizar',j.message);if(j.ok)setTimeout(()=>location.reload(),600)}));
  qa('.knowledge-site-delete').forEach(b=>b.addEventListener('click',async()=>{const r=await Swal.fire({title:'Eliminar fuente web',text:'NIVO dejará de utilizar todas las páginas aprendidas desde este sitio.',icon:'warning',showCancelButton:true,confirmButtonText:'Sí, eliminar',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!r.isConfirmed)return;const fd=new FormData();fd.append('action','knowledge_site_delete');fd.append('website_id',b.dataset.id);const j=await send(fd);showNotify(j.ok?'success':'error',j.ok?'Fuente eliminada':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),450)}));
+})();
+
+
+/* ZYNKO V2.31.58 · Navegación AJAX premium de la Bandeja: cambia de conversación sin recargar la página. */
+(()=>{
+ const isInbox=()=>!!document.getElementById('inboxFilters');
+ if(!isInbox())return;
+ const q=(s,c=document)=>c.querySelector(s),qa=(s,c=document)=>[...c.querySelectorAll(s)];
+ let navigating=false;
+ const post=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});let j={};try{j=await r.json()}catch(_){j={ok:false,message:'El servidor devolvió una respuesta no válida.'}}return j};
+ const setLoading=on=>{const layout=q('.inbox-layout');if(!layout)return;layout.classList.toggle('inbox-ajax-loading',on);layout.setAttribute('aria-busy',on?'true':'false')};
+ const syncActive=id=>qa('.conversation').forEach(a=>{const active=String(a.dataset.conversationId||'')===String(id||'');a.classList.toggle('active',active);if(active){a.querySelector('.unread-badge')?.remove();a.setAttribute('aria-current','true')}else a.removeAttribute('aria-current')});
+ const replaceNode=(selector,doc)=>{const old=q(selector),fresh=doc.querySelector(selector);if(old&&fresh)old.replaceWith(fresh)};
+ const removeNode=selector=>q(selector)?.remove();
+ const hydrateSelect2=()=>{if(window.jQuery&&jQuery.fn.select2){jQuery('.inbox-layout select:not(.no-select2)').each(function(){const el=jQuery(this);if(!el.hasClass('select2-hidden-accessible'))el.select2({width:'100%',minimumResultsForSearch:6,dropdownAutoWidth:false})})}};
+ const scrollMessages=()=>{const box=q('#messages');if(box)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight})};
+ const navigate=async(url,push=true)=>{
+   if(navigating)return;
+   navigating=true;setLoading(true);
+   try{
+     const r=await fetch(url,{headers:{'X-ZYNKO-AJAX':'1','X-ZYNKO-INBOX-NAV':'1'},credentials:'same-origin'});
+     if(!r.ok)throw new Error('No se pudo abrir la conversación.');
+     const html=await r.text(),doc=new DOMParser().parseFromString(html,'text/html');
+     if(!doc.querySelector('.inbox-layout'))throw new Error('La respuesta de la bandeja no es válida.');
+     replaceNode('.chat',doc);replaceNode('.info',doc);
+     ['#assignModal','#conversationActionsModal'].forEach(sel=>{removeNode(sel);const fresh=doc.querySelector(sel);if(fresh)document.body.insertAdjacentHTML('beforeend',fresh.outerHTML)});
+     const cid=q('.chat')?.dataset.currentConversation||new URL(url,location.href).searchParams.get('conversation')||'';
+     syncActive(cid);document.body.dataset.inboxAjaxReady='1';
+     hydrateSelect2();scrollMessages();
+     if(push)history.pushState({zynkoInbox:true,url},'',url);
+     document.dispatchEvent(new CustomEvent('zynko:inbox-conversation-changed',{detail:{conversation_id:cid,url}}));
+   }catch(err){showNotify('error','No se pudo abrir el chat',err.message||'Intenta nuevamente.');}
+   finally{setLoading(false);navigating=false}
+ };
+ window.ZynkoInboxNavigate=navigate;
+
+ document.addEventListener('click',e=>{
+   const link=e.target.closest('.conversation[href]');
+   if(link&&isInbox()&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey&&e.button===0&&!e.target.closest('.bulk-check')){
+     e.preventDefault();navigate(link.href,true);return;
+   }
+   if(document.body.dataset.inboxAjaxReady!=='1')return;
+   const openBtn=e.target.closest('[data-open]');
+   if(openBtn?.dataset.open&&['assignModal','conversationActionsModal'].includes(openBtn.dataset.open)){
+     e.preventDefault();const m=q('#'+openBtn.dataset.open);if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');document.body.classList.add('modal-open')}return;
+   }
+   const close=e.target.closest('#assignModal .modal-close,#conversationActionsModal .modal-close');
+   if(close){const m=close.closest('.modal-shell');m?.classList.remove('open');if(!q('.modal-shell.open'))document.body.classList.remove('modal-open');return;}
+   const emojiBtn=e.target.closest('#emojiBtn');if(emojiBtn){e.stopPropagation();const p=q('#emojiPicker');if(p)p.hidden=!p.hidden;return;}
+   const emojiTab=e.target.closest('#emojiPicker [data-emoji-tab]');if(emojiTab){const p=q('#emojiPicker'),name=emojiTab.dataset.emojiTab;qa('[data-emoji-tab]',p).forEach(x=>x.classList.toggle('active',x===emojiTab));qa('[data-emoji-group]',p).forEach(x=>x.classList.toggle('active',x.dataset.emojiGroup===name));return;}
+   const emoji=e.target.closest('#emojiPicker [data-emoji]');if(emoji){const input=q('#messageInput');if(input){const val=emoji.dataset.emoji||emoji.textContent||'',start=input.selectionStart??input.value.length,end=input.selectionEnd??start;input.setRangeText(val,start,end,'end');input.focus()}return;}
+   if(e.target.closest('#attachBtn')){q('#chatFile')?.click();return;}
+   const summary=e.target.closest('#nivoSummaryBtn');if(summary){const box=q('#nivoSummary'),msgs=qa('#messages .message-wrap').slice(-6).map(x=>x.innerText.trim()).filter(Boolean);if(box){box.hidden=false;box.innerHTML=msgs.length?`<i class="fa-solid fa-wand-magic-sparkles"></i><div><b>Resumen rápido para transferencia</b><p>${msgs.map(x=>x.replace(/\s+/g,' ')).join(' · ').slice(0,700)}</p><small>Resumen local de los últimos mensajes; no inventa información fuera de la conversación.</small></div>`:'<div>No hay mensajes para resumir.</div>'}return;}
+   const auto=e.target.closest('#autoAssignBtn');if(auto){(async()=>{const fd=new FormData();fd.append('action','conversation_auto_assign');fd.append('conversation_id',auto.dataset.conversation);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Transferencia':'Error',j.message);if(j.ok)navigate(location.href,false)})();return;}
+   const state=e.target.closest('.conversation-state-action');if(state){(async()=>{const action=state.dataset.action,cid=state.dataset.conversation,labels={unread:['Marcar como no leída','La conversación volverá a destacarse en la bandeja.'],resolve:['Resolver conversación','La conversación saldrá de la vista activa, pero conservará todo el historial.'],reopen:['Reabrir conversación','La conversación volverá a la vista activa.'],archive:['Archivar conversación','Se ocultará de la vista activa y podrás restaurarla desde Archivadas.'],restore:['Restaurar conversación','Volverá a estar disponible en la bandeja.']},meta=labels[action]||['Actualizar conversación','¿Deseas continuar?'];const ask=await Swal.fire({title:meta[0],text:meta[1],icon:'question',showCancelButton:true,confirmButtonText:'Sí, continuar',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','conversation_mark_state');fd.append('conversation_id',cid);fd.append('conversation_action',action);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Conversación actualizada':'Error',j.message);if(j.ok)navigate('?page=inbox',true)})();return;}
+   const del=e.target.closest('.conversation-delete-action');if(del){(async()=>{const ask=await Swal.fire({title:'Eliminar conversación',html:'Esta acción la retirará de la operación normal y dejará registro de auditoría.<br><b>Escribe tu contraseña para autorizar.</b>',icon:'warning',input:'password',inputPlaceholder:'Contraseña actual',inputAttributes:{autocomplete:'current-password'},showCancelButton:true,confirmButtonText:'Autorizar y eliminar',cancelButtonText:'Cancelar',confirmButtonColor:'#b42318',allowOutsideClick:false,preConfirm:v=>{if(!v){Swal.showValidationMessage('Escribe tu contraseña.');return false}return v}});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','conversation_secure_delete');fd.append('conversation_id',del.dataset.conversation);fd.append('password',ask.value);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Conversación eliminada':'No se pudo eliminar',j.message);if(j.ok)navigate('?page=inbox',true)})();return;}
+   const nivo=e.target.closest('#nivoAssist');if(nivo){(async()=>{const input=q('#messageInput');if(!input)return;const last=qa('#messages p:not(.me)').pop()?.textContent?.trim()||input.value.trim();if(!last){showNotify('warning','NIVO necesita contexto','Selecciona una conversación con un mensaje del cliente.');return}const fd=new FormData();fd.append('action','nivo_suggest');fd.append('query',last);const j=await post(fd);if(j.ok){input.value=j.data?.suggestion||'';showNotify('info','Sugerencia de NIVO',(j.data?.source?'Fuente: '+j.data.source+'. ':'')+'Confianza: '+(j.data?.confidence||'n/a')+'. Revisa antes de enviar.');input.focus()}else showNotify('error','NIVO',j.message)})();return;}
+ });
+
+ document.addEventListener('change',e=>{if(document.body.dataset.inboxAjaxReady!=='1')return;if(e.target.matches('#chatFile')){const box=q('#attachmentPreview');if(box)box.innerHTML=[...e.target.files].map(f=>`<span><i class="fa-solid fa-paperclip"></i>${String(f.name).replace(/[&<>"']/g,'')}</span>`).join('')}});
+ document.addEventListener('keydown',e=>{if(document.body.dataset.inboxAjaxReady!=='1')return;if(e.target?.id==='messageInput'&&(e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();q('#messageForm')?.requestSubmit()}});
+ document.addEventListener('submit',e=>{
+   if(document.body.dataset.inboxAjaxReady!=='1')return;
+   const form=e.target;
+   const ajaxForms=['messageForm','assignForm','contactProfileForm','contactCategoriesForm','followupForm','noteForm'];
+   if(!ajaxForms.includes(form.id))return;
+   e.preventDefault();
+   (async()=>{
+     if(form.id==='messageForm'){
+       const input=q('#messageInput'),body=input?.value.trim()||'',file=q('#chatFile');if(!body&&!file?.files?.length){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return}
+       const fd=new FormData(form);fd.set('body',body);[...(file?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(!j.ok){showNotify('error','No se pudo enviar',j.message);return}input.value='';if(file)file.value='';const preview=q('#attachmentPreview');if(preview)preview.innerHTML='';showNotify('success','Mensaje listo',j.message);document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{data:{conversation_id:form.querySelector('[name=conversation_id]')?.value}}}));return;
+     }
+     const j=await post(new FormData(form));showNotify(j.ok?'success':'error',j.ok?'Listo':'Error',j.message);if(!j.ok)return;
+     if(form.id==='assignForm')q('#assignModal')?.classList.remove('open');
+     await navigate(location.href,false);
+   })();
+ });
+ window.addEventListener('popstate',e=>{if(isInbox())navigate(location.href,false)});
+ document.addEventListener('zynko:inbox-list-refresh',()=>{if(!document.hidden&&document.body.dataset.inboxAjaxReady==='1')navigate(location.href,false)});
 })();

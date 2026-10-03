@@ -4210,3 +4210,39 @@ body:has(.inbox-premium-toolbar) .attachment-preview:not(:empty){
     gap:10px!important;
   }
 }
+
+
+/* ZYNKO V2.31.58 · Transición premium de Bandeja sin recarga completa */
+body:has(.inbox-premium-toolbar) .chat,
+body:has(.inbox-premium-toolbar) .info {
+  transition: opacity .18s ease, transform .18s ease, filter .18s ease;
+}
+
+body:has(.inbox-premium-toolbar) .inbox-layout.inbox-ajax-loading .chat,
+body:has(.inbox-premium-toolbar) .inbox-layout.inbox-ajax-loading .info {
+  opacity: .48;
+  transform: translateY(3px);
+  filter: saturate(.75);
+  pointer-events: none;
+}
+
+body:has(.inbox-premium-toolbar) .conversation {
+  transition: background .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+
+body:has(.inbox-premium-toolbar) .conversation:active {
+  transform: scale(.995);
+}
+
+body:has(.inbox-premium-toolbar) .conversation[aria-current="true"] {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body:has(.inbox-premium-toolbar) .chat,
+  body:has(.inbox-premium-toolbar) .info,
+  body:has(.inbox-premium-toolbar) .conversation {
+    transition: none !important;
+    transform: none !important;
+  }
+}

@@ -1,4 +1,13 @@
-## V2.31.57 · Git Deployment compatible con cPanel
+## V2.31.58 · Bandeja AJAX sin recarga completa
+
+- Abrir una conversación desde la bandeja ya no recarga toda la aplicación.
+- Se actualizan por AJAX el panel del chat, la ficha del contacto y los modales dependientes de la conversación.
+- La URL se mantiene sincronizada mediante History API para conservar enlaces directos, atrás y adelante del navegador.
+- Se mantiene la actualización en tiempo real/polling sobre la conversación actualmente visible.
+- Se agregó transición visual de carga respetando `prefers-reduced-motion`.
+- Los controles dinámicos del chat (envío, adjuntos, emojis, NIVO, asignación, seguimiento y estados) continúan funcionando después de cambiar de conversación.
+
+## V2.31.58 · Git Deployment compatible con cPanel
 
 - Se agregó `.cpanel.yml` válido y versionado en la raíz del proyecto para cumplir el requisito de deployment de cPanel.
 - El deployment es seguro para la instalación actual: ZYNKO ya vive directamente en el Document Root, por lo que no copia el repositorio sobre sí mismo.
