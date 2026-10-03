@@ -1,3 +1,11 @@
+## V2.31.57 · Git Deployment compatible con cPanel
+
+- Se agregó `.cpanel.yml` válido y versionado en la raíz del proyecto para cumplir el requisito de deployment de cPanel.
+- El deployment es seguro para la instalación actual: ZYNKO ya vive directamente en el Document Root, por lo que no copia el repositorio sobre sí mismo.
+- Se amplió `.gitignore` para excluir archivos generados por cPanel/AutoSSL y runtime (`.well-known/`, `.user.ini`, `php.ini`, `error_log`, logs, caché, respaldos de `.env` e `installed.lock`).
+- Se agregó `docs/CPANEL_GIT_DEPLOYMENT.md` con diagnóstico y flujo recomendado.
+- No requiere cambios de base de datos.
+
 ## V2.31.56 · Espaciado visual global y formularios premium
 
 - Se corrigió la separación entre formularios, inputs, zonas de carga y acciones.

@@ -1,8 +1,26 @@
+# Secretos / entorno
 .env
 .env.*
 !.env.example
+
+# Runtime de ZYNKO
 storage/installed.lock
 storage/logs/*
 !storage/logs/.gitkeep
 storage/cache/*
 !storage/cache/.gitkeep
+storage/env-backups/*
+!storage/env-backups/.gitkeep
+
+# Archivos creados por cPanel / hosting en el Document Root
+.well-known/
+.user.ini
+php.ini
+error_log
+*.log
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
