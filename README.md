@@ -1,4 +1,4 @@
-## V2.31.64 · Pulido de permisos, SEO y planes
+## V2.31.66 · Pulido de permisos, SEO y planes
 
 - Se rediseñó el estado de permisos del `.env` como componente informativo premium.
 - Se corrigió definitivamente el contraste de los accesos a robots.txt, sitemap.xml y manifest.
@@ -1599,3 +1599,7 @@ El script solo procesa fuentes activas que ya cumplieron su intervalo configurad
 - Configuración: cabecera premium para Servidor y dominio · .env.
 - SEO: robots.txt, sitemap.xml y manifest alineados de forma uniforme.
 
+
+
+## V2.31.66
+- Sistema visual premium global para cabeceras de tarjetas administrativas: icono contextual, título, subtítulo, estado/acción lateral y responsive uniforme.

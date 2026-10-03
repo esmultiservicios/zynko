@@ -177,13 +177,14 @@ $$('.user-actions').forEach(b=>b.addEventListener('click',()=>{const u=JSON.pars
      fsFrame.src=location.href;
      fsFrame.setAttribute('allow','clipboard-read; clipboard-write');
      document.body.appendChild(fsFrame);
+     document.documentElement.classList.add('zynko-fullscreen-shell-root');
      document.body.classList.add('zynko-fullscreen-shell');
      fsFrame.addEventListener('load',()=>{try{history.replaceState(history.state,'',frameRelativeUrl(fsFrame.contentWindow.location.href))}catch(_){}});
      return fsFrame;
    };
    const unmountFullscreenFrame=(navigate=true)=>{
      let target='';try{target=fsFrame?.contentWindow?.location?.href||''}catch(_){}
-     fsFrame?.remove();fsFrame=null;document.body.classList.remove('zynko-fullscreen-shell');
+     fsFrame?.remove();fsFrame=null;document.body.classList.remove('zynko-fullscreen-shell');document.documentElement.classList.remove('zynko-fullscreen-shell-root');
      if(navigate&&target){const next=frameRelativeUrl(target),current=location.pathname+location.search+location.hash;if(next!==current)location.replace(next)}
    };
    const enterFullscreen=async()=>{

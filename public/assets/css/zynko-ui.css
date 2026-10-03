@@ -3044,9 +3044,11 @@ body:has(.inbox-premium-toolbar) .inbox-filters-advanced .select2-selection__arr
 
 
 /* ZYNKO V2.31.14 · Fullscreen estable por shell */
-#zynkoFullscreenFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:var(--bg,#f4f7fb);z-index:2147483000;display:block}
-body.zynko-fullscreen-shell{overflow:hidden!important}
-body.zynko-fullscreen-shell>.app{visibility:hidden}
+#zynkoFullscreenFrame{position:fixed;inset:0;width:100vw;height:100dvh;min-width:100vw;min-height:100dvh;border:0;background:var(--bg,#f4f7fb);z-index:2147483000;display:block;overflow:hidden}
+html.zynko-fullscreen-shell-root,html.zynko-fullscreen-shell-root body{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;overflow:hidden!important;overscroll-behavior:none!important}
+body.zynko-fullscreen-shell{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;min-height:0!important;overflow:hidden!important;margin:0!important;padding:0!important}
+body.zynko-fullscreen-shell>.app{display:none!important}
+body.zynko-fullscreen-shell>#zynkoFullscreenFrame{display:block!important}
 
 
 /* ZYNKO V2.31.15 · NIVO IA + Empresas refinado */
@@ -4725,3 +4727,99 @@ body:has(.inbox-premium-toolbar) .conversation[aria-current="true"] {
   .env-permission-status{width:100%!important}
   .plan-card.coming-soon-plan-card .plan-coming-soon-note{margin:18px 14px!important}
 }
+
+
+/* ZYNKO V2.31.66 · Sistema premium global para cabeceras de cards */
+.panel > .panel-head.zynko-card-head,
+.panel.spaced > .panel-head.zynko-card-head{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:18px!important;
+  margin:-2px -2px 22px!important;
+  padding:14px 16px!important;
+  min-height:72px!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 18%,var(--line,#dde7ec))!important;
+  border-radius:15px!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent,#12a88a) 4%,var(--surface,#fff)),var(--surface,#fff))!important;
+  box-shadow:0 8px 24px rgba(15,39,56,.045)!important;
+}
+.zynko-card-head-copy{
+  display:grid!important;
+  grid-template-columns:46px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:13px!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+}
+.zynko-card-head-icon{
+  width:46px!important;height:46px!important;min-width:46px!important;
+  display:grid!important;place-items:center!important;
+  border-radius:13px!important;
+  background:color-mix(in srgb,var(--accent,#12a88a) 12%,var(--surface,#fff))!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 23%,var(--line,#dde7ec))!important;
+  color:var(--accent2,#0d8b76)!important;
+  font-size:17px!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.34)!important;
+}
+.zynko-card-head-text{display:grid!important;gap:4px!important;min-width:0!important}
+.zynko-card-head-text>b,.zynko-card-head-text>h2,.zynko-card-head-text>h3,.zynko-card-head-text>h4{
+  display:block!important;margin:0!important;color:var(--text,#10283a)!important;
+  font-size:15px!important;line-height:1.3!important;font-weight:900!important;letter-spacing:-.012em!important;
+}
+.zynko-card-head-text>small{
+  display:block!important;margin:0!important;color:var(--muted,#687d90)!important;
+  font-size:11.5px!important;line-height:1.48!important;font-weight:500!important;
+}
+.zynko-card-head-context,
+.zynko-card-head-side.status-chip,
+.zynko-card-head-side.ui-badge,
+.zynko-card-head-side.status-badge{
+  flex:0 0 auto!important;
+  display:inline-flex!important;align-items:center!important;gap:7px!important;
+  min-height:34px!important;padding:7px 11px!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 24%,var(--line,#dde7ec))!important;
+  border-radius:999px!important;
+  background:color-mix(in srgb,var(--accent,#12a88a) 8%,var(--surface,#fff))!important;
+  color:var(--accent2,#0b806d)!important;
+  font-size:11px!important;font-weight:800!important;white-space:nowrap!important;
+}
+.zynko-card-head-context i{font-size:10px!important}
+.zynko-card-head-side{margin-left:auto!important}
+.zynko-card-head-side.primary,
+.zynko-card-head-side.soft,
+.zynko-card-head-side>a,
+.zynko-card-head-side>button{
+  flex:0 0 auto!important;
+}
+/* Evita duplicar iconos inline: el sistema global ya les da una caja dedicada. */
+.zynko-card-head-text>b>i:first-child,
+.zynko-card-head-text>h2>i:first-child,
+.zynko-card-head-text>h3>i:first-child{margin-right:0!important}
+
+/* Componentes internos que funcionan como cards reciben la misma jerarquía visual. */
+.turnstile-admin-head,.whatsapp-admin-head,.social-placement-copy,.billing-plan-box-head,
+.webchat-advanced-head,.site-analytics-panel>.panel-head{
+  border-radius:14px;
+}
+.turnstile-admin-head,.whatsapp-admin-head{
+  padding:14px!important;
+  border:1px solid var(--line)!important;
+  background:var(--surface2)!important;
+}
+
+@media(max-width:760px){
+  .panel > .panel-head.zynko-card-head,.panel.spaced > .panel-head.zynko-card-head{
+    align-items:stretch!important;flex-direction:column!important;padding:13px!important;gap:12px!important;
+  }
+  .zynko-card-head-copy{grid-template-columns:42px minmax(0,1fr)!important;gap:11px!important}
+  .zynko-card-head-icon{width:42px!important;height:42px!important;min-width:42px!important}
+  .zynko-card-head-context,.zynko-card-head-side{margin-left:0!important;width:100%!important;justify-content:center!important}
+  .zynko-card-head-side.primary,.zynko-card-head-side.soft{width:100%!important}
+}
+
+/* ZYNKO V2.31.66 · Fullscreen con un solo scroll y navegación persistente */
+html{scrollbar-gutter:auto}
+html.zynko-fullscreen-shell-root{scrollbar-width:none!important}
+html.zynko-fullscreen-shell-root::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
+body.zynko-fullscreen-shell #zynkoFullscreenFrame{overscroll-behavior:contain}

@@ -145,3 +145,63 @@
  const start=()=>{scan(document);new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.matches?.('textarea'))enhance(n);scan(n)}}))).observe(document.body,{childList:true,subtree:true})};
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
+
+
+/* ZYNKO V2.31.66 · Cabeceras premium universales para tarjetas administrativas */
+(()=>{
+  const rules=[
+    [/sitio público|redes sociales/i,['fa-solid fa-globe','Sitio público']],
+    [/servidor|dominio|\.env/i,['fa-solid fa-server','Infraestructura']],
+    [/proveedor de envío|correo|smtp|microsoft graph/i,['fa-solid fa-envelope-circle-check','Mensajería']],
+    [/identidad|empresa/i,['fa-solid fa-building','Empresa']],
+    [/branding|apariencia|marca/i,['fa-solid fa-palette','Identidad visual']],
+    [/experiencia|preferencias/i,['fa-solid fa-sliders','Experiencia']],
+    [/seo|posicionamiento|robots|sitemap/i,['fa-solid fa-magnifying-glass-chart','SEO']],
+    [/versión|version/i,['fa-solid fa-code-branch','Sistema']],
+    [/nivo|chatbot|ia/i,['fa-solid fa-robot','NIVO']],
+    [/integracion|api|webhook/i,['fa-solid fa-plug','Integraciones']],
+    [/canal|whatsapp|messenger/i,['fa-solid fa-tower-broadcast','Canales']],
+    [/suscrip|plan|factur|billing/i,['fa-solid fa-credit-card','Suscripciones']],
+    [/usuario|equipo|rol/i,['fa-solid fa-users-gear','Accesos']],
+    [/seguridad|sesion/i,['fa-solid fa-shield-halved','Seguridad']],
+    [/dashboard|resumen|actividad|métrica/i,['fa-solid fa-chart-line','Resumen']],
+    [/convers|bandeja|contacto/i,['fa-solid fa-inbox','Conversaciones']],
+    [/onboarding|inicio guiado/i,['fa-solid fa-route','Configuración']],
+  ];
+  const findMeta=text=>{
+    for(const [rx,meta] of rules)if(rx.test(text))return meta;
+    return ['fa-solid fa-layer-group','ZYNKO'];
+  };
+  const enhance=head=>{
+    if(!head||head.dataset.zynkoCardHead==='1')return;
+    if(head.closest('.conv-list,.chat,.info,.modal-shell,.hero-panel,.metric-grid'))return;
+    const copy=head.querySelector(':scope > div');
+    if(!copy)return;
+    const title=copy.querySelector('b,h2,h3,h4');
+    if(!title)return;
+    const text=(title.textContent||'').trim();
+    if(!text)return;
+    const [iconClass,context]=findMeta(text);
+    let icon=title.querySelector(':scope > i');
+    const iconBox=document.createElement('span');
+    iconBox.className='zynko-card-head-icon';
+    if(icon){icon.remove();iconBox.append(icon)}else{icon=document.createElement('i');icon.className=iconClass;iconBox.append(icon)}
+    copy.classList.add('zynko-card-head-copy');
+    const inner=document.createElement('span');inner.className='zynko-card-head-text';
+    while(copy.firstChild)inner.append(copy.firstChild);
+    copy.append(iconBox,inner);
+    head.classList.add('zynko-card-head');
+    head.dataset.zynkoCardHead='1';
+    if(head.children.length===1){
+      const chip=document.createElement('span');chip.className='zynko-card-head-context';chip.innerHTML=`<i class="fa-solid fa-circle-check"></i><span>${context}</span>`;head.append(chip);
+    }else{
+      [...head.children].slice(1).forEach(el=>el.classList.add('zynko-card-head-side'));
+    }
+  };
+  const scan=root=>root.querySelectorAll?.('.panel > .panel-head,.panel.spaced > .panel-head').forEach(enhance);
+  const start=()=>{
+    scan(document);
+    new MutationObserver(records=>records.forEach(r=>r.addedNodes.forEach(n=>{if(n.nodeType===1){if(n.matches?.('.panel-head'))enhance(n);scan(n)}}))).observe(document.body,{childList:true,subtree:true});
+  };
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
