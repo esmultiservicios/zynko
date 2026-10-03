@@ -1,44 +1,40 @@
 # ZYNKO · Git Deployment en cPanel
 
-ZYNKO puede trabajar con el repositorio administrado por cPanel directamente dentro del Document Root de `zynkocloud.app`.
+ZYNKO está instalado con el repositorio Git directamente dentro del Document Root publicado de `zynkocloud.app`.
 
-## Requisitos de cPanel
+## `.cpanel.yml`
 
-Para habilitar **Deploy HEAD Commit**, cPanel exige:
+cPanel exige que `.cpanel.yml` exista en el **HEAD de la rama**, sea YAML válido y que cada elemento de `deployment.tasks` sea una cadena ejecutable.
 
-1. Un archivo `.cpanel.yml` válido, guardado y confirmado en Git en la raíz del repositorio.
-2. Al menos una rama local o remota.
-3. Un árbol de trabajo limpio, sin cambios pendientes ni archivos no rastreados que Git considere modificaciones.
+La configuración de ZYNKO usa una tarea no destructiva porque `Update from Remote` ya actualiza el mismo checkout que sirve el sitio. No se usa `rsync` hacia la misma carpeta para evitar copiar el repositorio sobre sí mismo.
 
-## Archivos del hosting que no deben ensuciar Git
-
-El `.gitignore` del proyecto excluye archivos creados por cPanel o por el runtime, entre ellos:
-
-- `.env` y secretos locales.
-- `.well-known/` usado por AutoSSL / ACME.
-- `.user.ini` y `php.ini` creados por el hosting.
-- `error_log` y logs del servidor.
-- `storage/installed.lock`.
-- contenido runtime de `storage/logs`, `storage/cache` y `storage/env-backups`.
-
-Estos archivos pueden existir en producción sin bloquear el deployment.
-
-## Flujo recomendado
-
-1. Hacer los cambios en el repositorio fuente.
-2. Commit y push al remoto.
-3. En cPanel → Git Version Control → Manage → Pull or Deploy, usar **Update from Remote**.
-4. Confirmar que el estado del repositorio esté limpio.
-5. Si se desea registrar el deployment en cPanel, usar **Deploy HEAD Commit**.
-
-Como el checkout de ZYNKO ya está dentro del Document Root publicado, `.cpanel.yml` no copia el proyecto sobre sí mismo. Su tarea es deliberadamente segura y no destructiva.
-
-## Si cPanel sigue mostrando “No uncommitted changes”
-
-El servidor todavía tiene cambios locales en archivos rastreados o archivos no ignorados. Desde Terminal/SSH, dentro del repositorio, revisar:
-
-```bash
-git status
+```yaml
+---
+deployment:
+  tasks:
+    - /bin/echo "ZYNKO HEAD listo para produccion en el Document Root administrado por cPanel"
 ```
 
-No se debe ejecutar `git reset --hard` a ciegas en producción. Primero hay que identificar el archivo modificado y decidir si debe conservarse, ignorarse o restaurarse desde Git.
+### Importante sobre YAML
+
+No agregues `:` seguido de un espacio dentro de una tarea sin citar todo el valor. YAML puede interpretar la tarea como un objeto en lugar de una cadena y cPanel la considerará inválida.
+
+## Flujo correcto
+
+1. Confirmar que `.cpanel.yml` está incluido en Git y commiteado.
+2. Hacer `push` a la rama administrada por cPanel.
+3. En cPanel, usar **Update from Remote**.
+4. Verificar que no existan cambios locales pendientes.
+5. Usar **Deploy HEAD Commit**.
+
+## Si sigue apareciendo “The system cannot deploy”
+
+cPanel muestra el mismo aviso cuando el árbol de trabajo tiene cambios sin commit. En Terminal ejecuta:
+
+```bash
+git status --short
+```
+
+Si aparecen archivos, revísalos antes de tocar nada. Los archivos propios de producción (`.env`, `.well-known/`, `.user.ini`, `php.ini`, logs, caché y respaldos de entorno) están excluidos en `.gitignore` para evitar que ensucien el repositorio cuando son archivos no rastreados.
+
+Si uno de esos archivos ya estaba rastreado por Git desde antes, `.gitignore` no lo convierte automáticamente en ignorado; primero debe dejar de estar rastreado mediante un commit controlado. No uses `git reset --hard` en producción sin revisar qué cambios se perderían.

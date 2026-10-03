@@ -1,3 +1,12 @@
+## V2.31.59 · Corrección definitiva de `.cpanel.yml` para cPanel
+
+- Se corrigió la tarea de deployment para que `deployment.tasks` sea una lista de cadenas YAML válidas.
+- Se eliminó el carácter `:` que podía hacer que YAML interpretara la tarea anterior como un mapa y cPanel la rechazara.
+- Se mantiene deployment no destructivo porque el repositorio ya vive dentro del Document Root de `zynkocloud.app`.
+- Se reforzó `.gitignore` para residuos adicionales del hosting.
+- Se amplió la guía de diagnóstico para diferenciar `.cpanel.yml` inválido de cambios locales sin commit.
+- No requiere cambios de base de datos.
+
 ## V2.31.58 · Bandeja AJAX sin recarga completa
 
 - Abrir una conversación desde la bandeja ya no recarga toda la aplicación.

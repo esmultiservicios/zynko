@@ -24,3 +24,9 @@ error_log
 Thumbs.db
 .vscode/
 .idea/
+
+# Estado/runtime adicional generado por hosting
+.cpanel/
+cpanel-logs/
+*.pid
+*.sock

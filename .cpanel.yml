@@ -1,7 +1,7 @@
 ---
 deployment:
   tasks:
-    # ZYNKO está alojado directamente en el Document Root de producción.
-    # cPanel exige una tarea de deployment válida aunque Update from Remote
-    # ya actualice este checkout en el mismo directorio publicado.
-    - /bin/echo "ZYNKO: HEAD listo para producción en el Document Root administrado por cPanel."
+    # El repositorio ZYNKO vive directamente en el Document Root publicado.
+    # Update from Remote actualiza este mismo checkout; la tarea existe para
+    # que cPanel reconozca el repositorio como desplegable sin copiarlo sobre sí mismo.
+    - /bin/echo "ZYNKO HEAD listo para produccion en el Document Root administrado por cPanel"
