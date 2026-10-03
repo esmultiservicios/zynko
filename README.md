@@ -1,3 +1,15 @@
+## V2.31.53 · Planes “Próximamente” y contratación segura
+
+- Se separa **publicación** de **disponibilidad comercial** del plan.
+- Los planes pueden seguir visibles con precio, límites y beneficios mientras todavía están en preparación.
+- Los planes de pago existentes quedan inicialmente como **Próximamente**; el Plan Gratis permanece disponible.
+- El administrador puede activar **Disponible para contratar** cuando los canales y funciones estén realmente listos.
+- Se puede personalizar la etiqueta y el mensaje público de disponibilidad.
+- El sitio público muestra una tarjeta profesional de “Próximamente” y deshabilita el CTA de contratación.
+- Suscripciones también muestra el estado y bloquea solicitudes de planes todavía no disponibles.
+- El backend rechaza solicitudes o aprobaciones de un plan marcado como no disponible.
+- Se actualizan `database/schema.sql` y `ZYNKO_UPDATE_DB_COMPLETO.sql` de forma acumulativa e idempotente.
+
 ## V2.31.52 · CORS seguro y multiempresa para NIVO Web Chat
 
 - El widget incluye su installation key en la URL de webchat-api.php para que el preflight OPTIONS pueda validar el sitio antes del POST.

@@ -61,6 +61,18 @@ SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHE
 SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `featured_label` VARCHAR(60) NULL AFTER `is_featured`','SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='is_available');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `is_available` TINYINT(1) NOT NULL DEFAULT 0 AFTER `featured_label`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='availability_label');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `availability_label` VARCHAR(80) NULL AFTER `is_available`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='availability_message');
+SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `availability_message` VARCHAR(255) NULL AFTER `availability_label`','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='external_ai_included');
 SET @sql := IF(@exists=0,'ALTER TABLE `subscription_plans` ADD COLUMN `external_ai_included` TINYINT(1) NOT NULL DEFAULT 0 AFTER `features_json`','SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
@@ -266,6 +278,7 @@ ON DUPLICATE KEY UPDATE
 
 -- Evita que exista más de un Plan Gratis predeterminado.
 UPDATE `subscription_plans` SET `is_default_free`=0 WHERE `code`<>'free' AND `is_default_free`=1;
+UPDATE `subscription_plans` SET `is_available`=1, `availability_label`='Disponible', `availability_message`=NULL WHERE `code`='free' OR `is_default_free`=1;
 
 
 -- 12.5) NIVO WEB CHAT - CODIGO UNICO POR SITIO AUTORIZADO
@@ -322,7 +335,7 @@ WHERE TABLE_SCHEMA=@db_name
     (TABLE_NAME='bot_profiles' AND COLUMN_NAME='channel_policy_json') OR
     (TABLE_NAME='webchat_widgets' AND COLUMN_NAME IN ('experience_json','launcher_label')) OR
     (TABLE_NAME='webchat_installations' AND COLUMN_NAME='installation_key') OR
-    (TABLE_NAME='subscription_plans' AND COLUMN_NAME IN ('max_monthly_chats','is_featured','featured_label','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json')) OR
+    (TABLE_NAME='subscription_plans' AND COLUMN_NAME IN ('max_monthly_chats','is_featured','featured_label','is_available','availability_label','availability_message','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json')) OR
     (TABLE_NAME='conversations' AND COLUMN_NAME IN ('archived_at','deleted_at','deleted_by')) OR
     (TABLE_NAME='inbox_preferences' AND COLUMN_NAME IN ('category_id','state_filter','attention_filter')) OR
     (TABLE_NAME='user_preferences' AND COLUMN_NAME='ui_preferences_json')

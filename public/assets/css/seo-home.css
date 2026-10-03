@@ -1095,3 +1095,81 @@ html.select2-preload .contact-select2{visibility:hidden!important;opacity:0!impo
 @media(max-width:1060px){
   .site-header .desktop-nav a::after{display:none}
 }
+
+
+/* ZYNKO V2.31.53 · Planes publicados pero aún no contratables */
+.public-plan-card.is-coming-soon{
+  border-color:#d7e0e6;
+  background:#fbfcfd;
+}
+.public-plan-card.is-coming-soon:hover{
+  border-color:#c7d4dc;
+}
+.public-plan-coming-soon-badge{
+  position:absolute;
+  top:16px;
+  left:18px;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:7px 11px;
+  border:1px solid #f0d59a;
+  border-radius:999px;
+  background:#fff8e8;
+  color:#8a5a00;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.public-plan-card.is-coming-soon .public-plan-top{
+  padding-top:22px;
+}
+.public-plan-coming-soon-note{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  margin:2px 0 16px;
+  padding:13px 14px;
+  border:1px solid #ead8ac;
+  border-radius:14px;
+  background:#fffaf0;
+}
+.public-plan-coming-soon-note>i{
+  margin-top:2px;
+  color:#9a6700;
+}
+.public-plan-coming-soon-note>div{
+  display:grid;
+  gap:3px;
+}
+.public-plan-coming-soon-note b{
+  color:#765000;
+  font-size:12px;
+}
+.public-plan-coming-soon-note span{
+  color:#6f7883;
+  font-size:11px;
+  line-height:1.45;
+}
+.public-plan-disabled-cta,
+.public-plan-disabled-cta:hover{
+  cursor:not-allowed!important;
+  transform:none!important;
+  border-color:#d9e0e5!important;
+  background:#eef2f5!important;
+  color:#7a8792!important;
+  box-shadow:none!important;
+  opacity:1!important;
+}
+@media(max-width:520px){
+  .public-plan-coming-soon-badge{
+    position:static;
+    align-self:flex-start;
+    margin-bottom:10px;
+  }
+  .public-plan-card.is-coming-soon .public-plan-top{
+    padding-top:0;
+  }
+}

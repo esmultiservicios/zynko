@@ -26,6 +26,9 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         is_default_free TINYINT(1) NOT NULL DEFAULT 0,
         is_featured TINYINT(1) NOT NULL DEFAULT 0,
         featured_label VARCHAR(60) NULL,
+        is_available TINYINT(1) NOT NULL DEFAULT 0,
+        availability_label VARCHAR(80) NULL,
+        availability_message VARCHAR(255) NULL,
         active TINYINT(1) NOT NULL DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -41,6 +44,9 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
     zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER external_ai_channels_json');
     zynkoPlanColumn($pdo,'subscription_plans','is_featured','is_featured TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
     zynkoPlanColumn($pdo,'subscription_plans','featured_label','featured_label VARCHAR(60) NULL AFTER is_featured');
+    zynkoPlanColumn($pdo,'subscription_plans','is_available','is_available TINYINT(1) NOT NULL DEFAULT 0 AFTER featured_label');
+    zynkoPlanColumn($pdo,'subscription_plans','availability_label','availability_label VARCHAR(80) NULL AFTER is_available');
+    zynkoPlanColumn($pdo,'subscription_plans','availability_message','availability_message VARCHAR(255) NULL AFTER availability_label');
     $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_subscriptions(
         id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         tenant_id BIGINT UNSIGNED NOT NULL,
@@ -85,11 +91,11 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
     $free=(int)($q->fetchColumn()?:0);
     if(!$free){$q=$pdo->query("SELECT id FROM subscription_plans WHERE is_default_free=1 ORDER BY id LIMIT 1");$free=(int)($q->fetchColumn()?:0);}
     if(!$free){
-        $st=$pdo->prepare("INSERT INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,is_default_free,is_featured,featured_label,active) VALUES('free','Gratis',0,'USD',NULL,1,1,5,NULL,?,?,?,1,0,NULL,1)");
+        $st=$pdo->prepare("INSERT INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,is_default_free,is_featured,featured_label,is_available,availability_label,availability_message,active) VALUES('free','Gratis',0,'USD',NULL,1,1,5,NULL,?,?,?,1,0,NULL,1,'Disponible',NULL,1)");
         $st->execute([$channels,$modules,$features]);
     }else{
         $pdo->prepare("UPDATE subscription_plans SET is_default_free=0,code=NULL WHERE id<>? AND (is_default_free=1 OR code='free')")->execute([$free]);
-        $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,is_default_free=1,is_featured=0,featured_label=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
+        $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,is_default_free=1,is_featured=0,featured_label=NULL,is_available=1,availability_label='Disponible',availability_message=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
     }
 }
 

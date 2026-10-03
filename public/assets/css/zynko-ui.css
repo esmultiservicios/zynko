@@ -4004,3 +4004,67 @@ body:has(.inbox-premium-toolbar) .attachment-preview:not(:empty){
     min-width:74px!important;
   }
 }
+
+
+/* ZYNKO V2.31.53 · Disponibilidad comercial de planes */
+.coming-soon-plan-card{
+  border-color:#e8d8ad!important;
+}
+.plan-coming-soon-note{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:10px!important;
+  padding:11px 12px!important;
+  border:1px solid #ead8ac!important;
+  border-radius:12px!important;
+  background:#fffaf0!important;
+}
+.plan-coming-soon-note>span{
+  width:34px;
+  height:34px;
+  flex:0 0 34px;
+  display:grid;
+  place-items:center;
+  border-radius:10px;
+  background:#fff1c8;
+  color:#946300;
+}
+.plan-coming-soon-note>div{
+  display:grid;
+  gap:2px;
+  min-width:0;
+}
+.plan-coming-soon-note b{
+  color:#765000;
+  font-size:12px;
+}
+.plan-coming-soon-note small{
+  color:#6f7883!important;
+  font-size:10.5px!important;
+  line-height:1.4!important;
+}
+.plan-request-coming-soon{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:9px 12px;
+  border:1px solid #ead8ac;
+  border-radius:10px;
+  background:#fff8e8;
+  color:#835700;
+  font-size:11px;
+  font-weight:850;
+  cursor:not-allowed;
+}
+#planModal .plan-toggle-grid{
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+}
+#planModal .plan-availability-message-field{
+  margin-top:2px!important;
+}
+@media(max-width:1180px){
+  #planModal .plan-toggle-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+@media(max-width:640px){
+  #planModal .plan-toggle-grid{grid-template-columns:1fr!important;}
+}
