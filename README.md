@@ -1,3 +1,13 @@
+## V2.31.51 · CORS seguro y multiempresa para NIVO Web Chat
+
+- El widget incluye su installation key en la URL de webchat-api.php para que el preflight OPTIONS pueda validar el sitio antes del POST.
+- OPTIONS valida Origin + key + sitio autorizado antes de devolver Access-Control-Allow-Origin.
+- Access-Control-Allow-Origin se responde dinámicamente únicamente para el dominio autorizado.
+- Se agregaron Access-Control-Allow-Methods, Access-Control-Allow-Headers, Access-Control-Max-Age y Vary correctos.
+- Se mantiene compatibilidad con scripts antiguos basados en public_key.
+- La validación funciona por instalación y tenant, por lo que soporta múltiples empresas y múltiples dominios autorizados.
+- No requiere cambios de base de datos.
+
 ## V2.31.50 · Autorización de sitios NIVO corregida
 
 - Se corrigió el error `Unexpected token '<'` al autorizar, editar, activar o eliminar sitios NIVO Web Chat.

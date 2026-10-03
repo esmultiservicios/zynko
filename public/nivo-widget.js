@@ -3,7 +3,9 @@
   const script=document.currentScript;
   const key=script?.dataset.zynkoKey;
   if(!key)return;
-  const api=new URL('webchat-api.php',script.src).href;
+  const apiUrl=new URL('webchat-api.php',script.src);
+  apiUrl.searchParams.set('key',key);
+  const api=apiUrl.href;
   const mascotUrl=new URL('assets/img/nivo-email.png',script.src).href;
   const state={visitor_token:localStorage.getItem('zynko.nivo.'+key)||'',conversation_id:0,ws:null,opened:false,profile:{name:'',email:''},shadow:null,lastCount:0,widget:null,poll:null,sending:false};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
