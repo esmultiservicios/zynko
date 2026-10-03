@@ -1,3 +1,13 @@
+## V2.31.49 · Autorización de sitios NIVO corregida
+
+- Se corrigió el error `Unexpected token '<'` al autorizar, editar, activar o eliminar sitios NIVO Web Chat.
+- Las peticiones del módulo ahora envían correctamente el encabezado AJAX esperado por ZYNKO y validan respuestas JSON antes de procesarlas.
+- Si la sesión vence durante una acción, el usuario recibe un mensaje claro y vuelve al login en lugar de mostrar un error técnico de JSON.
+- El owner/admin principal de la plataforma puede autorizar múltiples sitios sin quedar bloqueado por `allow_multiple_domains` ni por límites comerciales de clientes.
+- Los clientes continúan respetando el máximo de sitios definido por su plan.
+- Los dominios pegados como URL completa (https://dominio.com/ruta) se normalizan al host autorizado.
+- No requiere cambios de base de datos.
+
 ## V2.31.48 · Bandeja con compositor premium compacto
 
 - Se eliminó el espacio muerto superior del compositor de mensajes.

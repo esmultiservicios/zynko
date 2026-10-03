@@ -150,7 +150,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.48';
+$releaseVersion='2.31.49';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -618,8 +618,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     if($isOfficialWebchatInstallation($existing,$tid))jsonOut(true,'El sitio principal de ZYNKO ya está registrado y se administra automáticamente.',['installation_id'=>(int)$existing['id']]);
     $key=trim((string)($existing['installation_key']??''));if($key==='')$key=bin2hex(random_bytes(20));$pdo->prepare('UPDATE webchat_installations SET installation_key=?,label=?,enabled=1 WHERE id=? AND tenant_id=?')->execute([$key,trim($_POST['label']??''),(int)$existing['id'],$tid]);jsonOut(true,'Ese sitio ya estaba registrado. Se reactivó conservando su código único.',['installation_id'=>(int)$existing['id']]);
    }
-   $siteLimit=zynkoPlanLimit($planCtx,'max_webchat_sites');if($siteLimit!==null&&$activeForPlan>=$siteLimit)throw new RuntimeException('Tu plan permite '.($siteLimit===1?'1 sitio web':$siteLimit.' sitios web').' para NIVO Web Chat.');
-   if(!(int)$multi&&$activeForPlan>0)throw new RuntimeException('Este widget está configurado para un solo sitio. Desactiva la instalación actual o permite múltiples sitios.');
+   $ownerUnlimited=isPlatformOwner();
+   $siteLimit=zynkoPlanLimit($planCtx,'max_webchat_sites');if(!$ownerUnlimited&&$siteLimit!==null&&$activeForPlan>=$siteLimit)throw new RuntimeException('Tu plan permite '.($siteLimit===1?'1 sitio web':$siteLimit.' sitios web').' para NIVO Web Chat.');
+   if(!$ownerUnlimited&&!(int)$multi&&$activeForPlan>0)throw new RuntimeException('Este widget está configurado para un solo sitio. Desactiva la instalación actual o permite múltiples sitios.');
    $siteKey=bin2hex(random_bytes(20));$pdo->prepare('INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,?,1,?)')->execute([$tid,$wid,$siteKey,$domain,trim($_POST['label']??''),(int)$_SESSION['user']['id']]);jsonOut(true,'Sitio autorizado. Su código único ya está disponible en la tarjeta.',['installation_id'=>(int)$pdo->lastInsertId()]);
   }
   if($action==='webchat_installation_update'){
