@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1);$root=dirname(__DIR__);require_once $root.'/app/Support/Realtime.php';require_once $root.'/app/Support/Plan.php';require_once $root.'/app/Services/NivoEngine.php';
+declare(strict_types=1);$root=dirname(__DIR__);require_once $root.'/app/Support/Realtime.php';require_once $root.'/app/Support/Plan.php';require_once $root.'/app/Support/Cors.php';require_once $root.'/app/Services/NivoEngine.php';
 function envc($p){$v=@parse_ini_file($p,false,INI_SCANNER_RAW);return is_array($v)?$v:[];}function db(){static $p;if($p)return $p;global $root;$e=envc($root.'/.env');return $p=new PDO('mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??3306).';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4',$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);}function out($ok,$msg,$data=[],$code=200){http_response_code($code);header('Content-Type: application/json; charset=utf-8');echo json_encode(['ok'=>$ok,'message'=>$msg,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}function uuid4(){ $d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}function b64u($s){return rtrim(strtr(base64_encode($s),'+/','-_'),'=');}function nivoNorm($s){$s=mb_strtolower(trim((string)$s),'UTF-8');$s=strtr($s,['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n']);return preg_replace('/\s+/u',' ',$s);}function nivoWords($s){$stop=['que','como','para','por','con','una','uno','unos','unas','del','las','los','este','esta','esto','esa','ese','soy','eres','es','son','hay','muy','mas','pero','porque','donde','cuando','puedo','puede','quiero','quiere','necesito','me','mi','tu','su','de','la','el','y','o','a','en','un'];$words=array_values(array_unique(array_filter(preg_split('/[^\p{L}\p{N}]+/u',nivoNorm($s)),fn($x)=>mb_strlen($x)>=3&&!in_array($x,$stop,true))));return $words;}function ensureNivoRuntime(PDO $pdo,int $tid):void{try{$pdo->exec("CREATE TABLE IF NOT EXISTS nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(160) NOT NULL,keywords VARCHAR(500) NOT NULL,response TEXT NOT NULL,priority INT NOT NULL DEFAULT 100,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX idx_nivo_rules_tenant(tenant_id,active,priority)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");$convCols=['archived_at'=>"DATETIME NULL",'deleted_at'=>"DATETIME NULL",'deleted_by'=>"BIGINT UNSIGNED NULL"];foreach($convCols as $cc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM conversations LIKE ".$pdo->quote($cc))->fetch();if(!$c)$pdo->exec("ALTER TABLE conversations ADD `{$cc}` {$def}");}catch(Throwable $ignore){}}$botCols=['fallback_message'=>"TEXT NULL",'handoff_rules_json'=>"JSON NULL",'business_hours_json'=>"JSON NULL",'channel_policy_json'=>"JSON NULL",'knowledge_enabled'=>"TINYINT(1) NOT NULL DEFAULT 0"];foreach($botCols as $bc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM bot_profiles LIKE ".$pdo->quote($bc))->fetch();if(!$c)$pdo->exec("ALTER TABLE bot_profiles ADD `{$bc}` {$def}");}catch(Throwable $ignore){}}try{$wc=$pdo->query("SHOW COLUMNS FROM webchat_widgets LIKE 'experience_json'")->fetch();if(!$wc)$pdo->exec("ALTER TABLE webchat_widgets ADD experience_json JSON NULL AFTER allow_multiple_domains");}catch(Throwable $ignore){}
 $col=$pdo->query("SHOW COLUMNS FROM knowledge_sources LIKE 'approval_status'")->fetch();if(!$col)$pdo->exec("ALTER TABLE knowledge_sources ADD approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved' AFTER status");$bp=$pdo->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bp->execute([$tid]);$enabled=(int)($bp->fetchColumn()?:0)===1;if($enabled){$rq=$pdo->prepare('SELECT COUNT(*) FROM nivo_rules WHERE tenant_id=? AND active=1');$rq->execute([$tid]);$rules=(int)$rq->fetchColumn();$kq=$pdo->prepare("SELECT COUNT(*) FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL");$kq->execute([$tid]);$knowledge=(int)$kq->fetchColumn();if($rules===0&&$knowledge===0){$starter=[['Saludo','hola,buenas,buenos dias,buenas tardes,buenas noches','¡Hola! Soy NIVO. ¿En qué puedo ayudarte hoy?',10],['Qué es ZYNKO','que es zynko,qué es zynko,para que sirve zynko,para qué sirve zynko,plataforma zynko','ZYNKO es una plataforma SaaS omnicanal para centralizar conversaciones, atención, NIVO Web Chat, automatización, usuarios e integraciones desde un solo lugar.',20],['NIVO Web Chat','nivo web chat,web chat,chat de nivo','NIVO Web Chat es el canal web propio de ZYNKO. Permite atender visitantes desde sitios autorizados y llevar las conversaciones a la Bandeja omnicanal.',30],['NIVO IA','nivo ia,asistente nivo,inteligencia artificial','NIVO IA trabaja junto con NIVO Web Chat usando reglas y conocimiento aprobado. Si no tiene información suficiente o el visitante pide una persona, puede transferir la conversación a atención humana.',40],['Canales y Meta','whatsapp,messenger,instagram,canales,meta','ZYNKO puede administrar distintos canales. WhatsApp Business, Messenger e Instagram requieren la autorización oficial correspondiente de Meta antes de considerarse conectados.',50],['Integraciones','api,webhook,integraciones,integracion','ZYNKO permite conectar otros sistemas mediante API y webhooks seguros, según la configuración y permisos de la empresa.',60]];$ins=$pdo->prepare('INSERT INTO nivo_rules(tenant_id,name,keywords,response,priority,active) VALUES(?,?,?,?,?,1)');foreach($starter as $r)$ins->execute([$tid,$r[0],$r[1],$r[2],$r[3]]);}}}catch(Throwable $e){}}
 function nivoRequestDomain(string $url): string
@@ -144,8 +144,8 @@ function nivoSendCorsHeaders(string $origin): void
     header('Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
 }
 
-$origin = nivoOrigin();
-$originHost = nivoRequestDomain($origin);
+$origin = ZynkoCors::requestOrigin();
+$originHost = ZynkoCors::originHost($origin);
 
 // En peticiones normales sin Origin (por ejemplo same-origin), usamos Referer
 // únicamente para validar el dominio. Nunca se utiliza para conceder CORS.
@@ -153,7 +153,7 @@ if ($originHost === '') {
     $originHost = nivoRequestDomain((string) ($_SERVER['HTTP_REFERER'] ?? ''));
 }
 
-$isPreflight = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'OPTIONS';
+$isPreflight = ZynkoCors::isPreflight();
 
 try {
     $pdo = db();
@@ -168,6 +168,9 @@ try {
         $preflightKey = nivoCorsKey();
 
         if ($origin === '' || $originHost === '' || $preflightKey === '') {
+            if ($origin !== '') {
+                ZynkoCors::send($origin, ['POST', 'OPTIONS'], ['Content-Type', 'Accept']);
+            }
             http_response_code(403);
             exit;
         }
@@ -179,11 +182,12 @@ try {
         );
 
         if (!$preflightInstallation || !$preflightWidget) {
+            ZynkoCors::send($origin, ['POST', 'OPTIONS'], ['Content-Type', 'Accept']);
             http_response_code(403);
             exit;
         }
 
-        nivoSendCorsHeaders($origin);
+        ZynkoCors::send($origin, ['POST', 'OPTIONS'], ['Content-Type', 'Accept']);
         http_response_code(204);
         exit;
     }
@@ -206,9 +210,23 @@ try {
     } catch (Throwable $ignore) {
     }
 
-    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
+    $rawInput = file_get_contents('php://input') ?: '';
+    $decodedInput = json_decode($rawInput, true);
+    $input = is_array($decodedInput) ? $decodedInput : $_POST;
+    if (!$input && $rawInput !== '') {
+        parse_str($rawInput, $formInput);
+        if (is_array($formInput)) {
+            $input = $formInput;
+        }
+    }
     $action = $input['action'] ?? ($_GET['action'] ?? 'bootstrap');
     $key = nivoCorsKey($input);
+
+    // Permite que el navegador lea respuestas controladas; la autorización real
+    // sigue dependiendo de installation_key + dominio autorizado.
+    if ($origin !== '') {
+        ZynkoCors::send($origin, ['POST', 'OPTIONS'], ['Content-Type', 'Accept']);
+    }
 
     if ($originHost === '') {
         out(false, 'No fue posible validar el dominio de origen.', [], 403);
@@ -224,10 +242,6 @@ try {
         out(false, 'Este código de NIVO Web Chat pertenece a otro dominio.', [], 403);
     }
 
-    // Solo después de validar key + sitio autorizado se concede CORS al Origin real.
-    if ($origin !== '') {
-        nivoSendCorsHeaders($origin);
-    }
 
 $tid=(int)$w['tenant_id'];$wid=(int)$w['id'];ensureNivoRuntime($pdo,$tid);zynkoEnsurePlanSchema($pdo);$planCtx=zynkoPlanContext($pdo,$tid,false);if(!zynkoPlanAllowsChannel($planCtx,'webchat'))out(false,'NIVO Web Chat no está habilitado en el plan actual.',[],403);$pdo->prepare('UPDATE webchat_installations SET first_seen_at=COALESCE(first_seen_at,NOW()),last_seen_at=NOW() WHERE id=?')->execute([$installation['id']]);
 $visitor=(string)($input['visitor_token']??$_GET['visitor_token']??'');$v=null;if($visitor!==''){$q=$pdo->prepare('SELECT * FROM webchat_visitors WHERE visitor_token=? AND tenant_id=? AND widget_id=?');$q->execute([$visitor,$tid,$wid]);$v=$q->fetch();}
@@ -246,4 +260,4 @@ if($reply){
 }
 out(true,'Mensaje recibido.',['conversation_id'=>$cid,'bot_reply'=>$reply,'handoff'=>$handoff,'reply_source'=>$replySource]);}
 if($action==='messages'){$cid=(int)($v['conversation_id']??0);$messages=[];if($cid){$q=$pdo->prepare('SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY id');$q->execute([$tid,$cid]);$messages=$q->fetchAll();}out(true,'OK',['conversation_id'=>$cid,'messages'=>$messages]);}out(false,'Acción no válida.',[],400);
-}catch(Throwable $e){out(false,'No fue posible procesar el chat: '.$e->getMessage(),[],500);}
+}catch(Throwable $e){if(($origin??'')!=='')ZynkoCors::send($origin,['POST','OPTIONS'],['Content-Type','Accept']);out(false,'No fue posible procesar el chat: '.$e->getMessage(),[],500);}

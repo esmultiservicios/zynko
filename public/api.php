@@ -1,7 +1,18 @@
 <?php
 declare(strict_types=1);
-$root=dirname(__DIR__);require_once $root.'/app/Services/NivoEngine.php';
+$root=dirname(__DIR__);require_once $root.'/app/Support/Cors.php';require_once $root.'/app/Services/NivoEngine.php';
 header('Content-Type: application/json; charset=utf-8');
+
+$apiCorsOrigin = ZynkoCors::requestOrigin();
+ZynkoCors::handleAuthenticatedApiPreflight();
+if ($apiCorsOrigin !== '') {
+    ZynkoCors::send(
+        $apiCorsOrigin,
+        ['GET', 'POST', 'OPTIONS'],
+        ['Authorization', 'Content-Type', 'Accept', 'Idempotency-Key', 'X-Requested-With']
+    );
+}
+
 function out(int $status,bool $ok,string $message,array $data=[]): never { http_response_code($status); echo json_encode(['ok'=>$ok,'message'=>$message,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }
 function envCfg(string $p): array { $v=@parse_ini_file($p,false,INI_SCANNER_RAW); return is_array($v)?$v:[]; }
 function db(): PDO { static $pdo; global $root; if($pdo)return $pdo;$e=envCfg($root.'/.env');$dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4';return $pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); }

@@ -1,4 +1,4 @@
-## V2.31.51 · CORS seguro y multiempresa para NIVO Web Chat
+## V2.31.52 · CORS seguro y multiempresa para NIVO Web Chat
 
 - El widget incluye su installation key en la URL de webchat-api.php para que el preflight OPTIONS pueda validar el sitio antes del POST.
 - OPTIONS valida Origin + key + sitio autorizado antes de devolver Access-Control-Allow-Origin.

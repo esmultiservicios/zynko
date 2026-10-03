@@ -9,7 +9,7 @@
   const mascotUrl=new URL('assets/img/nivo-email.png',script.src).href;
   const state={visitor_token:localStorage.getItem('zynko.nivo.'+key)||'',conversation_id:0,ws:null,opened:false,profile:{name:'',email:''},shadow:null,lastCount:0,widget:null,poll:null,sending:false};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const call=async data=>{const r=await fetch(api,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key,visitor_token:state.visitor_token,...data})});const j=await r.json();if(!j.ok)throw Error(j.message);return j.data};
+  const call=async data=>{const payload={key,visitor_token:state.visitor_token,...data},form=new URLSearchParams();Object.entries(payload).forEach(([k,v])=>{if(v!==undefined&&v!==null)form.set(k,String(v))});const r=await fetch(api,{method:'POST',body:form,mode:'cors',credentials:'omit'});const raw=await r.text();let j;try{j=JSON.parse(raw)}catch{throw Error('ZYNKO no devolvió una respuesta válida del Web Chat.')}if(!r.ok||!j.ok)throw Error(j.message||('Error HTTP '+r.status));return j.data};
   const brandedLauncher=w=>{const raw=String(w.launcher_label||'').trim();const plain=raw.replace(/\*\*/g,'').trim();if(!raw||plain.toLowerCase()==='¿necesitas ayuda?')return '**NIVO Web Chat** · ¿Necesitas ayuda?';return raw};
   const launcherMarkup=s=>{let html=esc(String(s??''));html=html.replace(/\*\*(.+?)\*\*/gs,'<strong>$1</strong>').replace(/__(.+?)__/gs,'<em>$1</em>').replace(/\n/g,'<br>');return html};
   const launcherPlain=s=>String(s??'').replace(/\*\*|__/g,'').trim();

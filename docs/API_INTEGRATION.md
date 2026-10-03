@@ -39,3 +39,13 @@ Devuelve hasta cinco fuentes autorizadas relevantes. No inventa una respuesta de
 - `409`: canal todavía no conectado/autorizado.
 - `422`: parámetros incompletos.
 - `202`: mensaje aceptado y puesto en cola.
+
+## CORS y consumo desde aplicaciones web
+
+Desde ZYNKO V2.31.52, la API pública responde preflight `OPTIONS` antes de autenticar la petición real y admite los headers `Authorization`, `Content-Type`, `Accept`, `Idempotency-Key` y `X-Requested-With`.
+
+CORS únicamente habilita al navegador para realizar la solicitud. La seguridad continúa dependiendo de la API key, sus scopes, el plan activo y las validaciones de cada endpoint. No se utilizan cookies ni `Access-Control-Allow-Credentials` en la API pública.
+
+Para NIVO Web Chat, el widget evita preflight innecesario enviando una solicitud CORS simple. El backend sigue validando estrictamente `installation_key` + dominio autorizado antes de entregar datos o aceptar mensajes. Por ello cada código de instalación continúa siendo exclusivo del sitio autorizado correspondiente.
+
+Los webhooks de Meta / WhatsApp / Messenger son comunicaciones servidor-a-servidor y no dependen de CORS del navegador.
