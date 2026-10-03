@@ -1,4 +1,4 @@
-## V2.31.49 · Autorización de sitios NIVO corregida
+## V2.31.50 · Autorización de sitios NIVO corregida
 
 - Se corrigió el error `Unexpected token '<'` al autorizar, editar, activar o eliminar sitios NIVO Web Chat.
 - Las peticiones del módulo ahora envían correctamente el encabezado AJAX esperado por ZYNKO y validan respuestas JSON antes de procesarlas.

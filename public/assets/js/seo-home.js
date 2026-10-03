@@ -24,6 +24,38 @@
   const onScroll=()=>header?.classList.toggle('scrolled',window.scrollY>8);
   onScroll();addEventListener('scroll',onScroll,{passive:true});
 
+  const desktopSectionLinks=[...document.querySelectorAll('.desktop-nav a[href^="#"]')];
+  const mobileSectionLinks=[...document.querySelectorAll('#siteMobileMenu a[href^="#"]')];
+  const navSections=desktopSectionLinks.map((link,index)=>{
+    const id=decodeURIComponent((link.getAttribute('href')||'').slice(1));
+    const section=id?document.getElementById(id):null;
+    return section?{id,section,index}:null;
+  }).filter(Boolean);
+  const setActiveSection=id=>{
+    [...desktopSectionLinks,...mobileSectionLinks].forEach(link=>{
+      const current=decodeURIComponent((link.getAttribute('href')||'').slice(1))===id;
+      link.classList.toggle('is-active',current);
+      if(current)link.setAttribute('aria-current','location');
+      else link.removeAttribute('aria-current');
+    });
+  };
+  const syncActiveSection=()=>{
+    if(!navSections.length)return;
+    const headerHeight=header?.getBoundingClientRect().height||0;
+    const probe=Math.min(window.innerHeight*.34,220)+headerHeight;
+    let active=navSections[0];
+    for(const item of navSections){
+      if(item.section.getBoundingClientRect().top<=probe)active=item;
+      else break;
+    }
+    const nearBottom=window.innerHeight+window.scrollY>=document.documentElement.scrollHeight-6;
+    if(nearBottom)active=navSections[navSections.length-1];
+    setActiveSection(active.id);
+  };
+  syncActiveSection();
+  addEventListener('scroll',syncActiveSection,{passive:true});
+  addEventListener('resize',syncActiveSection,{passive:true});
+
   const menuToggle=document.getElementById('siteMenuToggle');
   const mobileMenu=document.getElementById('siteMobileMenu');
   const closeMobileMenu=()=>{if(!menuToggle||!mobileMenu)return;header?.classList.remove('menu-open');mobileMenu.hidden=true;menuToggle.setAttribute('aria-expanded','false');menuToggle.setAttribute('aria-label','Abrir menú');menuToggle.innerHTML='<i class="fa-solid fa-bars"></i>';};

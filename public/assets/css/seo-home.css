@@ -1053,3 +1053,45 @@ html.select2-preload .contact-select2{visibility:hidden!important;opacity:0!impo
 
 
 /* ZYNKO V2.31.47 · NIVO más inteligente y documentación sin scroll horizontal */
+
+
+/* ZYNKO V2.31.50 · ScrollSpy premium de navegación pública */
+.site-header .desktop-nav a{
+  position:relative;
+  transition:color .18s ease,background .18s ease,transform .18s ease;
+}
+.site-header .desktop-nav a::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  right:50%;
+  bottom:-12px;
+  height:3px;
+  border-radius:999px;
+  background:var(--teal);
+  opacity:0;
+  transition:left .2s ease,right .2s ease,opacity .2s ease;
+}
+.site-header .desktop-nav a.is-active,
+.site-header .desktop-nav a[aria-current="location"]{
+  color:var(--teal-dark)!important;
+}
+.site-header .desktop-nav a.is-active::after,
+.site-header .desktop-nav a[aria-current="location"]::after{
+  left:0;
+  right:0;
+  opacity:1;
+}
+.site-mobile-menu nav a.is-active,
+.site-mobile-menu nav a[aria-current="location"]{
+  color:var(--teal-dark)!important;
+  background:#eaf8f5!important;
+  border-color:#cce9e2!important;
+}
+.site-mobile-menu nav a.is-active i,
+.site-mobile-menu nav a[aria-current="location"] i{
+  color:var(--teal-dark)!important;
+}
+@media(max-width:1060px){
+  .site-header .desktop-nav a::after{display:none}
+}
