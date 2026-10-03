@@ -429,3 +429,58 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.54' AS version_objetivo;
+
+
+-- =============================================================
+-- ZYNKO V2.31.72 · RESPUESTAS RÁPIDAS PREMIUM
+-- =============================================================
+SET @db_name := DATABASE();
+
+CREATE TABLE IF NOT EXISTS `quick_replies` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `shortcut` VARCHAR(80) NOT NULL,
+  `title` VARCHAR(120) NOT NULL,
+  `body` TEXT NOT NULL,
+  `media_json` JSON NULL,
+  `team_id` BIGINT UNSIGNED NULL,
+  `active` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_qr` (`tenant_id`,`shortcut`),
+  INDEX `idx_qr_tenant` (`tenant_id`,`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='quick_replies' AND COLUMN_NAME='media_json');
+SET @sql := IF(@exists=0,'ALTER TABLE `quick_replies` ADD COLUMN `media_json` JSON NULL AFTER `body`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='quick_replies' AND COLUMN_NAME='created_at');
+SET @sql := IF(@exists=0,'ALTER TABLE `quick_replies` ADD COLUMN `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `active`, ADD COLUMN `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `created_at`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.72')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.72' AS version_objetivo;
+
+-- =============================================================
+-- ZYNKO V2.31.79 · CIERRE DE CHAT Y ENCUESTAS DE SATISFACCIÓN
+-- =============================================================
+CREATE TABLE IF NOT EXISTS `conversation_surveys` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
+  `visitor_id` BIGINT UNSIGNED NULL,
+  `rating` TINYINT UNSIGNED NULL,
+  `comment` VARCHAR(1000) NULL,
+  `requested_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `responded_at` DATETIME NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_conversation_survey` (`tenant_id`,`conversation_id`),
+  INDEX `idx_survey_tenant` (`tenant_id`,`responded_at`,`requested_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.79')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.79' AS version_objetivo;
+

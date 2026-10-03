@@ -147,7 +147,7 @@
 })();
 
 
-/* ZYNKO V2.31.66 · Cabeceras premium universales para tarjetas administrativas */
+/* ZYNKO V2.31.67 · Cabeceras premium universales para tarjetas administrativas */
 (()=>{
   const rules=[
     [/sitio público|redes sociales/i,['fa-solid fa-globe','Sitio público']],
@@ -173,7 +173,7 @@
     return ['fa-solid fa-layer-group','ZYNKO'];
   };
   const enhance=head=>{
-    if(!head||head.dataset.zynkoCardHead==='1')return;
+    if(!head||head.dataset.zynkoCardHead==='1'||head.classList.contains('premium-card-head'))return;
     if(head.closest('.conv-list,.chat,.info,.modal-shell,.hero-panel,.metric-grid'))return;
     const copy=head.querySelector(':scope > div');
     if(!copy)return;

@@ -247,6 +247,7 @@ try {
 $tid = (int) $w['tenant_id'];
 $wid = (int) $w['id'];
 ensureNivoRuntime($pdo, $tid);
+$pdo->exec("CREATE TABLE IF NOT EXISTS conversation_surveys(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,conversation_id BIGINT UNSIGNED NOT NULL,visitor_id BIGINT UNSIGNED NULL,rating TINYINT UNSIGNED NULL,comment VARCHAR(1000) NULL,requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,responded_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_conversation_survey(tenant_id,conversation_id),INDEX idx_survey_tenant(tenant_id,responded_at,requested_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 zynkoEnsurePlanSchema($pdo);
 $planCtx = zynkoPlanContext($pdo, $tid, false);
 
@@ -287,8 +288,9 @@ if ($siteContext === '' && $installationLabel !== '' && !str_contains(mb_strtolo
 
 $smartGreeting = !array_key_exists('smart_greeting', $experience) || !empty($experience['smart_greeting']);
 $contextualBranding = !array_key_exists('contextual_branding', $experience) || !empty($experience['contextual_branding']);
-$hour = (int) date('G');
-$timeGreeting = $hour < 12 ? 'Buenos días' : ($hour < 18 ? 'Buenas tardes' : 'Buenas noches');
+$clientHourRaw=(string)($input['client_hour']??$_POST['client_hour']??'');
+$hour=(preg_match('/^(?:[01]?\d|2[0-3])$/',$clientHourRaw)?(int)$clientHourRaw:(int)date('G'));
+$timeGreeting = ($hour >= 5 && $hour < 12) ? 'Buenos días' : (($hour >= 12 && $hour < 19) ? 'Buenas tardes' : 'Buenas noches');
 $baseWelcome = trim((string) ($w['welcome_message'] ?? '¿En qué puedo ayudarte hoy?'));
 
 if (!$smartGreeting) {
@@ -317,6 +319,44 @@ if (!$contextualBranding) {
 }
 
 $brandFooter = 'NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS';
+
+// V2.31.78 · El saludo inicial forma parte real del historial de la conversación.
+// Se persiste una sola vez y se coloca antes del primer mensaje del visitante para que
+// Widget y Bandeja muestren exactamente la misma conversación desde el inicio.
+$ensureInitialGreeting = static function (int $conversationId) use ($pdo, $tid, $initialGreeting): void {
+    if ($conversationId <= 0 || trim($initialGreeting) === '') {
+        return;
+    }
+
+    $firstInbound = $pdo->prepare(
+        "SELECT sent_at FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='in' ORDER BY sent_at,id LIMIT 1"
+    );
+    $firstInbound->execute([$tid, $conversationId]);
+    $firstInboundAt = $firstInbound->fetchColumn();
+
+    $already = $pdo->prepare(
+        "SELECT 1 FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' AND (type='greeting' OR body LIKE '%Soy NIVO%')"
+        . ($firstInboundAt ? " AND sent_at<=?" : '')
+        . " ORDER BY sent_at,id LIMIT 1"
+    );
+    $args = [$tid, $conversationId];
+    if ($firstInboundAt) {
+        $args[] = $firstInboundAt;
+    }
+    $already->execute($args);
+    if ($already->fetchColumn()) {
+        return;
+    }
+
+    $sentAt = $firstInboundAt
+        ? date('Y-m-d H:i:s', max(0, strtotime((string) $firstInboundAt) - 1))
+        : date('Y-m-d H:i:s');
+
+    $pdo->prepare(
+        "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','greeting',?,'sent',?)"
+    )->execute([$tid, $conversationId, uuid4(), $initialGreeting, $sentAt]);
+};
+
 $visitor = (string) ($input['visitor_token'] ?? $_GET['visitor_token'] ?? '');
 $v = null;
 
@@ -352,20 +392,43 @@ if ($action === 'bootstrap') {
         $conversationQuery->execute([$cid, $tid]);
         $conversation = $conversationQuery->fetch();
 
-        if (!$conversation || !empty($conversation['deleted_at']) || in_array((string) ($conversation['status'] ?? ''), ['resolved', 'closed'], true)) {
+        if (!$conversation || !empty($conversation['deleted_at'])) {
             $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL WHERE id=?')->execute([$v['id']]);
             $cid = 0;
         } else {
-            if (!empty($conversation['archived_at'])) {
+            if (!empty($conversation['archived_at']) && !in_array((string) ($conversation['status'] ?? ''), ['resolved', 'closed'], true)) {
                 $pdo->prepare("UPDATE conversations SET archived_at=NULL,status='open' WHERE id=? AND tenant_id=?")
                     ->execute([$cid, $tid]);
             }
 
+            $ensureInitialGreeting($cid);
             $messageQuery = $pdo->prepare(
-                'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY id'
+                'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
             );
             $messageQuery->execute([$tid, $cid]);
             $messages = $messageQuery->fetchAll();
+        }
+    }
+
+    $conversationStatus = 'new';
+    $survey = null;
+    if ($cid) {
+        try {
+            $sq = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+            $sq->execute([$cid, $tid]);
+            $conversationStatus = (string) ($sq->fetchColumn() ?: 'open');
+            $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,comment,requested_at,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
+            $surveyQuery->execute([$tid, $cid]);
+            $surveyRow = $surveyQuery->fetch();
+            if ($surveyRow) {
+                $survey = [
+                    'conversation_id' => (int) $surveyRow['conversation_id'],
+                    'requested' => true,
+                    'answered' => !empty($surveyRow['responded_at']),
+                    'rating' => $surveyRow['rating'] !== null ? (int) $surveyRow['rating'] : null
+                ];
+            }
+        } catch (Throwable $ignoreSurvey) {
         }
     }
 
@@ -402,6 +465,9 @@ if ($action === 'bootstrap') {
     out(true, 'NIVO Web Chat listo.', [
         'visitor_token' => $visitor,
         'conversation_id' => $cid,
+        'conversation_status' => $conversationStatus,
+        'conversation_closed' => in_array($conversationStatus, ['resolved','closed'], true),
+        'survey' => $survey,
         'visitor_profile' => [
             'name' => $profileName,
             'email' => trim((string) ($v['email'] ?? ''))
@@ -472,6 +538,75 @@ if ($action === 'profile') {
         'name' => $name,
         'email' => $email
     ]);
+}
+
+if ($action === 'close') {
+    $cid = (int) ($v['conversation_id'] ?? 0);
+    if (!$cid) {
+        out(false, 'No hay una conversación activa para finalizar.', [], 422);
+    }
+
+    $conversationQuery = $pdo->prepare('SELECT c.id,c.status,c.deleted_at FROM conversations c WHERE c.id=? AND c.tenant_id=? LIMIT 1');
+    $conversationQuery->execute([$cid, $tid]);
+    $conversation = $conversationQuery->fetch();
+    if (!$conversation || !empty($conversation['deleted_at'])) {
+        out(false, 'La conversación ya no está disponible.', [], 404);
+    }
+
+    $closingMessage = 'Gracias por conversar con nosotros. La atención quedó finalizada. Si quieres, califica tu experiencia y luego puedes iniciar un nuevo chat.';
+    $pdo->beginTransaction();
+    try {
+        if (!in_array((string) $conversation['status'], ['resolved','closed'], true)) {
+            $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
+                ->execute([$tid, $cid, uuid4(), $closingMessage]);
+        }
+        $pdo->prepare("UPDATE conversations SET status='resolved',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?")
+            ->execute([$cid, $tid]);
+        $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
+            ->execute([$tid, $cid, (int) $v['id']]);
+        $pdo->commit();
+    } catch (Throwable $error) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        throw $error;
+    }
+
+    zynkoRealtimePublish($pdo,$tid,'conversation.resolved',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_finished'],'conversation',(string)$cid);
+    out(true, 'Chat finalizado.', [
+        'conversation_id' => $cid,
+        'conversation_status' => 'resolved',
+        'message' => $closingMessage,
+        'survey' => ['conversation_id'=>$cid,'requested'=>true,'answered'=>false,'rating'=>null]
+    ]);
+}
+
+if ($action === 'survey') {
+    $cid = max(1, (int) ($input['conversation_id'] ?? 0));
+    $rating = max(1, min(5, (int) ($input['rating'] ?? 0)));
+    $comment = mb_substr(trim((string) ($input['comment'] ?? '')), 0, 1000);
+    $q = $pdo->prepare('SELECT c.id FROM conversations c WHERE c.id=? AND c.tenant_id=? AND c.contact_id=? LIMIT 1');
+    $q->execute([$cid, $tid, (int) ($v['contact_id'] ?? 0)]);
+    if (!$q->fetchColumn()) {
+        out(false, 'No fue posible validar esta encuesta.', [], 403);
+    }
+    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,comment,requested_at,responded_at) VALUES(?,?,?,?,?,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=VALUES(rating),comment=VALUES(comment),responded_at=NOW()")
+        ->execute([$tid, $cid, (int) $v['id'], $rating, $comment ?: null]);
+    out(true, 'Gracias por tu opinión.', ['conversation_id'=>$cid,'rating'=>$rating]);
+}
+
+if ($action === 'new_chat') {
+    $cid = (int) ($v['conversation_id'] ?? 0);
+    if ($cid) {
+        $q = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+        $q->execute([$cid,$tid]);
+        $status = (string) ($q->fetchColumn() ?: '');
+        if (!in_array($status,['resolved','closed'],true)) {
+            out(false,'Finaliza el chat actual antes de iniciar uno nuevo.',[],409);
+        }
+    }
+    $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'],$tid]);
+    out(true,'Nueva conversación lista.',['conversation_id'=>0]);
 }
 
 if ($action === 'expire') {
@@ -618,6 +753,8 @@ if ($action === 'send') {
         )->execute([$contact, $cid, $rawName, $email, $v['id']]);
         $pdo->commit();
 
+        $ensureInitialGreeting($cid);
+
         zynkoRealtimePublish(
             $pdo,
             $tid,
@@ -741,17 +878,31 @@ if ($action === 'send') {
 if ($action === 'messages') {
     $cid = (int) ($v['conversation_id'] ?? 0);
     $messages = [];
+    $conversationStatus = $cid ? 'open' : 'new';
+    $survey = null;
 
     if ($cid) {
+        $ensureInitialGreeting($cid);
         $query = $pdo->prepare(
-            'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY id'
+            'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
         );
         $query->execute([$tid, $cid]);
         $messages = $query->fetchAll();
+        $statusQuery = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+        $statusQuery->execute([$cid,$tid]);
+        $conversationStatus = (string) ($statusQuery->fetchColumn() ?: 'open');
+        $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
+        $surveyQuery->execute([$tid,$cid]);
+        if ($surveyRow = $surveyQuery->fetch()) {
+            $survey = ['conversation_id'=>(int)$surveyRow['conversation_id'],'requested'=>true,'answered'=>!empty($surveyRow['responded_at']),'rating'=>$surveyRow['rating']!==null?(int)$surveyRow['rating']:null];
+        }
     }
 
     out(true, 'OK', [
         'conversation_id' => $cid,
+        'conversation_status' => $conversationStatus,
+        'conversation_closed' => in_array($conversationStatus,['resolved','closed'],true),
+        'survey' => $survey,
         'messages' => $messages
     ]);
 }

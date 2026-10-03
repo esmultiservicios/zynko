@@ -4823,3 +4823,585 @@ html{scrollbar-gutter:auto}
 html.zynko-fullscreen-shell-root{scrollbar-width:none!important}
 html.zynko-fullscreen-shell-root::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 body.zynko-fullscreen-shell #zynkoFullscreenFrame{overscroll-behavior:contain}
+
+/* ZYNKO V2.31.67 · Cabeceras premium renderizadas por vista (sin parche JS) */
+.premium-card-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:14px!important;
+  min-height:72px!important;
+  margin:0 0 20px!important;
+  padding:14px 16px!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 20%,var(--line,#dce6ec))!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--accent,#12a88a) 5%,var(--surface,#fff)),var(--surface,#fff))!important;
+  box-shadow:0 9px 26px rgba(15,39,56,.045)!important;
+}
+.panel>.premium-card-head:first-child{margin-top:0!important}
+.premium-card-head-icon{
+  width:46px!important;height:46px!important;min-width:46px!important;
+  display:grid!important;place-items:center!important;
+  border-radius:13px!important;
+  background:color-mix(in srgb,var(--accent,#12a88a) 13%,var(--surface,#fff))!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 25%,var(--line,#dce6ec))!important;
+  color:var(--accent2,#0d806b)!important;
+  font-size:17px!important;
+}
+.premium-card-head>div:not(.head-actions):not(.analytics-head-actions),
+.premium-card-head-copy{display:grid!important;gap:4px!important;min-width:0!important;flex:1 1 auto!important}
+.premium-card-head b{font-size:15px!important;line-height:1.28!important;font-weight:900!important;color:var(--text,#10283a)!important}
+.premium-card-head small{display:block!important;color:var(--muted,#6f8293)!important;line-height:1.45!important;font-weight:500!important}
+.premium-card-head>div>b>i:first-child{display:none!important}
+.premium-card-head>:last-child:not(.premium-card-head-copy):not(div){margin-left:auto!important}
+.premium-card-head .head-actions,.premium-card-head .analytics-head-actions{margin-left:auto!important;display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
+.premium-card-head-badge{
+  margin-left:auto!important;display:inline-flex!important;align-items:center!important;gap:7px!important;
+  min-height:34px!important;padding:7px 11px!important;border-radius:999px!important;
+  border:1px solid color-mix(in srgb,var(--accent,#12a88a) 22%,var(--line,#dce6ec))!important;
+  background:color-mix(in srgb,var(--accent,#12a88a) 8%,var(--surface,#fff))!important;
+  color:var(--accent2,#0d806b)!important;font-size:11px!important;font-weight:800!important;white-space:nowrap!important;
+}
+.standalone-card-head{margin-bottom:18px!important}
+.compact-card-head{min-height:62px!important;padding:10px 12px!important;margin:0 0 14px!important}
+.compact-card-head .premium-card-head-icon{width:40px!important;height:40px!important;min-width:40px!important}
+.inbox-premium-head{margin:0!important}
+.inbox-view-title.premium-card-head{width:100%!important}
+.info-title.premium-card-head{border-left:0!important;border-right:0!important;border-top:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important}
+.users-filter-panel,.users-directory-panel,.company-filters,.company-directory-panel{padding-top:18px!important}
+/* Las cards KPI mantienen su composición propia: no reciben cabecera grande. */
+.company-kpis article,.premium-kpis article,.analytics-kpi,.channel-overview>div{isolation:isolate}
+@media(max-width:760px){
+  .premium-card-head{align-items:stretch!important;flex-wrap:wrap!important;padding:13px!important;gap:11px!important}
+  .premium-card-head-icon{width:42px!important;height:42px!important;min-width:42px!important}
+  .premium-card-head .head-actions,.premium-card-head .analytics-head-actions,.premium-card-head-badge{margin-left:0!important;width:100%!important;justify-content:center!important}
+}
+
+
+/* ZYNKO V2.31.69 · Bandeja a altura completa, sin scroll exterior ni espacio muerto */
+@media (min-width:761px){
+  html:has(body.page-inbox),
+  body.page-inbox{
+    height:100%;
+    min-height:100%;
+    overflow:hidden!important;
+    overscroll-behavior:none;
+  }
+
+  body.page-inbox .app{
+    height:100dvh!important;
+    min-height:100dvh!important;
+    overflow:hidden!important;
+  }
+
+  body.page-inbox .main{
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    display:flex!important;
+    flex-direction:column!important;
+    overflow:hidden!important;
+  }
+
+  body.page-inbox .main>header{
+    flex:0 0 auto!important;
+  }
+
+  body.page-inbox .main>main{
+    flex:1 1 auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+    padding-top:12px!important;
+    padding-bottom:12px!important;
+  }
+
+  body.page-inbox .inbox-premium-toolbar{
+    flex:0 0 auto!important;
+  }
+
+  body.page-inbox .inbox-layout{
+    flex:1 1 auto!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:hidden!important;
+    align-items:stretch!important;
+  }
+
+  body.page-inbox .inbox-layout>.panel{
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+
+  body.page-inbox .conv-list,
+  body.page-inbox .chat,
+  body.page-inbox .info{
+    min-height:0!important;
+    max-height:100%!important;
+  }
+
+  body.page-inbox .conversation-scroll,
+  body.page-inbox .messages,
+  body.page-inbox .info{
+    overscroll-behavior:contain;
+  }
+}
+
+@media (max-width:760px){
+  body.page-inbox,
+  body.page-inbox .app,
+  body.page-inbox .main,
+  body.page-inbox .main>main{
+    height:auto!important;
+    min-height:100dvh!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+}
+
+
+/* ZYNKO V2.31.70 · Ajustes puntuales de Bandeja y NIVO Web Chat */
+/* Bandeja: separación inferior real para Seguimiento dentro de Cliente 360°. */
+body.page-inbox .info{
+  padding-bottom:18px!important;
+}
+body.page-inbox .info-block.followup-block{
+  margin-bottom:16px!important;
+  padding-bottom:14px!important;
+}
+body.page-inbox .followup-form{
+  padding-bottom:2px!important;
+}
+
+/* NIVO Web Chat: icono y texto del encabezado siempre permanecen en la misma fila. */
+.nivo-webchat-page .premium-card-head{
+  display:grid!important;
+  grid-template-columns:auto minmax(0,1fr) auto!important;
+  align-items:center!important;
+  column-gap:14px!important;
+  row-gap:10px!important;
+}
+.nivo-webchat-page .premium-card-head>.premium-card-head-icon{
+  grid-column:1!important;
+  grid-row:1!important;
+  align-self:center!important;
+}
+.nivo-webchat-page .premium-card-head>div:not(.head-actions):not(.analytics-head-actions){
+  grid-column:2!important;
+  grid-row:1!important;
+  align-self:center!important;
+  min-width:0!important;
+}
+.nivo-webchat-page .premium-card-head>.head-actions,
+.nivo-webchat-page .premium-card-head>.analytics-head-actions,
+.nivo-webchat-page .premium-card-head>.premium-card-head-badge,
+.nivo-webchat-page .premium-card-head>a,
+.nivo-webchat-page .premium-card-head>button{
+  grid-column:3!important;
+  grid-row:1!important;
+  align-self:center!important;
+  margin-left:0!important;
+}
+@media(max-width:760px){
+  .nivo-webchat-page .premium-card-head{
+    grid-template-columns:auto minmax(0,1fr)!important;
+    align-items:center!important;
+  }
+  .nivo-webchat-page .premium-card-head>.premium-card-head-icon{
+    width:42px!important;
+    height:42px!important;
+    min-width:42px!important;
+  }
+  .nivo-webchat-page .premium-card-head>.head-actions,
+  .nivo-webchat-page .premium-card-head>.analytics-head-actions,
+  .nivo-webchat-page .premium-card-head>.premium-card-head-badge,
+  .nivo-webchat-page .premium-card-head>a,
+  .nivo-webchat-page .premium-card-head>button{
+    grid-column:1 / -1!important;
+    grid-row:auto!important;
+    width:100%!important;
+    justify-content:center!important;
+  }
+}
+\n\n/* ZYNKO V2.31.72 · Cliente 360° compacto y desplegable */\nbody.page-inbox .client360-more-wrap{\n  margin-top:12px!important;\n  padding-bottom:14px!important;\n}\nbody.page-inbox .client360-more-toggle{\n  width:100%!important;\n  min-height:48px!important;\n  padding:9px 11px!important;\n  border:1px solid #cfe5df!important;\n  border-radius:12px!important;\n  background:#f5fbf9!important;\n  color:#163247!important;\n  display:flex!important;\n  align-items:center!important;\n  justify-content:space-between!important;\n  gap:10px!important;\n  text-align:left!important;\n  cursor:pointer!important;\n}\nbody.page-inbox .client360-more-toggle>span{\n  display:grid!important;\n  grid-template-columns:28px minmax(0,1fr)!important;\n  grid-template-rows:auto auto!important;\n  column-gap:9px!important;\n  align-items:center!important;\n  min-width:0!important;\n}\nbody.page-inbox .client360-more-toggle>span>i{\n  grid-row:1/3!important;\n  width:28px!important;\n  height:28px!important;\n  border-radius:9px!important;\n  display:grid!important;\n  place-items:center!important;\n  background:#dff5ef!important;\n  color:#0d806b!important;\n}\nbody.page-inbox .client360-more-toggle b{font-size:11.5px!important;line-height:1.25!important}\nbody.page-inbox .client360-more-toggle small{font-size:9px!important;line-height:1.25!important;color:#718397!important;margin-top:2px!important}\nbody.page-inbox .client360-more-chevron{color:#6c8194!important;transition:transform .18s ease!important}\nbody.page-inbox .client360-more-toggle.is-open .client360-more-chevron{transform:rotate(180deg)!important}\nbody.page-inbox .client360-more-panel{\n  margin-top:10px!important;\n  padding:0 2px 6px!important;\n}\nbody.page-inbox .client360-more-panel[hidden]{display:none!important}\nbody.page-inbox .client360-more-panel .info-block:first-child{margin-top:0!important}\nbody.page-inbox .client360-more-panel .info-block:last-child{margin-bottom:4px!important}\nbody.page-inbox .client360-more-panel .notes-block{padding-bottom:4px!important}\n@media(max-width:1100px){\n  body.page-inbox .client360-more-wrap{grid-column:1/-1!important}\n}\n
+/* ZYNKO V2.31.72 · Bandeja: emojis estables, respuestas rápidas y NIVO IA */
+body:has(.inbox-premium-toolbar) .emoji-picker-premium{
+  height:300px!important;
+  max-height:300px!important;
+  display:flex!important;
+  flex-direction:column!important;
+}
+body:has(.inbox-premium-toolbar) .emoji-picker-premium[hidden]{display:none!important}
+body:has(.inbox-premium-toolbar) .emoji-tabs{flex:0 0 auto!important}
+body:has(.inbox-premium-toolbar) .emoji-groups{flex:1 1 auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;padding-right:3px!important}
+@media(max-width:760px){body:has(.inbox-premium-toolbar) .emoji-picker-premium{height:min(300px,42vh)!important;max-height:min(300px,42vh)!important}}
+
+body:has(.inbox-premium-toolbar) #nivoAssist.is-active{
+  background:#e8f7f3!important;
+  border-color:#b8e5da!important;
+  color:#087966!important;
+  box-shadow:0 0 0 1px rgba(8,121,102,.03)!important;
+}
+body:has(.inbox-premium-toolbar) #nivoAssist.is-active i{color:#07856f!important}
+body:has(.inbox-premium-toolbar) #nivoAssist.is-inactive{opacity:.72!important}
+body:has(.inbox-premium-toolbar) #nivoAssist.is-thinking{opacity:1!important}
+
+body:has(.inbox-premium-toolbar) a.conversation.active,
+body:has(.inbox-premium-toolbar) a.conversation[aria-current="true"]{
+  background:#eaf8f4!important;
+  border-color:#83d4c2!important;
+  color:#102a43!important;
+  box-shadow:inset 3px 0 0 #0b8a72,0 8px 20px rgba(13,128,107,.08)!important;
+}
+body:has(.inbox-premium-toolbar) a.conversation.active *,
+body:has(.inbox-premium-toolbar) a.conversation[aria-current="true"] *{color:inherit}
+body:has(.inbox-premium-toolbar) a.conversation:active{background:#eaf8f4!important}
+
+.quick-reply-modal{width:min(920px,94vw)!important;max-height:min(760px,90vh)!important}
+.quick-reply-modal-body{padding:18px 20px!important;overflow-y:auto!important;min-height:0!important}
+.quick-reply-library-head,.quick-reply-editor-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:14px}
+.quick-reply-library-head>div,.quick-reply-editor-head>div{display:grid;gap:4px}
+.quick-reply-library-head b,.quick-reply-editor-head b{font-size:15px;color:var(--text)}
+.quick-reply-library-head small,.quick-reply-editor-head small{color:var(--muted)}
+.quick-reply-list{display:grid;gap:10px;max-height:430px;overflow-y:auto;padding-right:4px}
+.quick-reply-item{width:100%;display:grid;grid-template-columns:42px 1fr 24px;align-items:center;gap:12px;text-align:left;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--text);transition:.16s ease;cursor:pointer}
+.quick-reply-item:hover{border-color:#9bd9cc;background:#f2fbf8;transform:translateY(-1px);box-shadow:0 8px 20px rgba(15,23,42,.06)}
+.quick-reply-item-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#e9f8f4;color:#087966;font-size:16px}
+.quick-reply-item-copy{display:grid;gap:3px;min-width:0}
+.quick-reply-item-copy b{font-size:13px}
+.quick-reply-item-copy small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+.quick-reply-item-copy em{font-style:normal;font-size:10px;color:#087966}
+.quick-reply-item-actions{color:#78909c}
+.quick-reply-editor .settings-grid{margin-top:4px}
+.whatsapp-format-toolbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px;border:1px solid var(--line);border-bottom:0;border-radius:12px 12px 0 0;background:var(--surface2)}
+.whatsapp-format-toolbar button{width:34px;height:32px;padding:0;display:grid;place-items:center;border:1px solid var(--line);background:var(--surface);border-radius:8px;color:var(--text)}
+.whatsapp-format-toolbar span{font-size:10px;color:var(--muted);margin-left:4px}
+#quickReplyBody{border-radius:0 0 12px 12px!important;min-height:150px}
+.quick-reply-modal-footer{border-top:1px solid var(--line)!important}
+.quick-reply-actions{margin-top:14px!important}
+.quick-reply-attachment{background:#eef7f5!important;border-color:#cfe8e2!important;color:#087966!important}
+
+body:has(.inbox-premium-toolbar) .message-media{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px;max-width:min(420px,90%)}
+body:has(.inbox-premium-toolbar) .message-wrap.out .message-media{margin-left:auto;justify-content:flex-end}
+body:has(.inbox-premium-toolbar) .message-media img{display:block;max-width:220px;max-height:180px;object-fit:cover;border-radius:12px;border:1px solid var(--line);box-shadow:0 6px 18px rgba(15,23,42,.08)}
+body:has(.inbox-premium-toolbar) .message-file{display:inline-flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--text)!important;text-decoration:none!important;font-size:11px}
+
+.nivo-master-switch .switch-label-text{font-weight:800!important}
+.nivo-master-switch input:checked~.switch-label-text{color:#087966!important}
+
+@media(max-width:620px){
+  .quick-reply-modal-body{padding:14px!important}
+  .quick-reply-library-head,.quick-reply-editor-head{align-items:flex-start;flex-direction:column}
+  .quick-reply-library-head button,.quick-reply-editor-head button{width:100%}
+  .quick-reply-item{grid-template-columns:38px 1fr 18px;padding:10px}
+}
+
+/* ZYNKO V2.31.73 · Switches activos visibles y consistentes */
+.switch-line > input[type="checkbox"]:checked + .switch-control,
+.switch-line > input[type="checkbox"]:checked + span:not(.switch-label-text),
+.panel label.switch-line > input[type="checkbox"]:checked + .switch-control,
+.panel label.switch-line > input[type="checkbox"]:checked + span:not(.switch-label-text),
+.settings-grid label.switch-line > input[type="checkbox"]:checked + .switch-control,
+.settings-grid label.switch-line > input[type="checkbox"]:checked + span:not(.switch-label-text),
+.modal-shell label.switch-line > input[type="checkbox"]:checked + .switch-control,
+.modal-shell label.switch-line > input[type="checkbox"]:checked + span:not(.switch-label-text),
+.nivo-webchat-page label.switch-line > input[type="checkbox"]:checked + .switch-control,
+#planModal label.switch-line > input[type="checkbox"]:checked + .switch-control {
+  background:#0d9b83!important;
+  border-color:#0d9b83!important;
+  box-shadow:0 0 0 3px rgba(13,155,131,.10)!important;
+}
+.switch-line > input[type="checkbox"]:checked + .switch-control::after,
+.switch-line > input[type="checkbox"]:checked + span:not(.switch-label-text)::after,
+.panel label.switch-line > input[type="checkbox"]:checked + .switch-control::after,
+.settings-grid label.switch-line > input[type="checkbox"]:checked + .switch-control::after,
+.modal-shell label.switch-line > input[type="checkbox"]:checked + .switch-control::after,
+.nivo-webchat-page label.switch-line > input[type="checkbox"]:checked + .switch-control::after {
+  left:19px!important;
+}
+.switch-line.is-checked > .switch-label-text,
+.switch-line:has(> input[type="checkbox"]:checked) > .switch-label-text {
+  color:#08705c!important;
+}
+.switch-line > input[type="checkbox"]:disabled + .switch-control,
+.switch-line > input[type="checkbox"]:disabled + span:not(.switch-label-text) {
+  opacity:.58!important;
+  cursor:not-allowed!important;
+}
+.switch-line:has(> input[type="checkbox"]:disabled){cursor:not-allowed!important;}
+
+/* ZYNKO V2.31.74 · Emoji picker con tamaño y posición completamente estables */
+@media (min-width:761px){
+  body:has(.inbox-premium-toolbar) .emoji-picker-premium{
+    width:390px!important;
+    min-width:390px!important;
+    max-width:390px!important;
+    height:300px!important;
+    min-height:300px!important;
+    max-height:300px!important;
+    left:12px!important;
+    right:auto!important;
+    bottom:104px!important;
+    top:auto!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+    contain:layout paint!important;
+  }
+  body:has(.inbox-premium-toolbar) .emoji-tabs{
+    height:43px!important;
+    min-height:43px!important;
+    max-height:43px!important;
+    flex:0 0 43px!important;
+    box-sizing:border-box!important;
+  }
+  body:has(.inbox-premium-toolbar) .emoji-groups{
+    height:235px!important;
+    min-height:235px!important;
+    max-height:235px!important;
+    flex:0 0 235px!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    box-sizing:border-box!important;
+    scrollbar-gutter:stable!important;
+  }
+}
+@media (max-width:760px){
+  body:has(.inbox-premium-toolbar) .emoji-picker-premium{
+    left:12px!important;
+    right:12px!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:min(300px,42vh)!important;
+    min-height:min(300px,42vh)!important;
+    max-height:min(300px,42vh)!important;
+    bottom:82px!important;
+    top:auto!important;
+    box-sizing:border-box!important;
+    overflow:hidden!important;
+  }
+  body:has(.inbox-premium-toolbar) .emoji-tabs{
+    flex:0 0 43px!important;
+    min-height:43px!important;
+    max-height:43px!important;
+  }
+  body:has(.inbox-premium-toolbar) .emoji-groups{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    scrollbar-gutter:stable!important;
+  }
+}
+
+/* ZYNKO V2.31.75 · Emoji picker fijo, sin saltos ni redimensionado */
+#emojiPicker.emoji-picker-premium{
+  position:absolute!important;
+  left:0!important;
+  right:auto!important;
+  bottom:104px!important;
+  top:auto!important;
+  width:420px!important;
+  min-width:420px!important;
+  max-width:420px!important;
+  height:230px!important;
+  min-height:230px!important;
+  max-height:230px!important;
+  padding:10px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  display:grid!important;
+  grid-template-rows:44px minmax(0,1fr)!important;
+  align-content:stretch!important;
+  contain:layout paint size!important;
+  transform:none!important;
+}
+#emojiPicker.emoji-picker-premium[hidden]{display:none!important}
+#emojiPicker .emoji-tabs{
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  margin:0!important;
+  padding:0 0 9px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  overflow:hidden!important;
+  box-sizing:border-box!important;
+}
+#emojiPicker .emoji-groups{
+  height:166px!important;
+  min-height:166px!important;
+  max-height:166px!important;
+  margin:0!important;
+  padding:10px 3px 4px 0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  box-sizing:border-box!important;
+  scrollbar-gutter:stable!important;
+  overscroll-behavior:contain!important;
+}
+#emojiPicker .emoji-group{
+  display:none!important;
+  grid-template-columns:repeat(8, minmax(0,1fr))!important;
+  grid-auto-rows:38px!important;
+  gap:6px!important;
+  align-content:start!important;
+  min-height:100%!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+}
+#emojiPicker .emoji-group.active{display:grid!important}
+#emojiPicker .emoji-group button{
+  width:100%!important;
+  min-width:0!important;
+  height:38px!important;
+  min-height:38px!important;
+  max-height:38px!important;
+  padding:0!important;
+  margin:0!important;
+  display:grid!important;
+  place-items:center!important;
+  font-size:22px!important;
+  line-height:1!important;
+  box-sizing:border-box!important;
+}
+@media(max-width:760px){
+  #emojiPicker.emoji-picker-premium{
+    position:fixed!important;
+    left:12px!important;
+    right:12px!important;
+    bottom:82px!important;
+    width:auto!important;
+    min-width:0!important;
+    max-width:none!important;
+    height:230px!important;
+    min-height:230px!important;
+    max-height:230px!important;
+    grid-template-rows:44px minmax(0,1fr)!important;
+  }
+  #emojiPicker .emoji-groups{
+    height:166px!important;
+    min-height:166px!important;
+    max-height:166px!important;
+  }
+  #emojiPicker .emoji-group{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+}
+@media(max-width:430px){
+  #emojiPicker .emoji-group{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+}
+
+/* ZYNKO V2.31.76 · Mensajes de NIVO mantienen el verde suave al abrir/cambiar conversación */
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot p,
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot.out p,
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot.in p {
+  background:#dff5ef!important;
+  color:#11352f!important;
+  border:1px solid #c8eadf!important;
+  box-shadow:0 4px 12px rgba(15,23,42,.045)!important;
+}
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot.out p {
+  border-bottom-right-radius:5px!important;
+  border-bottom-left-radius:15px!important;
+}
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot.in p {
+  border-bottom-left-radius:5px!important;
+  border-bottom-right-radius:15px!important;
+}
+body:has(.inbox-premium-toolbar) .message-wrap.is-bot .message-sender {
+  color:#0d806b!important;
+  font-weight:900!important;
+}
+
+
+/* ZYNKO V2.31.77 · Respuestas rápidas con carga premium + Cliente 360° en modal */
+body.page-inbox .client360-more-wrap{margin-top:14px!important;padding-bottom:14px!important}
+body.page-inbox .client360-more-launch{
+  width:100%!important;min-height:58px!important;padding:10px 11px!important;border:1px solid #cfe5df!important;
+  border-radius:13px!important;background:#f7fbfa!important;color:#163247!important;display:grid!important;
+  grid-template-columns:36px minmax(0,1fr) 28px!important;align-items:center!important;gap:10px!important;text-align:left!important;
+  cursor:pointer!important;transition:border-color .16s ease,background .16s ease,transform .16s ease!important;
+}
+body.page-inbox .client360-more-launch:hover{border-color:#92d8c9!important;background:#eef9f6!important;transform:translateY(-1px)!important}
+body.page-inbox .client360-more-launch-icon{width:36px!important;height:36px!important;border-radius:11px!important;background:#dff5ef!important;color:#0d806b!important;display:grid!important;place-items:center!important}
+body.page-inbox .client360-more-launch-copy{display:grid!important;gap:2px!important;min-width:0!important}
+body.page-inbox .client360-more-launch-copy b{font-size:11.5px!important;line-height:1.25!important}
+body.page-inbox .client360-more-launch-copy small{font-size:9px!important;line-height:1.3!important;color:#718397!important;white-space:normal!important}
+body.page-inbox .client360-more-launch-arrow{width:28px!important;height:28px!important;border-radius:9px!important;background:#fff!important;border:1px solid #dce8e5!important;display:grid!important;place-items:center!important;color:#557086!important}
+.client360-details-modal{width:min(820px,94vw)!important;max-height:min(760px,90vh)!important}
+.client360-details-body{padding:18px 20px!important;overflow-y:auto!important;display:grid!important;gap:16px!important;min-height:0!important}
+.client360-modal-section{border:1px solid var(--line)!important;border-radius:15px!important;background:var(--surface)!important;padding:16px!important;display:grid!important;gap:14px!important}
+.client360-modal-section-head{display:grid!important;grid-template-columns:42px minmax(0,1fr) auto!important;align-items:center!important;gap:12px!important}
+.client360-modal-section-head>span{width:42px!important;height:42px!important;border-radius:12px!important;background:#e8f8f4!important;color:#0d806b!important;display:grid!important;place-items:center!important}
+.client360-modal-section-head>div{display:grid!important;gap:3px!important}.client360-modal-section-head b{font-size:13px!important}.client360-modal-section-head small{font-size:10px!important;color:var(--muted)!important}
+.client360-modal-section form{display:grid!important;gap:12px!important}.client360-modal-section .mini-note{margin-top:0!important}
+
+.quick-reply-upload-field{margin-top:10px!important}
+.quick-reply-upload-zone{
+  margin-top:0!important;min-height:150px!important;padding:20px!important;border:1.5px dashed #9fbeb7!important;border-radius:15px!important;
+  background:#f8fcfb!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+  gap:9px!important;text-align:center!important;cursor:pointer!important;transition:.16s ease!important;
+}
+.quick-reply-upload-zone:hover,.quick-reply-upload-zone.drag{border-color:#0d9b83!important;background:#eefaf6!important;box-shadow:0 0 0 3px rgba(13,155,131,.08)!important}
+.quick-reply-upload-zone .upload-zone-main{display:inline-flex!important;align-items:center!important;gap:10px!important;font-size:13px!important}
+.quick-reply-upload-zone .upload-zone-main i{font-size:22px!important;color:#0d806b!important}
+.quick-reply-upload-zone>small{color:var(--muted)!important;font-size:10px!important}
+.quick-reply-upload-cta{display:inline-flex!important;align-items:center!important;gap:7px!important;margin-top:4px!important;padding:8px 12px!important;border-radius:10px!important;background:#0b2b43!important;color:#fff!important;font-size:10.5px!important;font-weight:800!important}
+.quick-reply-upload-preview{margin-top:10px!important}
+.quick-reply-upload-file{display:grid!important;grid-template-columns:38px minmax(0,1fr) 30px!important;align-items:center!important;gap:10px!important;padding:10px 12px!important;border:1px solid #cfe5df!important;border-radius:12px!important;background:#f3faf8!important;color:#17354b!important}
+.quick-reply-upload-file>i{width:38px!important;height:38px!important;border-radius:10px!important;background:#dff5ef!important;color:#0d806b!important;display:grid!important;place-items:center!important}
+.quick-reply-upload-file>span{display:grid!important;gap:2px!important;min-width:0!important}.quick-reply-upload-file b{overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;font-size:11.5px!important}.quick-reply-upload-file small{font-size:9.5px!important;color:var(--muted)!important}
+.quick-reply-editor .settings-grid{row-gap:18px!important}
+.quick-reply-editor .field.full+ .field.full{margin-top:2px!important}
+@media(max-width:620px){.client360-details-body{padding:14px!important}.client360-modal-section{padding:13px!important}.client360-modal-section-head{grid-template-columns:38px minmax(0,1fr) auto!important}.quick-reply-upload-zone{min-height:135px!important;padding:16px!important}}
+
+
+/* ZYNKO V2.31.78 · Historial completo y estable en Bandeja */
+body.page-inbox #messages{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  overscroll-behavior:contain!important;
+  scrollbar-gutter:stable!important;
+  scroll-behavior:auto!important;
+}
+body.page-inbox #messages .message-wrap{flex:0 0 auto!important;}
+
+/* ZYNKO V2.31.79 · Historial completo, cierre de chat y satisfacción */
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump{
+  background:color-mix(in srgb,var(--accent) 8%,var(--surface))!important;
+  color:var(--accent)!important;
+  border-color:color-mix(in srgb,var(--accent) 24%,var(--line))!important;
+}
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump:hover{
+  background:color-mix(in srgb,var(--accent) 14%,var(--surface))!important;
+  filter:none!important;
+}
+.customer-survey-status{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin-top:10px;
+  padding:10px 11px;
+  border:1px solid #eadfb1;
+  border-radius:12px;
+  background:#fffdf3;
+}
+.customer-survey-status>span{
+  width:31px;height:31px;border-radius:9px;display:grid;place-items:center;
+  background:#fff5c7;color:#a66d00;flex:0 0 auto;
+}
+.customer-survey-status div{min-width:0;display:grid;gap:2px}
+.customer-survey-status small{font-size:9px;text-transform:uppercase;font-weight:800;color:var(--muted)}
+.customer-survey-status b{font-size:12px;color:var(--text)}
+.customer-survey-status em{font-size:10px;color:var(--muted);font-style:normal;overflow-wrap:anywhere}
+@media(max-width:1280px) and (min-width:761px){
+  body:has(.inbox-premium-toolbar) .chat-actions .history-jump{width:34px!important;min-width:34px!important;padding:0!important;font-size:0!important}
+  body:has(.inbox-premium-toolbar) .chat-actions .history-jump i{font-size:11px!important}
+}

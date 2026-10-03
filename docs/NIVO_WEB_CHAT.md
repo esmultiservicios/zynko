@@ -81,3 +81,22 @@ Al cerrar por inactividad, la conversación se marca como cerrada y el visitante
 - estado conversacional visible;
 - seguimiento por inactividad;
 - cierre automático seguro.
+
+
+## Historial, cierre y satisfacción (V2.31.79)
+
+- El historial Web Chat se devuelve completo y ordenado por fecha + ID, incluyendo el saludo inicial persistido.
+- El visitante dispone de accesos **Inicio** y **Último** para recorrer conversaciones largas sin que el polling lo devuelva al final.
+- **Finalizar chat** cierra la atención sin borrar el historial.
+- Al finalizar, NIVO puede solicitar una calificación de 1 a 5 estrellas y un comentario opcional.
+- Después del cierre, **Iniciar nuevo chat** separa la nueva conversación del historial anterior.
+- Si un agente finaliza una conversación Web Chat desde Bandeja, el widget recibe la solicitud de encuesta en tiempo real/polling.
+- Las respuestas de satisfacción se guardan por empresa/conversación y se muestran en Cliente 360°.
+
+
+## Conversación continua y controles premium (V2.31.81)
+
+- Las consultas sobre IZZY, CAMI y ZYNKO de la empresa principal se atienden antes de límites automáticos para evitar silencios en medio del flujo.
+- Si una política alcanza el máximo de respuestas automáticas, NIVO informa al visitante y ofrece continuar mediante un nuevo chat o atención humana; nunca queda sin respuesta silenciosamente.
+- El navegador de historial Inicio / Último usa un control compacto premium que mantiene el espacio útil del chat.
+- Finalizar chat e Iniciar nuevo chat muestran acciones con icono, título, descripción y jerarquía visual consistente.

@@ -34,7 +34,11 @@
     idleNudgeTimer: null,
     idleCloseTimer: null,
     initialGreetingShown: false,
-    statusTimer: null
+    statusTimer: null,
+    initialMessages: [],
+    conversationClosed: false,
+    surveyConversationId: 0,
+    selectedRating: 0
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -49,6 +53,8 @@
     const payload = {
       key,
       visitor_token: state.visitor_token,
+      client_hour: new Date().getHours(),
+      client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
       ...data
     };
     const form = new URLSearchParams();
@@ -248,7 +254,10 @@
 
       state.visitor_token = data.visitor_token;
       state.conversation_id = data.conversation_id;
+      state.conversationClosed = Boolean(data.conversation_closed);
+      state.surveyConversationId = data.survey?.conversation_id || 0;
       state.widget = data.widget;
+      state.initialMessages = data.messages || [];
       state.profile = {
         name: data.visitor_profile?.name || localStorage.getItem(`${storagePrefix}.name`) || '',
         email: data.visitor_profile?.email || localStorage.getItem(`${storagePrefix}.email`) || ''
@@ -258,8 +267,7 @@
       touchSession();
       mount(data);
       connect(data);
-      renderMessages(data.messages || [], false);
-      await showInitialGreeting(data.messages || []);
+      renderMessages(state.initialMessages, false);
       scheduleInactivity();
     } catch (error) {
       console.warn('NIVO Web Chat:', error.message);
@@ -348,7 +356,7 @@
         .ia-state span{width:5px;height:5px;border-radius:50%;background:#64e2c9}
         .close{width:34px;height:34px;border-radius:10px;background:#ffffff12;color:#fff;border:1px solid #ffffff16;font-size:19px;cursor:pointer;display:grid;place-items:center}
         .close:hover{background:#ffffff22}
-        .msgs{flex:1;overflow:auto;padding:15px;background:#f8fafc;display:flex;flex-direction:column;gap:9px}
+        .msgs{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;padding:15px;background:#f8fafc;display:flex;flex-direction:column;gap:9px;overscroll-behavior:contain}
         .m{max-width:84%;padding:10px 12px;border-radius:14px;white-space:pre-wrap;font-size:14px;line-height:1.4}
         .in{align-self:flex-start;background:#fff;border:1px solid #dce5eb;border-bottom-left-radius:4px}
         .out{align-self:flex-end;background:${widget.accent_color};color:#fff;border-bottom-right-radius:4px}
@@ -377,6 +385,31 @@
         .composer{padding:11px;border-top:1px solid #e5e7eb;display:flex;gap:8px;background:#fff}
         .send{width:44px;min-width:44px;border:0;border-radius:11px;background:${widget.accent_color};color:#fff;cursor:pointer}
         .send:disabled{opacity:.55;cursor:not-allowed}
+        .msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc}
+        .msgs-wrap .msgs{flex:1;min-height:0;overflow-y:auto}
+        .history-nav{position:relative;z-index:2;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:7px 10px;background:#fff;border-bottom:1px solid #e6efed;box-shadow:0 5px 16px #0f172a0a}
+        .history-nav-label{display:inline-flex;align-items:center;gap:4px;margin-right:auto;color:#64748b;font-size:9px;font-weight:850;white-space:nowrap}
+        .history-nav button{height:30px;border:1px solid #d8e5e2;background:#f8fcfb;color:#0f766e;border-radius:9px;padding:0 9px;font-size:9px;font-weight:850;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.18s ease}
+        .history-nav button:hover{background:#eaf8f4;border-color:#a8d9ce;transform:translateY(-1px)}
+        .history-nav button:active{transform:translateY(0)}
+        .session-actions{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-top:1px solid #eef2f7;background:#fff}
+        .session-actions[hidden]{display:none!important}
+        .finish-chat,.new-chat{width:100%;border-radius:13px;padding:9px 11px;font-size:10px;font-weight:850;cursor:pointer;display:flex;align-items:center;gap:9px;text-align:left;transition:.18s ease}
+        .finish-chat{background:linear-gradient(180deg,#fffaf8,#fff4f1);color:#8f352b;border:1px solid #efc8c1;box-shadow:0 5px 14px #7f1d1d0d}
+        .finish-chat:hover{border-color:#e7aaa0;background:#fff0ec;transform:translateY(-1px)}
+        .finish-icon,.new-chat-icon{width:28px;height:28px;min-width:28px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+        .finish-icon{background:#fde7e2;color:#a33b2f}.new-chat-icon{background:#ffffff22;color:#fff}
+        .finish-copy,.new-chat-copy{display:grid;gap:1px;flex:1;min-width:0}
+        .finish-copy b,.new-chat-copy b{font-size:10px;line-height:1.15}.finish-copy small,.new-chat-copy small{font-size:8.5px;line-height:1.25;font-weight:650;opacity:.72}
+        .finish-arrow,.new-chat-arrow{font-size:18px;line-height:1;opacity:.7}
+        .new-chat{background:${widget.accent_color};color:#fff;border:1px solid ${widget.accent_color};box-shadow:0 6px 16px #0f766e22}
+        .new-chat:hover{filter:brightness(.97);transform:translateY(-1px)}
+        .finish-confirm{margin:8px 12px;padding:10px;border:1px solid #f0d1ca;border-radius:12px;background:#fff8f6;display:grid;gap:8px;font-size:11px;color:#5f2d28}
+        .finish-confirm[hidden]{display:none!important}.finish-confirm-actions{display:flex;justify-content:flex-end;gap:7px}.finish-confirm button{border:0;border-radius:9px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer}.finish-confirm .cancel-finish{background:#edf2f7;color:#334155}.finish-confirm .confirm-finish{background:#b94a3c;color:#fff}
+        .survey-card{margin:9px 12px;padding:12px;border:1px solid #cfe7e1;border-radius:14px;background:#f7fcfa;display:grid;gap:9px}.survey-card[hidden]{display:none!important}.survey-card b{font-size:12px;color:#173a35}.survey-card small{font-size:10px;color:#64748b;line-height:1.35}
+        .survey-stars{display:flex;gap:6px}.survey-stars button{width:34px;height:34px;border:1px solid #d7e6e2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px}.survey-stars button.active{background:#fff4c7;border-color:#e5b72f;transform:translateY(-1px)}
+        .survey-comment{width:100%;min-height:58px;resize:vertical;border:1px solid #d5dee5;border-radius:10px;padding:9px 10px;font-size:11px;color:#172033;outline:none}.survey-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.survey-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer}.survey-submit{background:${widget.accent_color};color:#fff}.survey-skip{background:#edf2f7;color:#334155}
+        .composer.is-closed{display:none!important}
         .brand{display:flex;align-items:center;justify-content:center;gap:6px;text-align:center;font-size:10px;color:#94a3b8;padding:0 9px 9px}
         .brand b{color:#64748b}
         .brand img{width:18px;height:18px;object-fit:contain;object-position:center center;display:block;margin:0}
@@ -391,6 +424,10 @@
           .launch-logo{width:42px;height:42px}
           .launch-logo img{width:39px;height:39px}
           .head{grid-template-columns:44px minmax(0,1fr) 34px}
+          .history-nav{padding:6px 8px}
+          .history-nav-label{display:none}
+          .history-nav button{height:29px;padding:0 8px}
+          .finish-chat,.new-chat{padding:8px 9px}
           .bot{width:44px;height:44px}
           .bot img{width:43px;height:43px}
         }
@@ -413,7 +450,10 @@
             </div>
             <button class="close" aria-label="Minimizar">×</button>
           </div>
-          <div class="msgs"></div>
+          <div class="msgs-wrap">
+            <div class="history-nav" aria-label="Navegar historial"><span class="history-nav-label">↕ Historial</span><button type="button" class="history-start"><span>↑</span><span>Inicio</span></button><button type="button" class="history-end"><span>↓</span><span>Último</span></button></div>
+            <div class="msgs"></div>
+          </div>
           <div class="profile" ${(widget.ask_name || widget.ask_email) && !state.conversation_id ? '' : 'hidden'}>
             ${widget.ask_name ? `<input class="name" placeholder="Tu nombre" value="${esc(state.profile.name)}">` : ''}
             ${widget.ask_email ? `<input class="email" type="email" placeholder="Tu correo" value="${esc(state.profile.email)}">` : ''}
@@ -430,7 +470,11 @@
           ${experience.quick_replies_enabled && Array.isArray(experience.quick_replies) && experience.quick_replies.length
             ? `<div class="quick-replies">${experience.quick_replies.map(value => `<button type="button" class="quick" data-q="${esc(value)}">${esc(value)}</button>`).join('')}</div>`
             : ''}
-          <form class="composer">
+          <div class="session-actions" ${state.conversation_id && !state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
+          <div class="finish-confirm" hidden><b>¿Finalizar esta conversación?</b><span>El historial se conserva y podrás calificar la atención.</span><div class="finish-confirm-actions"><button type="button" class="cancel-finish">Cancelar</button><button type="button" class="confirm-finish">Finalizar</button></div></div>
+          <div class="survey-card" hidden><b>¿Cómo fue tu atención?</b><small>Tu opinión nos ayuda a mejorar. Selecciona de 1 a 5 estrellas.</small><div class="survey-stars">${[1,2,3,4,5].map(v=>`<button type="button" data-rating="${v}" aria-label="${v} estrellas">★</button>`).join('')}</div><textarea class="survey-comment" maxlength="1000" placeholder="Comentario opcional"></textarea><div class="survey-actions"><button type="button" class="survey-skip">Ahora no</button><button type="button" class="survey-submit">Enviar opinión</button></div></div>
+          <div class="session-actions new-chat-wrap" ${state.conversationClosed ? '' : 'hidden'}><button type="button" class="new-chat"><span class="new-chat-icon">＋</span><span class="new-chat-copy"><b>Iniciar nuevo chat</b><small>Comienza una conversación nueva desde cero</small></span><span class="new-chat-arrow">›</span></button></div>
+          <form class="composer${state.conversationClosed ? ' is-closed' : ''}">
             <input class="text" autocomplete="off" placeholder="Escribe un mensaje…">
             <button class="send" aria-label="Enviar">➤</button>
           </form>
@@ -465,6 +509,7 @@
       if (state.opened) {
         badge.classList.remove('on');
         badge.textContent = '0';
+        showInitialGreeting(state.initialMessages || []);
         shadow.querySelector('.text')?.focus();
       }
     };
@@ -476,6 +521,15 @@
       state.opened = false;
       persistOpen();
     };
+
+    shadow.querySelector('.history-start')?.addEventListener('click', () => {
+      const messages = shadow.querySelector('.msgs');
+      if (messages) messages.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    shadow.querySelector('.history-end')?.addEventListener('click', () => {
+      const messages = shadow.querySelector('.msgs');
+      if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
+    });
 
     if (experience.close_on_escape) {
       document.addEventListener('keydown', event => {
@@ -511,8 +565,106 @@
 
     shadow.querySelector('.profile-save')?.addEventListener('click', saveProfile);
 
+    const syncConversationStateUi = (survey = null) => {
+      const composer = shadow.querySelector('.composer');
+      const actions = shadow.querySelector('.session-actions:not(.new-chat-wrap)');
+      const newWrap = shadow.querySelector('.new-chat-wrap');
+      const surveyCard = shadow.querySelector('.survey-card');
+      if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
+      if (actions) actions.hidden = !state.conversation_id || state.conversationClosed;
+      if (newWrap) newWrap.hidden = !state.conversationClosed;
+      const shouldSurvey = state.conversationClosed && survey?.requested && !survey?.answered;
+      if (surveyCard) surveyCard.hidden = !shouldSurvey;
+      if (state.conversationClosed) setPresence('Chat finalizado');
+    };
+
+    shadow.querySelector('.finish-chat')?.addEventListener('click', () => {
+      const confirmBox = shadow.querySelector('.finish-confirm');
+      if (confirmBox) confirmBox.hidden = false;
+    });
+    shadow.querySelector('.cancel-finish')?.addEventListener('click', () => {
+      const confirmBox = shadow.querySelector('.finish-confirm');
+      if (confirmBox) confirmBox.hidden = true;
+    });
+    shadow.querySelector('.confirm-finish')?.addEventListener('click', async () => {
+      const button = shadow.querySelector('.confirm-finish');
+      if (button) button.disabled = true;
+      try {
+        const result = await call({ action: 'close' });
+        state.conversationClosed = true;
+        state.surveyConversationId = result.survey?.conversation_id || state.conversation_id;
+        const confirmBox = shadow.querySelector('.finish-confirm');
+        if (confirmBox) confirmBox.hidden = true;
+        await refresh();
+        syncConversationStateUi(result.survey || { requested: true, answered: false });
+      } catch (error) {
+        add(shadow, error.message, 'in', 'Sistema');
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+    shadow.querySelectorAll('.survey-stars button').forEach(button => button.addEventListener('click', () => {
+      state.selectedRating = parseInt(button.dataset.rating || '0', 10);
+      shadow.querySelectorAll('.survey-stars button').forEach(star => star.classList.toggle('active', parseInt(star.dataset.rating || '0', 10) <= state.selectedRating));
+    }));
+    shadow.querySelector('.survey-submit')?.addEventListener('click', async () => {
+      if (!state.selectedRating) {
+        setPresence('Selecciona una calificación', true);
+        return;
+      }
+      const button = shadow.querySelector('.survey-submit');
+      if (button) button.disabled = true;
+      try {
+        await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, comment: shadow.querySelector('.survey-comment')?.value || '' });
+        const surveyCard = shadow.querySelector('.survey-card');
+        if (surveyCard) surveyCard.innerHTML = '<b>¡Gracias por tu opinión! 💚</b><small>Tu calificación quedó registrada.</small>';
+        setPresence('Opinión registrada', true);
+      } catch (error) {
+        add(shadow, error.message, 'in', 'Sistema');
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+    shadow.querySelector('.survey-skip')?.addEventListener('click', () => {
+      const surveyCard = shadow.querySelector('.survey-card');
+      if (surveyCard) surveyCard.hidden = true;
+    });
+    shadow.querySelector('.new-chat')?.addEventListener('click', async () => {
+      const button = shadow.querySelector('.new-chat');
+      if (button) button.disabled = true;
+      try {
+        await call({ action: 'new_chat' });
+        state.conversation_id = 0;
+        state.conversationClosed = false;
+        state.surveyConversationId = 0;
+        state.selectedRating = 0;
+        state.lastCount = 0;
+        state.initialGreetingShown = false;
+        state.initialMessages = [];
+        const messages = shadow.querySelector('.msgs');
+        if (messages) messages.innerHTML = '';
+        const surveyCard = shadow.querySelector('.survey-card');
+        if (surveyCard) surveyCard.hidden = true;
+        syncConversationStateUi(null);
+        syncProfileUi();
+        await showInitialGreeting([]);
+        shadow.querySelector('.text')?.focus();
+      } catch (error) {
+        add(shadow, error.message, 'in', 'Sistema');
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+
+    syncConversationStateUi(data.survey || null);
+
     shadow.querySelector('.composer').onsubmit = async event => {
       event.preventDefault();
+
+      if (state.conversationClosed) {
+        setPresence('Inicia un nuevo chat para continuar', true);
+        return;
+      }
 
       if (state.sending && experience.prevent_double_submit) {
         return;
@@ -622,6 +774,7 @@
         box.classList.add('open');
         state.opened = true;
         persistOpen();
+        showInitialGreeting(state.initialMessages || []);
         if (experience.proactive_once) {
           localStorage.setItem(`${storagePrefix}.proactive`, '1');
         }
@@ -761,7 +914,7 @@
     setPresence('Listo para ayudarte');
   }
 
-  function add(shadow, body, direction, who) {
+  function add(shadow, body, direction, who, autoScroll = true) {
     const message = document.createElement('div');
     const stamp = state.widget?.experience?.show_timestamps
       ? `<span class="stamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`
@@ -769,8 +922,11 @@
 
     message.className = `m ${direction}`;
     message.innerHTML = `<div class="who">${esc(who)}</div>${esc(body)}${stamp}`;
-    shadow.querySelector('.msgs').appendChild(message);
-    shadow.querySelector('.msgs').scrollTop = 999999;
+    const box = shadow.querySelector('.msgs');
+    box.appendChild(message);
+    if (autoScroll) {
+      box.scrollTop = box.scrollHeight;
+    }
   }
 
   function addTyping(shadow) {
@@ -790,6 +946,9 @@
     const oldCount = state.lastCount;
     state.lastCount = messages.length;
     const box = state.shadow.querySelector('.msgs');
+    const previousScrollTop = box.scrollTop;
+    const distanceFromBottom = box.scrollHeight - box.clientHeight - box.scrollTop;
+    const wasNearBottom = oldCount === 0 || distanceFromBottom < 56;
 
     if (messages.length) {
       box.innerHTML = '';
@@ -798,9 +957,15 @@
           state.shadow,
           message.body || '',
           message.direction === 'in' ? 'out' : 'in',
-          message.sender_type === 'bot' ? 'NIVO' : (message.direction === 'in' ? (state.profile.name || 'Tú') : 'Agente')
+          message.sender_type === 'bot' ? 'NIVO' : (message.direction === 'in' ? (state.profile.name || 'Tú') : 'Agente'),
+          false
         );
       });
+      if (wasNearBottom) {
+        box.scrollTop = box.scrollHeight;
+      } else {
+        box.scrollTop = Math.min(previousScrollTop, Math.max(0, box.scrollHeight - box.clientHeight));
+      }
     }
 
     if (notify && messages.length > oldCount) {
@@ -831,8 +996,18 @@
     try {
       const data = await call({ action: 'messages' });
       state.conversation_id = data.conversation_id;
+      state.conversationClosed = Boolean(data.conversation_closed);
+      state.surveyConversationId = data.survey?.conversation_id || state.surveyConversationId;
       renderMessages(data.messages || []);
       syncProfileUi();
+      const composer = state.shadow?.querySelector('.composer');
+      if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
+      const actions = state.shadow?.querySelector('.session-actions:not(.new-chat-wrap)');
+      if (actions) actions.hidden = !state.conversation_id || state.conversationClosed;
+      const newWrap = state.shadow?.querySelector('.new-chat-wrap');
+      if (newWrap) newWrap.hidden = !state.conversationClosed;
+      const surveyCard = state.shadow?.querySelector('.survey-card');
+      if (surveyCard && state.conversationClosed && data.survey?.requested && !data.survey?.answered) surveyCard.hidden = false;
     } catch {
       // El refresco silencioso nunca debe bloquear el formulario principal.
     }
