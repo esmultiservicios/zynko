@@ -441,12 +441,12 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  q('#companyGeneratePassword')?.addEventListener('click',()=>{const A='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%',a=new Uint32Array(14);crypto.getRandomValues(a);q('#companyOwnerPassword').value=[...a].map(n=>A[n%A.length]).join('')});
  qa('.company-edit-btn').forEach(b=>b.addEventListener('click',()=>{const f=q('#companyEditForm');f.tenant_id.value=b.dataset.tenant||'';f.company_name.value=b.dataset.name||'';f.business_id.value=b.dataset.business||'';f.contact_phone.value=b.dataset.phone||'';f.status.value=b.dataset.status||'active';if(window.jQuery)window.jQuery(f.status).trigger('change.select2');openModal('companyEditModal');setTimeout(()=>f.company_name.focus(),80)}));
  qa('.company-plan-btn').forEach(b=>b.addEventListener('click',()=>{const f=q('#companyPlanForm');f.tenant_id.value=b.dataset.tenant||'';f.plan_id.value=b.dataset.plan||'';f.status.value=b.dataset.substatus||'active';q('#companyPlanSubtitle').textContent='Plan para '+(b.dataset.name||'esta empresa')+'. Todos sus usuarios heredan estas capacidades.';if(window.jQuery){window.jQuery(f.plan_id).trigger('change.select2');window.jQuery(f.status).trigger('change.select2')}openModal('companyPlanModal')}));
- const renderUsers=(tid,name)=>{const list=q('#companyUsersList'),rows=window.ZYNKO_COMPANY_USERS?.[tid]||window.ZYNKO_COMPANY_USERS?.[String(tid)]||[];q('#companyUsersTitle').textContent='Usuarios · '+name;if(!rows.length){list.innerHTML='<div class="company-user-empty"><i class="fa-solid fa-user-slash"></i><b>Sin usuarios vinculados</b></div>';return}list.innerHTML=rows.map(u=>`<article class="company-user-card" data-user="${Number(u.id)}" data-tenant="${Number(tid)}"><div class="company-user-avatar">${esc((u.name||'U').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase())}</div><div class="company-user-copy"><div><b>${esc(u.name)}</b>${Number(u.is_owner)===1?'<span class="ui-badge info">Principal</span>':''}</div><small>${esc(u.email)}</small><em>${u.last_login_at?'Último acceso '+esc(u.last_login_at):'Sin accesos registrados'} · ${Number(u.active_sessions||0)} sesión(es) activa(s)</em></div><div class="company-user-controls"><select class="company-user-role" ${Number(u.is_owner)===1?'disabled':''}><option value="owner" ${u.role_code==='owner'?'selected':''}>Owner</option><option value="admin" ${u.role_code==='admin'?'selected':''}>Admin</option><option value="supervisor" ${u.role_code==='supervisor'?'selected':''}>Supervisor</option><option value="agent" ${u.role_code==='agent'?'selected':''}>Agente</option></select><select class="company-user-status" ${Number(u.is_owner)===1?'disabled':''}><option value="active" ${u.status==='active'?'selected':''}>Activo</option><option value="disabled" ${u.status==='disabled'?'selected':''}>Deshabilitado</option></select></div><div class="company-user-actions"><button type="button" class="soft company-user-save"><i class="fa-solid fa-floppy-disk"></i> Guardar</button><button type="button" class="soft company-user-password"><i class="fa-solid fa-key"></i> Nueva contraseña</button><button type="button" class="primary company-user-assist" ${u.status!=='active'?'disabled':''}><i class="fa-solid fa-right-to-bracket"></i> Entrar como usuario</button></div></article>`).join('')};
+ const renderUsers=(tid,name)=>{const list=q('#companyUsersList'),rows=window.ZYNKO_COMPANY_USERS?.[tid]||window.ZYNKO_COMPANY_USERS?.[String(tid)]||[];q('#companyUsersTitle').textContent='Usuarios · '+name;if(!rows.length){list.innerHTML='<div class="company-user-empty"><i class="fa-solid fa-user-slash"></i><b>Sin usuarios vinculados</b></div>';return}list.innerHTML=rows.map(u=>`<article class="company-user-card" data-user="${Number(u.id)}" data-tenant="${Number(tid)}"><div class="company-user-avatar">${esc((u.name||'U').split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase())}</div><div class="company-user-copy"><div><b>${esc(u.name)}</b>${Number(u.is_owner)===1?'<span class="ui-badge info">Principal</span>':''}</div><small>${esc(u.email)}</small><em>${u.last_login_at?'Último acceso '+esc(u.last_login_at):'Sin accesos registrados'} · ${Number(u.active_sessions||0)} sesión(es) activa(s)</em></div><div class="company-user-controls"><select class="company-user-role" ${Number(u.is_owner)===1?'disabled':''}><option value="owner" ${u.role_code==='owner'?'selected':''}>Owner</option><option value="admin" ${u.role_code==='admin'?'selected':''}>Admin</option><option value="supervisor" ${u.role_code==='supervisor'?'selected':''}>Supervisor</option><option value="agent" ${u.role_code==='agent'?'selected':''}>Agente</option></select><select class="company-user-status" ${Number(u.is_owner)===1?'disabled':''}><option value="active" ${u.status==='active'?'selected':''}>Activo</option><option value="disabled" ${u.status==='disabled'?'selected':''}>Deshabilitado</option></select></div><div class="company-user-actions company-user-action-wrap"><button type="button" class="soft company-user-action-toggle" aria-expanded="false"><i class="fa-solid fa-list-check"></i><span>Acciones</span><i class="fa-solid fa-chevron-down action-chevron"></i></button><div class="company-user-action-menu"><button type="button" class="company-user-save" data-user="${Number(u.id)}" data-tenant="${Number(tid)}"><i class="fa-solid fa-floppy-disk"></i><span><b>Guardar cambios</b><small>Rol y estado del usuario</small></span></button><button type="button" class="company-user-password" data-user="${Number(u.id)}" data-tenant="${Number(tid)}"><i class="fa-solid fa-key"></i><span><b>Nueva contraseña</b><small>Generar una contraseña temporal segura</small></span></button><button type="button" class="company-user-assist" data-user="${Number(u.id)}" data-tenant="${Number(tid)}" ${u.status!=='active'?'disabled':''}><i class="fa-solid fa-right-to-bracket"></i><span><b>Entrar como usuario</b><small>Abrir ZYNKO en modo asistencia</small></span></button></div></div></article>`).join('')};
  qa('.company-users-btn').forEach(b=>b.addEventListener('click',()=>{renderUsers(b.dataset.tenant,b.dataset.name||'Empresa');openModal('companyUsersModal')}));
- q('#companyUsersList')?.addEventListener('click',async e=>{const card=e.target.closest('.company-user-card');if(!card)return;const tid=card.dataset.tenant,uid=card.dataset.user;
-  if(e.target.closest('.company-user-save')){const fd=new FormData();fd.append('action','company_user_manage');fd.append('tenant_id',tid);fd.append('user_id',uid);fd.append('role',q('.company-user-role',card).value);fd.append('status',q('.company-user-status',card).value);try{const j=await post(fd);showNotify('success','Usuario actualizado',j.message);setTimeout(()=>location.reload(),400)}catch(err){showNotify('error','No se pudo actualizar',err.message)}return}
-  if(e.target.closest('.company-user-password')){const ask=await Swal.fire({title:'Generar contraseña temporal',html:'La contraseña actual <b>no puede visualizarse</b>. ZYNKO generará una nueva, cerrará las sesiones activas y la mostrará una sola vez.',icon:'warning',showCancelButton:true,confirmButtonText:'Generar contraseña',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','company_user_temp_password');fd.append('tenant_id',tid);fd.append('user_id',uid);try{const j=await post(fd),pwd=j.data?.temporary_password||'';await Swal.fire({title:'Contraseña temporal creada',html:`<div class="temporary-password-box"><small>${esc(j.data?.user_name||'Usuario')}</small><code id="zynkoTempPassword">${esc(pwd)}</code><p>Guárdala y compártela por un canal seguro. No volverá a mostrarse.</p></div>`,icon:'success',showCancelButton:true,confirmButtonText:'Copiar contraseña',cancelButtonText:'Cerrar',allowOutsideClick:false}).then(async r=>{if(r.isConfirmed){await (window.ZynkoCopyNotify?window.ZynkoCopyNotify(pwd,'Contraseña temporal copiada.'):navigator.clipboard.writeText(pwd))}});}catch(err){showNotify('error','No se pudo restablecer',err.message)}return}
-  if(e.target.closest('.company-user-assist')){const ask=await Swal.fire({title:'Entrar en modo asistencia',html:'Verás ZYNKO exactamente dentro de esta empresa y usuario.<br><b>Podrás volver a tu administración desde la barra superior.</b>',icon:'question',showCancelButton:true,confirmButtonText:'Entrar como usuario',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','company_impersonate');fd.append('tenant_id',tid);fd.append('user_id',uid);try{const j=await post(fd);location.href=j.data?.redirect||'?page=dashboard'}catch(err){showNotify('error','No se pudo iniciar asistencia',err.message)} }
+ document.addEventListener('click',async e=>{const actionBtn=e.target.closest('.company-user-save,.company-user-password,.company-user-assist');if(!actionBtn)return;const tid=actionBtn.dataset.tenant||'',uid=actionBtn.dataset.user||'';const card=q(`.company-user-card[data-user="${CSS.escape(String(uid))}"][data-tenant="${CSS.escape(String(tid))}"]`);if(!card)return;
+  if(actionBtn.classList.contains('company-user-save')){const fd=new FormData();fd.append('action','company_user_manage');fd.append('tenant_id',tid);fd.append('user_id',uid);fd.append('role',q('.company-user-role',card).value);fd.append('status',q('.company-user-status',card).value);try{const j=await post(fd);showNotify('success','Usuario actualizado',j.message);setTimeout(()=>location.reload(),400)}catch(err){showNotify('error','No se pudo actualizar',err.message)}return}
+  if(actionBtn.classList.contains('company-user-password')){const ask=await Swal.fire({title:'Generar contraseña temporal',html:'La contraseña actual <b>no puede visualizarse</b>. ZYNKO generará una nueva, cerrará las sesiones activas y la mostrará una sola vez.',icon:'warning',showCancelButton:true,confirmButtonText:'Generar contraseña',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','company_user_temp_password');fd.append('tenant_id',tid);fd.append('user_id',uid);try{const j=await post(fd),pwd=j.data?.temporary_password||'';await Swal.fire({title:'Contraseña temporal creada',html:`<div class="temporary-password-box"><small>${esc(j.data?.user_name||'Usuario')}</small><code id="zynkoTempPassword">${esc(pwd)}</code><p>Guárdala y compártela por un canal seguro. No volverá a mostrarse.</p></div>`,icon:'success',showCancelButton:true,confirmButtonText:'Copiar contraseña',cancelButtonText:'Cerrar',allowOutsideClick:false}).then(async r=>{if(r.isConfirmed){await (window.ZynkoCopyNotify?window.ZynkoCopyNotify(pwd,'Contraseña temporal copiada.'):navigator.clipboard.writeText(pwd))}});}catch(err){showNotify('error','No se pudo restablecer',err.message)}return}
+  if(actionBtn.classList.contains('company-user-assist')){if(actionBtn.disabled)return;const ask=await Swal.fire({title:'Entrar en modo asistencia',html:'Verás ZYNKO exactamente dentro de esta empresa y usuario.<br><b>Podrás volver a tu administración desde la barra superior.</b>',icon:'question',showCancelButton:true,confirmButtonText:'Entrar como usuario',cancelButtonText:'Cancelar',allowOutsideClick:false});if(!ask.isConfirmed)return;const fd=new FormData();fd.append('action','company_impersonate');fd.append('tenant_id',tid);fd.append('user_id',uid);try{const j=await post(fd);location.href=j.data?.redirect||'?page=dashboard'}catch(err){showNotify('error','No se pudo iniciar asistencia',err.message)} }
  });
  const cards=qa('.company-card'),empty=q('#companyEmpty'),searchMain=q('#companySearch'),searchQuick=q('#companyQuickSearch'),clearMain=q('#companySearchClear'),clearQuick=q('#companyQuickSearchClear'),statusFilter=q('#companyStatusFilter'),planFilter=q('#companyPlanFilter'),perPageSelect=q('#companyPerPage'),summary=q('#companyDirectorySummary'),pageInfo=q('#companyPaginationInfo'),pagination=q('#companyPagination');
  const companyState={page:1,perPage:9};
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
 
 /* ZYNKO V2.31.25 · Menús de acciones inteligentes portales (Usuarios + Empresas + Suscripciones) */
 (()=>{
- const selector='.user-action-wrap,.company-action-wrap,.plan-action-wrap';
+ const selector='.user-action-wrap,.company-action-wrap,.plan-action-wrap,.company-user-action-wrap';
  let active=null;
  const restore=()=>{
    if(!active)return;
@@ -490,18 +490,18 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
    menu.style.left=x+'px';menu.style.top=y+'px';menu.style.maxHeight=Math.min(440,window.innerHeight-pad*2)+'px';menu.style.overflow='auto';menu.dataset.placement=placement;menu.style.visibility='visible';
  };
  document.addEventListener('click',e=>{
-   const toggle=e.target.closest('.user-action-toggle,.company-action-toggle,.plan-action-toggle');
+   const toggle=e.target.closest('.user-action-toggle,.company-action-toggle,.plan-action-toggle,.company-user-action-toggle');
    if(toggle){
      e.preventDefault();e.stopImmediatePropagation();
      const wrap=toggle.closest(selector);if(!wrap)return;
      if(active?.wrap===wrap){restore();return;}
      restore();
-     const menu=wrap.querySelector('.user-action-menu,.company-action-menu,.plan-action-menu');if(!menu)return;
+     const menu=wrap.querySelector('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu');if(!menu)return;
      const next=menu.nextSibling;active={wrap,toggle,menu,next};wrap.classList.add('open');toggle.setAttribute('aria-expanded','true');place(toggle,menu);return;
    }
-   if(active && !e.target.closest('.user-action-menu,.company-action-menu,.plan-action-menu'))restore();
+   if(active && !e.target.closest('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu'))restore();
  },true);
- document.addEventListener('click',e=>{if(active&&e.target.closest('.user-action-menu button,.company-action-menu button,.plan-action-menu button'))setTimeout(restore,0)},false);
+ document.addEventListener('click',e=>{if(active&&e.target.closest('.user-action-menu button,.company-action-menu button,.plan-action-menu button,.company-user-action-menu button'))setTimeout(restore,0)},false);
  window.addEventListener('resize',restore,{passive:true});window.addEventListener('scroll',restore,true);window.addEventListener('blur',restore);
  document.addEventListener('keydown',e=>{if(e.key==='Escape')restore()});
 })();
@@ -616,4 +616,88 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  });
  window.addEventListener('popstate',e=>{if(isInbox())navigate(location.href,false)});
  document.addEventListener('zynko:inbox-list-refresh',()=>{if(!document.hidden&&document.body.dataset.inboxAjaxReady==='1')navigate(location.href,false)});
+})();
+
+
+// ZYNKO V2.31.62 · Normalización global de modales: header/footer fijos y body con scroll.
+(()=>{
+  const normalizeHeading=(card)=>{
+    const head=card.querySelector(':scope > .modal-head');
+    if(!head)return;
+    const box=head.querySelector(':scope > div:first-child');
+    if(!box)return;
+    box.classList.add('modal-title-with-icon');
+    let icon=box.querySelector(':scope > .modal-title-icon');
+    if(!icon){
+      icon=document.createElement('span');
+      icon.className='modal-title-icon';
+      icon.innerHTML='<i class="fa-solid fa-layer-group"></i>';
+      box.prepend(icon);
+    }
+    let copy=box.querySelector(':scope > .modal-title-copy');
+    if(!copy){
+      copy=document.createElement('span');
+      copy.className='modal-title-copy';
+      [...box.childNodes].filter(node=>node!==icon).forEach(node=>copy.appendChild(node));
+      box.appendChild(copy);
+    }
+  };
+
+  const normalizeCard=(card)=>{
+    if(!card||card.dataset.zynkoModalNormalized==='1')return;
+    normalizeHeading(card);
+    // Planes y legales ya tienen una estructura especializada con header/body/footer fijos.
+    if(card.closest('#planModal')||card.classList.contains('legal-modal-card')||card.classList.contains('legal-admin-modal-card')){
+      card.dataset.zynkoModalNormalized='1';
+      return;
+    }
+    card.classList.add('zynko-modal-fixed');
+
+    // Modales compuestos (ej. Usuarios) ya traen un body común y footer independiente.
+    if(card.querySelector(':scope > .modal-composite-body')){
+      card.dataset.zynkoModalNormalized='1';
+      return;
+    }
+
+    const directForms=[...card.children].filter(el=>el.tagName==='FORM');
+    if(directForms.length===1){
+      const form=directForms[0];
+      const actions=[...form.children].find(el=>el.classList?.contains('modal-actions'));
+      if(actions){
+        form.classList.add('zynko-modal-form');
+        const body=document.createElement('div');
+        body.className='zynko-modal-scroll-body';
+        [...form.children].filter(el=>el!==actions).forEach(el=>body.appendChild(el));
+        form.insertBefore(body,actions);
+        card.dataset.zynkoModalNormalized='1';
+        return;
+      }
+    }
+
+    const directActions=[...card.children].find(el=>el.classList?.contains('modal-actions'));
+    if(directActions){
+      const head=card.querySelector(':scope > .modal-head');
+      const body=document.createElement('div');
+      body.className='zynko-modal-scroll-body';
+      [...card.children].filter(el=>el!==head&&el!==directActions).forEach(el=>body.appendChild(el));
+      card.insertBefore(body,directActions);
+    }
+    card.dataset.zynkoModalNormalized='1';
+  };
+
+  const normalizeAll=(scope=document)=>scope.querySelectorAll?.('.modal-shell .modal-card').forEach(normalizeCard);
+  const run=()=>normalizeAll(document);
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();
+
+  // La Bandeja reemplaza algunos modales por AJAX; normalizarlos también al insertarse.
+  const observer=new MutationObserver(records=>{
+    for(const record of records){
+      for(const node of record.addedNodes){
+        if(!(node instanceof Element))continue;
+        if(node.matches?.('.modal-card'))normalizeCard(node);
+        normalizeAll(node);
+      }
+    }
+  });
+  observer.observe(document.documentElement,{childList:true,subtree:true});
 })();

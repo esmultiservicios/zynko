@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='login') {
       setcookie('zynko_login_email','',['expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax']);
       $sessionToken=hash('sha256','php:'.session_id().':'.bin2hex(random_bytes(16)));$exp=(new DateTimeImmutable('+12 hours'))->format('Y-m-d H:i:s');
       $q=appDb()->prepare('INSERT INTO user_sessions(user_id,token_hash,remember_me,ip_address,user_agent,expires_at) VALUES(?,?,0,?,?,?)');$q->execute([$u['id'],$sessionToken,$ip,$ua,$exp]);$_SESSION['zynko_session_row_id']=(int)appDb()->lastInsertId();
-    } try{require_once $root.'/app/Services/NotificationService.php';(new NotificationService(appDb(),$root))->send((int)$u['tenant_id'],'login',$u['email'],'Nuevo inicio de sesión en ZYNKO','Hola '.$u['name'].'. Se inició sesión en tu cuenta el '.date('d/m/Y H:i').' desde IP '.($_SERVER['REMOTE_ADDR']??'no disponible').'. Si fuiste tú, no necesitas realizar ninguna acción.',['dedupe_key'=>'login:'.$u['id'].':'.date('YmdHi')]);}catch(Throwable $e){} header('Location: ?page=dashboard');exit;}catch(Throwable $e){$loginError=$e->getMessage();}
+    } try{require_once $root.'/app/Services/NotificationService.php';(new NotificationService(appDb(),$root))->send((int)$u['tenant_id'],'login',$u['email'],'Nuevo inicio de sesión en ZYNKO','Hola '.$u['name'].'. Se inició sesión en tu cuenta el '.date('d/m/Y H:i').' desde IP '.($_SERVER['REMOTE_ADDR']??'no disponible').'. Si fuiste tú, no necesitas realizar ninguna acción.',['dedupe_key'=>'login:'.$u['id'].':'.date('YmdHi')]);}catch(Throwable $e){} $loginRedirect=(string)($_POST['redirect']??$_GET['redirect']??'dashboard');$loginRedirectAllowed=['dashboard','inbox','channels','webchat','users','chatbot','integrations','billing','email','settings'];if(!in_array($loginRedirect,$loginRedirectAllowed,true))$loginRedirect='dashboard';header('Location: ?page='.rawurlencode($loginRedirect));exit;}catch(Throwable $e){$loginError=$e->getMessage();}
 }
 function jsonOut(bool $ok,string $message,array $data=[]): never {
   if($ok && $_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user'])){try{zynkoNotifyAdministrativeAction((string)($_POST['action']??''),$message,$data);}catch(Throwable $e){}}
@@ -152,7 +152,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.60';
+$releaseVersion='2.31.63';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -624,6 +624,16 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'show_online_status'=>isset($_POST['show_online_status']),
     'launcher_animation'=>isset($_POST['launcher_animation']),
     'session_timeout_minutes'=>max(15,min(10080,(int)($_POST['session_timeout_minutes']??1440))),
+    'initial_greeting_typing_ms'=>max(350,min(5000,(int)($_POST['initial_greeting_typing_ms']??1200))),
+    'inactivity_nudge_minutes'=>max(1,min(120,(int)($_POST['inactivity_nudge_minutes']??5))),
+    'inactivity_close_minutes'=>max(2,min(1440,(int)($_POST['inactivity_close_minutes']??30))),
+    'inactivity_message'=>mb_substr(trim((string)($_POST['inactivity_message']??'¿Sigues por aquí? Si necesitas algo más, estoy pendiente para ayudarte.')),0,500),
+    'inactivity_close_message'=>mb_substr(trim((string)($_POST['inactivity_close_message']??'Cerré esta sesión por inactividad. Cuando quieras, escribe y comenzamos una nueva conversación.')),0,500),
+    'smart_greeting'=>isset($_POST['smart_greeting']),
+    'persist_profile'=>isset($_POST['persist_profile']),
+    'show_profile_chip'=>isset($_POST['show_profile_chip']),
+    'contextual_branding'=>isset($_POST['contextual_branding']),
+    'platform_brand_name'=>mb_substr(trim((string)($_POST['platform_brand_name']??'ES MULTISERVICIOS')),0,120),
     'poll_interval_seconds'=>max(3,min(60,(int)($_POST['poll_interval_seconds']??5))),
     'reconnect_seconds'=>max(1,min(30,(int)($_POST['reconnect_seconds']??3))),
     'allowed_paths'=>mb_substr(trim((string)($_POST['allowed_paths']??'')),0,1200),

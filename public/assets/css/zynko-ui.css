@@ -4246,3 +4246,389 @@ body:has(.inbox-premium-toolbar) .conversation[aria-current="true"] {
     transform: none !important;
   }
 }
+
+
+/* ZYNKO V2.31.62 · Sistema global de modales, switches y espaciado premium */
+.modal-shell .modal-card.zynko-modal-fixed{
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  flex-direction:column!important;
+  width:min(780px,calc(100vw - 36px))!important;
+  max-height:calc(100dvh - 36px)!important;
+}
+.modal-shell .modal-card.zynko-modal-fixed>.modal-head{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:18px 20px!important;
+  border-bottom:1px solid var(--line)!important;
+  background:var(--surface)!important;
+  position:relative!important;
+  z-index:5!important;
+}
+.modal-shell .modal-head>.modal-title-with-icon,
+.modal-shell .modal-head>div.modal-title-with-icon{
+  display:grid!important;
+  grid-template-columns:40px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:12px!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  max-width:calc(100% - 56px)!important;
+}
+.modal-shell .modal-title-copy{
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr)!important;
+  grid-auto-flow:row!important;
+  gap:4px!important;
+  align-content:center!important;
+  min-width:0!important;
+}
+.modal-shell .modal-title-copy>b,
+.modal-shell .modal-title-copy>small{
+  display:block!important;
+  width:100%!important;
+  margin:0!important;
+}
+.modal-shell .modal-title-copy>b{
+  font-size:15px!important;
+  line-height:1.3!important;
+}
+.modal-shell .modal-title-copy>small{
+  font-size:12px!important;
+  line-height:1.45!important;
+  color:var(--muted)!important;
+}
+.modal-shell .modal-card.zynko-modal-fixed>.zynko-modal-form,
+.modal-shell .modal-card.zynko-modal-fixed>form.zynko-modal-form{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  display:grid!important;
+  grid-template-rows:minmax(0,1fr) auto!important;
+  gap:0!important;
+}
+.modal-shell .zynko-modal-scroll-body,
+.modal-shell .modal-composite-body{
+  min-height:0!important;
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  padding:20px!important;
+  scrollbar-gutter:stable!important;
+  display:grid!important;
+  align-content:start!important;
+  gap:20px!important;
+}
+.modal-shell .modal-card.zynko-modal-fixed>.modal-actions,
+.modal-shell .modal-card.zynko-modal-fixed>.zynko-modal-form>.modal-actions,
+.modal-shell .modal-card.zynko-modal-fixed>form.zynko-modal-form>.modal-actions{
+  flex:0 0 auto!important;
+  margin:0!important;
+  padding:14px 20px!important;
+  border-top:1px solid var(--line)!important;
+  background:var(--surface)!important;
+  position:relative!important;
+  z-index:5!important;
+}
+.modal-shell .zynko-modal-scroll-body>.settings-grid:first-child,
+.modal-shell .zynko-modal-scroll-body>.field:first-child,
+.modal-shell .zynko-modal-scroll-body>.notice:first-child,
+.modal-shell .modal-composite-body>form:first-child{
+  margin-top:0!important;
+}
+
+/* Switches/toggles: control y texto SIEMPRE en una sola fila. */
+.modal-shell label.switch-line,
+.panel label.switch-line,
+.settings-grid label.switch-line{
+  display:inline-flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  width:max-content!important;
+  max-width:100%!important;
+  min-height:38px!important;
+  margin:0!important;
+  padding:0!important;
+  white-space:normal!important;
+  cursor:pointer!important;
+}
+.modal-shell label.switch-line>input[type="checkbox"],
+.panel label.switch-line>input[type="checkbox"],
+.settings-grid label.switch-line>input[type="checkbox"]{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  min-width:0!important;
+  margin:0!important;
+  padding:0!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+.modal-shell label.switch-line>.switch-control,
+.panel label.switch-line>.switch-control,
+.settings-grid label.switch-line>.switch-control,
+.modal-shell label.switch-line>input[type="checkbox"]+span:not(.switch-label-text),
+.panel label.switch-line>input[type="checkbox"]+span:not(.switch-label-text),
+.settings-grid label.switch-line>input[type="checkbox"]+span:not(.switch-label-text){
+  position:relative!important;
+  display:block!important;
+  flex:0 0 40px!important;
+  width:40px!important;
+  min-width:40px!important;
+  height:22px!important;
+  border-radius:999px!important;
+  background:#bcc9d6!important;
+}
+.modal-shell label.switch-line>.switch-label-text,
+.panel label.switch-line>.switch-label-text,
+.settings-grid label.switch-line>.switch-label-text{
+  position:static!important;
+  display:block!important;
+  flex:0 1 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  height:auto!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:var(--text)!important;
+  font-weight:650!important;
+  line-height:1.35!important;
+  white-space:normal!important;
+}
+.modal-shell label.switch-line>.switch-label-text:after,
+.panel label.switch-line>.switch-label-text:after,
+.settings-grid label.switch-line>.switch-label-text:after{display:none!important;content:none!important}
+.modal-shell .field>label.switch-line,
+.panel .field>label.switch-line{margin:0!important}
+
+/* El campo con título + switch mantiene etiqueta superior y switch en fila propia. */
+.modal-shell .field>label:not(.switch-line)+label.switch-line,
+.panel .field>label:not(.switch-line)+label.switch-line{
+  margin-top:2px!important;
+}
+
+/* Espaciado de bloques informativos/seguridad: nunca pegados a bordes u otros controles. */
+.env-admin-panel .env-security-note,
+.public-site-admin .public-site-note,
+.nivo-web-source-safety,
+.meta-note,
+.nivo-guide,
+.notice{
+  margin-top:6px!important;
+  margin-bottom:6px!important;
+}
+.env-admin-panel #envAdminForm{
+  row-gap:22px!important;
+}
+.env-admin-panel .env-security-note{
+  padding:16px 18px!important;
+}
+.env-admin-panel .version-save-field{
+  padding-top:4px!important;
+}
+
+/* Usuario: cuerpo desplazable, acciones fijas y separación clara entre perfil/fotografía. */
+#userEditModal .modal-composite-body{
+  gap:0!important;
+}
+#userEditModal .modal-composite-body>form{
+  width:100%!important;
+  margin:0!important;
+  padding:0!important;
+}
+#userEditModal .modal-composite-body>.user-avatar-form{
+  margin-top:24px!important;
+  padding-top:24px!important;
+  border-top:1px solid var(--line)!important;
+}
+#userEditModal .user-edit-fixed-actions{
+  display:flex!important;
+  justify-content:flex-end!important;
+  gap:10px!important;
+}
+
+@media(max-width:760px){
+  .modal-shell{padding:8px!important}
+  .modal-shell .modal-card.zynko-modal-fixed{
+    width:calc(100vw - 16px)!important;
+    max-height:calc(100dvh - 16px)!important;
+  }
+  .modal-shell .modal-card.zynko-modal-fixed>.modal-head{padding:14px 15px!important}
+  .modal-shell .zynko-modal-scroll-body,
+  .modal-shell .modal-composite-body{padding:15px!important;gap:16px!important}
+  .modal-shell .modal-card.zynko-modal-fixed>.modal-actions,
+  .modal-shell .modal-card.zynko-modal-fixed>.zynko-modal-form>.modal-actions,
+  .modal-shell .modal-card.zynko-modal-fixed>form.zynko-modal-form>.modal-actions{
+    padding:12px 15px!important;
+  }
+  #userEditModal .user-edit-fixed-actions{flex-direction:column!important}
+  #userEditModal .user-edit-fixed-actions>button{width:100%!important}
+}
+
+/* ZYNKO V2.31.63 · Acciones compactas, NIVO legible y orden visual */
+
+/* Empresas > Usuarios: una sola entrada Acciones, sin columna de botones apilados. */
+.company-user-actions.company-user-action-wrap{
+  position:relative!important;
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:center!important;
+  min-width:148px!important;
+}
+.company-user-action-toggle{
+  width:148px!important;
+  min-width:148px!important;
+  height:40px!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  padding:0 14px!important;
+  border-radius:11px!important;
+  background:#0e2a3d!important;
+  color:#fff!important;
+  border:1px solid #0e2a3d!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  white-space:nowrap!important;
+}
+.company-user-action-toggle:hover{background:#12364e!important;border-color:#12364e!important;transform:translateY(-1px)!important}
+.company-user-action-menu{display:none}
+.company-user-action-wrap.open .company-user-action-menu{display:grid}
+.company-user-action-menu.zynko-action-portal{
+  position:fixed!important;
+  display:grid!important;
+  gap:5px!important;
+  width:310px!important;
+  max-width:calc(100vw - 24px)!important;
+  max-height:min(420px,calc(100vh - 24px))!important;
+  overflow:auto!important;
+  z-index:2147483000!important;
+  padding:9px!important;
+  border:1px solid #dce7e4!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 24px 60px rgba(15,23,42,.24)!important;
+}
+.company-user-action-menu.zynko-action-portal button{
+  width:100%!important;
+  min-height:54px!important;
+  border:0!important;
+  background:transparent!important;
+  color:var(--text,#122033)!important;
+  padding:10px 11px!important;
+  border-radius:11px!important;
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr)!important;
+  gap:10px!important;
+  text-align:left!important;
+  align-items:center!important;
+  cursor:pointer!important;
+}
+.company-user-action-menu.zynko-action-portal button:hover{background:#f3f8f7!important}
+.company-user-action-menu.zynko-action-portal button>i{width:32px;height:32px;border-radius:9px;background:#eaf8f4;color:#078b76;display:grid;place-items:center}
+.company-user-action-menu.zynko-action-portal button span,.company-user-action-menu.zynko-action-portal button b,.company-user-action-menu.zynko-action-portal button small{display:block!important;min-width:0!important}
+.company-user-action-menu.zynko-action-portal button small{margin-top:2px;color:#64748b;font-size:11px;font-weight:500;line-height:1.35}
+.company-user-action-menu.zynko-action-portal button:disabled{opacity:.45;cursor:not-allowed}
+.theme-dark .company-user-action-menu.zynko-action-portal{background:#0f1d2b!important;border-color:#284054!important}
+
+/* NIVO: CTA siempre legible dentro del encabezado de Integraciones. */
+.nivo-install-doc-panel .panel-head>a.primary{
+  color:#fff!important;
+  background:var(--accent,#13a88a)!important;
+  border:1px solid var(--accent,#13a88a)!important;
+  opacity:1!important;
+  font-weight:850!important;
+  text-decoration:none!important;
+  box-shadow:0 8px 22px rgba(13,128,107,.16)!important;
+}
+.nivo-install-doc-panel .panel-head>a.primary:hover{filter:brightness(.96);transform:translateY(-1px)}
+
+/* Integraciones: URL visible como URL real, sin cortes ni escapes visuales. */
+.api-howto-panel .panel-head>.status-badge{
+  max-width:min(520px,48vw)!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;
+  letter-spacing:0!important;
+}
+
+/* Suscripciones Admin: el aviso Próximamente respira dentro de la tarjeta. */
+.plan-card .plan-coming-soon-note{
+  margin:8px 0 4px!important;
+}
+.plan-card .plan-coming-soon-note + .plan-limits{
+  margin-top:3px!important;
+}
+
+/* Configuración > Servidor y dominio: cabecera con jerarquía premium. */
+.env-admin-panel .env-panel-head{
+  padding:2px 0 4px!important;
+  align-items:center!important;
+}
+.env-panel-heading{
+  display:flex!important;
+  align-items:center!important;
+  gap:13px!important;
+  min-width:0!important;
+}
+.env-panel-heading>div{display:grid!important;gap:4px!important;min-width:0!important}
+.env-panel-icon{
+  width:44px!important;
+  height:44px!important;
+  flex:0 0 44px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:13px!important;
+  background:color-mix(in srgb,var(--accent) 12%,var(--surface))!important;
+  border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line))!important;
+  color:var(--accent2)!important;
+  font-size:16px!important;
+}
+.env-panel-heading b{font-size:15px!important;line-height:1.3!important}
+.env-file-badge{
+  display:inline-flex!important;
+  align-items:center!important;
+  margin-left:5px!important;
+  padding:3px 7px!important;
+  border-radius:8px!important;
+  background:#0e2a3d!important;
+  color:#fff!important;
+  font:800 11px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;
+  vertical-align:2px!important;
+}
+
+/* SEO: tres utilidades alineadas en la misma fila y estado separado de forma limpia. */
+.seo-tool-grid{
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+}
+.seo-tool-grid>a.soft{
+  min-width:150px!important;
+  min-height:40px!important;
+  justify-content:center!important;
+  color:var(--text)!important;
+}
+.seo-tool-grid>.seo-health-chip{
+  margin-left:2px!important;
+}
+
+@media(max-width:900px){
+  .api-howto-panel .panel-head>.status-badge{max-width:100%!important}
+  .env-admin-panel .env-panel-head{align-items:flex-start!important}
+}
+@media(max-width:700px){
+  .company-user-actions.company-user-action-wrap{justify-content:flex-start!important;width:100%!important}
+  .company-user-action-toggle{width:100%!important;max-width:none!important}
+  .seo-tool-grid{flex-direction:column!important;align-items:stretch!important}
+  .seo-tool-grid>a.soft,.seo-tool-grid>.seo-health-chip{width:100%!important;min-width:0!important;justify-content:center!important;margin-left:0!important}
+  .env-panel-heading{align-items:flex-start!important}
+}

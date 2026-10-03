@@ -1,3 +1,23 @@
+## V2.31.63 · Ajustes premium de acciones, NIVO, URLs y configuración
+
+- Saludo inicial con “NIVO está escribiendo” y presentación contextual por sitio/tenant.
+
+- En sitios propios de la plataforma, NIVO se presenta bajo ES MULTISERVICIOS y contextualiza ZYNKO, IZZY, CAMI o ES MULTISERVICIOS según el dominio autorizado.
+
+- En tenants de clientes, NIVO usa automáticamente la identidad de la empresa cliente.
+
+- Perfil del visitante persistente y editable; nombre/correo se sincronizan con visitante y contacto.
+
+- Respuestas de NIVO personalizadas con el nombre cuando está disponible, también desde el motor omnicanal.
+
+- Seguimiento configurable por inactividad y cierre automático de conversación con reapertura limpia.
+
+- Estado conversacional dinámico: escribiendo, esperando respuesta, transferencia y sesión finalizada.
+
+- Marca permanente del producto: NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS.
+
+- No requiere cambios de base de datos: utiliza experience_json existente.
+
 ## V2.31.60 · Deployment cPanel con repositorio limpio y producción separada
 
 - `.cpanel.yml` usa el patrón recomendado por cPanel: el repositorio administrado despliega hacia el Document Root de producción.
@@ -1563,3 +1583,12 @@ php /ruta/al/proyecto/bin/nivo-knowledge-sync.php
 ```
 
 El script solo procesa fuentes activas que ya cumplieron su intervalo configurado.
+
+### Ajustes V2.31.63
+- Usuarios de empresas: acciones consolidadas en un único menú desplegable.
+- NIVO Web Chat: CTA de acceso corregido y acceso público dirigido al panel de NIVO tras autenticación.
+- Integraciones: normalización de URL publicada para evitar barras invertidas o escapes visuales.
+- Suscripciones: separación visual del estado Próximamente en Admin.
+- Configuración: cabecera premium para Servidor y dominio · .env.
+- SEO: robots.txt, sitemap.xml y manifest alineados de forma uniforme.
+
