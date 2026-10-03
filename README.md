@@ -1,3 +1,10 @@
+## V2.31.64 · Pulido de permisos, SEO y planes
+
+- Se rediseñó el estado de permisos del `.env` como componente informativo premium.
+- Se corrigió definitivamente el contraste de los accesos a robots.txt, sitemap.xml y manifest.
+- Se reforzó el espaciado interno del aviso Próximamente en Suscripciones Admin sin alterar el sitio público.
+- No requiere cambios de base de datos.
+
 ## V2.31.63 · Ajustes premium de acciones, NIVO, URLs y configuración
 
 - Saludo inicial con “NIVO está escribiendo” y presentación contextual por sitio/tenant.

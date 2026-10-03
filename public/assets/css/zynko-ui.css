@@ -4632,3 +4632,96 @@ body:has(.inbox-premium-toolbar) .conversation[aria-current="true"] {
   .seo-tool-grid>a.soft,.seo-tool-grid>.seo-health-chip{width:100%!important;min-width:0!important;justify-content:center!important;margin-left:0!important}
   .env-panel-heading{align-items:flex-start!important}
 }
+
+/* ZYNKO V2.31.64 · Pulido final de configuración y suscripciones */
+.env-permission-status{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  min-width:220px!important;
+  padding:9px 12px!important;
+  border-radius:12px!important;
+  border:1px solid var(--line)!important;
+  background:var(--surface)!important;
+  box-shadow:0 6px 18px rgba(15,39,56,.05)!important;
+}
+.env-permission-status.is-warning{
+  border-color:#f0cf8e!important;
+  background:#fffaf0!important;
+}
+.env-permission-status.is-ok{
+  border-color:#bce8df!important;
+  background:#f0fcf8!important;
+}
+.env-permission-icon{
+  width:34px!important;
+  height:34px!important;
+  flex:0 0 34px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:10px!important;
+  background:#0e2a3d!important;
+  color:#fff!important;
+}
+.env-permission-status.is-warning .env-permission-icon{
+  background:#fff0c8!important;
+  color:#8b5e00!important;
+}
+.env-permission-copy{display:grid!important;gap:2px!important;min-width:0!important}
+.env-permission-copy b{font-size:12px!important;line-height:1.2!important;color:var(--text)!important}
+.env-permission-copy small{font-size:10.5px!important;line-height:1.25!important;color:var(--muted)!important}
+
+/* SEO: acciones siempre legibles, uniformes y alineadas. */
+.seo-tool-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(150px,190px)) minmax(190px,max-content)!important;
+  gap:12px!important;
+  align-items:center!important;
+}
+.seo-tool-grid>a.soft{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  width:100%!important;
+  min-height:42px!important;
+  padding:10px 14px!important;
+  border-radius:11px!important;
+  background:#0e2a3d!important;
+  border:1px solid #0e2a3d!important;
+  color:#fff!important;
+  font-weight:850!important;
+  opacity:1!important;
+  text-decoration:none!important;
+  box-shadow:0 7px 18px rgba(14,42,61,.12)!important;
+}
+.seo-tool-grid>a.soft i,.seo-tool-grid>a.soft span{color:#fff!important;opacity:1!important}
+.seo-tool-grid>a.soft:hover{
+  background:#12384f!important;
+  border-color:#12384f!important;
+  color:#fff!important;
+  transform:translateY(-1px)!important;
+}
+.seo-tool-grid>.seo-health-chip{margin-left:0!important;justify-content:center!important;min-height:42px!important}
+
+/* Suscripciones Admin: el aviso Próximamente no toca bordes ni bloques vecinos. */
+.plan-card.coming-soon-plan-card .plan-coming-soon-note{
+  margin:22px 18px 20px!important;
+  padding:13px 14px!important;
+}
+.plan-card.coming-soon-plan-card .plan-coming-soon-note + .plan-limits{
+  margin-top:0!important;
+}
+.plan-card.coming-soon-plan-card .plan-actions{
+  margin-bottom:16px!important;
+}
+
+@media(max-width:980px){
+  .seo-tool-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .env-permission-status{min-width:0!important}
+}
+@media(max-width:700px){
+  .seo-tool-grid{grid-template-columns:1fr!important}
+  .env-permission-status{width:100%!important}
+  .plan-card.coming-soon-plan-card .plan-coming-soon-note{margin:18px 14px!important}
+}
