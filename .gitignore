@@ -1,9 +1,9 @@
-# Secretos / entorno
+# Secretos / entorno de producción
 .env
 .env.*
 !.env.example
 
-# Runtime de ZYNKO
+# Datos/runtime que ZYNKO modifica en producción
 storage/installed.lock
 storage/logs/*
 !storage/logs/.gitkeep
@@ -11,22 +11,21 @@ storage/cache/*
 !storage/cache/.gitkeep
 storage/env-backups/*
 !storage/env-backups/.gitkeep
+public/uploads/
 
-# Archivos creados por cPanel / hosting en el Document Root
+# Archivos creados por cPanel / hosting
 .well-known/
 .user.ini
 php.ini
 error_log
 *.log
+.cpanel/
+cpanel-logs/
+*.pid
+*.sock
 
 # Sistema / editores
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-# Estado/runtime adicional generado por hosting
-.cpanel/
-cpanel-logs/
-*.pid
-*.sock

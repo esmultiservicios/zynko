@@ -1,7 +1,6 @@
 ---
 deployment:
   tasks:
-    # El repositorio ZYNKO vive directamente en el Document Root publicado.
-    # Update from Remote actualiza este mismo checkout; la tarea existe para
-    # que cPanel reconozca el repositorio como desplegable sin copiarlo sobre sí mismo.
-    - /bin/echo "ZYNKO HEAD listo para produccion en el Document Root administrado por cPanel"
+    - export DEPLOYPATH="$HOME/public_html/zynkocloud.app/"
+    - /bin/mkdir -p "$DEPLOYPATH"
+    - /usr/bin/rsync -a --delete --exclude='.git/' --exclude='.cpanel.yml' --exclude='.env' --exclude='.env.*' --exclude='.well-known/' --exclude='.user.ini' --exclude='php.ini' --exclude='error_log' --exclude='public/uploads/' --exclude='storage/installed.lock' --exclude='storage/logs/' --exclude='storage/cache/' --exclude='storage/env-backups/' ./ "$DEPLOYPATH"

@@ -1,3 +1,25 @@
+## V2.31.60 · Deployment cPanel con repositorio limpio y producción separada
+
+- `.cpanel.yml` usa el patrón recomendado por cPanel: el repositorio administrado despliega hacia el Document Root de producción.
+- Destino: `$HOME/public_html/zynkocloud.app/`.
+- `rsync` publica el proyecto sin copiar `.git`, `.cpanel.yml`, `.env` ni datos runtime.
+- Se preservan `.env`, AutoSSL (`.well-known`), uploads, `storage/installed.lock`, logs, caché y respaldos del entorno.
+- `storage/installed.lock` ya no forma parte del código versionado.
+- `public/uploads/` queda fuera de Git para que fotos y adjuntos no ensucien el working tree.
+- Esta estructura evita que la actividad normal de ZYNKO deje el repositorio de cPanel con cambios sin commit.
+
+### Importante para cPanel
+
+El repositorio administrado por cPanel debe estar en una carpeta distinta al sitio publicado, por ejemplo:
+
+`$HOME/repositories/zynko`
+
+El Document Root público continúa siendo:
+
+`$HOME/public_html/zynkocloud.app`
+
+Esto sigue el modelo de deployment de cPanel: repositorio limpio → `.cpanel.yml` → sitio de producción.
+
 ## V2.31.59 · Corrección definitiva de `.cpanel.yml` para cPanel
 
 - Se corrigió la tarea de deployment para que `deployment.tasks` sea una lista de cadenas YAML válidas.

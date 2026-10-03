@@ -152,7 +152,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.59';
+$releaseVersion='2.31.60';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
