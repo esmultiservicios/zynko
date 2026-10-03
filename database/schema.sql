@@ -264,7 +264,10 @@ CREATE TABLE IF NOT EXISTS ai_provider_settings(
 INSERT IGNORE INTO ai_provider_settings(id,provider,enabled,model,fallback_only) VALUES(1,'openai',0,'gpt-6-luna',1);
 CREATE TABLE IF NOT EXISTS tenant_ai_settings(
  tenant_id BIGINT UNSIGNED NOT NULL PRIMARY KEY, enabled TINYINT(1) NOT NULL DEFAULT 0,
- allowed_channels_json JSON NULL, updated_by BIGINT UNSIGNED NULL,
+ allowed_channels_json JSON NULL, allowed_origins_json JSON NULL,
+ max_requests_per_minute INT UNSIGNED NOT NULL DEFAULT 60, redact_sensitive TINYINT(1) NOT NULL DEFAULT 1,
+ require_approved_knowledge TINYINT(1) NOT NULL DEFAULT 1, log_decisions TINYINT(1) NOT NULL DEFAULT 1,
+ updated_by BIGINT UNSIGNED NULL,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS ai_usage_logs(
@@ -283,6 +286,16 @@ CREATE TABLE IF NOT EXISTS api_request_logs (
  api_key_id BIGINT UNSIGNED NOT NULL, endpoint VARCHAR(190) NOT NULL,
  idempotency_key VARCHAR(190) NULL, http_status SMALLINT NOT NULL, payload_hash CHAR(64) NOT NULL,
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,created_at)
+);
+CREATE TABLE IF NOT EXISTS api_client_policies (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, api_key_id BIGINT UNSIGNED NOT NULL, tenant_id BIGINT UNSIGNED NOT NULL,
+ allowed_origins_json JSON NULL, allowed_ips_json JSON NULL, rate_limit_per_minute INT UNSIGNED NOT NULL DEFAULT 120,
+ require_https TINYINT(1) NOT NULL DEFAULT 1, active TINYINT(1) NOT NULL DEFAULT 1, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_api_client_policy_key(api_key_id), INDEX idx_api_policy_tenant(tenant_id,active)
+);
+CREATE TABLE IF NOT EXISTS api_rate_limits (
+ api_key_id BIGINT UNSIGNED NOT NULL, window_start DATETIME NOT NULL, request_count INT UNSIGNED NOT NULL DEFAULT 0,
+ PRIMARY KEY(api_key_id,window_start)
 );
 CREATE TABLE IF NOT EXISTS api_idempotency (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
@@ -367,7 +380,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.45');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.54');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

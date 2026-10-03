@@ -4068,3 +4068,145 @@ body:has(.inbox-premium-toolbar) .attachment-preview:not(:empty){
 @media(max-width:640px){
   #planModal .plan-toggle-grid{grid-template-columns:1fr!important;}
 }
+
+/* ZYNKO V2.31.54 · servidor, SEO y políticas premium */
+.env-admin-panel .panel-head{align-items:flex-start}
+.env-security-note{display:flex!important;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--accent) 7%,var(--surface))}
+.env-security-note>i{margin-top:3px;color:var(--accent)}
+.env-security-note span{display:grid;gap:3px}.env-security-note small{color:var(--muted);line-height:1.45}.env-security-note code{font-weight:800}
+.seo-tool-grid{display:flex!important;flex-wrap:wrap;gap:10px;align-items:center}.seo-tool-grid>a{display:inline-flex;align-items:center;gap:8px;text-decoration:none}.seo-health-chip{display:inline-flex;align-items:center;gap:7px;padding:9px 12px;border-radius:999px;background:#ecfdf5;color:#047857;font-weight:800;font-size:12px;border:1px solid #bbf7d0}
+.api-policy-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.api-policy-fields .full{grid-column:1/-1}.api-policy-summary{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}.api-policy-summary span{font-size:11px;padding:5px 8px;border-radius:999px;background:var(--soft);border:1px solid var(--line);color:var(--muted);font-weight:700}
+.nivo-premium-policy{border:1px solid var(--line);border-radius:16px;padding:16px;background:color-mix(in srgb,var(--accent) 5%,var(--surface));margin-top:14px}.nivo-premium-policy .settings-grid{margin-top:12px}
+@media(max-width:760px){.api-policy-fields{grid-template-columns:1fr}.seo-tool-grid{align-items:stretch}.seo-tool-grid>a,.seo-health-chip{width:100%;justify-content:center}}
+
+
+/* ZYNKO V2.31.56 · Ritmo visual global y separación consistente entre controles */
+:root{
+  --zynko-space-xs:8px;
+  --zynko-space-sm:12px;
+  --zynko-space-md:18px;
+  --zynko-space-lg:24px;
+  --zynko-space-xl:30px;
+}
+
+/* Formularios y bloques: ningún bloque funcional debe quedar pegado al siguiente. */
+.modal-card form,
+.panel form,
+.settings-form,
+.form-stack{
+  row-gap:var(--zynko-space-md)!important;
+}
+.modal-card>form+form,
+.panel>form+form{
+  margin-top:var(--zynko-space-lg)!important;
+  padding-top:var(--zynko-space-lg)!important;
+  border-top:1px solid var(--line)!important;
+}
+.modal-card form>.settings-grid+.field,
+.modal-card form>.field+.settings-grid,
+.modal-card form>.settings-grid+.upload-zone,
+.modal-card form>.upload-zone+.settings-grid,
+.modal-card form>.field+.upload-zone,
+.modal-card form>.upload-zone+.field{
+  margin-top:var(--zynko-space-sm)!important;
+}
+
+/* Uploads: separación real respecto de acciones, campos y otros objetos. */
+.upload-zone{
+  display:grid!important;
+  align-content:center!important;
+  justify-items:center!important;
+  gap:var(--zynko-space-xs)!important;
+}
+.upload-zone+.modal-actions,
+.upload-zone+.form-actions,
+.upload-zone+.actions-inline,
+.field+.modal-actions,
+.settings-grid+.modal-actions,
+.check-grid+.modal-actions,
+.notice+.modal-actions,
+.meta-note+.modal-actions,
+.nivo-guide+.modal-actions{
+  margin-top:var(--zynko-space-md)!important;
+}
+
+/* Acciones: borde/aire superior uniforme sin tocar el contenido anterior. */
+.modal-actions,
+.form-actions,
+.form-actions-sticky,
+.actions-inline{
+  gap:10px!important;
+}
+.modal-actions{
+  margin-top:var(--zynko-space-md)!important;
+  padding-top:var(--zynko-space-md)!important;
+}
+.form-actions-sticky,
+.form-actions{
+  margin-top:var(--zynko-space-md)!important;
+  padding-top:var(--zynko-space-sm)!important;
+}
+
+/* Caso Usuarios: formulario de fotografía separado del formulario de perfil. */
+#userEditModal #userEditForm{
+  padding-bottom:4px!important;
+}
+#userEditModal .user-avatar-form{
+  margin-top:var(--zynko-space-lg)!important;
+  padding-top:var(--zynko-space-lg)!important;
+  border-top:1px solid var(--line)!important;
+  gap:var(--zynko-space-md)!important;
+}
+#userEditModal .user-avatar-form .upload-zone{
+  margin:0!important;
+}
+#userEditModal .user-avatar-form .modal-actions{
+  margin-top:0!important;
+  padding-top:var(--zynko-space-md)!important;
+}
+#userModal .user-create-photo{
+  margin-top:4px!important;
+}
+
+/* Toolbars y cabeceras con acciones mantienen aire aun al envolver contenido. */
+.record-toolbar,
+.users-toolbar-actions,
+.company-directory-actions,
+.head-actions,
+.channel-welcome-actions,
+.seo-tool-grid{
+  row-gap:var(--zynko-space-sm)!important;
+  column-gap:10px!important;
+}
+.panel-head{
+  column-gap:var(--zynko-space-md)!important;
+  row-gap:var(--zynko-space-sm)!important;
+}
+
+/* Tarjetas/listados: separación vertical consistente sin alterar sus rejillas internas. */
+.installation-list,
+.channel-admin-list,
+.nivo-web-source-list,
+.responsive-records,
+.card-list{
+  gap:var(--zynko-space-sm)!important;
+}
+
+@media(max-width:760px){
+  :root{
+    --zynko-space-md:16px;
+    --zynko-space-lg:20px;
+  }
+  .modal-card>form+form,
+  .panel>form+form,
+  #userEditModal .user-avatar-form{
+    margin-top:var(--zynko-space-md)!important;
+    padding-top:var(--zynko-space-md)!important;
+  }
+  .modal-actions,
+  .form-actions,
+  .form-actions-sticky,
+  .actions-inline{
+    gap:10px!important;
+  }
+}

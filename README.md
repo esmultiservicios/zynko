@@ -1,3 +1,30 @@
+## V2.31.56 · Espaciado visual global y formularios premium
+
+- Se corrigió la separación entre formularios, inputs, zonas de carga y acciones.
+- Usuarios: el bloque de fotografía ya no queda pegado a los botones del formulario de perfil.
+- Se agregó un ritmo visual global reutilizable para modales, paneles, toolbars y listados.
+- Responsive ajustado para conservar separación correcta en escritorio, tablet y móvil.
+- No requiere cambios de base de datos.
+
+## V2.31.55 · Documentación completa de seguridad, NIVO y API
+
+- Se actualizó la documentación pública y del Admin para reflejar las mejoras premium incorporadas en V2.31.54.
+- La guía pública explica ahora políticas por API key: orígenes autorizados, IP/CIDR, HTTPS, rate limit, vencimiento y scopes.
+- La guía de NIVO Web Chat documenta installation_key por sitio, validación de dominio, rutas permitidas/bloqueadas, sesión, reconexión y controles de experiencia.
+- La guía de NIVO IA documenta orígenes autorizados, límites, conocimiento aprobado, protección de datos, handoff, contexto y controles de automatización.
+- Se agregaron manuales técnicos independientes en docs/ para Servidor/SEO, NIVO Web Chat y NIVO IA.
+- No requiere cambios de base de datos.
+
+## V2.31.54 · Dominio/SEO administrable + NIVO Premium + API protegida por sitio
+
+- Administración segura de `.env` para dominio, WebSocket y conexión de BD sin exponer APP_KEY.
+- SEO administrable con canonical, verificaciones, robots.txt, sitemap.xml y manifest dinámicos.
+- Cloudflare Turnstile para proteger el formulario público.
+- NIVO Web Chat amplía su experiencia con controles de sesión, rutas, móvil, reconexión, estado, alertas y comportamiento proactivo.
+- NIVO IA agrega permisos por origen, privacidad, límites, conocimiento aprobado y políticas de seguridad.
+- API/Integraciones agrega scopes, vencimiento, orígenes permitidos, IP/CIDR, HTTPS obligatorio y rate limit por clave.
+- Nuevas tablas/políticas incluidas en `schema.sql` y `ZYNKO_UPDATE_DB_COMPLETO.sql`.
+
 ## V2.31.53 · Planes “Próximamente” y contratación segura
 
 - Se separa **publicación** de **disponibilidad comercial** del plan.

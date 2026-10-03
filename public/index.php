@@ -2,6 +2,8 @@
 $root=dirname(__DIR__);
 require_once $root.'/app/Support/Realtime.php';
 require_once $root.'/app/Support/Plan.php';
+require_once $root.'/app/Support/EnvManager.php';
+require_once $root.'/app/Support/AccessPolicy.php';
 require_once $root.'/app/Services/OpenAIProviderService.php';
 require_once $root.'/app/Services/NivoWebsiteKnowledgeService.php';
 if (!is_file($root.'/storage/installed.lock')) { header('Location: install.php'); exit; }
@@ -150,7 +152,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.53';
+$releaseVersion='2.31.56';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -489,7 +491,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    zynkoPlanRequireModule($planCtx,'chatbot');
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$svc=new OpenAIProviderService($pdo,$root);$svc->saveTenant($tid,$_POST,(int)$_SESSION['user']['id'],$planCtx);jsonOut(true,'Preferencias de NIVO IA externa actualizadas.');
   }
-  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_revoke','integration_save']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
+  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
   $operationalActions=[
    'channels'=>['channel_save'],
    'webchat'=>['webchat_widget_save','webchat_installation_add','webchat_installation_update','webchat_installation_toggle','webchat_installation_delete'],
@@ -497,7 +499,10 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   ];foreach($operationalActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
 
   if($action==='api_key_create'){
-   if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$name=mb_substr(trim((string)($_POST['name']??'')),0,120);if($name==='')throw new RuntimeException('Ingresa un nombre para la clave.');$prefix='zk_'.bin2hex(random_bytes(5));$plain=$prefix.'.'.bin2hex(random_bytes(24));$scopes=['channels:read','messages:send','messages:receive','nivo:context'];$pdo->prepare('INSERT INTO api_keys(tenant_id,uuid,name,key_prefix,key_hash,scopes_json,created_at) VALUES(?,?,?,?,?,?,NOW())')->execute([$tid,uuid4(),$name,$prefix,hash('sha256',$plain),json_encode($scopes,JSON_UNESCAPED_SLASHES)]);jsonOut(true,'Clave API creada. Cópiala ahora: se mostrará una sola vez.',['api_key'=>$plain,'scopes'=>$scopes]);
+   if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$name=mb_substr(trim((string)($_POST['name']??'')),0,120);if($name==='')throw new RuntimeException('Ingresa un nombre para la clave.');$prefix='zk_'.bin2hex(random_bytes(5));$plain=$prefix.'.'.bin2hex(random_bytes(24));$allowedScopes=['channels:read','messages:send','messages:receive','nivo:context'];$requested=(array)($_POST['scopes']??[]);$scopes=array_values(array_intersect($allowedScopes,$requested?:$allowedScopes));if(!$scopes)$scopes=['channels:read'];$expiresDays=max(0,min(3650,(int)($_POST['expires_days']??0)));$expires=$expiresDays>0?date('Y-m-d H:i:s',time()+$expiresDays*86400):null;$pdo->prepare('INSERT INTO api_keys(tenant_id,uuid,name,key_prefix,key_hash,scopes_json,expires_at,created_at) VALUES(?,?,?,?,?,?,?,NOW())')->execute([$tid,uuid4(),$name,$prefix,hash('sha256',$plain),json_encode($scopes,JSON_UNESCAPED_SLASHES),$expires]);$keyId=(int)$pdo->lastInsertId();ZynkoAccessPolicy::ensureTables($pdo);$origins=ZynkoAccessPolicy::normalizeOriginList((string)($_POST['allowed_origins']??''));$ips=ZynkoAccessPolicy::normalizeIpList((string)($_POST['allowed_ips']??''));$rate=max(10,min(5000,(int)($_POST['rate_limit_per_minute']??120)));$pdo->prepare('INSERT INTO api_client_policies(api_key_id,tenant_id,allowed_origins_json,allowed_ips_json,rate_limit_per_minute,require_https,active) VALUES(?,?,?,?,?,?,1)')->execute([$keyId,$tid,json_encode($origins,JSON_UNESCAPED_SLASHES),json_encode($ips,JSON_UNESCAPED_SLASHES),$rate,isset($_POST['require_https'])?1:0]);jsonOut(true,'Clave API creada. Cópiala ahora: se mostrará una sola vez.',['api_key'=>$plain,'scopes'=>$scopes]);
+  }
+  if($action==='api_key_policy_save'){
+   if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$id=(int)($_POST['api_key_id']??0);$q=$pdo->prepare('SELECT id FROM api_keys WHERE id=? AND tenant_id=? AND revoked_at IS NULL');$q->execute([$id,$tid]);if(!$q->fetchColumn())throw new RuntimeException('La clave API no existe o está revocada.');$origins=ZynkoAccessPolicy::normalizeOriginList((string)($_POST['allowed_origins']??''));$ips=ZynkoAccessPolicy::normalizeIpList((string)($_POST['allowed_ips']??''));$rate=max(10,min(5000,(int)($_POST['rate_limit_per_minute']??120)));ZynkoAccessPolicy::ensureTables($pdo);$pdo->prepare('INSERT INTO api_client_policies(api_key_id,tenant_id,allowed_origins_json,allowed_ips_json,rate_limit_per_minute,require_https,active) VALUES(?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE allowed_origins_json=VALUES(allowed_origins_json),allowed_ips_json=VALUES(allowed_ips_json),rate_limit_per_minute=VALUES(rate_limit_per_minute),require_https=VALUES(require_https),active=VALUES(active)')->execute([$id,$tid,json_encode($origins,JSON_UNESCAPED_SLASHES),json_encode($ips,JSON_UNESCAPED_SLASHES),$rate,isset($_POST['require_https'])?1:0,isset($_POST['active'])?1:0]);jsonOut(true,'Política de seguridad de la clave API actualizada.');
   }
   if($action==='api_key_revoke'){
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$id=(int)($_POST['api_key_id']??0);$q=$pdo->prepare('UPDATE api_keys SET revoked_at=NOW() WHERE id=? AND tenant_id=? AND revoked_at IS NULL');$q->execute([$id,$tid]);if(!$q->rowCount())throw new RuntimeException('La clave no existe o ya fue revocada.');jsonOut(true,'Clave API revocada correctamente.');
@@ -506,6 +511,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$name=mb_substr(trim((string)($_POST['name']??'')),0,120);$url=trim((string)($_POST['url']??''));if($name==='')throw new RuntimeException('Ingresa el nombre de la integración.');if(!filter_var($url,FILTER_VALIDATE_URL)||stripos($url,'https://')!==0)throw new RuntimeException('El webhook debe usar una URL HTTPS válida.');$allowed=['conversation.created','message.received','conversation.resolved'];$events=array_values(array_intersect($allowed,(array)($_POST['events']??[])));if(!$events)throw new RuntimeException('Selecciona al menos un evento.');$secret='whsec_'.bin2hex(random_bytes(24));$pdo->prepare('INSERT INTO outgoing_webhooks(tenant_id,uuid,name,url,secret_ciphertext,events_json,active,created_at) VALUES(?,?,?,?,?,?,1,NOW())')->execute([$tid,uuid4(),$name,$url,encryptSecret($secret),json_encode($events,JSON_UNESCAPED_SLASHES)]);jsonOut(true,'Integración creada. Guarda el secreto de firma: se mostrará una sola vez.',['webhook_secret'=>$secret]);
   }
   if($action==='system_version_save'){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');$v=trim($_POST['version']??'');if(!preg_match('/^\d+\.\d+\.\d+$/',$v))throw new RuntimeException('Usa el formato 2.23.1.');$pdo->prepare("INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES('app_version',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)")->execute([$v,(int)$_SESSION['user']['id']]);jsonOut(true,'Versión actualizada a '.$v.'.');}
+  if($action==='env_save'){
+    if(!isPlatformOwner())throw new RuntimeException('Solo el administrador principal puede modificar la configuración del servidor.');
+    $manager=new ZynkoEnvManager($root);$payload=[];
+    foreach(ZynkoEnvManager::editableKeys() as $key=>$meta){$field='env_'.$key;if(array_key_exists($field,$_POST))$payload[$key]=(string)$_POST[$field];}
+    $changed=$manager->save($payload);
+    if(!$changed)jsonOut(true,'No había cambios pendientes en el archivo .env.');
+    try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'env.updated',json_encode(['keys'=>$changed],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
+    jsonOut(true,'Configuración del servidor actualizada de forma segura. Respaldo del .env creado automáticamente.',['changed'=>$changed,'reload_recommended'=>true]);
+  }
   if($action==='public_site_save'){
     if(!isPlatformOwner())throw new RuntimeException('Solo la empresa principal puede administrar el sitio público y las redes sociales.');
     $parentName=mb_substr(trim((string)($_POST['public_parent_name']??'ES MULTISERVICIOS')),0,100);$parentUrl=trim((string)($_POST['public_parent_url']??''));
@@ -603,7 +617,17 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'rate_limit_per_minute'=>max(2,min(30,(int)($_POST['rate_limit_per_minute']??12))),
     'prevent_double_submit'=>isset($_POST['prevent_double_submit']),
     'show_branding'=>isset($_POST['show_branding']),
-    'close_on_escape'=>isset($_POST['close_on_escape'])
+    'close_on_escape'=>isset($_POST['close_on_escape']),
+    'hide_on_mobile'=>isset($_POST['hide_on_mobile']),
+    'proactive_once'=>isset($_POST['proactive_once']),
+    'page_title_alert'=>isset($_POST['page_title_alert']),
+    'show_online_status'=>isset($_POST['show_online_status']),
+    'launcher_animation'=>isset($_POST['launcher_animation']),
+    'session_timeout_minutes'=>max(15,min(10080,(int)($_POST['session_timeout_minutes']??1440))),
+    'poll_interval_seconds'=>max(3,min(60,(int)($_POST['poll_interval_seconds']??5))),
+    'reconnect_seconds'=>max(1,min(30,(int)($_POST['reconnect_seconds']??3))),
+    'allowed_paths'=>mb_substr(trim((string)($_POST['allowed_paths']??'')),0,1200),
+    'blocked_paths'=>mb_substr(trim((string)($_POST['blocked_paths']??'')),0,1200)
    ];
    $channel=$pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type='webchat' ORDER BY id LIMIT 1");$channel->execute([$tid]);$channelId=(int)$channel->fetchColumn();if(!$channelId){$pdo->prepare("INSERT INTO channels(tenant_id,uuid,type,name,display_address,status,settings_json) VALUES(?,?, 'webchat',?,'NIVO Web Chat','connected','{}')")->execute([$tid,uuid4(),$name]);$channelId=(int)$pdo->lastInsertId();}
    $vals=[$channelId,$name,$enabled,$position,$displayMode,max(0,min(200,(int)($_POST['offset_x']??24))),max(0,min(200,(int)($_POST['offset_y']??24))),$color,$launcher,$sound,trim($_POST['welcome_title']??'¡Hola! Soy NIVO'),trim($_POST['assistant_subtitle']??''),trim($_POST['welcome_message']??'¿En qué puedo ayudarte hoy?'),isset($_POST['ask_name'])?1:0,isset($_POST['ask_email'])?1:0,$required,$privacy,$privacyText,$privacyUrl,$multi,json_encode($experience,JSON_UNESCAPED_UNICODE)];
@@ -657,7 +681,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'cooldown_seconds'=>max(0,min(30,(int)($_POST['cooldown_seconds']??1))),
     'pause_when_assigned'=>isset($_POST['pause_when_assigned']),
     'channel_context'=>isset($_POST['channel_context']),
-    'safe_unknown'=>isset($_POST['safe_unknown'])
+    'safe_unknown'=>isset($_POST['safe_unknown']),
+    'max_input_chars'=>max(200,min(10000,(int)($_POST['max_input_chars']??3000))),
+    'business_hours_only'=>isset($_POST['business_hours_only']),
+    'blocked_keywords'=>mb_substr(trim((string)($_POST['blocked_keywords']??'')),0,1200),
+    'sensitive_data_guard'=>isset($_POST['sensitive_data_guard']),
+    'safe_links_only'=>isset($_POST['safe_links_only'])
    ];
    $pdo->prepare("INSERT INTO bot_profiles(tenant_id,name,enabled,mode,provider,system_prompt,fallback_message,handoff_rules_json,business_hours_json,channel_policy_json,knowledge_enabled) VALUES(?,?,?,?,?,?,?,?,?,?,1) ON DUPLICATE KEY UPDATE name=VALUES(name),enabled=VALUES(enabled),mode=VALUES(mode),provider=VALUES(provider),system_prompt=VALUES(system_prompt),fallback_message=VALUES(fallback_message),handoff_rules_json=VALUES(handoff_rules_json),business_hours_json=VALUES(business_hours_json),channel_policy_json=VALUES(channel_policy_json),knowledge_enabled=1")->execute([$tid,trim($_POST['name']??'NIVO'),$enabled,$mode,'local',trim($_POST['system_prompt']??''),trim($_POST['fallback_message']??''),$handoff,$hours,json_encode($policy,JSON_UNESCAPED_UNICODE)]);
    jsonOut(true,'Configuración de NIVO guardada.');

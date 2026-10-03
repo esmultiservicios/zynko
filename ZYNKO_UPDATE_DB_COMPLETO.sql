@@ -386,3 +386,46 @@ CREATE TABLE IF NOT EXISTS nivo_knowledge_websites (
   UNIQUE KEY uq_nivo_web_source(tenant_id,base_url),
   INDEX idx_nivo_web_due(tenant_id,active,auto_sync,last_synced_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- =============================================================
+-- ZYNKO V2.31.54 · SEGURIDAD PREMIUM NIVO IA / API / INTEGRACIONES
+-- =============================================================
+SET @db_name := DATABASE();
+
+CREATE TABLE IF NOT EXISTS `api_client_policies` (
+  `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  `api_key_id` BIGINT UNSIGNED NOT NULL,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `allowed_origins_json` JSON NULL,
+  `allowed_ips_json` JSON NULL,
+  `rate_limit_per_minute` INT UNSIGNED NOT NULL DEFAULT 120,
+  `require_https` TINYINT(1) NOT NULL DEFAULT 1,
+  `active` TINYINT(1) NOT NULL DEFAULT 1,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY `uq_api_client_policy_key` (`api_key_id`),
+  INDEX `idx_api_policy_tenant` (`tenant_id`,`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `api_rate_limits` (
+  `api_key_id` BIGINT UNSIGNED NOT NULL,
+  `window_start` DATETIME NOT NULL,
+  `request_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`api_key_id`,`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='tenant_ai_settings' AND COLUMN_NAME='allowed_origins_json');
+SET @sql := IF(@exists=0,'ALTER TABLE `tenant_ai_settings` ADD COLUMN `allowed_origins_json` JSON NULL AFTER `allowed_channels_json`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='tenant_ai_settings' AND COLUMN_NAME='max_requests_per_minute');
+SET @sql := IF(@exists=0,'ALTER TABLE `tenant_ai_settings` ADD COLUMN `max_requests_per_minute` INT UNSIGNED NOT NULL DEFAULT 60 AFTER `allowed_origins_json`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='tenant_ai_settings' AND COLUMN_NAME='redact_sensitive');
+SET @sql := IF(@exists=0,'ALTER TABLE `tenant_ai_settings` ADD COLUMN `redact_sensitive` TINYINT(1) NOT NULL DEFAULT 1 AFTER `max_requests_per_minute`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='tenant_ai_settings' AND COLUMN_NAME='require_approved_knowledge');
+SET @sql := IF(@exists=0,'ALTER TABLE `tenant_ai_settings` ADD COLUMN `require_approved_knowledge` TINYINT(1) NOT NULL DEFAULT 1 AFTER `redact_sensitive`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='tenant_ai_settings' AND COLUMN_NAME='log_decisions');
+SET @sql := IF(@exists=0,'ALTER TABLE `tenant_ai_settings` ADD COLUMN `log_decisions` TINYINT(1) NOT NULL DEFAULT 1 AFTER `require_approved_knowledge`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.54')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.54' AS version_objetivo;

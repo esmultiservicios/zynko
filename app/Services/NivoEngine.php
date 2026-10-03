@@ -67,6 +67,22 @@ final class NivoEngine
             $allowed=$policy['channels']??['webchat','whatsapp','messenger','instagram','telegram','email','api'];
             if(!in_array($channelType,$allowed,true)){ $result['reason']='channel_disabled'; return $result; }
 
+            $maxInput=max(200,min(10000,(int)($policy['max_input_chars']??3000)));
+            if(mb_strlen($message)>$maxInput){
+                $result['reason']='input_too_long';$result['handoff']=true;
+                $result['reply']='Tu mensaje es muy extenso para procesarlo de forma segura en una sola consulta. Por favor resúmelo o permite que una persona continúe contigo.';
+                return $result;
+            }
+            $hours=json_decode($bot['business_hours_json']??'{}',true)?:[];
+            if(!empty($policy['business_hours_only'])&&!self::inBusinessHours($hours)){
+                $result['reason']='outside_business_hours';$result['handoff']=true;
+                $result['reply']=trim((string)($hours['outside_message']??''))?:'En este momento estamos fuera del horario de atención. Dejé tu conversación pendiente para que una persona continúe contigo.';
+                return $result;
+            }
+            $blocked=array_values(array_filter(array_map([self::class,'norm'],preg_split('/[,\n]+/u',(string)($policy['blocked_keywords']??'')))));
+            $normMessage=self::norm($message);
+            foreach($blocked as $word){if($word!==''&&mb_strpos($normMessage,$word)!==false){$result['reason']='blocked_keyword';$result['handoff']=true;$result['reply']='Por seguridad no puedo procesar ese contenido automáticamente. Una persona puede continuar contigo.';return $result;}}
+
             if(!empty($policy['pause_when_assigned'])){
                 $q=$pdo->prepare('SELECT assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');$q->execute([$conversationId,$tenantId]);
                 if((int)($q->fetchColumn()?:0)>0){$result['reason']='human_assigned';return $result;}
@@ -129,6 +145,8 @@ final class NivoEngine
     private static function finish(PDO $pdo,int $tenantId,int $conversationId,array $policy,array $result,string $reply,string $source,string $confidence,bool $handoff): array
     {
         if(!empty($policy['duplicate_guard'])){$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$conversationId]);$last=trim((string)($q->fetchColumn()?:''));if($last!==''&&self::norm($last)===self::norm($reply)){$result['reason']='duplicate_guard';return $result;}}
+        if(!empty($policy['safe_links_only'])){$reply=preg_replace('/(?:javascript|data):\s*[^\s]+/iu','[enlace bloqueado]',$reply)??$reply;}
+        if(!empty($policy['sensitive_data_guard'])){$reply=preg_replace('/\b(?:\d[ -]*?){13,19}\b/u','[dato protegido]',$reply)??$reply;}
         $result['reply']=$reply;$result['source']=$source;$result['confidence']=$confidence;$result['handoff']=$handoff;$result['reason']='reply';return $result;
     }
 

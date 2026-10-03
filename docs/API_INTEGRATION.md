@@ -1,16 +1,46 @@
-# ZYNKO API v1 — integración de sistemas externos
+# ZYNKO API v1 — integración segura de sistemas externos
 
-ZYNKO permite que IZZY, CAMI u otro sistema solicite envíos sin conocer las credenciales de Meta.
+ZYNKO permite que IZZY, CAMI u otro sistema consuma la API sin conocer las credenciales privadas de Meta ni compartir secretos entre empresas. Cada credencial pertenece a un tenant y puede tener su propia política de seguridad.
 
-## Seguridad
-1. En **Integraciones**, crea una clave distinta por sistema.
-2. La clave completa se muestra una sola vez. ZYNKO almacena únicamente SHA-256.
-3. Enviar `Authorization: Bearer <clave>`.
-4. Para operaciones de envío, enviar también `Idempotency-Key: <uuid-o-id-unico>` para impedir duplicados.
-5. Una clave revocada deja de funcionar inmediatamente.
-6. El tenant se obtiene de la clave; el cliente no puede elegir otro `tenant_id` en el payload.
+## 1. Crear una clave API
 
-## Enviar mensaje
+En **Integraciones → Crear clave API** crea una clave diferente por sistema o ambiente. La clave completa se muestra una sola vez; ZYNKO almacena únicamente su hash.
+
+Configura según el caso:
+
+- **Orígenes permitidos:** dominios web desde los que se aceptará consumo en navegador.
+- **IP / CIDR permitidos:** restringe consumo server-to-server a servidores o redes concretas.
+- **HTTPS obligatorio:** recomendado para producción.
+- **Rate limit:** máximo de solicitudes por minuto para esa credencial.
+- **Vencimiento:** opcional.
+- **Scopes:** `channels:read`, `messages:send`, `messages:receive`, `nivo:context`.
+
+Una política puede editarse después sin regenerar la clave. Una clave revocada deja de funcionar inmediatamente.
+
+## 2. Autenticación
+
+Enviar siempre:
+
+```http
+Authorization: Bearer TU_CLAVE_API
+```
+
+El tenant se obtiene de la clave. El cliente nunca puede seleccionar otro `tenant_id` en el payload.
+
+Para operaciones que puedan repetirse por error o reintento, usa:
+
+```http
+Idempotency-Key: identificador-unico
+```
+
+## 3. Consultar canales
+
+`GET /api.php?r=v1/channels`
+
+Requiere scope `channels:read`. La respuesta contiene únicamente canales de la empresa autenticada.
+
+## 4. Enviar mensaje
+
 `POST /api.php?r=v1/messages/send`
 
 ```json
@@ -22,30 +52,71 @@ ZYNKO permite que IZZY, CAMI u otro sistema solicite envíos sin conocer las cre
 }
 ```
 
-El canal debe pertenecer al tenant autenticado y estar `connected`. ZYNKO crea/reutiliza contacto y conversación y deja el mensaje en `queued`. La entrega real al proveedor se realiza únicamente cuando la integración oficial del canal está autorizada.
+Requiere scope `messages:send`. El canal debe pertenecer al tenant autenticado y estar disponible/conectado. ZYNKO registra el mensaje y responde HTTP 202 cuando queda aceptado en cola. La entrega final depende del conector oficial del proveedor.
 
-## Contexto de NIVO
+## 5. Recibir mensaje hacia ZYNKO
+
+`POST /api.php?r=v1/messages/receive`
+
+Requiere scope `messages:receive`. Registra contacto, conversación y mensaje dentro del tenant correspondiente y puede ejecutar NIVO IA cuando la empresa lo tenga permitido/configurado.
+
+## 6. Contexto de NIVO IA
+
 `POST /api.php?r=v1/nivo/context`
 
 ```json
-{"query":"¿Cuál es la política de devoluciones?"}
+{
+  "query": "¿Cuál es la política de devoluciones?"
+}
 ```
 
-Devuelve hasta cinco fuentes autorizadas relevantes. No inventa una respuesta de IA: la generación requiere configurar un proveedor/modelo en NIVO.
+Requiere scope `nivo:context`. Además de la política de la API key, NIVO IA puede aplicar su propia lista de orígenes autorizados y límites configurados por empresa.
 
-## Respuestas importantes
-- `401`: clave faltante, inválida o revocada.
-- `403`: scope o plan sin la función requerida.
-- `409`: canal todavía no conectado/autorizado.
-- `422`: parámetros incompletos.
-- `202`: mensaje aceptado y puesto en cola.
+La respuesta devuelve contexto/fuentes autorizadas relevantes. La generación mediante proveedor externo ocurre únicamente cuando NIVO está configurado para utilizarlo.
 
-## CORS y consumo desde aplicaciones web
+## 7. Seguridad por origen, IP y tenant
 
-Desde ZYNKO V2.31.52, la API pública responde preflight `OPTIONS` antes de autenticar la petición real y admite los headers `Authorization`, `Content-Type`, `Accept`, `Idempotency-Key` y `X-Requested-With`.
+ZYNKO valida en servidor:
 
-CORS únicamente habilita al navegador para realizar la solicitud. La seguridad continúa dependiendo de la API key, sus scopes, el plan activo y las validaciones de cada endpoint. No se utilizan cookies ni `Access-Control-Allow-Credentials` en la API pública.
+1. clave válida y no revocada;
+2. fecha de vencimiento;
+3. tenant propietario de la credencial;
+4. scope requerido;
+5. origen web permitido, cuando aplica;
+6. IP/CIDR permitido, cuando aplica;
+7. HTTPS obligatorio, cuando aplica;
+8. rate limit de la credencial;
+9. canal perteneciente al mismo tenant;
+10. disponibilidad del módulo según plan/configuración.
 
-Para NIVO Web Chat, el widget evita preflight innecesario enviando una solicitud CORS simple. El backend sigue validando estrictamente `installation_key` + dominio autorizado antes de entregar datos o aceptar mensajes. Por ello cada código de instalación continúa siendo exclusivo del sitio autorizado correspondiente.
+CORS por sí solo no concede acceso. Una aplicación web necesita pasar todas las validaciones anteriores.
+
+## 8. CORS y preflight
+
+La API pública responde `OPTIONS` antes de autenticar la petición real y admite, según la solicitud, los headers `Authorization`, `Content-Type`, `Accept`, `Idempotency-Key` y `X-Requested-With`.
+
+Cuando una API key tiene orígenes permitidos, el navegador solo recibe autorización CORS para esos orígenes. No se utiliza `Access-Control-Allow-Credentials` para la API pública.
+
+NIVO Web Chat utiliza un flujo independiente: cada sitio recibe una `installation_key` y el backend valida **clave + dominio autorizado**. El widget no requiere una API key de Integraciones.
 
 Los webhooks de Meta / WhatsApp / Messenger son comunicaciones servidor-a-servidor y no dependen de CORS del navegador.
+
+## 9. Respuestas importantes
+
+- `200`: consulta procesada.
+- `202`: operación aceptada / mensaje en cola.
+- `401`: clave faltante, inválida, vencida o revocada.
+- `403`: origen, IP, scope, HTTPS, plan o política no permitida.
+- `409`: canal todavía no conectado/autorizado o conflicto de operación.
+- `422`: parámetros incompletos o inválidos.
+- `429`: rate limit alcanzado.
+
+## 10. Recomendaciones de producción
+
+- Una clave por sistema y ambiente.
+- Restringir origen para aplicaciones web.
+- Restringir IP/CIDR para integraciones server-to-server cuando sea posible.
+- Mantener HTTPS obligatorio.
+- Otorgar solo los scopes necesarios.
+- Revocar credenciales que ya no se utilicen.
+- No colocar claves privadas dentro de JavaScript público cuando la integración pueda resolverse desde backend.
