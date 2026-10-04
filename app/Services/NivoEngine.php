@@ -140,26 +140,31 @@ final class NivoEngine
 
     private static function rankedKnowledge(PDO $pdo,int $tenantId,string $query,array $words,int $limit=3): array
     {
-        $q=$pdo->prepare("SELECT id,name,source_type,source_ref,content,updated_at FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 500");
-        $q->execute([$tenantId]);
-        $ranked=[];
-        foreach($q->fetchAll() as $r){
-            $score=self::knowledgeScore($query,(string)($r['name']??''),(string)($r['content']??''),$words);
-            if($score<=0)continue;
-            $ts=strtotime((string)($r['updated_at']??'')); if($ts && $ts>=time()-2592000)$score+=1;
-            $r['_score']=$score;
-            $ranked[]=$r;
+        try {
+            $q=$pdo->prepare("SELECT id,name,source_type,source_ref,content,updated_at FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 500");
+            $q->execute([$tenantId]);
+            $ranked=[];
+            foreach($q->fetchAll() as $r){
+                $score=self::knowledgeScore($query,(string)($r['name']??''),(string)($r['content']??''),$words);
+                if($score<=0)continue;
+                $ts=strtotime((string)($r['updated_at']??'')); if($ts && $ts>=time()-2592000)$score+=1;
+                $r['_score']=$score;
+                $ranked[]=$r;
+            }
+            usort($ranked,fn($a,$b)=>(int)$b['_score']<=>(int)$a['_score']);
+            $out=[];$seen=[];
+            foreach($ranked as $r){
+                $fingerprint=sha1(self::norm(mb_substr((string)$r['content'],0,1200)));
+                if(isset($seen[$fingerprint]))continue;
+                $seen[$fingerprint]=true;
+                $out[]=$r;
+                if(count($out)>=max(1,min(5,$limit)))break;
+            }
+            return $out;
+        } catch (Throwable $ignore) {
+            // Una instalación heredada nunca debe dejar a NIVO mudo por una consulta de conocimiento.
+            return [];
         }
-        usort($ranked,fn($a,$b)=>(int)$b['_score']<=>(int)$a['_score']);
-        $out=[];$seen=[];
-        foreach($ranked as $r){
-            $fingerprint=sha1(self::norm(mb_substr((string)$r['content'],0,1200)));
-            if(isset($seen[$fingerprint]))continue;
-            $seen[$fingerprint]=true;
-            $out[]=$r;
-            if(count($out)>=max(1,min(5,$limit)))break;
-        }
-        return $out;
     }
 
 
@@ -285,6 +290,38 @@ final class NivoEngine
             }
         }
 
+        return null;
+    }
+
+    private static function guaranteedPlatformReply(string $message,string $companyName,bool $english=false): ?string
+    {
+        $norm=self::norm($message);
+        $companyNorm=self::norm($companyName);
+        if($companyNorm!=='es multiservicios')return null;
+
+        $asks=(bool)preg_match('/\b(que es|quien es|que hace|para que sirve|como funciona|funciones|funcionalidades|servicios|soluciones|beneficios|explicame|cuentame)\b/u',$norm);
+        if(!$asks)return null;
+
+        if(str_contains($norm,'izzy')){
+            return $english
+                ? 'IZZY is the business solution from ES MULTISERVICIOS for invoicing, inventory, POS, restaurants and administrative management. I can explain its functions and help you identify which modules fit your business.'
+                : 'IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa. Puedo explicarte sus funciones y ayudarte a identificar qué módulos encajan mejor en tu negocio.';
+        }
+        if(str_contains($norm,'cami')){
+            return $english
+                ? 'CAMI is the ES MULTISERVICIOS solution for clinics and medical centers, focused on patients, clinical processes, pharmacy and billing.'
+                : 'CAMI es la solución de ES MULTISERVICIOS para clínicas y centros médicos, enfocada en pacientes, procesos clínicos, farmacia y facturación.';
+        }
+        if(str_contains($norm,'zynko')||str_contains($norm,'nivo web chat')||str_contains($norm,'nivo ia')){
+            return $english
+                ? 'ZYNKO is the omnichannel platform from ES MULTISERVICIOS. It centralizes customer conversations and includes NIVO Web Chat, NIVO AI, assignments, teams and integrations.'
+                : 'ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS. Centraliza conversaciones de clientes e integra NIVO Web Chat, NIVO IA, asignaciones, equipos e integraciones.';
+        }
+        if(str_contains($norm,'es multiservicios')||str_contains($norm,'multiservicios')){
+            return $english
+                ? 'ES MULTISERVICIOS develops software, websites, integrations and digital solutions for businesses. Its solutions include IZZY, CAMI and ZYNKO, and I can explain each one using the approved knowledge of this company.'
+                : 'ES MULTISERVICIOS desarrolla software, sitios web, integraciones y soluciones digitales para empresas. Entre sus soluciones están IZZY, CAMI y ZYNKO, y puedo explicarte cada una usando el conocimiento aprobado de esta empresa.';
+        }
         return null;
     }
 
@@ -432,6 +469,10 @@ final class NivoEngine
             }
 
             $companyNorm=self::norm($companyName);
+            $guaranteed=self::guaranteedPlatformReply($effectiveNorm,$companyName,$english);
+            if($guaranteed!==null){
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$guaranteed,'platform:guaranteed','high',false,$displayName,$english);
+            }
             if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='izzy'){
                 $reply='Claro. IZZY puede ayudarte con facturación y documentos de venta, control de inventario y existencias, POS para ventas rápidas, operación de restaurantes y mesas/comandas cuando aplica, cuentas por cobrar y pagar, y gestión administrativa desde un solo sistema. Para saber si encaja en tu negocio, dime qué tipo de empresa tienes y cómo llevas hoy ventas, inventario o facturación; con eso te indico qué módulos te servirían más.';
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:izzy:functions','high',false,$displayName,$english);
@@ -525,7 +566,19 @@ final class NivoEngine
             }
 
             return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$fallback,'fallback','low',$handoff,$displayName,$english);
-        }catch(Throwable $e){$result['reason']='engine_error';return $result;}
+        }catch(Throwable $e){
+            $result['enabled']=true;
+            $result['reason']='engine_error';
+            $english=(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks)\b/i',$message);
+            $recovery=self::guaranteedPlatformReply($message,$companyName,$english);
+            $result['reply']=$recovery ?: ($english
+                ? 'I received your message, but I had a temporary problem consulting the approved knowledge. Please try the question once more; I will keep the conversation active.'
+                : 'Recibí tu mensaje, pero tuve un problema temporal al consultar el conocimiento aprobado. Intenta la pregunta una vez más; mantendré la conversación activa.');
+            $result['source']=$recovery?'platform:recovery':'engine:recovery';
+            $result['confidence']=$recovery?'high':'low';
+            $result['handoff']=false;
+            return $result;
+        }
     }
 
     private static function finish(PDO $pdo,int $tenantId,int $conversationId,array $policy,array $result,string $reply,string $source,string $confidence,bool $handoff,string $contactName='',bool $english=false): array

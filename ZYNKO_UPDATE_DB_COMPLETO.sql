@@ -681,10 +681,10 @@ SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.88' AS ve
 
 
 -- ============================================================
--- ZYNKO V2.31.94 · NIVO IA: RESOLUCIÓN DE CONOCIMIENTO Y HANDOFF SEGURO
+-- ZYNKO V2.31.95 · NIVO IA: RESOLUCIÓN DE CONOCIMIENTO Y HANDOFF SEGURO
 -- Sin cambios de estructura. Solo actualiza metadato de versión.
 -- ============================================================
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.94')
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.95')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.94' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.95' AS version_objetivo;

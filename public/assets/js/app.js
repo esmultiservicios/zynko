@@ -270,9 +270,29 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
  const current=()=>{const form=$('#messageForm'),box=$('#messages'),cid=form?.querySelector('[name=conversation_id]')?.value||'';return {form,box,cid};};
  const render=(box,rows)=>{const previousTop=box.scrollTop,distance=box.scrollHeight-box.clientHeight-box.scrollTop,nearBottom=!box.dataset.historyReady||distance<64;box.innerHTML=rows.map(m=>{const out=m.direction==='out';let who='';if(out&&m.sender_name)who=`<b class="message-sender">${esc((m.sender_name+' · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;else if(m.sender_type==='bot')who=`<b class="message-sender">${esc(('NIVO · '+(window.ZYNKO_COMPANY||'')).toUpperCase())}</b>`;let media='';try{media=(JSON.parse(m.media_json||'[]')||[]).map(f=>`<a class="chat-attachment" href="${esc(f.url)}" target="_blank"><i class="fa-solid fa-paperclip"></i>${esc(f.name||'Adjunto')}</a>`).join('')}catch(_){}return `<div class="message-wrap ${out?'out':'in'} ${m.sender_type==='bot'?'is-bot':''}">${who}<p class="${out?'me':'them'}">${esc(m.body||'').replace(/\n/g,'<br>')}</p>${media}</div>`}).join('');if(nearBottom)box.scrollTop=box.scrollHeight;else box.scrollTop=Math.min(previousTop,Math.max(0,box.scrollHeight-box.clientHeight));box.dataset.historyReady='1'};
  const refresh=async()=>{const {box,cid}=current();if(!cid||!box||busy)return;if(cid!==lastCid){last='';lastCid=cid}busy=true;try{const fd=new FormData();fd.append('action','conversation_snapshot');fd.append('conversation_id',cid);const j=await send(fd);if(j.ok){const sig=JSON.stringify(j.data.messages.map(x=>[x.id,x.body,x.status]));if(sig!==last){last=sig;render(box,j.data.messages)}}}finally{busy=false}};
- document.addEventListener('zynko:realtime',e=>{const d=e.detail,cid=current().cid;if(String(d?.data?.conversation_id||d?.entity_id||'')===String(cid))refresh();else if(d?.event==='conversation.created')document.dispatchEvent(new CustomEvent('zynko:inbox-list-refresh'))});
- // If the local WebSocket daemon is not running, the inbox still refreshes without manual reload.
- setInterval(()=>{if(!document.hidden)refresh()},5000);refresh();
+ const refreshConversationList=async()=>{
+   if(document.hidden)return;
+   try{
+     const r=await fetch(location.href,{headers:{'X-ZYNKO-AJAX':'1','X-Requested-With':'XMLHttpRequest'},cache:'no-store'});
+     if(!r.ok)return;
+     const html=await r.text();
+     const doc=new DOMParser().parseFromString(html,'text/html');
+     const fresh=doc.querySelector('.conv-list .conversation-scroll');
+     const currentList=document.querySelector('.conv-list .conversation-scroll');
+     if(fresh&&currentList){
+       const activeId=current().cid;
+       currentList.replaceWith(fresh);
+       document.querySelectorAll('.conv-list .conversation').forEach(x=>x.classList.toggle('active',String(x.dataset.conversationId||'')===String(activeId)));
+     }
+   }catch(_){/* El chat abierto sigue funcionando aunque falle el refresco de la lista. */}
+ };
+ document.addEventListener('zynko:realtime',e=>{
+   const d=e.detail,cid=current().cid,eventCid=d?.data?.conversation_id||d?.entity_id||'';
+   if(String(eventCid)===String(cid))refresh();
+   if(['conversation.created','message.created','conversation.updated'].includes(d?.event))refreshConversationList();
+ });
+ // WebSocket es primario; polling actualiza tanto el chat abierto como la lista sin recargar la página.
+ setInterval(()=>{if(!document.hidden){refresh();refreshConversationList()}},5000);refresh();refreshConversationList();
 })();
 
 // ZYNKO Premium Experience v1: realtime indicator, command center and navigation feedback.

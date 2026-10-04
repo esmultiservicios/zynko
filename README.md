@@ -1,3 +1,15 @@
+## V2.31.95 · NIVO Web Chat + NIVO IA: respuesta garantizada, handoff persistente y Bandeja en tiempo real
+
+- Corrige el silencio del Web Chat cuando una consulta válida llega a NIVO IA y una consulta interna de conocimiento falla.
+- Las preguntas sobre ES MULTISERVICIOS, IZZY, CAMI y ZYNKO tienen una ruta de resolución garantizada para el tenant principal, manteniendo prioridad para reglas y conocimiento aprobado.
+- Las búsquedas en `knowledge_sources` son defensivas: una incompatibilidad heredada ya no tumba todo el motor ni deja al visitante esperando.
+- El estado `pending` de atención humana ya no se sobrescribe a `open` cuando el visitante sigue escribiendo. El banner de handoff permanece hasta que un agente resuelva/reabra la conversación.
+- Cada mensaje válido se persiste antes de ejecutar NIVO y publica evento realtime con vista previa.
+- La Bandeja actualiza la lista de conversaciones por WebSocket y también por polling de respaldo cada 5 segundos sin recargar toda la página.
+- La encuesta continúa apareciendo únicamente al finalizar realmente el chat (visitante, agente o cierre por inactividad), no durante un handoff.
+- Se conservan Finalizar chat, encuesta 1–5 estrellas, comentario, nuevo chat, Inicio/Último, perfil editable, inactividad, anti-spam, aprendizaje supervisado y aislamiento por tenant.
+- No requiere cambios estructurales de base de datos.
+
 ## V2.31.94 · NIVO IA: conocimiento confiable y handoff seguro
 
 - NIVO resuelve preguntas sobre la empresa y soluciones del tenant usando reglas, catálogo y fuentes web aprobadas.

@@ -1101,7 +1101,7 @@ if ($action === 'send') {
         "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
     )->execute([$tid, $cid, uuid4(), $body]);
     $pdo->prepare(
-        "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status='open',archived_at=NULL WHERE id=? AND tenant_id=?"
+        "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status=IF(status='pending','pending','open'),archived_at=NULL WHERE id=? AND tenant_id=?"
     )->execute([$cid, $tid]);
 
     nivoLogSecurityEvent($pdo, $tid, $v ?: null, $cid, $securityAssessment);
@@ -1110,7 +1110,7 @@ if ($action === 'send') {
         $pdo,
         $tid,
         'message.created',
-        ['conversation_id' => $cid, 'channel' => 'webchat'],
+        ['conversation_id' => $cid, 'channel' => 'webchat', 'sender' => 'contact', 'preview' => mb_substr($body,0,180)],
         'conversation',
         (string) $cid
     );
@@ -1160,6 +1160,15 @@ if ($action === 'send') {
             $rawName,
             $assistantCompany
         );
+    }
+
+    // Un mensaje válido nunca debe quedar sin respuesta por un fallo interno del motor.
+    // Si NIVO está activo y no está esperando a un humano, devolvemos una respuesta segura y mantenemos el chat operativo.
+    if (!$alreadyPending && !empty($engine['enabled']) && trim((string)($engine['reply'] ?? '')) === '' && empty($engine['handoff'])) {
+        $engine['reply'] = 'Recibí tu mensaje. Estoy revisando el conocimiento aprobado de ' . $assistantCompany . '. Si la consulta es sobre ES MULTISERVICIOS, IZZY, CAMI o ZYNKO, puedo orientarte directamente; vuelve a enviarme la pregunta para continuar.';
+        $engine['source'] = 'engine:non-silent-fallback';
+        $engine['confidence'] = 'low';
+        $engine['reason'] = 'non_silent_fallback';
     }
 
     $reply = $engine['reply'] ?? null;
