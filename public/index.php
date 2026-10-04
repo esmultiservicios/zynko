@@ -8,6 +8,19 @@ require_once $root.'/app/Services/OpenAIProviderService.php';
 require_once $root.'/app/Services/NivoWebsiteKnowledgeService.php';
 require_once $root.'/app/Services/PublicEmailValidationService.php';
 if (!is_file($root.'/storage/installed.lock')) { header('Location: install.php'); exit; }
+ini_set('session.use_strict_mode','1');
+ini_set('session.cookie_httponly','1');
+ini_set('session.cookie_samesite','Lax');
+ini_set('session.gc_maxlifetime','3600');
+if(!headers_sent()){
+  session_set_cookie_params([
+    'lifetime'=>0,
+    'path'=>'/',
+    'secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off',
+    'httponly'=>true,
+    'samesite'=>'Lax',
+  ]);
+}
 session_start();
 function envConfig(string $path): array { $v=@parse_ini_file($path,false,INI_SCANNER_RAW); return is_array($v)?$v:[]; }
 function appDb(): PDO { static $pdo; if($pdo)return $pdo; global $root; $e=envConfig($root.'/.env'); $dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4'; $pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"); return $pdo; }
@@ -240,20 +253,85 @@ try{$t=$pdo->query("SHOW COLUMNS FROM channels LIKE 'type'")->fetch();if($t && s
 try{$t=$pdo->query("SHOW COLUMNS FROM tenant_channel_entitlements LIKE 'channel_type'")->fetch();if($t && stripos((string)$t['Type'],'enum(')===0)$pdo->exec("ALTER TABLE tenant_channel_entitlements MODIFY channel_type VARCHAR(50) NOT NULL");}catch(Throwable $e){}
 
 } catch(Throwable $e){} }
-function restoreRememberedLogin(): void { if(isset($_SESSION['user'])||empty($_COOKIE['zynko_remember']))return; try{$raw=$_COOKIE['zynko_remember'];[$id,$token]=array_pad(explode('.', $raw,2),2,'');if(!$id||!$token)return;$st=appDb()->prepare("SELECT s.user_id,u.name,u.email,u.locale,u.avatar_path,tu.tenant_id,tu.role_code,t.name company,t.status tenant_status FROM user_sessions s JOIN users u ON u.id=s.user_id JOIN tenant_users tu ON tu.user_id=u.id JOIN tenants t ON t.id=tu.tenant_id WHERE s.id=? AND s.token_hash=? AND s.remember_me=1 AND s.revoked_at IS NULL AND s.expires_at>NOW() AND s.created_at>=DATE_SUB(NOW(),INTERVAL 12 HOUR) AND u.status='active' LIMIT 1");$st->execute([(int)$id,hash('sha256',$token)]);$u=$st->fetch();if(!$u)return;session_regenerate_id(true);$_SESSION['user']=['id'=>(int)$u['user_id'],'name'=>$u['name'],'email'=>$u['email'],'avatar_path'=>$u['avatar_path']??null,'tenant_id'=>(int)$u['tenant_id'],'company'=>$u['company'],'role'=>$u['role_code'],'locale'=>$u['locale']];$_SESSION['zynko_session_row_id']=(int)$id;$_SESSION['zynko_login_at']=time();$_SESSION['zynko_last_activity']=time();}catch(Throwable $e){} }
+function zynkoClearAuthentication(bool $revokeDatabaseSession=true): void {
+  if($revokeDatabaseSession){
+    try{
+      if(!empty($_SESSION['zynko_session_row_id'])){
+        appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([(int)$_SESSION['zynko_session_row_id']]);
+      }
+      if(!empty($_COOKIE['zynko_remember'])){
+        [$rememberId]=array_pad(explode('.',(string)$_COOKIE['zynko_remember'],2),2,'');
+        if($rememberId!=='')appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([(int)$rememberId]);
+      }
+    }catch(Throwable $e){}
+  }
+
+  foreach(['zynko_remember','zynko_login_email'] as $cookieName){
+    if(isset($_COOKIE[$cookieName])){
+      setcookie($cookieName,'',[ 'expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax']);
+      unset($_COOKIE[$cookieName]);
+    }
+  }
+
+  $_SESSION=[];
+  if(ini_get('session.use_cookies')){
+    $params=session_get_cookie_params();
+    setcookie(session_name(),'',time()-42000,$params['path'],$params['domain'],$params['secure'],$params['httponly']);
+  }
+  if(session_status()===PHP_SESSION_ACTIVE)session_destroy();
+}
+
+function restoreRememberedLogin(): void {
+  if(isset($_SESSION['user'])||empty($_COOKIE['zynko_remember']))return;
+  try{
+    $raw=(string)$_COOKIE['zynko_remember'];
+    [$id,$token]=array_pad(explode('.',$raw,2),2,'');
+    if($id===''||$token==='')return;
+    $st=appDb()->prepare("SELECT s.user_id,UNIX_TIMESTAMP(s.created_at) session_created_ts,u.name,u.email,u.locale,u.avatar_path,tu.tenant_id,tu.role_code,t.name company,t.status tenant_status FROM user_sessions s JOIN users u ON u.id=s.user_id JOIN tenant_users tu ON tu.user_id=u.id JOIN tenants t ON t.id=tu.tenant_id WHERE s.id=? AND s.token_hash=? AND s.remember_me=1 AND s.revoked_at IS NULL AND s.expires_at>NOW() AND s.created_at>=DATE_SUB(NOW(),INTERVAL 12 HOUR) AND u.status='active' LIMIT 1");
+    $st->execute([(int)$id,hash('sha256',$token)]);
+    $u=$st->fetch();
+    if(!$u)return;
+    session_regenerate_id(true);
+    $_SESSION['user']=['id'=>(int)$u['user_id'],'name'=>$u['name'],'email'=>$u['email'],'avatar_path'=>$u['avatar_path']??null,'tenant_id'=>(int)$u['tenant_id'],'company'=>$u['company'],'role'=>$u['role_code'],'locale'=>$u['locale']];
+    $_SESSION['zynko_session_row_id']=(int)$id;
+    $_SESSION['zynko_login_at']=max(1,(int)($u['session_created_ts']??time()));
+    $_SESSION['zynko_last_activity']=time();
+  }catch(Throwable $e){}
+}
+
 function zynkoExpireAdminSession(string $reason='expired'): never {
-  try{if(!empty($_SESSION['zynko_session_row_id']))appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([(int)$_SESSION['zynko_session_row_id']]);}catch(Throwable $e){}
-  if(!empty($_COOKIE['zynko_remember']))setcookie('zynko_remember','',['expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax']);
-  $_SESSION=[];if(ini_get('session.use_cookies')){$p=session_get_cookie_params();setcookie(session_name(),'',time()-42000,$p['path'],$p['domain'],$p['secure'],$p['httponly']);}session_destroy();
-  if(($_SERVER['HTTP_X_ZYNKO_AJAX']??'')==='1'){http_response_code(401);header('Content-Type: application/json; charset=utf-8');echo json_encode(['ok'=>false,'message'=>'Tu sesión venció por seguridad. Inicia sesión nuevamente.'],JSON_UNESCAPED_UNICODE);exit;}
-  header('Location: ?page=login&session_expired=1');exit;
+  zynkoClearAuthentication(true);
+  if(($_SERVER['HTTP_X_ZYNKO_AJAX']??'')==='1'){
+    http_response_code(401);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['ok'=>false,'message'=>'Tu sesión venció por seguridad. Inicia sesión nuevamente.'],JSON_UNESCAPED_UNICODE);
+    exit;
+  }
+  header('Location: ?page=login&session_expired=1');
+  exit;
 }
+
 function zynkoEnforceSessionLifetime(): void {
-  if(empty($_SESSION['user']))return;$now=time();$idle=60*60;$absolute=12*60*60;$loginAt=(int)($_SESSION['zynko_login_at']??$now);$last=(int)($_SESSION['zynko_last_activity']??$now);
-  if(($now-$last)>$idle||($now-$loginAt)>$absolute)zynkoExpireAdminSession();
-  $_SESSION['zynko_login_at']=$loginAt;$_SESSION['zynko_last_activity']=$now;
+  if(empty($_SESSION['user']))return;
+  $now=time();
+  $idleTimeout=60*60;
+  $absoluteTimeout=12*60*60;
+  $loginAt=(int)($_SESSION['zynko_login_at']??$now);
+  $lastActivity=(int)($_SESSION['zynko_last_activity']??$now);
+  if(($now-$lastActivity)>$idleTimeout||($now-$loginAt)>$absoluteTimeout)zynkoExpireAdminSession();
+  $_SESSION['zynko_login_at']=$loginAt;
+  $_SESSION['zynko_last_activity']=$now;
 }
-ensureRuntimeSchema(); restoreRememberedLogin(); zynkoEnforceSessionLifetime();
+
+ensureRuntimeSchema();
+$freshLogin=(($_GET['page']??'')==='login'&&($_GET['fresh']??'')==='1');
+if($freshLogin){
+  zynkoClearAuthentication(true);
+  session_start();
+}else{
+  restoreRememberedLogin();
+  zynkoEnforceSessionLifetime();
+}
 function zynkoTrackPublicVisit(): void {
   try{
     $ua=mb_substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,500);
@@ -920,7 +998,23 @@ if($action==='category_add'){$name=trim($_POST['category_name']??'');if($name===
  }catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();jsonOut(false,$e->getMessage());}
 }
 function decryptSecret(?string $cipher): string { if(!$cipher||!str_starts_with($cipher,'enc:v1:'))return ''; global $root;$e=envConfig($root.'/.env');$hex=$e['APP_KEY']??'';if(!preg_match('/^[a-f0-9]{64}$/i',$hex))return '';$raw=base64_decode(substr($cipher,7),true);if($raw===false||strlen($raw)<29)return '';$iv=substr($raw,0,12);$tag=substr($raw,12,16);$ct=substr($raw,28);$plain=openssl_decrypt($ct,'aes-256-gcm',hex2bin($hex),OPENSSL_RAW_DATA,$iv,$tag);return $plain===false?'':$plain; }
-function resetEmailSend(array $user,string $url): void { global $root; require_once $root.'/app/Services/EmailTemplates.php';$pdo=appDb();$tid=(int)$user['tenant_id'];$q=$pdo->prepare('SELECT * FROM correo WHERE tenant_id=? AND is_default=1 AND estado=1 ORDER BY correo_id DESC LIMIT 1');$q->execute([$tid]);$cfg=$q->fetch();if(!$cfg)return;$t=$pdo->prepare('SELECT name FROM tenants WHERE id=?');$t->execute([$tid]);$company=(string)($t->fetchColumn()?:'Tu empresa');$html=EmailTemplates::generic('SEGURIDAD','Restablecer contraseña','Recibimos una solicitud para restablecer tu contraseña. Abre este enlace (válido por 30 minutos): '.$url."\n\nSi no solicitaste este cambio, ignora este mensaje.",['company_name'=>$company,'app_title'=>'ZYNKO','app_url'=>$url],'SEGURIDAD');$to=$user['email'];$subject='ZYNKO - Restablecer contraseña';if(($cfg['metodo_envio']??'')==='GRAPH'){$tenant=trim((string)$cfg['tenant_graph_id']);$client=trim((string)$cfg['client_id']);$secret=decryptSecret($cfg['client_secret']??'');$from=trim((string)$cfg['graph_user']);if(!$tenant||!$client||!$secret||!$from||!function_exists('curl_init'))return;$ch=curl_init('https://login.microsoftonline.com/'.rawurlencode($tenant).'/oauth2/v2.0/token');curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_POSTFIELDS=>http_build_query(['client_id'=>$client,'client_secret'=>$secret,'scope'=>'https://graph.microsoft.com/.default','grant_type'=>'client_credentials'])]);$raw=curl_exec($ch);curl_close($ch);$j=json_decode((string)$raw,true);$access=$j['access_token']??'';if(!$access)return;$payload=['message'=>['subject'=>$subject,'body'=>['contentType'=>'HTML','content'=>$html],'toRecipients'=>[['emailAddress'=>['address'=>$to]]]],'saveToSentItems'=>(bool)($cfg['save_to_sent_items']??1)];$ch=curl_init('https://graph.microsoft.com/v1.0/users/'.rawurlencode($from).'/sendMail');curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$access,'Content-Type: application/json'],CURLOPT_POSTFIELDS=>json_encode($payload)]);curl_exec($ch);curl_close($ch);return;}@mail($to,$subject,$html,"MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\nFrom: ".($cfg['correo']??'noreply@localhost')); }
+function resetEmailSend(array $user, string $url): void
+{
+    global $root;
+
+    $pdo = appDb();
+    $tenantId = (int)$user['tenant_id'];
+    $recipient = trim((string)($user['email'] ?? ''));
+
+    require_once $root . '/app/Services/NotificationService.php';
+
+    try {
+        $notifications = new NotificationService($pdo, $root);
+        $notifications->sendPasswordReset($tenantId, $recipient, $url);
+    } catch (Throwable $e) {
+        // El flujo de recuperación mantiene su respuesta genérica por seguridad.
+    }
+}
 $resetMessage='';$resetError='';
 if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='forgot_password'){try{$email=strtolower(trim($_POST['email']??''));if(filter_var($email,FILTER_VALIDATE_EMAIL)){$q=appDb()->prepare("SELECT u.id,u.email,tu.tenant_id FROM users u JOIN tenant_users tu ON tu.user_id=u.id WHERE u.email=? AND u.status='active' LIMIT 1");$q->execute([$email]);if($u=$q->fetch()){$token=bin2hex(random_bytes(32));appDb()->prepare('UPDATE password_reset_tokens SET used_at=NOW() WHERE user_id=? AND used_at IS NULL')->execute([$u['id']]);appDb()->prepare('INSERT INTO password_reset_tokens(user_id,token_hash,expires_at) VALUES(?,?,DATE_ADD(NOW(),INTERVAL 30 MINUTE))')->execute([$u['id'],hash('sha256',$token)]);$scheme=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off')?'https':'http';$base=$scheme.'://'.($_SERVER['HTTP_HOST']??'localhost').($_SERVER['SCRIPT_NAME']??'/index.php');resetEmailSend($u,$base.'?page=reset-password&token='.urlencode($token));}}$resetMessage='Si el correo está registrado, recibirás un enlace para restablecer la contraseña.';}catch(Throwable $e){$resetMessage='Si el correo está registrado, recibirás un enlace para restablecer la contraseña.';}}
 if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='reset_password'){try{$token=(string)($_POST['token']??'');$pass=(string)($_POST['password']??'');$confirm=(string)($_POST['password_confirm']??'');if(strlen($pass)<8)throw new RuntimeException('La contraseña debe tener al menos 8 caracteres.');if($pass!==$confirm)throw new RuntimeException('Las contraseñas no coinciden.');$q=appDb()->prepare('SELECT * FROM password_reset_tokens WHERE token_hash=? AND used_at IS NULL AND expires_at>NOW() ORDER BY id DESC LIMIT 1');$q->execute([hash('sha256',$token)]);$r=$q->fetch();if(!$r)throw new RuntimeException('El enlace es inválido o ya venció.');appDb()->beginTransaction();appDb()->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([password_hash($pass,PASSWORD_DEFAULT),$r['user_id']]);appDb()->prepare('UPDATE password_reset_tokens SET used_at=NOW() WHERE user_id=?')->execute([$r['user_id']]);appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE user_id=? AND revoked_at IS NULL')->execute([$r['user_id']]);appDb()->commit();$resetMessage='Contraseña actualizada. Ya puedes iniciar sesión.';}catch(Throwable $e){if(appDb()->inTransaction())appDb()->rollBack();$resetError=$e->getMessage();}}
@@ -934,5 +1028,5 @@ $emailSettingsMessage=''; $emailSettingsError='';
 if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='email_save' && isset($_SESSION['user'])){
   try{$pdo=appDb();$tid=(int)$_SESSION['user']['tenant_id'];$pc=zynkoPlanContext($pdo,$tid,isPlatformOwner());if(!zynkoPlanAllowsModule($pc,'email'))throw new RuntimeException('La configuración de correo requiere un plan superior.');$method=strtoupper(trim($_POST['method']??'SMTP'));if(!in_array($method,['SMTP','GRAPH'],true))throw new RuntimeException('Método inválido.');$sender=$method==='GRAPH'?trim($_POST['graph_user']??''):trim($_POST['sender']??'');if(!filter_var($sender,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo emisor inválido.');$e=envConfig($root.'/.env');$hex=$e['APP_KEY']??'';if(!preg_match('/^[a-f0-9]{64}$/i',$hex))throw new RuntimeException('APP_KEY inválida.');$enc=function($plain)use($hex){if($plain==='')return null;$key=hex2bin($hex);$iv=random_bytes(12);$tag='';$c=openssl_encrypt($plain,'aes-256-gcm',$key,OPENSSL_RAW_DATA,$iv,$tag);if($c===false)throw new RuntimeException('No se pudo cifrar la credencial.');return 'enc:v1:'.base64_encode($iv.$tag.$c);};$type=(int)$pdo->query("SELECT correo_tipo_id FROM correo_tipo WHERE codigo='email_tests' LIMIT 1")->fetchColumn();if(!$type)throw new RuntimeException('Falta el catálogo de correo.');$old=$pdo->prepare('SELECT * FROM correo WHERE tenant_id=? AND is_default=1 ORDER BY correo_id DESC LIMIT 1');$old->execute([$tid]);$old=$old->fetch()?:[];$smtpPass=$_POST['smtp_password']??'';$clientSecret=$_POST['client_secret']??'';$password=$smtpPass!==''?$enc($smtpPass):($old['password']??null);$clientCipher=$clientSecret!==''?$enc($clientSecret):($old['client_secret']??null);$pdo->prepare('UPDATE correo SET is_default=0 WHERE tenant_id=?')->execute([$tid]);$sql="INSERT INTO correo(tenant_id,correo_tipo_id,nombre,metodo_envio,server,correo,destinatario,copia,password,port,smtp_secure,tenant_graph_id,client_id,client_secret,graph_user,save_to_sent_items,estado,is_default) VALUES(?,?,'Principal',?,?,?,?,?,?,?,?,?,?,?,?,?,1,1)";$pdo->prepare($sql)->execute([$tid,$type,$method,trim($_POST['server']??''),$sender,trim($_POST['recipient']??''),trim($_POST['bcc']??''),$password,(int)($_POST['port']??587),strtolower($_POST['smtp_secure']??'tls'),trim($_POST['graph_tenant']??''),trim($_POST['client_id']??''),$clientCipher,trim($_POST['graph_user']??''),isset($_POST['save_to_sent'])?1:0]);$pdo->prepare("INSERT INTO notification_preferences(tenant_id,correo_tipo_id,email_enabled,in_app_enabled) SELECT ?,correo_tipo_id,1,1 FROM correo_tipo WHERE activo=1 ON DUPLICATE KEY UPDATE email_enabled=VALUES(email_enabled),in_app_enabled=VALUES(in_app_enabled)")->execute([$tid]);$emailSettingsMessage='Configuración de correo guardada correctamente.';}catch(Throwable $e){$emailSettingsError=$e->getMessage();}
 }
-if($page==='logout'){if(!empty($_SESSION['zynko_session_row_id'])){try{appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([(int)$_SESSION['zynko_session_row_id']]);}catch(Throwable $e){}}if(!empty($_COOKIE['zynko_remember'])){try{[$rid]=explode('.',$_COOKIE['zynko_remember'],2);appDb()->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([(int)$rid]);}catch(Throwable $e){}setcookie('zynko_remember','',time()-3600,'/');}$_SESSION=[];if(ini_get('session.use_cookies')){$p=session_get_cookie_params();setcookie(session_name(),'',time()-42000,$p['path'],$p['domain'],$p['secure'],$p['httponly']);}session_destroy();header('Location: ?page=login');exit;}
+if($page==='logout'){zynkoClearAuthentication(true);header('Location: ?page=login');exit;}
 $allowed=['home','login','register','verify-email','forgot-password','reset-password','dashboard','inbox','channels','webchat','users','companies','chatbot','integrations','billing','email','settings','onboarding'];if(!in_array($page,$allowed,true))$page='dashboard';$publicPages=['home','login','register','verify-email','forgot-password','reset-password'];if(!in_array($page,$publicPages,true)&&!isset($_SESSION['user'])){header('Location: ?page=login');exit;}if(in_array($page,$publicPages,true)&&isset($_SESSION['user'])&&$page!=='home'){header('Location: ?page=dashboard');exit;}if($page==='companies'&&!isPlatformOwner()){header('Location: ?page=dashboard');exit;}if(isset($_SESSION['user'])&&!isPlatformOwner()){$pagePlan=zynkoPlanContext(appDb(),(int)$_SESSION['user']['tenant_id'],false);if(!zynkoPlanAllowsPage($pagePlan,$page)){$lockedPage=$page;require $root.'/app/Views/upgrade.php';exit;}}require $root.'/app/Views/'.$page.'.php';
