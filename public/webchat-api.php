@@ -25,8 +25,46 @@ function db(){
     ensureMessagesUtf8mb4($p);
     return $p;
 }function out($ok,$msg,$data=[],$code=200){http_response_code($code);header('Content-Type: application/json; charset=utf-8');
-header('X-Robots-Tag: noindex, nofollow, nosnippet', true);echo json_encode(['ok'=>$ok,'message'=>$msg,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}function uuid4(){ $d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}function b64u($s){return rtrim(strtr(base64_encode($s),'+/','-_'),'=');}function nivoNorm($s){$s=mb_strtolower(trim((string)$s),'UTF-8');$s=strtr($s,['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n']);return preg_replace('/\s+/u',' ',$s);}function nivoWords($s){$stop=['que','como','para','por','con','una','uno','unos','unas','del','las','los','este','esta','esto','esa','ese','soy','eres','es','son','hay','muy','mas','pero','porque','donde','cuando','puedo','puede','quiero','quiere','necesito','me','mi','tu','su','de','la','el','y','o','a','en','un'];$words=array_values(array_unique(array_filter(preg_split('/[^\p{L}\p{N}]+/u',nivoNorm($s)),fn($x)=>mb_strlen($x)>=3&&!in_array($x,$stop,true))));return $words;}function ensureNivoRuntime(PDO $pdo,int $tid):void{try{$pdo->exec("CREATE TABLE IF NOT EXISTS nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(160) NOT NULL,keywords VARCHAR(500) NOT NULL,response TEXT NOT NULL,priority INT NOT NULL DEFAULT 100,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX idx_nivo_rules_tenant(tenant_id,active,priority)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");$convCols=['archived_at'=>"DATETIME NULL",'deleted_at'=>"DATETIME NULL",'deleted_by'=>"BIGINT UNSIGNED NULL"];foreach($convCols as $cc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM conversations LIKE ".$pdo->quote($cc))->fetch();if(!$c)$pdo->exec("ALTER TABLE conversations ADD `{$cc}` {$def}");}catch(Throwable $ignore){}}$botCols=['fallback_message'=>"TEXT NULL",'handoff_rules_json'=>"JSON NULL",'business_hours_json'=>"JSON NULL",'channel_policy_json'=>"JSON NULL",'knowledge_enabled'=>"TINYINT(1) NOT NULL DEFAULT 0"];foreach($botCols as $bc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM bot_profiles LIKE ".$pdo->quote($bc))->fetch();if(!$c)$pdo->exec("ALTER TABLE bot_profiles ADD `{$bc}` {$def}");}catch(Throwable $ignore){}}try{$wc=$pdo->query("SHOW COLUMNS FROM webchat_widgets LIKE 'experience_json'")->fetch();if(!$wc)$pdo->exec("ALTER TABLE webchat_widgets ADD experience_json JSON NULL AFTER allow_multiple_domains");}catch(Throwable $ignore){}
-$col=$pdo->query("SHOW COLUMNS FROM knowledge_sources LIKE 'approval_status'")->fetch();if(!$col)$pdo->exec("ALTER TABLE knowledge_sources ADD approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved' AFTER status");$bp=$pdo->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bp->execute([$tid]);$enabled=(int)($bp->fetchColumn()?:0)===1;if($enabled){$rq=$pdo->prepare('SELECT COUNT(*) FROM nivo_rules WHERE tenant_id=? AND active=1');$rq->execute([$tid]);$rules=(int)$rq->fetchColumn();$kq=$pdo->prepare("SELECT COUNT(*) FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL");$kq->execute([$tid]);$knowledge=(int)$kq->fetchColumn();if($rules===0&&$knowledge===0){$starter=[['Saludo','hola,buenas,buenos dias,buenas tardes,buenas noches','¡Hola! Soy NIVO. ¿En qué puedo ayudarte hoy?',10],['Qué es ZYNKO','que es zynko,qué es zynko,para que sirve zynko,para qué sirve zynko,plataforma zynko','ZYNKO es una plataforma SaaS omnicanal para centralizar conversaciones, atención, NIVO Web Chat, automatización, usuarios e integraciones desde un solo lugar.',20],['NIVO Web Chat','nivo web chat,web chat,chat de nivo','NIVO Web Chat es el canal web propio de ZYNKO. Permite atender visitantes desde sitios autorizados y llevar las conversaciones a la Bandeja omnicanal.',30],['NIVO IA','nivo ia,asistente nivo,inteligencia artificial','NIVO IA trabaja junto con NIVO Web Chat usando reglas y conocimiento aprobado. Si no tiene información suficiente o el visitante pide una persona, puede transferir la conversación a atención humana.',40],['Canales y Meta','whatsapp,messenger,instagram,canales,meta','ZYNKO puede administrar distintos canales. WhatsApp Business, Messenger e Instagram requieren la autorización oficial correspondiente de Meta antes de considerarse conectados.',50],['Integraciones','api,webhook,integraciones,integracion','ZYNKO permite conectar otros sistemas mediante API y webhooks seguros, según la configuración y permisos de la empresa.',60]];$ins=$pdo->prepare('INSERT INTO nivo_rules(tenant_id,name,keywords,response,priority,active) VALUES(?,?,?,?,?,1)');foreach($starter as $r)$ins->execute([$tid,$r[0],$r[1],$r[2],$r[3]]);}}}catch(Throwable $e){}}
+header('X-Robots-Tag: noindex, nofollow, nosnippet', true);echo json_encode(['ok'=>$ok,'message'=>$msg,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}function uuid4(){ $d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}function b64u($s){return rtrim(strtr(base64_encode($s),'+/','-_'),'=');}function nivoNorm($s){$s=mb_strtolower(trim((string)$s),'UTF-8');$s=strtr($s,['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ü'=>'u','ñ'=>'n']);return preg_replace('/\s+/u',' ',$s);}function nivoWords($s){$stop=['que','como','para','por','con','una','uno','unos','unas','del','las','los','este','esta','esto','esa','ese','soy','eres','es','son','hay','muy','mas','pero','porque','donde','cuando','puedo','puede','quiero','quiere','necesito','me','mi','tu','su','de','la','el','y','o','a','en','un'];$words=array_values(array_unique(array_filter(preg_split('/[^\p{L}\p{N}]+/u',nivoNorm($s)),fn($x)=>mb_strlen($x)>=3&&!in_array($x,$stop,true))));return $words;}function ensureNivoRuntime(PDO $pdo,int $tid):void{try{$pdo->exec("CREATE TABLE IF NOT EXISTS nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(160) NOT NULL,keywords VARCHAR(500) NOT NULL,response TEXT NOT NULL,priority INT NOT NULL DEFAULT 100,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX idx_nivo_rules_tenant(tenant_id,active,priority)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");$pdo->exec("CREATE TABLE IF NOT EXISTS agent_presence(tenant_id BIGINT UNSIGNED NOT NULL,user_id BIGINT UNSIGNED NOT NULL,status ENUM('online','busy','offline') NOT NULL DEFAULT 'online',updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,PRIMARY KEY(tenant_id,user_id),INDEX idx_agent_presence_status(tenant_id,status,updated_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");$convCols=['archived_at'=>"DATETIME NULL",'deleted_at'=>"DATETIME NULL",'deleted_by'=>"BIGINT UNSIGNED NULL"];foreach($convCols as $cc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM conversations LIKE ".$pdo->quote($cc))->fetch();if(!$c)$pdo->exec("ALTER TABLE conversations ADD `{$cc}` {$def}");}catch(Throwable $ignore){}}$botCols=['fallback_message'=>"TEXT NULL",'handoff_rules_json'=>"JSON NULL",'business_hours_json'=>"JSON NULL",'channel_policy_json'=>"JSON NULL",'knowledge_enabled'=>"TINYINT(1) NOT NULL DEFAULT 0"];foreach($botCols as $bc=>$def){try{$c=$pdo->query("SHOW COLUMNS FROM bot_profiles LIKE ".$pdo->quote($bc))->fetch();if(!$c)$pdo->exec("ALTER TABLE bot_profiles ADD `{$bc}` {$def}");}catch(Throwable $ignore){}}try{$wc=$pdo->query("SHOW COLUMNS FROM webchat_widgets LIKE 'experience_json'")->fetch();if(!$wc)$pdo->exec("ALTER TABLE webchat_widgets ADD experience_json JSON NULL AFTER allow_multiple_domains");}catch(Throwable $ignore){}
+$col=$pdo->query("SHOW COLUMNS FROM knowledge_sources LIKE 'approval_status'")->fetch();if(!$col)$pdo->exec("ALTER TABLE knowledge_sources ADD approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved' AFTER status");$bp=$pdo->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bp->execute([$tid]);$enabled=(int)($bp->fetchColumn()?:0)===1;if($enabled){$rq=$pdo->prepare('SELECT COUNT(*) FROM nivo_rules WHERE tenant_id=? AND active=1');$rq->execute([$tid]);$rules=(int)$rq->fetchColumn();$kq=$pdo->prepare("SELECT COUNT(*) FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL");$kq->execute([$tid]);$knowledge=(int)$kq->fetchColumn();if($rules===0&&$knowledge===0){$starter=[['Saludo','hola,buenas,buenos dias,buenas tardes,buenas noches','¡Hola! Soy NIVO. ¿En qué puedo ayudarte hoy?',10],['Qué es ZYNKO','que es zynko,qué es zynko,para que sirve zynko,para qué sirve zynko,plataforma zynko','ZYNKO es una plataforma SaaS omnicanal para centralizar conversaciones, atención, NIVO Web Chat, automatización, usuarios e integraciones desde un solo lugar.',20],['NIVO Web Chat','nivo web chat,web chat,chat de nivo','NIVO Web Chat es el canal web propio de ZYNKO. Permite atender visitantes desde sitios autorizados y llevar las conversaciones a la Bandeja omnicanal.',30],['NIVO IA','nivo ia,asistente nivo,inteligencia artificial','NIVO IA trabaja junto con NIVO Web Chat usando reglas y conocimiento aprobado. Si no tiene información suficiente o el visitante pide una persona, puede transferir la conversación a atención humana.',40],['Canales y Meta','whatsapp,messenger,instagram,canales,meta','ZYNKO puede administrar distintos canales. WhatsApp Business, Messenger e Instagram requieren la autorización oficial correspondiente de Meta antes de considerarse conectados.',50],['Integraciones','api,webhook,integraciones,integracion','ZYNKO permite conectar otros sistemas mediante API y webhooks seguros, según la configuración y permisos de la empresa.',60]];$tenantName='';try{$tn=$pdo->prepare('SELECT name FROM tenants WHERE id=? LIMIT 1');$tn->execute([$tid]);$tenantName=nivoNorm((string)($tn->fetchColumn()?:''));$tenantCompact=str_replace(' ','',$tenantName);if(in_array($tenantCompact,['esmultiservicios','esmultsiervicios'],true))$tenantName='es multiservicios';}catch(Throwable $ignore){}if($tenantName==='es multiservicios'){array_push($starter,['ES MULTISERVICIOS','que es es multiservicios,qué es es multiservicios,quien es es multiservicios,quién es es multiservicios,que hace es multiservicios,qué hace es multiservicios','ES MULTISERVICIOS desarrolla software, sitios web, integraciones y soluciones digitales para empresas. Es la empresa creadora de IZZY, CAMI y ZYNKO.',15],['IZZY','que es izzy,qué es izzy,para que sirve izzy,para qué sirve izzy,funciones de izzy','IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa.',25],['CAMI','que es cami,qué es cami,para que sirve cami,para qué sirve cami','CAMI es una solución de ES MULTISERVICIOS orientada a clínicas y centros médicos. Su conocimiento detallado puede ampliarse desde las fuentes y base aprobadas del tenant.',35],['Familia ES MULTISERVICIOS','productos de es multiservicios,soluciones de es multiservicios,que sistemas tiene es multiservicios,qué sistemas tiene es multiservicios','ES MULTISERVICIOS reúne una familia de soluciones que incluye IZZY, CAMI y ZYNKO. NIVO puede usar en cualquier sitio autorizado del mismo tenant el conocimiento aprobado de toda esa familia.',18]);}$ins=$pdo->prepare('INSERT INTO nivo_rules(tenant_id,name,keywords,response,priority,active) VALUES(?,?,?,?,?,1)');foreach($starter as $r)$ins->execute([$tid,$r[0],$r[1],$r[2],$r[3]]);}}}catch(Throwable $e){}}
+function nivoAssignAvailableAgent(PDO $pdo, int $tenantId, int $conversationId): ?array
+{
+    if ($tenantId < 1 || $conversationId < 1) {
+        return null;
+    }
+
+    try {
+        $query = $pdo->prepare(
+            "SELECT u.id,u.name,COUNT(c.id) active_chats
+             FROM users u
+             JOIN tenant_users tu ON tu.user_id=u.id AND tu.tenant_id=?
+             LEFT JOIN agent_presence ap ON ap.user_id=u.id AND ap.tenant_id=tu.tenant_id
+             LEFT JOIN conversations c ON c.tenant_id=tu.tenant_id AND c.assigned_user_id=u.id AND c.status IN ('open','pending') AND c.deleted_at IS NULL
+             WHERE u.status='active'
+               AND tu.role_code IN ('agent','supervisor','admin','owner')
+               AND COALESCE(ap.status,'online')='online'
+             GROUP BY u.id,u.name
+             ORDER BY active_chats ASC, COALESCE(ap.updated_at,'1970-01-01') DESC, u.id ASC
+             LIMIT 1"
+        );
+        $query->execute([$tenantId]);
+        $agent = $query->fetch();
+        if (!$agent) {
+            return null;
+        }
+
+        $userId = (int) $agent['id'];
+        $name = trim((string) $agent['name']);
+        $pdo->prepare("UPDATE conversations SET assigned_user_id=?,status='open',archived_at=NULL WHERE id=? AND tenant_id=?")
+            ->execute([$userId, $conversationId, $tenantId]);
+
+        return ['id' => $userId, 'name' => $name !== '' ? $name : 'Agente'];
+    } catch (Throwable $error) {
+        error_log('NIVO auto assignment failed: ' . $error->getMessage());
+        return null;
+    }
+}
+
 function nivoRequestDomain(string $url): string
 {
     $url = trim($url);
@@ -509,11 +547,13 @@ $pdo->prepare(
 )->execute([$installation['id']]);
 
 $experience = json_decode((string) ($w['experience_json'] ?? '{}'), true) ?: [];
-$platformTenantId = (int) ($pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn() ?: 0);
-$isPlatformTenant = $platformTenantId > 0 && $tid === $platformTenantId;
-$tenantCompany = trim((string) ($w['company'] ?? '')) ?: 'Tu empresa';
-$platformBrand = trim((string) ($experience['platform_brand_name'] ?? 'ES MULTISERVICIOS')) ?: 'ES MULTISERVICIOS';
-$assistantCompany = $isPlatformTenant ? $platformBrand : $tenantCompany;
+$tenantNameQuery = $pdo->prepare('SELECT name FROM tenants WHERE id=? LIMIT 1');
+$tenantNameQuery->execute([$tid]);
+$tenantCompany = trim((string) ($tenantNameQuery->fetchColumn() ?: ($w['company'] ?? '')));
+if ($tenantCompany === '') {
+    $tenantCompany = 'Tu empresa';
+}
+$assistantCompany = $tenantCompany;
 $installationLabel = trim((string) ($installation['label'] ?? ''));
 $installationDomain = strtolower(trim((string) ($installation['domain'] ?? '')));
 $contextHaystack = mb_strtolower($installationLabel . ' ' . $installationDomain, 'UTF-8');
@@ -636,7 +676,7 @@ if ($action === 'bootstrap') {
         if ($serverExpired) {
             $pdo->prepare("UPDATE conversations SET status='closed',unread_count=0 WHERE id=? AND tenant_id=?")->execute([$cid, $tid]);
             $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'], $tid]);
-            zynkoRealtimePublish($pdo,$tid,'conversation.closed',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'server_inactivity'],'conversation',(string)$cid);
+            zynkoRealtimePublishSafe($pdo,$tid,'conversation.closed',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'server_inactivity'],'conversation',(string)$cid);
             $cid = 0;
             $conversation = null;
         }
@@ -661,12 +701,17 @@ if ($action === 'bootstrap') {
     }
 
     $conversationStatus = 'new';
+    $conversationAssignedUserId = 0;
+    $conversationAgentName = '';
     $survey = null;
     if ($cid) {
         try {
-            $sq = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+            $sq = $pdo->prepare('SELECT c.status,c.assigned_user_id,u.name agent_name FROM conversations c LEFT JOIN users u ON u.id=c.assigned_user_id WHERE c.id=? AND c.tenant_id=? LIMIT 1');
             $sq->execute([$cid, $tid]);
-            $conversationStatus = (string) ($sq->fetchColumn() ?: 'open');
+            $conversationRow = $sq->fetch() ?: [];
+            $conversationStatus = (string) ($conversationRow['status'] ?? 'open');
+            $conversationAssignedUserId = (int) ($conversationRow['assigned_user_id'] ?? 0);
+            $conversationAgentName = trim((string) ($conversationRow['agent_name'] ?? ''));
             $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,comment,requested_at,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
             $surveyQuery->execute([$tid, $cid]);
             $surveyRow = $surveyQuery->fetch();
@@ -685,7 +730,10 @@ if ($action === 'bootstrap') {
     $env = envc($root . '/.env');
     $host = $env['WS_PUBLIC_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? 'localhost');
     $host = preg_replace('/:\d+$/', '', $host);
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'wss' : 'ws';
+    $scheme = strtolower(trim((string) ($env['WS_PUBLIC_SCHEME'] ?? '')));
+    if (!in_array($scheme, ['ws', 'wss'], true)) {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'wss' : 'ws';
+    }
     $payload = [
         'tenant_id' => $tid,
         'visitor_id' => (int) $v['id'],
@@ -697,7 +745,9 @@ if ($action === 'bootstrap') {
     $signature = preg_match('/^[a-f0-9]{64}$/i', $env['APP_KEY'] ?? '')
         ? hash_hmac('sha256', $encoded, hex2bin($env['APP_KEY']), true)
         : '';
-    $ws = $scheme . '://' . $host . ':' . ((int) ($env['WS_PORT'] ?? 8080));
+    $publicWs = trim((string) ($env['WS_PUBLIC_URL'] ?? ''));
+    $publicPort = (int) ($env['WS_PUBLIC_PORT'] ?? ($env['WS_PORT'] ?? 8080));
+    $ws = $publicWs !== '' ? rtrim($publicWs, '/') : ($scheme . '://' . $host . ':' . $publicPort);
     $aiEnabled = false;
 
     try {
@@ -718,6 +768,8 @@ if ($action === 'bootstrap') {
         'conversation_status' => $conversationStatus,
         'conversation_closed' => in_array($conversationStatus, ['resolved','closed'], true),
         'conversation_pending' => $conversationStatus === 'pending',
+        'human_assigned' => $conversationAssignedUserId > 0,
+        'handoff_agent' => $conversationAssignedUserId > 0 ? ['id'=>$conversationAssignedUserId,'name'=>$conversationAgentName ?: 'Agente'] : null,
         'survey' => $survey,
         'visitor_profile' => [
             'name' => $profileName,
@@ -823,7 +875,7 @@ if ($action === 'close') {
         throw $error;
     }
 
-    zynkoRealtimePublish($pdo,$tid,'conversation.resolved',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_finished'],'conversation',(string)$cid);
+    zynkoRealtimePublishSafe($pdo,$tid,'conversation.resolved',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_finished'],'conversation',(string)$cid);
     out(true, 'Chat finalizado.', [
         'conversation_id' => $cid,
         'conversation_status' => 'resolved',
@@ -886,7 +938,7 @@ if ($action === 'inactivity_nudge') {
         $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
             ->execute([$tid,$cid,uuid4(),$message]);
         $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
-        zynkoRealtimePublish($pdo,$tid,'message.created',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_inactivity_nudge'],'conversation',(string)$cid);
+        zynkoRealtimePublishSafe($pdo,$tid,'message.created',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_inactivity_nudge'],'conversation',(string)$cid);
         $persisted = true;
     }
 
@@ -934,7 +986,7 @@ if ($action === 'expire') {
             throw $error;
         }
 
-        zynkoRealtimePublish(
+        zynkoRealtimePublishSafe(
             $pdo,
             $tid,
             'conversation.closed',
@@ -1079,7 +1131,7 @@ if ($action === 'send') {
 
         $ensureInitialGreeting($cid);
 
-        zynkoRealtimePublish(
+        zynkoRealtimePublishSafe(
             $pdo,
             $tid,
             'conversation.created',
@@ -1106,7 +1158,7 @@ if ($action === 'send') {
 
     nivoLogSecurityEvent($pdo, $tid, $v ?: null, $cid, $securityAssessment);
 
-    zynkoRealtimePublish(
+    zynkoRealtimePublishSafe(
         $pdo,
         $tid,
         'message.created',
@@ -1135,37 +1187,101 @@ if ($action === 'send') {
     } catch (Throwable $ignore) {
     }
 
-    $statusQuery = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+    $statusQuery = $pdo->prepare('SELECT status,assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
     $statusQuery->execute([$cid, $tid]);
-    $currentStatus = (string) ($statusQuery->fetchColumn() ?: 'open');
-    $alreadyPending = $currentStatus === 'pending';
+    $conversationState = $statusQuery->fetch() ?: ['status' => 'open', 'assigned_user_id' => null];
+    $currentStatus = (string) ($conversationState['status'] ?? 'open');
+    $assignedUserId = (int) ($conversationState['assigned_user_id'] ?? 0);
+    $handoffAgent = null;
 
-    if ($alreadyPending) {
-        // La transferencia ya fue solicitada. Conservamos los mensajes del visitante para el agente
-        // y evitamos que NIVO siga interviniendo como si la conversación continuara automatizada.
+    // Una conversación entregada a un humano nunca debe volver a ser contestada por NIVO.
+    // Si estaba en cola, cada nuevo mensaje vuelve a intentar una asignación a un agente disponible.
+    if ($assignedUserId > 0) {
         $engine = [
             'reply' => null,
             'handoff' => true,
-            'source' => 'handoff:pending',
+            'source' => 'handoff:assigned',
             'sources' => [],
-            'reason' => 'awaiting_human'
+            'reason' => 'human_assigned'
         ];
+        $agentQuery = $pdo->prepare('SELECT name FROM users WHERE id=? LIMIT 1');
+        $agentQuery->execute([$assignedUserId]);
+        $agentName = trim((string) ($agentQuery->fetchColumn() ?: 'Agente'));
+        $handoffAgent = ['id' => $assignedUserId, 'name' => $agentName];
+    } elseif ($currentStatus === 'pending') {
+        $handoffAgent = nivoAssignAvailableAgent($pdo, $tid, $cid);
+        if ($handoffAgent) {
+            $engine = [
+                'reply' => null,
+                'handoff' => true,
+                'source' => 'handoff:assigned',
+                'sources' => [],
+                'reason' => 'human_assigned'
+            ];
+            zynkoRealtimePublishSafe(
+                $pdo,
+                $tid,
+                'conversation.assigned',
+                ['conversation_id' => $cid, 'agent' => $handoffAgent['name'], 'channel' => 'webchat'],
+                'conversation',
+                (string) $cid
+            );
+        } else {
+            // Mientras la conversación espera un humano, NIVO puede seguir ayudando con conocimiento aprobado.
+            // Esto también recupera conversaciones antiguas que quedaron en pending por el comportamiento previo.
+            try {
+                $engine = NivoEngine::evaluate(
+                    $pdo,
+                    $tid,
+                    $cid,
+                    $body,
+                    'webchat',
+                    $rawName,
+                    $assistantCompany
+                );
+            } catch (Throwable $engineError) {
+                error_log('NIVO pending engine failed in webchat: ' . $engineError->getMessage());
+                $engine = [
+                    'enabled' => true,
+                    'reply' => 'Tu conversación sigue en cola para atención humana. Mientras esperas, puedo seguir intentando ayudarte con el conocimiento aprobado.',
+                    'handoff' => true,
+                    'source' => 'handoff:pending-recovery',
+                    'sources' => [],
+                    'confidence' => 'low',
+                    'reason' => 'awaiting_human'
+                ];
+            }
+        }
     } else {
-        $engine = NivoEngine::evaluate(
-            $pdo,
-            $tid,
-            $cid,
-            $body,
-            'webchat',
-            $rawName,
-            $assistantCompany
-        );
+        try {
+            $engine = NivoEngine::evaluate(
+                $pdo,
+                $tid,
+                $cid,
+                $body,
+                'webchat',
+                $rawName,
+                $assistantCompany
+            );
+        } catch (Throwable $engineError) {
+            error_log('NIVO engine failed in webchat: ' . $engineError->getMessage());
+            $engine = [
+                'enabled' => true,
+                'reply' => 'Recibí tu mensaje, pero tuve un problema temporal consultando el conocimiento aprobado. La conversación sigue activa; intenta la pregunta una vez más.',
+                'handoff' => false,
+                'source' => 'engine:recovery',
+                'sources' => [],
+                'confidence' => 'low',
+                'reason' => 'engine_exception'
+            ];
+        }
     }
 
-    // Un mensaje válido nunca debe quedar sin respuesta por un fallo interno del motor.
-    // Si NIVO está activo y no está esperando a un humano, devolvemos una respuesta segura y mantenemos el chat operativo.
-    if (!$alreadyPending && !empty($engine['enabled']) && trim((string)($engine['reply'] ?? '')) === '' && empty($engine['handoff'])) {
-        $engine['reply'] = 'Recibí tu mensaje. Estoy revisando el conocimiento aprobado de ' . $assistantCompany . '. Si la consulta es sobre ES MULTISERVICIOS, IZZY, CAMI o ZYNKO, puedo orientarte directamente; vuelve a enviarme la pregunta para continuar.';
+    $alreadyHuman = $assignedUserId > 0 || $handoffAgent !== null;
+
+    // Un mensaje válido nunca debe quedar sin respuesta por un fallo interno del motor mientras NIVO conserva el control.
+    if (!$alreadyHuman && !empty($engine['enabled']) && trim((string)($engine['reply'] ?? '')) === '' && empty($engine['handoff'])) {
+        $engine['reply'] = 'Recibí tu mensaje. Estoy revisando el conocimiento aprobado de ' . $assistantCompany . '. Puedes reformular la pregunta y seguiré intentando resolverla sin cerrar la conversación.';
         $engine['source'] = 'engine:non-silent-fallback';
         $engine['confidence'] = 'low';
         $engine['reason'] = 'non_silent_fallback';
@@ -1176,10 +1292,30 @@ if ($action === 'send') {
     $replySource = $engine['source'] ?? null;
     $replySources = $engine['sources'] ?? [];
 
-    if ($handoff && !$alreadyPending && trim((string) $reply) === '') {
-        // Nunca dejamos al visitante sin explicación si el motor decidió transferir.
-        $reply = 'Necesito que una persona continúe contigo para ayudarte correctamente. Ya solicité atención humana; puedes seguir escribiendo aquí y el equipo verá tus mensajes.';
-        $replySource = 'handoff:notice';
+    if ($handoff && !$alreadyHuman) {
+        $handoffAgent = nivoAssignAvailableAgent($pdo, $tid, $cid);
+        if (!$handoffAgent) {
+            $pdo->prepare("UPDATE conversations SET status='pending',assigned_user_id=NULL WHERE id=? AND tenant_id=?")
+                ->execute([$cid, $tid]);
+        }
+
+        if (trim((string) $reply) === '') {
+            $reply = $handoffAgent
+                ? 'Te transfiero con ' . $handoffAgent['name'] . '. Puedes seguir escribiendo aquí; la conversación continúa en tiempo real.'
+                : 'Necesito que una persona continúe contigo para ayudarte correctamente. Tu conversación quedó en cola y el próximo agente disponible podrá verla completa.';
+            $replySource = $handoffAgent ? 'handoff:assigned' : 'handoff:notice';
+        } elseif ($handoffAgent) {
+            $reply .= ' Ya te conecté con ' . $handoffAgent['name'] . '; puedes seguir escribiendo aquí.';
+        }
+
+        zynkoRealtimePublishSafe(
+            $pdo,
+            $tid,
+            'conversation.assigned',
+            ['conversation_id' => $cid, 'agent' => $handoffAgent['name'] ?? null, 'channel' => 'webchat'],
+            'conversation',
+            (string) $cid
+        );
     }
 
     if ($reply) {
@@ -1187,10 +1323,6 @@ if ($action === 'send') {
             "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())"
         )->execute([$tid, $cid, uuid4(), $reply]);
         $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid, $tid]);
-
-        if ($handoff) {
-            $pdo->prepare("UPDATE conversations SET status='pending' WHERE id=? AND tenant_id=?")->execute([$cid, $tid]);
-        }
 
         if ($handoff) {
             try {
@@ -1209,7 +1341,9 @@ if ($action === 'send') {
                         'handoff',
                         $notifyTo,
                         'NIVO solicita atención humana',
-                        'NIVO transfirió la conversación de ' . $contactDisplayName . ' para atención humana. Abre la Bandeja para continuar la conversación.',
+                        $handoffAgent
+                            ? 'NIVO transfirió la conversación de ' . $contactDisplayName . ' a ' . $handoffAgent['name'] . '.'
+                            : 'NIVO dejó la conversación de ' . $contactDisplayName . ' en cola para atención humana.',
                         ['dedupe_key' => 'handoff:' . $cid, 'conversation_id' => $cid, 'channel' => 'webchat']
                     );
                 }
@@ -1217,21 +1351,27 @@ if ($action === 'send') {
             }
         }
 
-        zynkoRealtimePublish(
+        zynkoRealtimePublishSafe(
             $pdo,
             $tid,
             'message.created',
-            ['conversation_id' => $cid, 'channel' => 'webchat', 'sender' => 'bot'],
+            ['conversation_id' => $cid, 'channel' => 'webchat', 'sender' => 'bot', 'preview' => mb_substr((string)$reply, 0, 180)],
             'conversation',
             (string) $cid
         );
     }
 
+    $pendingQuery = $pdo->prepare('SELECT status,assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+    $pendingQuery->execute([$cid, $tid]);
+    $finalState = $pendingQuery->fetch() ?: [];
+
     out(true, 'Mensaje recibido.', [
         'conversation_id' => $cid,
         'bot_reply' => $reply,
         'handoff' => $handoff,
-        'conversation_pending' => $handoff || $alreadyPending,
+        'conversation_pending' => (($finalState['status'] ?? '') === 'pending'),
+        'human_assigned' => (int)($finalState['assigned_user_id'] ?? 0) > 0,
+        'handoff_agent' => $handoffAgent,
         'reply_source' => $replySource,
         'reply_sources' => $replySources
     ]);
@@ -1242,6 +1382,8 @@ if ($action === 'messages') {
     $messages = [];
     $conversationStatus = $cid ? 'open' : 'new';
     $survey = null;
+    $conversationAssignedUserId = 0;
+    $conversationAgentName = '';
 
     if ($cid) {
         $query = $pdo->prepare(
@@ -1249,9 +1391,12 @@ if ($action === 'messages') {
         );
         $query->execute([$tid, $cid]);
         $messages = $query->fetchAll();
-        $statusQuery = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+        $statusQuery = $pdo->prepare('SELECT c.status,c.assigned_user_id,u.name agent_name FROM conversations c LEFT JOIN users u ON u.id=c.assigned_user_id WHERE c.id=? AND c.tenant_id=? LIMIT 1');
         $statusQuery->execute([$cid,$tid]);
-        $conversationStatus = (string) ($statusQuery->fetchColumn() ?: 'open');
+        $conversationRow = $statusQuery->fetch() ?: [];
+        $conversationStatus = (string) ($conversationRow['status'] ?? 'open');
+        $conversationAssignedUserId = (int) ($conversationRow['assigned_user_id'] ?? 0);
+        $conversationAgentName = trim((string) ($conversationRow['agent_name'] ?? ''));
         $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
         $surveyQuery->execute([$tid,$cid]);
         if ($surveyRow = $surveyQuery->fetch()) {
@@ -1264,6 +1409,8 @@ if ($action === 'messages') {
         'conversation_status' => $conversationStatus,
         'conversation_closed' => in_array($conversationStatus,['resolved','closed'],true),
         'conversation_pending' => $conversationStatus === 'pending',
+        'human_assigned' => $conversationAssignedUserId > 0,
+        'handoff_agent' => $conversationAssignedUserId > 0 ? ['id'=>$conversationAssignedUserId,'name'=>$conversationAgentName ?: 'Agente'] : null,
         'survey' => $survey,
         'messages' => $messages
     ]);

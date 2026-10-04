@@ -469,6 +469,10 @@ final class NivoEngine
             }
 
             $companyNorm=self::norm($companyName);
+            $companyCompact=str_replace(' ','',$companyNorm);
+            if(in_array($companyCompact,['esmultiservicios','esmultsiervicios'],true)){
+                $companyNorm='es multiservicios';
+            }
             $guaranteed=self::guaranteedPlatformReply($effectiveNorm,$companyName,$english);
             if($guaranteed!==null){
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$guaranteed,'platform:guaranteed','high',false,$displayName,$english);
@@ -556,7 +560,7 @@ final class NivoEngine
             $configuredUnknownBefore = (int) ($policy['unknown_before_handoff'] ?? 3);
             $unknownBefore = max(3, min(10, $configuredUnknownBefore));
             $consecutiveUnknown = self::consecutiveUnknownCount($pdo, $tenantId, $conversationId);
-            $handoff = (!array_key_exists('auto_handoff', $settings) || !empty($settings['auto_handoff']))
+            $handoff = !empty($settings['auto_handoff'])
                 && ($consecutiveUnknown + 1 >= $unknownBefore);
 
             if ($handoff) {

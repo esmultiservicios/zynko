@@ -42,6 +42,10 @@
     bootAt: Date.now(),
     historyMode: 'end',
     handoffActive: false,
+    humanAssigned: false,
+    handoffAgent: '',
+    wsReconnectTimer: null,
+    wsGeneration: 0,
     inactivityNudged: false,
     inactivityClosing: false
   };
@@ -275,7 +279,9 @@
       state.visitor_token = data.visitor_token;
       state.conversation_id = data.conversation_id;
       state.conversationClosed = Boolean(data.conversation_closed);
-      state.handoffActive = Boolean(data.conversation_pending);
+      state.handoffActive = Boolean(data.conversation_pending || data.human_assigned);
+      state.humanAssigned = Boolean(data.human_assigned);
+      state.handoffAgent = data.handoff_agent?.name || state.handoffAgent || '';
       state.surveyConversationId = data.survey?.conversation_id || 0;
       state.widget = data.widget;
       state.initialMessages = data.messages || [];
@@ -624,7 +630,13 @@
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const shouldSurvey = state.conversationClosed && survey?.requested && !survey?.answered;
       if (surveyCard) surveyCard.hidden = !shouldSurvey;
-      if (handoffBanner) handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
+      if (handoffBanner) {
+        handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
+        const title = handoffBanner.querySelector('b');
+        const copy = handoffBanner.querySelector('small');
+        if (title) title.textContent = state.humanAssigned ? 'Atención humana conectada' : 'Atención humana solicitada';
+        if (copy) copy.textContent = state.humanAssigned && state.handoffAgent ? `${state.handoffAgent} ya tiene esta conversación. Puedes seguir escribiendo aquí en tiempo real.` : 'NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.';
+      }
       if (state.conversationClosed) setPresence('Chat finalizado');
     };
 
@@ -796,7 +808,9 @@
         });
 
         state.conversation_id = result.conversation_id;
-        state.handoffActive = Boolean(result.handoff) || state.handoffActive;
+        state.handoffActive = Boolean(result.handoff || result.conversation_pending || result.human_assigned) || state.handoffActive;
+        state.humanAssigned = Boolean(result.human_assigned) || state.humanAssigned;
+        state.handoffAgent = result.handoff_agent?.name || state.handoffAgent || '';
         persistProfileLocal();
         syncConversationStateUi(null);
         const delay = Math.max(0, Math.min(2500, parseInt(experience.typing_delay_ms || 650, 10)));
@@ -812,7 +826,7 @@
         }
 
         syncProfileUi();
-        setPresence(result.handoff ? 'Transferencia a atención humana' : 'Esperando tu respuesta');
+        setPresence(result.human_assigned && state.handoffAgent ? `Conectado con ${state.handoffAgent}` : (result.conversation_pending ? 'En cola para atención humana' : (result.handoff ? 'Transferencia a atención humana' : 'Esperando tu respuesta')));
         touchSession();
 
         setTimeout(async () => {
@@ -1129,7 +1143,9 @@
       const data = await call({ action: 'messages' });
       state.conversation_id = data.conversation_id;
       state.conversationClosed = Boolean(data.conversation_closed);
-      state.handoffActive = Boolean(data.conversation_pending);
+      state.handoffActive = Boolean(data.conversation_pending || data.human_assigned);
+      state.humanAssigned = Boolean(data.human_assigned);
+      state.handoffAgent = data.handoff_agent?.name || state.handoffAgent || '';
       state.surveyConversationId = data.survey?.conversation_id || state.surveyConversationId;
       renderMessages(data.messages || []);
       syncProfileUi();
@@ -1141,7 +1157,13 @@
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const surveyCard = state.shadow?.querySelector('.survey-card');
       const handoffBanner = state.shadow?.querySelector('.handoff-banner');
-      if (handoffBanner) handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
+      if (handoffBanner) {
+        handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
+        const title = handoffBanner.querySelector('b');
+        const copy = handoffBanner.querySelector('small');
+        if (title) title.textContent = state.humanAssigned ? 'Atención humana conectada' : 'Atención humana solicitada';
+        if (copy) copy.textContent = state.humanAssigned && state.handoffAgent ? `${state.handoffAgent} ya tiene esta conversación. Puedes seguir escribiendo aquí en tiempo real.` : 'NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.';
+      }
       if (surveyCard && state.conversationClosed && data.survey?.requested && !data.survey?.answered) surveyCard.hidden = false;
     } catch {
       // El refresco silencioso nunca debe bloquear el formulario principal.
@@ -1158,13 +1180,32 @@
     const reconnect = Math.max(1, Math.min(30, parseInt(experience.reconnect_seconds || 3, 10))) * 1000;
     state.poll = setInterval(refresh, poll);
 
+    if (state.wsReconnectTimer) {
+      clearTimeout(state.wsReconnectTimer);
+      state.wsReconnectTimer = null;
+    }
+
     if (!data.ws_url || !data.ws_token) {
       return;
     }
 
+    const generation = ++state.wsGeneration;
+
     try {
-      const socket = new WebSocket(`${data.ws_url}?token=${encodeURIComponent(data.ws_token)}`);
+      if (state.ws && state.ws.readyState <= 1) {
+        state.ws.onclose = null;
+        state.ws.close();
+      }
+
+      const target = new URL(data.ws_url, location.href);
+      target.searchParams.set('token', data.ws_token);
+      const socket = new WebSocket(target.href);
       state.ws = socket;
+
+      socket.onopen = () => {
+        if (generation !== state.wsGeneration) return;
+        if (state.humanAssigned && state.handoffAgent) setPresence(`Conectado con ${state.handoffAgent}`);
+      };
 
       socket.onmessage = event => {
         try {
@@ -1179,9 +1220,25 @@
         }
       };
 
-      socket.onclose = () => setTimeout(refresh, reconnect);
+      socket.onerror = () => {
+        try { socket.close(); } catch {}
+      };
+
+      socket.onclose = () => {
+        if (generation !== state.wsGeneration) return;
+        state.wsReconnectTimer = setTimeout(async () => {
+          try {
+            const next = await call({ action: 'bootstrap' });
+            state.visitor_token = next.visitor_token || state.visitor_token;
+            state.conversation_id = next.conversation_id || state.conversation_id;
+            connect(next);
+          } catch {
+            state.wsReconnectTimer = setTimeout(() => connect(data), reconnect);
+          }
+        }, reconnect);
+      };
     } catch {
-      // El polling mantiene disponible el Web Chat si WebSocket no está listo.
+      state.wsReconnectTimer = setTimeout(() => connect(data), reconnect);
     }
   }
 

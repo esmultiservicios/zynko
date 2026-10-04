@@ -46,6 +46,16 @@ CREATE TABLE conversation_tags (conversation_id BIGINT UNSIGNED NOT NULL, tag_id
 CREATE TABLE quick_replies (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, shortcut VARCHAR(80) NOT NULL, title VARCHAR(120) NOT NULL, body TEXT NOT NULL, media_json JSON NULL, team_id BIGINT UNSIGNED NULL, active TINYINT(1) DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_qr(tenant_id,shortcut), INDEX idx_qr_tenant(tenant_id,active));
 CREATE TABLE bot_profiles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(100) NOT NULL DEFAULT 'NIVO', enabled TINYINT(1) NOT NULL DEFAULT 0, mode ENUM('rules','ai','hybrid') NOT NULL DEFAULT 'hybrid', provider VARCHAR(60) NULL, model VARCHAR(100) NULL, system_prompt TEXT NULL, fallback_message TEXT NULL, handoff_rules_json JSON NULL, business_hours_json JSON NULL, channel_policy_json JSON NULL, knowledge_enabled TINYINT(1) NOT NULL DEFAULT 0, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_bot_tenant(tenant_id));
 CREATE TABLE bot_flows (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(140) NOT NULL, version INT NOT NULL DEFAULT 1, status ENUM('draft','published','archived') NOT NULL DEFAULT 'draft', definition_json JSON NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
+
+CREATE TABLE IF NOT EXISTS agent_presence (
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ status ENUM('online','busy','offline') NOT NULL DEFAULT 'online',
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(tenant_id,user_id),
+ INDEX idx_agent_presence_status(tenant_id,status,updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE knowledge_sources (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, solution_id BIGINT UNSIGNED NULL, module_id BIGINT UNSIGNED NULL, name VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL, source_type ENUM('text','url','file','faq','integration') NOT NULL, source_ref VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, status ENUM('pending','ready','error') NOT NULL DEFAULT 'pending', approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved', updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, INDEX(tenant_id,status)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE api_keys (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(120) NOT NULL, key_prefix VARCHAR(20) NOT NULL, key_hash VARCHAR(255) NOT NULL, scopes_json JSON NOT NULL, expires_at DATETIME NULL, revoked_at DATETIME NULL, last_used_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id));
 CREATE TABLE outgoing_webhooks (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(120) NOT NULL, url VARCHAR(500) NOT NULL, secret_ciphertext TEXT NOT NULL, events_json JSON NOT NULL, active TINYINT(1) DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
@@ -289,14 +299,17 @@ CREATE TABLE IF NOT EXISTS api_request_logs (
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,created_at)
 );
 CREATE TABLE IF NOT EXISTS api_client_policies (
- id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, api_key_id BIGINT UNSIGNED NOT NULL, tenant_id BIGINT UNSIGNED NOT NULL,
+ api_key_id BIGINT UNSIGNED NOT NULL PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
  allowed_origins_json JSON NULL, allowed_ips_json JSON NULL, rate_limit_per_minute INT UNSIGNED NOT NULL DEFAULT 120,
- require_https TINYINT(1) NOT NULL DEFAULT 1, active TINYINT(1) NOT NULL DEFAULT 1, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
- UNIQUE KEY uq_api_client_policy_key(api_key_id), INDEX idx_api_policy_tenant(tenant_id,active)
+ require_https TINYINT(1) NOT NULL DEFAULT 1, active TINYINT(1) NOT NULL DEFAULT 1,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX idx_api_policy_tenant(tenant_id,active)
 );
 CREATE TABLE IF NOT EXISTS api_rate_limits (
- api_key_id BIGINT UNSIGNED NOT NULL, window_start DATETIME NOT NULL, request_count INT UNSIGNED NOT NULL DEFAULT 0,
- PRIMARY KEY(api_key_id,window_start)
+ api_key_id BIGINT UNSIGNED NOT NULL, bucket_minute CHAR(12) NOT NULL,
+ request_count INT UNSIGNED NOT NULL DEFAULT 0,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ PRIMARY KEY(api_key_id,bucket_minute)
 );
 CREATE TABLE IF NOT EXISTS api_idempotency (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
@@ -403,7 +416,7 @@ CREATE TABLE IF NOT EXISTS dashboard_preferences (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.95');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.97');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

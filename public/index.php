@@ -61,7 +61,19 @@ function zynkoSanitizeLegalHtml(string $html): string {
 }
 function zynkoLegalContentToHtml(string $content): string { return zynkoSanitizeLegalHtml($content); }
 
-function mainTenantId(): int { try{return (int)appDb()->query('SELECT MIN(id) FROM tenants')->fetchColumn();}catch(Throwable $e){return 0;} }
+function mainTenantId(): int {
+    try{
+        $pdo=appDb();
+        $sql="SELECT id FROM tenants
+              WHERE LOWER(REPLACE(TRIM(name),' ','')) IN ('esmultiservicios','esmultsiervicios')
+                 OR LOWER(slug) LIKE 'es-multiservicios%'
+                 OR LOWER(slug) LIKE 'es-multsiervicios%'
+              ORDER BY id ASC LIMIT 1";
+        $id=(int)($pdo->query($sql)->fetchColumn()?:0);
+        if($id>0)return $id;
+        return (int)$pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn();
+    }catch(Throwable $e){return 0;}
+}
 function isPlatformOwner(): bool { return isset($_SESSION['user']) && (int)$_SESSION['user']['tenant_id']===mainTenantId() && in_array($_SESSION['user']['role']??'', ['owner','admin'],true); }
 function zynkoIsImpersonating(): bool { return !empty($_SESSION['zynko_platform_context']['user']) && is_array($_SESSION['zynko_platform_context']['user']); }
 function zynkoPlatformAudit(PDO $pdo,string $action,?int $tenantId=null,?int $userId=null,array $details=[]): void { try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,target_user_id,action,details_json,ip_address,created_at) VALUES(?,?,?,?,?,?,NOW())')->execute([(int)($_SESSION['zynko_platform_context']['user']['id']??$_SESSION['user']['id']??0),$tenantId,$userId,$action,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64)]);}catch(Throwable $e){} }
@@ -153,7 +165,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.95';
+$releaseVersion='2.31.98';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -540,7 +552,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    zynkoPlanRequireModule($planCtx,'chatbot');
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$svc=new OpenAIProviderService($pdo,$root);$svc->saveTenant($tid,$_POST,(int)$_SESSION['user']['id'],$planCtx);jsonOut(true,'Preferencias de NIVO IA externa actualizadas.');
   }
-  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_learning_approve','knowledge_learning_reject','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
+  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_learning_approve','knowledge_learning_answer','knowledge_learning_reject','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
   $operationalActions=[
    'channels'=>['channel_save'],
    'webchat'=>['webchat_widget_save','webchat_installation_add','webchat_installation_update','webchat_installation_toggle','webchat_installation_delete'],
@@ -759,6 +771,17 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   if($action==='nivo_solution_add'){$name=trim($_POST['name']??'');$desc=trim($_POST['description']??'');if($name==='')throw new RuntimeException('Escribe el nombre de la solución.');$code=preg_replace('/[^a-z0-9]+/','-',strtolower(iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$name)?:$name));$code=trim($code,'-')?:'solution';$pdo->prepare('INSERT INTO nivo_solutions(tenant_id,name,code,description) VALUES(?,?,?,?)')->execute([$tid,mb_substr($name,0,120),mb_substr($code,0,80),mb_substr($desc,0,700)]);jsonOut(true,'Solución creada para NIVO.');}
   if($action==='nivo_module_add'){$sid=(int)($_POST['solution_id']??0);$name=trim($_POST['name']??'');if(!$sid||$name==='')throw new RuntimeException('Selecciona una solución y escribe el módulo.');$v=$pdo->prepare('SELECT id FROM nivo_solutions WHERE id=? AND tenant_id=?');$v->execute([$sid,$tid]);if(!$v->fetchColumn())throw new RuntimeException('La solución no pertenece a tu empresa.');$pdo->prepare('INSERT INTO nivo_solution_modules(tenant_id,solution_id,name,description) VALUES(?,?,?,?)')->execute([$tid,$sid,mb_substr($name,0,120),mb_substr(trim($_POST['description']??''),0,500)]);jsonOut(true,'Módulo agregado.');}
   if($action==='knowledge_approve'){$id=(int)($_POST['knowledge_id']??0);$pdo->prepare("UPDATE knowledge_sources SET approval_status='approved',status='ready' WHERE id=? AND tenant_id=?")->execute([$id,$tid]);jsonOut(true,'Conocimiento aprobado y publicado para NIVO.');}
+  if($action==='knowledge_learning_answer'){
+   $id=(int)($_POST['learning_id']??0);$answer=trim((string)($_POST['answer']??''));
+   if($id<1)throw new RuntimeException('Sugerencia de aprendizaje inválida.');
+   if(mb_strlen($answer)<3)throw new RuntimeException('Escribe una respuesta útil para enseñar a NIVO.');
+   $q=$pdo->prepare("SELECT question,conversation_id FROM nivo_learning_queue WHERE id=? AND tenant_id=? AND status IN ('pending','review') LIMIT 1");$q->execute([$id,$tid]);$row=$q->fetch();
+   if(!$row)throw new RuntimeException('La sugerencia no existe o ya fue revisada.');
+   $question=trim((string)$row['question']);$name='Aprendizaje: '.mb_substr($question,0,140);$ref='learning:'.$id;$content=$answer;
+   $pdo->prepare("INSERT INTO knowledge_sources(tenant_id,solution_id,module_id,name,source_type,source_ref,content,status,approval_status) VALUES(?,NULL,NULL,?,'faq',?,?,'ready','approved') ON DUPLICATE KEY UPDATE name=VALUES(name),content=VALUES(content),status='ready',approval_status='approved',updated_at=NOW()")->execute([$tid,$name,$ref,$content]);
+   $pdo->prepare("UPDATE nivo_learning_queue SET suggested_answer=?,status='approved',reviewed_by=?,reviewed_at=NOW() WHERE id=? AND tenant_id=?")->execute([$answer,(int)$_SESSION['user']['id'],$id,$tid]);
+   jsonOut(true,'Respuesta publicada. NIVO ya aprendió esta pregunta para esta empresa.');
+  }
   if($action==='knowledge_learning_approve'){
    $id=(int)($_POST['learning_id']??0);
    $pdo->exec("CREATE TABLE IF NOT EXISTS nivo_learning_queue (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,conversation_id BIGINT UNSIGNED NULL,channel_type VARCHAR(40) NULL,question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,normalized_question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,suggested_answer TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,source_hint VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,occurrences INT UNSIGNED NOT NULL DEFAULT 1,status ENUM('pending','review','approved','rejected') NOT NULL DEFAULT 'pending',first_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,reviewed_by BIGINT UNSIGNED NULL,reviewed_at DATETIME NULL,INDEX idx_nivo_learning_tenant_status(tenant_id,status,last_seen_at),INDEX idx_nivo_learning_conversation(tenant_id,conversation_id)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
@@ -767,7 +790,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $answer=trim((string)($row['suggested_answer']??''));if($answer==='')throw new RuntimeException('Esta pregunta todavía no tiene una respuesta humana candidata para publicar.');
    $name='Aprendizaje: '.mb_substr(trim((string)$row['question']),0,140);
    $ref='learning:'.$id;
-   $pdo->prepare("INSERT INTO knowledge_sources(tenant_id,solution_id,module_id,name,source_type,source_ref,content,status,approval_status) VALUES(?,NULL,NULL,?,'faq',?,?,'ready','approved')")->execute([$tid,$name,$ref,$answer]);
+   $content=$answer;$pdo->prepare("INSERT INTO knowledge_sources(tenant_id,solution_id,module_id,name,source_type,source_ref,content,status,approval_status) VALUES(?,NULL,NULL,?,'faq',?,?,'ready','approved') ON DUPLICATE KEY UPDATE name=VALUES(name),content=VALUES(content),status='ready',approval_status='approved',updated_at=NOW()")->execute([$tid,$name,$ref,$content]);
    $pdo->prepare("UPDATE nivo_learning_queue SET status='approved',reviewed_by=?,reviewed_at=NOW() WHERE id=? AND tenant_id=?")->execute([(int)$_SESSION['user']['id'],$id,$tid]);
    jsonOut(true,'Aprendizaje aprobado. NIVO ya puede usar esta respuesta dentro de esta empresa.');
   }

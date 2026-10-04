@@ -8,3 +8,15 @@ function zynkoRealtimePublish(PDO $pdo, int $tenantId, string $eventType, array 
     $st->execute([$tenantId, $eventType, $entityType, $entityId, $json]);
     return (int)$pdo->lastInsertId();
 }
+
+
+/** Publish without breaking the primary chat flow when realtime storage is temporarily unavailable. */
+function zynkoRealtimePublishSafe(PDO $pdo, int $tenantId, string $eventType, array $payload = [], ?string $entityType = null, ?string $entityId = null): int
+{
+    try {
+        return zynkoRealtimePublish($pdo, $tenantId, $eventType, $payload, $entityType, $entityId);
+    } catch (Throwable $error) {
+        error_log('ZYNKO realtime publish failed: ' . $error->getMessage());
+        return 0;
+    }
+}

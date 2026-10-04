@@ -1,3 +1,35 @@
+## V2.31.98 · Compatibilidad de actualización Local + Servidor
+
+Esta entrega separa el update acumulativo de base de datos por entorno porque MariaDB/phpMyAdmin local puede devolver el error **#1295** al ejecutar `PREPARE/EXECUTE` con DDL, mientras el servidor de producción ya ejecuta correctamente ese método.
+
+### Qué archivo ejecutar
+
+- **Servidor / producción (el que ya te funcionó):** `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql`
+- **Local / XAMPP / MariaDB / phpMyAdmin:** `ZYNKO_UPDATE_DB_COMPLETO_LOCAL.sql`
+- `ZYNKO_UPDATE_DB_COMPLETO.sql` se conserva como copia del update de servidor para mantener compatibilidad con el flujo existente.
+
+### Importante
+
+Los dos archivos son acumulativos y terminan en la misma versión objetivo **2.31.98**. No debes ejecutar ambos sobre la misma base. Selecciona la base correcta antes de correr el archivo correspondiente.
+
+El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF EXISTS` / `IF NOT EXISTS`) para que pueda ejecutarse desde phpMyAdmin local.
+
+
+- Las fuentes web, reglas y conocimiento aprobado se comparten entre todos los sitios autorizados que pertenecen al mismo `tenant_id`.
+- ES MULTISERVICIOS puede responder sobre IZZY, ZYNKO, NIVO y CAMI desde cualquiera de sus sitios autorizados, sin copiar conocimiento por dominio.
+- Los tenants de clientes continúan totalmente aislados: nunca reciben conocimiento de ES MULTISERVICIOS ni de otros clientes.
+- Se agregan reglas base y catálogo de soluciones para el tenant principal ES MULTISERVICIOS mediante `ZYNKO_UPDATE_DB_COMPLETO.sql`.
+- `WS_PUBLIC_URL` queda administrable desde Configuración y tiene prioridad cuando existe un reverse proxy/TLS para WebSocket.
+- `.env.example` es solo una plantilla. El `.env` real nunca se incluye en los ZIP y el instalador lo crea en cada servidor.
+
+## V2.31.96 · NIVO Web Chat + NIVO IA: comunicación bilateral y handoff real
+- Cada mensaje del visitante se persiste en la Bandeja antes de ejecutar NIVO y los eventos WebSocket son aceleradores: si el realtime falla, el chat sigue operativo mediante polling.
+- NIVO ya no transfiere por desconocimiento por defecto; continúa conversando, usando reglas y Fuentes web aprobadas, y registra dudas para aprendizaje supervisado.
+- Cuando el visitante pide atención humana, ZYNKO intenta asignar inmediatamente al agente disponible con menor carga; si no hay uno, deja la conversación en cola sin perder mensajes.
+- El widget reconecta WebSocket automáticamente y soporta `WS_PUBLIC_URL` / `WS_PUBLIC_PORT` para producción HTTPS detrás de proxy TLS.
+- Aprendizaje supervisado ahora permite **Responder y enseñar** directamente desde la pregunta pendiente; la respuesta se publica como conocimiento exclusivo de la empresa.
+- La identidad de NIVO se resuelve desde el tenant real, evitando respuestas con la empresa equivocada.
+
 ## V2.31.95 · NIVO Web Chat + NIVO IA: respuesta garantizada, handoff persistente y Bandeja en tiempo real
 
 - Corrige el silencio del Web Chat cuando una consulta válida llega a NIVO IA y una consulta interna de conocimiento falla.
