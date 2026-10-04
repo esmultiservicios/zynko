@@ -34,6 +34,9 @@ final class ZynkoEnvManager
             'DB_DATABASE'=>['label'=>'Base de datos','type'=>'text','secret'=>false],
             'DB_USERNAME'=>['label'=>'Usuario de base de datos','type'=>'text','secret'=>false],
             'DB_PASSWORD'=>['label'=>'Contraseña de base de datos','type'=>'password','secret'=>true],
+            'EMAIL_VALIDATION_API_URL'=>['label'=>'URL API validación de correo','type'=>'url','secret'=>false],
+            'EMAIL_VALIDATION_API_KEY'=>['label'=>'API Key validación de correo','type'=>'password','secret'=>true],
+            'EMAIL_VALIDATION_API_TIMEOUT'=>['label'=>'Timeout validación de correo','type'=>'number','secret'=>false],
         ];
     }
 
@@ -48,10 +51,12 @@ final class ZynkoEnvManager
             $value=trim((string)$input[$key]);
             if(!empty($meta['secret'])&&$value==='')continue;
             if($key==='APP_URL'){$value=rtrim($value,'/');if($value!==''&&(!filter_var($value,FILTER_VALIDATE_URL)||!preg_match('#^https?://#i',$value)))throw new RuntimeException('APP_URL debe ser una URL http/https válida.');}
+            if($key==='EMAIL_VALIDATION_API_URL'&&$value!==''&&(!filter_var(str_replace('{email}','test@example.com',$value),FILTER_VALIDATE_URL)||!preg_match('#^https?://#i',$value)))throw new RuntimeException('EMAIL_VALIDATION_API_URL debe ser una URL http/https válida.');
             if($key==='APP_ENV'&&!in_array($value,['production','staging','local'],true))$value='production';
             if($key==='APP_DEBUG')$value=in_array(strtolower($value),['1','true','yes','on'],true)?'true':'false';
             if($key==='WS_PUBLIC_SCHEME'&&!in_array($value,['wss','ws'],true))$value='wss';
             if(in_array($key,['DB_PORT','WS_PORT'],true)){$n=(int)$value;if($n<1||$n>65535)throw new RuntimeException($key.' debe usar un puerto entre 1 y 65535.');$value=(string)$n;}
+            if($key==='EMAIL_VALIDATION_API_TIMEOUT'){$n=(int)$value;if($n<2||$n>12)$n=5;$value=(string)$n;}
             if($key==='WS_PUBLIC_HOST'){$value=preg_replace('#^https?://#i','',$value);$value=preg_replace('#/.*$#','',$value);if($value!==''&&!preg_match('/^[a-z0-9.-]+(?::\d+)?$/i',$value))throw new RuntimeException('WS_PUBLIC_HOST no es válido.');}
             if(in_array($key,['DB_HOST','DB_DATABASE','DB_USERNAME'],true)&&$value==='')throw new RuntimeException($key.' no puede quedar vacío.');
             if((string)($current[$key]??'')===$value)continue;

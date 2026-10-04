@@ -6,6 +6,7 @@ require_once $root.'/app/Support/EnvManager.php';
 require_once $root.'/app/Support/AccessPolicy.php';
 require_once $root.'/app/Services/OpenAIProviderService.php';
 require_once $root.'/app/Services/NivoWebsiteKnowledgeService.php';
+require_once $root.'/app/Services/PublicEmailValidationService.php';
 if (!is_file($root.'/storage/installed.lock')) { header('Location: install.php'); exit; }
 session_start();
 function envConfig(string $path): array { $v=@parse_ini_file($path,false,INI_SCANNER_RAW); return is_array($v)?$v:[]; }
@@ -152,13 +153,15 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.87';
+$releaseVersion='2.31.88';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'registration_source'")->fetch())$pdo->exec("ALTER TABLE tenants ADD registration_source VARCHAR(30) NULL AFTER contact_phone");}catch(Throwable $e){}
 $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings(setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL,updated_by BIGINT UNSIGNED NULL,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
 $pdo->exec("CREATE TABLE IF NOT EXISTS public_contact_inquiries(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL,company VARCHAR(160) NULL,email VARCHAR(190) NOT NULL,phone VARCHAR(50) NULL,subject_code VARCHAR(60) NOT NULL,subject_label VARCHAR(160) NOT NULL,source_code VARCHAR(60) NOT NULL,source_label VARCHAR(190) NOT NULL,message TEXT NOT NULL,ip_address VARCHAR(64) NULL,user_agent VARCHAR(500) NULL,admin_mail_status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',confirmation_mail_status ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX idx_public_contact_created(created_at),INDEX idx_public_contact_email(email)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+try{$contactStatusCol=$pdo->query("SHOW COLUMNS FROM public_contact_inquiries LIKE 'confirmation_mail_status'")->fetch();if($contactStatusCol&&!str_contains(strtolower((string)($contactStatusCol['Type']??'')),'not_sent'))$pdo->exec("ALTER TABLE public_contact_inquiries MODIFY confirmation_mail_status ENUM('pending','sent','failed','not_sent') NOT NULL DEFAULT 'not_sent'");}catch(Throwable $e){}
+$pdo->exec("CREATE TABLE IF NOT EXISTS public_contact_security_events(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,ip_hash CHAR(64) NULL,email_domain VARCHAR(190) NULL,risk_score SMALLINT UNSIGNED NOT NULL DEFAULT 0,verdict ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',reasons_json JSON NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX idx_public_contact_security_ip(ip_hash,created_at),INDEX idx_public_contact_security_verdict(verdict,created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 $pdo->exec("CREATE TABLE IF NOT EXISTS public_site_visits(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,visitor_id CHAR(40) NOT NULL,ip_hash CHAR(64) NULL,referrer_host VARCHAR(190) NULL,device_type VARCHAR(20) NOT NULL DEFAULT 'desktop',browser VARCHAR(40) NULL,user_agent VARCHAR(500) NULL,visited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX idx_public_visit_date(visited_at),INDEX idx_public_visit_visitor(visitor_id,visited_at),INDEX idx_public_visit_device(device_type,visited_at),INDEX idx_public_visit_referrer(referrer_host,visited_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 $pdo->prepare("INSERT INTO system_settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)")->execute(['app_version',$releaseVersion]);
 $pdo->exec("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES ('public_parent_name','ES MULTISERVICIOS'),('public_parent_url','https://esmultiservicios.com/'),('public_social_facebook_url','https://www.facebook.com/esmultiserv'),('public_social_facebook_enabled','1'),('public_social_facebook_order','1'),('public_social_instagram_url',''),('public_social_instagram_enabled','0'),('public_social_instagram_order','2'),('public_social_tiktok_url','https://www.tiktok.com/@evelasquez91'),('public_social_tiktok_enabled','1'),('public_social_tiktok_order','3'),('public_social_youtube_url',''),('public_social_youtube_enabled','0'),('public_social_youtube_order','4'),('public_social_linkedin_url',''),('public_social_linkedin_enabled','0'),('public_social_linkedin_order','5'),('public_social_float_enabled','1'),('public_social_float_side','right'),('public_social_float_vertical','center'),('public_social_footer_enabled','1'),('public_turnstile_enabled','0'),('public_turnstile_site_key',''),('public_turnstile_secret',''),('public_turnstile_hostname',''),('public_whatsapp_enabled','1'),('public_whatsapp_number','+504 8913-6844'),('public_whatsapp_message','Hola, quiero información sobre ZYNKO.')");
@@ -254,6 +257,31 @@ function zynkoTrackPublicVisit(): void {
 }
 function authCsrfToken(): string { if(empty($_SESSION['auth_csrf']))$_SESSION['auth_csrf']=bin2hex(random_bytes(24));return (string)$_SESSION['auth_csrf']; }
 function assertAuthCsrf(): void { $v=(string)($_POST['csrf']??'');if($v===''||empty($_SESSION['auth_csrf'])||!hash_equals((string)$_SESSION['auth_csrf'],$v))throw new RuntimeException('La sesión del formulario venció. Actualiza la página e inténtalo nuevamente.'); }
+function zynkoPublicEmailValidator(): PublicEmailValidationService {
+  global $root;
+  return new PublicEmailValidationService(envConfig($root.'/.env'));
+}
+function zynkoPublicContactFingerprint(string $ip): string {
+  global $root;
+  $env=envConfig($root.'/.env');$salt=(string)($env['APP_KEY']??'zynko-contact-security');
+  return $ip!==''?hash_hmac('sha256',$ip,$salt):'';
+}
+function zynkoPublicContactSpamScore(array $payload,string $ua,int $formAgeSeconds): array {
+  $score=0;$reasons=[];$message=(string)($payload['message']??'');$name=(string)($payload['name']??'');$company=(string)($payload['company']??'');
+  $links=preg_match_all('#https?://|www\.#iu',$message,$m);
+  if($links>=3){$score+=4;$reasons[]='muchos_enlaces';}
+  if(preg_match('/(?:viagra|casino|crypto\s*investment|seo\s*service|backlinks?|guest\s*post|loan|porn|betting)/iu',$message)){ $score+=5;$reasons[]='contenido_spam'; }
+  if(preg_match('/(.)\1{9,}/u',$message)){ $score+=3;$reasons[]='repeticion_caracteres'; }
+  if($formAgeSeconds>0&&$formAgeSeconds<2){$score+=2;$reasons[]='envio_demasiado_rapido';}
+  if(preg_match('/(?:bot|crawler|spider|scrapy|curl|wget|python-requests|headless|phantom|selenium)/i',$ua)){ $score+=5;$reasons[]='user_agent_automatizado'; }
+  if(mb_strlen(trim($name))<2||mb_strlen(trim($message))<15){$score+=2;$reasons[]='contenido_incompleto';}
+  if($company!==''&&preg_match('/https?:\/\//i',$company)){ $score+=2;$reasons[]='empresa_con_url'; }
+  return ['score'=>$score,'reasons'=>$reasons];
+}
+function zynkoLogPublicContactSecurity(PDO $pdo,string $ipHash,string $emailDomain,int $score,string $verdict,array $reasons): void {
+  try{$pdo->prepare('INSERT INTO public_contact_security_events(ip_hash,email_domain,risk_score,verdict,reasons_json) VALUES(?,?,?,?,?)')->execute([$ipHash?:null,$emailDomain?:null,$score,$verdict,json_encode($reasons,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)]);}catch(Throwable $e){}
+}
+
 $publicContactSubjects=[
  'demo'=>'Quiero conocer ZYNKO / solicitar información',
  'plans'=>'Planes, precios y capacidades',
@@ -270,28 +298,44 @@ $publicContactSources=[
  'event'=>'Evento, presentación o reunión',
  'other'=>'Otro medio'
 ];
+
+if($_SERVER['REQUEST_METHOD']==='POST' && !isset($_SESSION['user']) && ($_POST['action']??'')==='public_contact_email_validate'){
+  try{
+    assertAuthCsrf();
+    $now=time();$checks=array_values(array_filter((array)($_SESSION['public_contact_email_checks']??[]),fn($ts)=>$now-(int)$ts<60));
+    if(count($checks)>=20)throw new RuntimeException('Espera unos segundos antes de validar nuevamente.');
+    $checks[]=$now;$_SESSION['public_contact_email_checks']=$checks;
+    $email=(string)($_POST['email']??'');$result=zynkoPublicEmailValidator()->validate($email,true,true);
+    jsonOut(true,$result['message'],$result);
+  }catch(Throwable $e){jsonOut(false,$e->getMessage());}
+}
 if($_SERVER['REQUEST_METHOD']==='POST' && !isset($_SESSION['user']) && ($_POST['action']??'')==='public_contact'){
  try{
   assertAuthCsrf();
-  if(trim((string)($_POST['website']??''))!=='')jsonOut(true,'Gracias. Recibimos tu consulta.');
-  $pdo=appDb();$ip=mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64);$ua=mb_substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,500);
+  $pdo=appDb();$ip=mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64);$ua=mb_substr((string)($_SERVER['HTTP_USER_AGENT']??''),0,500);$ipHash=zynkoPublicContactFingerprint($ip);
+  if(trim((string)($_POST['website']??''))!==''){zynkoLogPublicContactSecurity($pdo,$ipHash,'',10,'blocked',['honeypot']);jsonOut(true,'Gracias. Recibimos tu consulta.');}
   zynkoVerifyPublicTurnstile($pdo,(string)($_POST['cf_turnstile_response']??''),$ip);
+  $now=time();$sessionSubmits=array_values(array_filter((array)($_SESSION['public_contact_submit_times']??[]),fn($ts)=>$now-(int)$ts<900));if(count($sessionSubmits)>=3)throw new RuntimeException('Has enviado varias consultas recientemente. Intenta nuevamente en unos minutos.');
   if($ip!==''){$q=$pdo->prepare("SELECT COUNT(*) FROM public_contact_inquiries WHERE ip_address=? AND created_at>=DATE_SUB(NOW(),INTERVAL 15 MINUTE)");$q->execute([$ip]);if((int)$q->fetchColumn()>=4)throw new RuntimeException('Has enviado varias consultas recientemente. Intenta nuevamente en unos minutos.');}
   $name=mb_substr(trim((string)($_POST['name']??'')),0,120);$company=mb_substr(trim((string)($_POST['company']??'')),0,160);$email=strtolower(trim((string)($_POST['email']??'')));$phone=mb_substr(trim((string)($_POST['phone']??'')),0,50);
   $subjectCode=(string)($_POST['subject']??'');$sourceCode=(string)($_POST['source']??'');$sourceOther=mb_substr(trim((string)($_POST['source_other']??'')),0,160);$message=trim((string)($_POST['message']??''));
-  if(mb_strlen($name)<2)throw new RuntimeException('Ingresa tu nombre.');if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Ingresa un correo electrónico válido.');
+  if(mb_strlen($name)<2)throw new RuntimeException('Ingresa tu nombre.');
+  $emailValidation=zynkoPublicEmailValidator()->validate($email,true,true);if(!$emailValidation['valid'])throw new RuntimeException((string)$emailValidation['message']);$email=(string)$emailValidation['email'];
   if(!isset($publicContactSubjects[$subjectCode]))throw new RuntimeException('Selecciona el motivo de tu consulta.');if(!isset($publicContactSources[$sourceCode]))throw new RuntimeException('Indica cómo conociste ZYNKO.');
   if($sourceCode==='other'&&mb_strlen($sourceOther)<2)throw new RuntimeException('Cuéntanos brevemente dónde conociste ZYNKO.');if(mb_strlen($message)<15)throw new RuntimeException('Escribe un poco más de detalle en tu consulta.');if(mb_strlen($message)>3000)throw new RuntimeException('El mensaje es demasiado largo. Máximo 3000 caracteres.');
+  if($ip!==''&&$message!==''){$q=$pdo->prepare("SELECT COUNT(*) FROM public_contact_inquiries WHERE ip_address=? AND message=? AND created_at>=DATE_SUB(NOW(),INTERVAL 60 MINUTE)");$q->execute([$ip,$message]);if((int)$q->fetchColumn()>=2)throw new RuntimeException('Este mensaje ya fue enviado recientemente.');}
+  $issued=(int)($_SESSION['public_contact_form_issued_at']??0);$age=$issued>0?max(0,$now-$issued):0;$spam=zynkoPublicContactSpamScore(['name'=>$name,'company'=>$company,'message'=>$message],$ua,$age);$score=(int)$spam['score'];$reasons=(array)$spam['reasons'];
+  $verdict=$score>=7?'blocked':($score>=4?'suspicious':'clean');zynkoLogPublicContactSecurity($pdo,$ipHash,(string)$emailValidation['domain'],$score,$verdict,$reasons);if($verdict==='blocked')throw new RuntimeException('No pudimos procesar esta consulta por controles anti-spam. Revisa el contenido e inténtalo nuevamente.');
   $subjectLabel=$publicContactSubjects[$subjectCode];$sourceLabel=$publicContactSources[$sourceCode].($sourceCode==='other'&&$sourceOther!==''?' · '.$sourceOther:'');
-  $q=$pdo->prepare('INSERT INTO public_contact_inquiries(name,company,email,phone,subject_code,subject_label,source_code,source_label,message,ip_address,user_agent) VALUES(?,?,?,?,?,?,?,?,?,?,?)');$q->execute([$name,$company?:null,$email,$phone?:null,$subjectCode,$subjectLabel,$sourceCode,$sourceLabel,$message,$ip?:null,$ua?:null]);$inquiryId=(int)$pdo->lastInsertId();
+  $q=$pdo->prepare('INSERT INTO public_contact_inquiries(name,company,email,phone,subject_code,subject_label,source_code,source_label,message,ip_address,user_agent,confirmation_mail_status) VALUES(?,?,?,?,?,?,?,?,?,?,?,\'not_sent\')');$q->execute([$name,$company?:null,$email,$phone?:null,$subjectCode,$subjectLabel,$sourceCode,$sourceLabel,$message,$ip?:null,$ua?:null]);$inquiryId=(int)$pdo->lastInsertId();
   $platformTid=mainTenantId();if(!$platformTid)throw new RuntimeException('No se encontró la configuración principal de ZYNKO.');
   $adminEmail='';try{$q=$pdo->prepare('SELECT destinatario FROM correo WHERE tenant_id=? AND is_default=1 AND estado=1 ORDER BY correo_id DESC LIMIT 1');$q->execute([$platformTid]);$adminEmail=trim((string)($q->fetchColumn()?:''));}catch(Throwable $e){}if(!filter_var($adminEmail,FILTER_VALIDATE_EMAIL))$adminEmail=zynkoPlatformAdminEmail($pdo);if(!filter_var($adminEmail,FILTER_VALIDATE_EMAIL))throw new RuntimeException('El correo interno de contacto no está configurado.');
   require_once $root.'/app/Services/NotificationService.php';$mailer=new NotificationService($pdo,$root);$payload=['inquiry_id'=>$inquiryId,'name'=>$name,'company'=>$company,'email'=>$email,'phone'=>$phone,'subject'=>$subjectCode,'subject_label'=>$subjectLabel,'source'=>$sourceCode,'source_label'=>$sourceLabel,'message'=>$message];
-  $adminResult=$mailer->sendPublicContactAdmin($platformTid,$adminEmail,$payload);$confirmResult=$mailer->sendPublicContactConfirmation($platformTid,$email,$payload);
-  $pdo->prepare('UPDATE public_contact_inquiries SET admin_mail_status=?,confirmation_mail_status=? WHERE id=?')->execute([!empty($adminResult['success'])?'sent':'failed',!empty($confirmResult['success'])?'sent':'failed',$inquiryId]);
+  $adminResult=$mailer->sendPublicContactAdmin($platformTid,$adminEmail,$payload);
+  $pdo->prepare("UPDATE public_contact_inquiries SET admin_mail_status=?,confirmation_mail_status='not_sent' WHERE id=?")->execute([!empty($adminResult['success'])?'sent':'failed',$inquiryId]);
   if(empty($adminResult['success']))throw new RuntimeException('No pudimos entregar tu consulta en este momento. Intenta nuevamente.');
-  if(empty($confirmResult['success']))jsonOut(true,'Tu consulta fue recibida. No pudimos enviar el correo de confirmación, pero nuestro equipo ya tiene tu mensaje.',['confirmation_sent'=>false]);
-  jsonOut(true,'Tu consulta fue enviada correctamente. Revisa tu correo: también te enviamos una confirmación.',['confirmation_sent'=>true]);
+  $sessionSubmits[]=$now;$_SESSION['public_contact_submit_times']=$sessionSubmits;$_SESSION['public_contact_form_issued_at']=$now;
+  jsonOut(true,'Tu consulta fue enviada correctamente. Nuestro equipo la recibió y responderá al correo indicado.',['email_valid'=>true,'confirmation_sent'=>false]);
  }catch(Throwable $e){jsonOut(false,$e->getMessage());}
 }
 $registerError='';$verifyError='';$verifyNotice='';

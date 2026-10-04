@@ -632,3 +632,49 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.87' AS version_objetivo;
+
+-- ============================================================
+-- ZYNKO V2.31.88 · CONTACTO PÚBLICO SEGURO + VALIDACIÓN DE EMAIL
+-- Sin PREPARE/EXECUTE. Compatible con MariaDB/cPanel.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `public_contact_inquiries` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(120) NOT NULL,
+  `company` VARCHAR(160) NULL,
+  `email` VARCHAR(190) NOT NULL,
+  `phone` VARCHAR(50) NULL,
+  `subject_code` VARCHAR(60) NOT NULL,
+  `subject_label` VARCHAR(160) NOT NULL,
+  `source_code` VARCHAR(60) NOT NULL,
+  `source_label` VARCHAR(190) NOT NULL,
+  `message` TEXT NOT NULL,
+  `ip_address` VARCHAR(64) NULL,
+  `user_agent` VARCHAR(500) NULL,
+  `admin_mail_status` ENUM('pending','sent','failed') NOT NULL DEFAULT 'pending',
+  `confirmation_mail_status` ENUM('pending','sent','failed','not_sent') NOT NULL DEFAULT 'not_sent',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_public_contact_created` (`created_at`),
+  KEY `idx_public_contact_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE `public_contact_inquiries`
+  MODIFY `confirmation_mail_status` ENUM('pending','sent','failed','not_sent') NOT NULL DEFAULT 'not_sent';
+
+CREATE TABLE IF NOT EXISTS `public_contact_security_events` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `ip_hash` CHAR(64) NULL,
+  `email_domain` VARCHAR(190) NULL,
+  `risk_score` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `verdict` ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+  `reasons_json` JSON NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_public_contact_security_ip` (`ip_hash`,`created_at`),
+  KEY `idx_public_contact_security_verdict` (`verdict`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.88')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.88' AS version_objetivo;

@@ -1,3 +1,17 @@
+## V2.31.88 · Formulario público protegido y validación real de correo
+
+- Validación frontend + backend del correo.
+- Detección de errores comunes como `gmail.con`, `gmial.com`, `hotmal.com` y similares.
+- Sugerencias visibles sin corregir automáticamente la dirección.
+- Validación de dominio y registros MX con fallback ante fallos temporales del resolver DNS.
+- Bloqueo de dominios de correo temporal/desechable.
+- Verificador externo opcional configurable desde `.env` con fallback local.
+- Honeypot, rate limit por sesión/IP, detección de duplicados y scoring anti-spam.
+- Cloudflare Turnstile sigue disponible como capa adicional.
+- El visitante no recibe correos de confirmación; la consulta se envía únicamente al administrador.
+- Nueva auditoría `public_contact_security_events`.
+- Documentación en `docs/PUBLIC_CONTACT_SECURITY.md`.
+
 ## V2.31.87 · NIVO Web Chat anti-spam + trazabilidad
 
 - Protección anti-spam multiempresa antes de crear conversaciones.

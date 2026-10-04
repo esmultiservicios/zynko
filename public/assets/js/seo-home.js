@@ -98,6 +98,12 @@
     const message=contactForm.querySelector('#contactMessage');
     const count=contactForm.querySelector('#contactMessageCount');
     const submit=contactForm.querySelector('button[type="submit"]');
+    const email=contactForm.querySelector('#contactEmail');
+    const emailStatus=contactForm.querySelector('#contactEmailStatus');
+    const emailSpinner=contactForm.querySelector('#contactEmailSpinner');
+    let emailValidationTimer=null;
+    let lastValidatedEmail='';
+    let lastEmailValidation=null;
     const turnstileEnabled=contactForm.dataset.turnstileEnabled==='1';
     const turnstileSiteKey=(contactForm.dataset.turnstileSitekey||'').trim();
     const turnstileHost=document.getElementById('contactTurnstile');
@@ -119,7 +125,47 @@
       if(sourceOther){sourceOther.required=other;sourceOther.setAttribute('aria-required',other?'true':'false');if(!other)sourceOther.value=''}
     };
     const syncCount=()=>{if(count&&message)count.textContent=String(message.value.length)};
-    source?.addEventListener('change',syncSource);message?.addEventListener('input',syncCount);syncSource();syncCount();
+    const setEmailStatus=(type,text,suggestion='')=>{
+      if(!emailStatus)return;
+      emailStatus.className='contact-email-status'+(type?' is-'+type:'');
+      emailStatus.innerHTML='';
+      if(!text)return;
+      const icon=document.createElement('i');
+      icon.className=type==='valid'?'fa-solid fa-circle-check':(type==='checking'?'fa-solid fa-spinner fa-spin':'fa-solid fa-circle-exclamation');
+      const span=document.createElement('span');span.textContent=text;
+      emailStatus.append(icon,span);
+      if(suggestion){
+        const button=document.createElement('button');button.type='button';button.className='contact-email-suggestion';button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles"></i> Usar sugerencia';
+        button.addEventListener('click',()=>{if(email){email.value=suggestion;email.dispatchEvent(new Event('input',{bubbles:true}));email.focus();validateEmailNow(true);}});
+        emailStatus.appendChild(button);
+      }
+    };
+    const validateEmailNow=async(force=false)=>{
+      if(!email)return true;
+      const value=(email.value||'').trim();
+      if(!value){lastValidatedEmail='';lastEmailValidation=null;setEmailStatus('','');return false;}
+      if(!force&&value===lastValidatedEmail&&lastEmailValidation)return !!lastEmailValidation.valid;
+      if(!email.checkValidity()){lastValidatedEmail=value;lastEmailValidation={valid:false,code:'invalid_format'};setEmailStatus('error','Ingresa un correo electrónico válido. Ejemplo: nombre@empresa.com');return false;}
+      if(emailSpinner)emailSpinner.hidden=false;setEmailStatus('checking','Validando correo…');
+      try{
+        const body=new FormData();body.set('action','public_contact_email_validate');body.set('csrf',contactForm.querySelector('[name="csrf"]')?.value||'');body.set('email',value);
+        const response=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1','Accept':'application/json'},body});
+        const data=await response.json();
+        if(!response.ok||!data.ok)throw new Error(data.message||'No se pudo validar el correo.');
+        lastValidatedEmail=value;lastEmailValidation=data.data||{};
+        if(lastEmailValidation.valid){setEmailStatus('valid','Correo válido');return true;}
+        if(lastEmailValidation.suggestion){setEmailStatus('warning',lastEmailValidation.message||'Revisa el correo.',lastEmailValidation.suggestion);return false;}
+        setEmailStatus('error',lastEmailValidation.message||'Revisa el correo electrónico.');return false;
+      }catch(error){
+        lastValidatedEmail='';lastEmailValidation=null;
+        setEmailStatus('warning','No pudimos validar el dominio en este momento. Se volverá a comprobar al enviar.');
+        return true;
+      }finally{if(emailSpinner)emailSpinner.hidden=true;}
+    };
+    source?.addEventListener('change',syncSource);message?.addEventListener('input',syncCount);
+    email?.addEventListener('input',()=>{lastEmailValidation=null;lastValidatedEmail='';clearTimeout(emailValidationTimer);setEmailStatus('','');emailValidationTimer=setTimeout(()=>validateEmailNow(false),650);});
+    email?.addEventListener('blur',()=>{clearTimeout(emailValidationTimer);validateEmailNow(false);});
+    syncSource();syncCount();
 
     const loadTurnstile=()=>{
       if(!turnstileEnabled||!turnstileSiteKey)return Promise.resolve(false);
@@ -176,6 +222,8 @@
       if(!subject?.value){showNotify('warning','Campo obligatorio','Selecciona sobre qué quieres consultar.');if(window.jQuery&&jQuery.fn?.select2)jQuery(subject).select2('open');return;}
       if(!source?.value){showNotify('warning','Campo obligatorio','Selecciona cómo conociste ZYNKO.');if(window.jQuery&&jQuery.fn?.select2)jQuery(source).select2('open');return;}
       if(!contactForm.reportValidity())return;
+      const emailOk=await validateEmailNow(true);
+      if(!emailOk){email?.focus();return;}
       const old=submit?.innerHTML||'';
       contactForm.classList.add('is-sending');
       if(submit){submit.disabled=true;submit.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Enviando…'}
@@ -184,11 +232,10 @@
         const response=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1','Accept':'application/json'},body:new FormData(contactForm)});
         const data=await response.json();
         if(!response.ok||!data.ok)throw new Error(data.message||'No se pudo enviar la consulta.');
-        const confirmed=data?.data?.confirmation_sent!==false;
-        showNotify(confirmed?'success':'warning',confirmed?'Consulta enviada':'Consulta recibida',data.message||'Recibimos tu consulta.');
+        showNotify('success','Consulta enviada',data.message||'Recibimos tu consulta.');
         contactForm.reset();
         if(window.jQuery&&jQuery.fn?.select2)jQuery(contactForm).find('.contact-select2').val(null).trigger('change');
-        syncSource();syncCount();
+        lastValidatedEmail='';lastEmailValidation=null;setEmailStatus('','');syncSource();syncCount();
         if(turnstileEnabled&&window.turnstile&&turnstileWidgetId!==null){window.turnstile.reset(turnstileWidgetId);if(turnstileToken)turnstileToken.value='';window.turnstile.execute(turnstileWidgetId);}
       }catch(error){showNotify('error','No se pudo enviar',error?.message||'Ocurrió un error inesperado. Intenta nuevamente.');}
       finally{contactForm.classList.remove('is-sending');if(submit){submit.disabled=false;submit.innerHTML=old}}
