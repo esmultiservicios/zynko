@@ -612,24 +612,85 @@ $brandFooter = 'NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS';
 // V2.31.94 · El saludo inicial es un único evento de apertura de la conversación.
 // Se inserta solamente cuando nace una conversación y nunca se reconstruye durante
 // lecturas, polling o refrescos. El orden visual también lo fuerza como primer mensaje.
-$ensureInitialGreeting = static function (int $conversationId) use ($pdo, $tid, $initialGreeting): void {
+$ensureInitialGreeting = static function (int $conversationId) use ($pdo, $tid, $initialGreeting): int {
     if ($conversationId <= 0 || trim($initialGreeting) === '') {
-        return;
+        return 0;
     }
 
     $already = $pdo->prepare(
-        "SELECT 1 FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' "
-        . "AND (type='greeting' OR body LIKE '%Soy NIVO, el asistente virtual%') LIMIT 1"
+        "SELECT id FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' "
+        . "AND (type='greeting' OR body LIKE '%Soy NIVO, el asistente virtual%') ORDER BY id ASC LIMIT 1"
     );
     $already->execute([$tid, $conversationId]);
-    if ($already->fetchColumn()) {
-        return;
+    $existingId = (int) ($already->fetchColumn() ?: 0);
+    if ($existingId > 0) {
+        return $existingId;
     }
 
     $pdo->prepare(
         "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','greeting',?,'sent',NOW())"
     )->execute([$tid, $conversationId, uuid4(), $initialGreeting]);
+
+    return (int) $pdo->lastInsertId();
 };
+
+function nivoConversationMessages(PDO $pdo, int $tenantId, int $conversationId): array
+{
+    if ($conversationId <= 0) {
+        return [];
+    }
+
+    $query = $pdo->prepare(
+        "SELECT m.id,m.uuid,m.conversation_id,m.direction,m.sender_type,m.sender_user_id,u.name sender_name,"
+        . "m.type,m.body,m.media_json,m.status,m.sent_at,m.created_at "
+        . "FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id "
+        . "WHERE m.tenant_id=? AND m.conversation_id=? "
+        . "ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END,m.sent_at,m.id"
+    );
+    $query->execute([$tenantId, $conversationId]);
+    return $query->fetchAll() ?: [];
+}
+
+function nivoRecoverVisitorConversation(PDO $pdo, int $tenantId, int $widgetId, array &$visitor): int
+{
+    $conversationId = (int) ($visitor['conversation_id'] ?? 0);
+
+    if ($conversationId > 0) {
+        $query = $pdo->prepare(
+            "SELECT c.id FROM conversations c "
+            . "JOIN channels ch ON ch.id=c.channel_id "
+            . "WHERE c.id=? AND c.tenant_id=? AND ch.tenant_id=? AND c.deleted_at IS NULL LIMIT 1"
+        );
+        $query->execute([$conversationId, $tenantId, $tenantId]);
+        if ($query->fetchColumn()) {
+            return $conversationId;
+        }
+    }
+
+    $contactId = (int) ($visitor['contact_id'] ?? 0);
+    if ($contactId <= 0) {
+        return 0;
+    }
+
+    $query = $pdo->prepare(
+        "SELECT c.id FROM conversations c "
+        . "JOIN webchat_widgets w ON w.channel_id=c.channel_id AND w.id=? AND w.tenant_id=c.tenant_id "
+        . "WHERE c.tenant_id=? AND c.contact_id=? AND c.deleted_at IS NULL "
+        . "AND c.status IN ('open','pending') "
+        . "ORDER BY COALESCE(c.last_message_at,c.created_at) DESC,c.id DESC LIMIT 1"
+    );
+    $query->execute([$widgetId, $tenantId, $contactId]);
+    $recoveredId = (int) ($query->fetchColumn() ?: 0);
+
+    if ($recoveredId > 0) {
+        $pdo->prepare(
+            'UPDATE webchat_visitors SET conversation_id=?,last_seen_at=NOW() WHERE id=? AND tenant_id=?'
+        )->execute([$recoveredId, (int) $visitor['id'], $tenantId]);
+        $visitor['conversation_id'] = $recoveredId;
+    }
+
+    return $recoveredId;
+}
 
 $visitor = (string) ($input['visitor_token'] ?? $_GET['visitor_token'] ?? '');
 $v = null;
@@ -638,6 +699,9 @@ if ($visitor !== '') {
     $query = $pdo->prepare('SELECT * FROM webchat_visitors WHERE visitor_token=? AND tenant_id=? AND widget_id=?');
     $query->execute([$visitor, $tid, $wid]);
     $v = $query->fetch();
+    if ($v) {
+        nivoRecoverVisitorConversation($pdo, $tid, $wid, $v);
+    }
 }
 
 if ($action === 'bootstrap') {
@@ -692,11 +756,7 @@ if ($action === 'bootstrap') {
 
             // No insertamos saludos retroactivamente en conversaciones existentes.
             // El saludo se persiste únicamente al crear una conversación nueva para evitar duplicados o re-presentaciones tardías.
-            $messageQuery = $pdo->prepare(
-                "SELECT id,direction,sender_type,type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY CASE WHEN type='greeting' THEN 0 ELSE 1 END, sent_at,id"
-            );
-            $messageQuery->execute([$tid, $cid]);
-            $messages = $messageQuery->fetchAll();
+            $messages = nivoConversationMessages($pdo, $tid, $cid);
         }
     }
 
@@ -747,7 +807,7 @@ if ($action === 'bootstrap') {
         : '';
     $publicWs = trim((string) ($env['WS_PUBLIC_URL'] ?? ''));
     $publicPort = (int) ($env['WS_PUBLIC_PORT'] ?? ($env['WS_PORT'] ?? 8080));
-    $ws = $publicWs !== '' ? rtrim($publicWs, '/') : ($scheme . '://' . $host . ':' . $publicPort);
+    $ws = $publicWs !== '' ? rtrim($publicWs, '/') : (($scheme === 'wss') ? ('wss://' . $host . '/ws') : ('ws://' . $host . ':' . $publicPort));
     $aiEnabled = false;
 
     try {
@@ -859,14 +919,31 @@ if ($action === 'close') {
     $closingMessage = 'Gracias por conversar con nosotros. La atención quedó finalizada. Si quieres, califica tu experiencia y luego puedes iniciar un nuevo chat.';
     $pdo->beginTransaction();
     try {
+        $closingMessageId = 0;
         if (!in_array((string) $conversation['status'], ['resolved','closed'], true)) {
             $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
                 ->execute([$tid, $cid, uuid4(), $closingMessage]);
+            $closingMessageId = (int) $pdo->lastInsertId();
         }
         $pdo->prepare("UPDATE conversations SET status='resolved',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?")
             ->execute([$cid, $tid]);
         $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
             ->execute([$tid, $cid, (int) $v['id']]);
+        if ($closingMessageId > 0) {
+            zynkoRealtimePublishMessage($pdo, $tid, $closingMessageId, [
+                'visitor_id' => (int) $v['id'],
+                'channel' => 'webchat',
+                'sender' => 'bot'
+            ]);
+        }
+        zynkoRealtimePublish(
+            $pdo,
+            $tid,
+            'conversation.resolved',
+            ['conversation_id'=>$cid,'visitor_id'=>(int)$v['id'],'channel'=>'webchat','reason'=>'visitor_finished'],
+            'conversation',
+            (string) $cid
+        );
         $pdo->commit();
     } catch (Throwable $error) {
         if ($pdo->inTransaction()) {
@@ -875,7 +952,6 @@ if ($action === 'close') {
         throw $error;
     }
 
-    zynkoRealtimePublishSafe($pdo,$tid,'conversation.resolved',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_finished'],'conversation',(string)$cid);
     out(true, 'Chat finalizado.', [
         'conversation_id' => $cid,
         'conversation_status' => 'resolved',
@@ -935,11 +1011,24 @@ if ($action === 'inactivity_nudge') {
     $dup->execute([$tid,$cid,$message]);
     $persisted = false;
     if ((int)$dup->fetchColumn() === 0) {
-        $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
-            ->execute([$tid,$cid,uuid4(),$message]);
-        $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
-        zynkoRealtimePublishSafe($pdo,$tid,'message.created',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_inactivity_nudge'],'conversation',(string)$cid);
-        $persisted = true;
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
+                ->execute([$tid,$cid,uuid4(),$message]);
+            $nudgeMessageId = (int) $pdo->lastInsertId();
+            $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
+            zynkoRealtimePublishMessage($pdo,$tid,$nudgeMessageId,[
+                'visitor_id'=>(int)$v['id'],
+                'channel'=>'webchat',
+                'sender'=>'bot',
+                'reason'=>'visitor_inactivity_nudge'
+            ]);
+            $pdo->commit();
+            $persisted = true;
+        } catch (Throwable $nudgeError) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            throw $nudgeError;
+        }
     }
 
     out(true, 'Seguimiento de inactividad procesado.', ['conversation_id'=>$cid,'message'=>$message,'persisted'=>$persisted]);
@@ -971,6 +1060,7 @@ if ($action === 'expire') {
             $pdo->prepare(
                 "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())"
             )->execute([$tid, $cid, uuid4(), $closeMessage]);
+            $closeMessageId = (int) $pdo->lastInsertId();
             $pdo->prepare(
                 "UPDATE conversations SET status='closed',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?"
             )->execute([$cid, $tid]);
@@ -978,6 +1068,20 @@ if ($action === 'expire') {
                 ->execute([$tid, $cid, (int) $v['id']]);
             $pdo->prepare('UPDATE webchat_visitors SET last_seen_at=NOW() WHERE id=? AND tenant_id=?')
                 ->execute([$v['id'], $tid]);
+            zynkoRealtimePublishMessage($pdo,$tid,$closeMessageId,[
+                'visitor_id'=>(int)$v['id'],
+                'channel'=>'webchat',
+                'sender'=>'bot',
+                'reason'=>'visitor_inactivity'
+            ]);
+            zynkoRealtimePublish(
+                $pdo,
+                $tid,
+                'conversation.closed',
+                ['conversation_id'=>$cid,'visitor_id'=>(int)$v['id'],'channel'=>'webchat','reason'=>'visitor_inactivity'],
+                'conversation',
+                (string) $cid
+            );
             $pdo->commit();
         } catch (Throwable $error) {
             if ($pdo->inTransaction()) {
@@ -986,14 +1090,6 @@ if ($action === 'expire') {
             throw $error;
         }
 
-        zynkoRealtimePublishSafe(
-            $pdo,
-            $tid,
-            'conversation.closed',
-            ['conversation_id' => $cid, 'channel' => 'webchat', 'reason' => 'visitor_inactivity'],
-            'conversation',
-            (string) $cid
-        );
     }
 
     out(true, 'Sesión finalizada por inactividad.', [
@@ -1090,6 +1186,10 @@ if ($action === 'send') {
         }
     }
 
+    $firstMessagePersisted = false;
+    $inboundMessageId = 0;
+    $visitorId = (int) ($v['id'] ?? 0);
+
     if (!$cid) {
         $dailyLimit = zynkoPlanLimit($planCtx, 'max_daily_chats');
         $monthlyLimit = zynkoPlanLimit($planCtx, 'max_monthly_chats');
@@ -1117,31 +1217,70 @@ if ($action === 'send') {
         }
 
         $pdo->beginTransaction();
-        $pdo->prepare('INSERT INTO contacts(tenant_id,uuid,name,email) VALUES(?,?,?,?)')
-            ->execute([$tid, uuid4(), $contactDisplayName, $email ?: null]);
-        $contact = (int) $pdo->lastInsertId();
-        $pdo->prepare(
-            "INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?, 'open',NOW())"
-        )->execute([$tid, uuid4(), (int) $w['channel_id'], $contact]);
-        $cid = (int) $pdo->lastInsertId();
-        $pdo->prepare(
-            'UPDATE webchat_visitors SET contact_id=?,conversation_id=?,name=NULLIF(?,\'\'),email=NULLIF(?,\'\'),last_seen_at=NOW() WHERE id=?'
-        )->execute([$contact, $cid, $rawName, $email, $v['id']]);
-        $pdo->commit();
+        try {
+            $pdo->prepare('INSERT INTO contacts(tenant_id,uuid,name,email) VALUES(?,?,?,?)')
+                ->execute([$tid, uuid4(), $contactDisplayName, $email ?: null]);
+            $contact = (int) $pdo->lastInsertId();
 
-        $ensureInitialGreeting($cid);
+            $pdo->prepare(
+                "INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?, 'open',NOW())"
+            )->execute([$tid, uuid4(), (int) $w['channel_id'], $contact]);
+            $cid = (int) $pdo->lastInsertId();
 
-        zynkoRealtimePublishSafe(
-            $pdo,
-            $tid,
-            'conversation.created',
-            ['conversation_id' => $cid, 'channel' => 'webchat', 'contact_name' => $contactDisplayName],
-            'conversation',
-            (string) $cid
-        );
+            $pdo->prepare(
+                'UPDATE webchat_visitors SET contact_id=?,conversation_id=?,name=NULLIF(?,\'\'),email=NULLIF(?,\'\'),last_seen_at=NOW() WHERE id=?'
+            )->execute([$contact, $cid, $rawName, $email, $visitorId]);
+
+            $greetingMessageId = $ensureInitialGreeting($cid);
+
+            $pdo->prepare(
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
+            )->execute([$tid, $cid, uuid4(), $body]);
+            $inboundMessageId = (int) $pdo->lastInsertId();
+
+            $pdo->prepare(
+                "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status='open',archived_at=NULL WHERE id=? AND tenant_id=?"
+            )->execute([$cid, $tid]);
+
+            zynkoRealtimePublish(
+                $pdo,
+                $tid,
+                'conversation.created',
+                [
+                    'conversation_id' => $cid,
+                    'visitor_id' => $visitorId,
+                    'channel' => 'webchat',
+                    'contact_name' => $contactDisplayName
+                ],
+                'conversation',
+                (string) $cid
+            );
+
+            if ($greetingMessageId > 0) {
+                zynkoRealtimePublishMessage($pdo, $tid, $greetingMessageId, [
+                    'visitor_id' => $visitorId,
+                    'channel' => 'webchat',
+                    'sender' => 'bot'
+                ]);
+            }
+
+            zynkoRealtimePublishMessage($pdo, $tid, $inboundMessageId, [
+                'visitor_id' => $visitorId,
+                'channel' => 'webchat',
+                'sender' => 'contact'
+            ]);
+
+            $pdo->commit();
+            $firstMessagePersisted = true;
+        } catch (Throwable $creationError) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $creationError;
+        }
     } else {
         $pdo->prepare('UPDATE webchat_visitors SET name=NULLIF(?,\'\'),email=NULLIF(?,\'\'),last_seen_at=NOW() WHERE id=? AND tenant_id=?')
-            ->execute([$rawName, $email, $v['id'], $tid]);
+            ->execute([$rawName, $email, $visitorId, $tid]);
 
         if (!empty($v['contact_id'])) {
             $pdo->prepare('UPDATE contacts SET name=?,email=NULLIF(?,\'\') WHERE id=? AND tenant_id=?')
@@ -1149,23 +1288,34 @@ if ($action === 'send') {
         }
     }
 
-    $pdo->prepare(
-        "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
-    )->execute([$tid, $cid, uuid4(), $body]);
-    $pdo->prepare(
-        "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status=IF(status='pending','pending','open'),archived_at=NULL WHERE id=? AND tenant_id=?"
-    )->execute([$cid, $tid]);
+    if (!$firstMessagePersisted) {
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
+            )->execute([$tid, $cid, uuid4(), $body]);
+            $inboundMessageId = (int) $pdo->lastInsertId();
+
+            $pdo->prepare(
+                "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status=IF(status='pending','pending','open'),archived_at=NULL WHERE id=? AND tenant_id=?"
+            )->execute([$cid, $tid]);
+
+            zynkoRealtimePublishMessage($pdo, $tid, $inboundMessageId, [
+                'visitor_id' => $visitorId,
+                'channel' => 'webchat',
+                'sender' => 'contact'
+            ]);
+
+            $pdo->commit();
+        } catch (Throwable $messageError) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $messageError;
+        }
+    }
 
     nivoLogSecurityEvent($pdo, $tid, $v ?: null, $cid, $securityAssessment);
-
-    zynkoRealtimePublishSafe(
-        $pdo,
-        $tid,
-        'message.created',
-        ['conversation_id' => $cid, 'channel' => 'webchat', 'sender' => 'contact', 'preview' => mb_substr($body,0,180)],
-        'conversation',
-        (string) $cid
-    );
 
     try {
         require_once $root . '/app/Services/NotificationService.php';
@@ -1222,7 +1372,7 @@ if ($action === 'send') {
                 $pdo,
                 $tid,
                 'conversation.assigned',
-                ['conversation_id' => $cid, 'agent' => $handoffAgent['name'], 'channel' => 'webchat'],
+                ['conversation_id' => $cid, 'visitor_id' => $visitorId, 'agent' => $handoffAgent['name'], 'channel' => 'webchat'],
                 'conversation',
                 (string) $cid
             );
@@ -1312,17 +1462,36 @@ if ($action === 'send') {
             $pdo,
             $tid,
             'conversation.assigned',
-            ['conversation_id' => $cid, 'agent' => $handoffAgent['name'] ?? null, 'channel' => 'webchat'],
+            ['conversation_id' => $cid, 'visitor_id' => $visitorId, 'agent' => $handoffAgent['name'] ?? null, 'channel' => 'webchat'],
             'conversation',
             (string) $cid
         );
     }
 
     if ($reply) {
-        $pdo->prepare(
-            "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())"
-        )->execute([$tid, $cid, uuid4(), $reply]);
-        $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid, $tid]);
+        $pdo->beginTransaction();
+        try {
+            $pdo->prepare(
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())"
+            )->execute([$tid, $cid, uuid4(), $reply]);
+            $replyMessageId = (int) $pdo->lastInsertId();
+
+            $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')
+                ->execute([$cid, $tid]);
+
+            zynkoRealtimePublishMessage($pdo, $tid, $replyMessageId, [
+                'visitor_id' => $visitorId,
+                'channel' => 'webchat',
+                'sender' => 'bot'
+            ]);
+
+            $pdo->commit();
+        } catch (Throwable $replyPersistenceError) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $replyPersistenceError;
+        }
 
         if ($handoff) {
             try {
@@ -1351,22 +1520,17 @@ if ($action === 'send') {
             }
         }
 
-        zynkoRealtimePublishSafe(
-            $pdo,
-            $tid,
-            'message.created',
-            ['conversation_id' => $cid, 'channel' => 'webchat', 'sender' => 'bot', 'preview' => mb_substr((string)$reply, 0, 180)],
-            'conversation',
-            (string) $cid
-        );
     }
 
     $pendingQuery = $pdo->prepare('SELECT status,assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
     $pendingQuery->execute([$cid, $tid]);
     $finalState = $pendingQuery->fetch() ?: [];
 
+    $canonicalMessages = nivoConversationMessages($pdo, $tid, $cid);
+
     out(true, 'Mensaje recibido.', [
         'conversation_id' => $cid,
+        'messages' => $canonicalMessages,
         'bot_reply' => $reply,
         'handoff' => $handoff,
         'conversation_pending' => (($finalState['status'] ?? '') === 'pending'),
@@ -1386,11 +1550,7 @@ if ($action === 'messages') {
     $conversationAgentName = '';
 
     if ($cid) {
-        $query = $pdo->prepare(
-            "SELECT id,direction,sender_type,type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY CASE WHEN type='greeting' THEN 0 ELSE 1 END, sent_at,id"
-        );
-        $query->execute([$tid, $cid]);
-        $messages = $query->fetchAll();
+        $messages = nivoConversationMessages($pdo, $tid, $cid);
         $statusQuery = $pdo->prepare('SELECT c.status,c.assigned_user_id,u.name agent_name FROM conversations c LEFT JOIN users u ON u.id=c.assigned_user_id WHERE c.id=? AND c.tenant_id=? LIMIT 1');
         $statusQuery->execute([$cid,$tid]);
         $conversationRow = $statusQuery->fetch() ?: [];

@@ -312,7 +312,14 @@ final class NivoEngine
                 ? 'CAMI is the ES MULTISERVICIOS solution for clinics and medical centers, focused on patients, clinical processes, pharmacy and billing.'
                 : 'CAMI es la solución de ES MULTISERVICIOS para clínicas y centros médicos, enfocada en pacientes, procesos clínicos, farmacia y facturación.';
         }
-        if(str_contains($norm,'zynko')||str_contains($norm,'nivo web chat')||str_contains($norm,'nivo ia')){
+        $mentionsWebChat=str_contains($norm,'nivo web chat')||str_contains($norm,'web chat');
+        $mentionsNivoAi=str_contains($norm,'nivo ia')||str_contains($norm,'nivo ai');
+        if($mentionsWebChat&&$mentionsNivoAi){
+            return $english
+                ? 'NIVO Web Chat is the web conversation channel of ZYNKO: it receives visitor messages, keeps the conversation history and synchronizes it with the omnichannel inbox. NIVO AI is the assistant that works on top of that conversation using approved rules, synchronized web sources and tenant knowledge to answer, learn through supervised review and hand off to a human when appropriate.'
+                : 'NIVO Web Chat es el canal web de conversación de ZYNKO: recibe los mensajes del visitante, conserva el historial y los sincroniza con la Bandeja omnicanal. NIVO IA es el asistente que trabaja sobre esa conversación usando reglas aprobadas, fuentes web sincronizadas y conocimiento del tenant para responder, aprender mediante revisión supervisada y transferir a una persona cuando corresponde.';
+        }
+        if(str_contains($norm,'zynko')||$mentionsWebChat||$mentionsNivoAi){
             return $english
                 ? 'ZYNKO is the omnichannel platform from ES MULTISERVICIOS. It centralizes customer conversations and includes NIVO Web Chat, NIVO AI, assignments, teams and integrations.'
                 : 'ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS. Centraliza conversaciones de clientes e integra NIVO Web Chat, NIVO IA, asignaciones, equipos e integraciones.';
@@ -421,9 +428,15 @@ final class NivoEngine
             }
 
             if($isCapabilities){
+                $solutions=self::tenantSolutions($pdo,$tenantId);
+                $solutionNames=array_values(array_filter(array_map(
+                    static fn(array $row): string => trim((string)($row['name']??'')),
+                    $solutions
+                )));
+                $family=$solutionNames?implode(', ',$solutionNames):'IZZY, CAMI y ZYNKO';
                 $reply=$english
-                  ? 'I specialize in helping with '.$companyName.' and ZYNKO using the information that has been approved for me. I can explain services, NIVO Web Chat, NIVO AI, plans, channels and integrations, answer common questions, guide you step by step and route your request. If something is outside my approved knowledge, I will say so; I only transfer you to a person when you ask for one or when the configured rules require it.'
-                  : 'Me especializo en orientarte sobre '.$companyName.' y ZYNKO usando la información que tengo aprobada. Puedo explicarte servicios, NIVO Web Chat, NIVO IA, planes, canales e integraciones, responder preguntas frecuentes, guiarte paso a paso y ayudarte a encaminar tu solicitud. Si algo está fuera de mi conocimiento aprobado, te lo diré; solo te transfiero con una persona cuando lo pides o cuando las reglas configuradas realmente lo requieren.';
+                  ? 'I can help with '.$companyName.' and the solutions configured for this company ('.$family.'). I can explain products and services, NIVO Web Chat, NIVO AI, plans, channels and integrations, answer common questions, guide you step by step and use approved web sources and knowledge from this tenant. If something is outside my approved knowledge, I will say so; I only transfer you to a person when you ask for one or when the configured rules require it.'
+                  : 'Puedo orientarte sobre '.$companyName.' y las soluciones configuradas para esta empresa ('.$family.'). Puedo explicarte productos y servicios, NIVO Web Chat, NIVO IA, planes, canales e integraciones, responder preguntas frecuentes, guiarte paso a paso y utilizar las fuentes web y el conocimiento aprobado de este tenant. Si algo está fuera de mi conocimiento aprobado, te lo diré; solo te transfiero con una persona cuando lo pides o cuando las reglas configuradas realmente lo requieren.';
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'capabilities','high',false,$displayName,$english);
             }
 
@@ -446,6 +459,15 @@ final class NivoEngine
                 $reply=$english?'Of course. I’ll hand this conversation over to a person from '.$companyName.'.':($inHours?'Claro. Te transfiero con una persona de '.$companyName.' para que continúe contigo.':($hours['outside_message']??'En este momento estamos fuera del horario de atención. Dejé tu conversación pendiente para que una persona continúe contigo.'));
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'handoff','high',true,$displayName,$english);
             }}
+
+            $mentionsWebChat=str_contains($effectiveNorm,'nivo web chat')||str_contains($effectiveNorm,'web chat');
+            $mentionsNivoAi=str_contains($effectiveNorm,'nivo ia')||str_contains($effectiveNorm,'nivo ai');
+            if($mentionsWebChat&&$mentionsNivoAi){
+                $reply=$english
+                    ? 'NIVO Web Chat is the web channel that receives visitor messages, preserves the full conversation and synchronizes it with the omnichannel inbox. NIVO AI works inside that same conversation using approved rules, synchronized web sources and tenant knowledge to answer in real time, learn through supervised review and hand off to a human when needed.'
+                    : 'NIVO Web Chat es el canal web que recibe los mensajes del visitante, conserva la conversación completa y la sincroniza con la Bandeja omnicanal. NIVO IA trabaja dentro de esa misma conversación usando reglas aprobadas, fuentes web sincronizadas y conocimiento del tenant para responder en tiempo real, aprender mediante revisión supervisada y transferir a una persona cuando se necesita.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'platform:nivo-combined','high',false,$displayName,$english);
+            }
 
             $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
             foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}

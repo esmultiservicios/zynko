@@ -90,4 +90,25 @@ Si ves:
 
 ## 6. Regla funcional de NIVO
 
-WebSocket acelera eventos en tiempo real, pero los mensajes se guardan primero en base de datos. Si el socket cae temporalmente, el widget conserva la conversación y usa sincronización de respaldo; un fallo del WebSocket no debe borrar mensajes ni impedir que aparezcan en la Bandeja.
+WebSocket transporta los eventos en tiempo real, pero los mensajes se guardan primero en base de datos. Si el socket cae temporalmente, el widget conserva la conversación y al reconectar recupera el estado canónico; un fallo del socket no debe borrar mensajes.
+
+
+## 7. Arquitectura realtime actual
+
+La ruta recomendada en producción es:
+
+```text
+Navegador HTTPS
+  -> wss://tu-dominio/ws
+  -> Apache mod_proxy_wstunnel
+  -> ws://127.0.0.1:8080
+  -> websocket/server.php
+```
+
+El proyecto incluye una regla protegida por `mod_proxy`/`mod_proxy_wstunnel` en `.htaccess`. Si esos módulos están disponibles, no necesitas abrir el puerto 8080 al Internet ni crear una regla pública en Imunify360 para ese puerto.
+
+Después de cada deploy de cPanel, `.cpanel.yml` ejecuta `bin/restart-websocket.sh`. El script reinicia el daemon y deja log en `storage/logs/websocket.log`.
+
+La comunicación normal ya no depende de polling periódico. Cada mensaje se guarda primero en `messages` y su evento completo se escribe en `realtime_events`; el daemon lo transmite al Widget y a la Bandeja. Si la conexión se cae, la reconexión hace una resincronización canónica para recuperar cualquier evento ocurrido durante el corte.
+
+Para verificar producción abre DevTools > Network > WS y confirma una conexión a `/ws` con respuesta `101 Switching Protocols`. En la Bandeja el indicador debe mostrar **Tiempo real**, no **Auto**.

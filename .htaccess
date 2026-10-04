@@ -4,6 +4,17 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
 RewriteEngine On
 
+# Realtime WebSocket same-origin bridge.
+# Browser: wss://<dominio>/ws  ->  daemon local: ws://127.0.0.1:8080
+# El puerto 8080 permanece interno; no necesita exponerse públicamente.
+<IfModule mod_proxy.c>
+<IfModule mod_proxy_wstunnel.c>
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteCond %{HTTP:Connection} upgrade [NC]
+RewriteRule ^ws/?$ ws://127.0.0.1:8080/ [P,L]
+</IfModule>
+</IfModule>
+
 # SEO técnico dinámico: usa APP_URL del .env para generar URLs canónicas.
 RewriteRule ^robots\.txt$ public/robots.php [L,NC]
 RewriteRule ^sitemap\.xml$ public/sitemap.php [L,NC]

@@ -28,6 +28,8 @@
     lastCount: 0,
     widget: null,
     poll: null,
+    messageCache: [],
+    wsConnected: false,
     sending: false,
     restarted: false,
     originalTitle: document.title,
@@ -62,6 +64,7 @@
     const payload = {
       key,
       visitor_token: state.visitor_token,
+      conversation_id: state.conversation_id || 0,
       client_hour: new Date().getHours(),
       client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
       ...data
@@ -821,7 +824,9 @@
 
         typing?.remove();
 
-        if (result.bot_reply) {
+        if (Array.isArray(result.messages) && result.messages.length) {
+          renderMessages(result.messages, false);
+        } else if (result.bot_reply) {
           add(shadow, result.bot_reply, 'in', 'NIVO');
         }
 
@@ -829,16 +834,9 @@
         setPresence(result.human_assigned && state.handoffAgent ? `Conectado con ${state.handoffAgent}` : (result.conversation_pending ? 'En cola para atención humana' : (result.handoff ? 'Transferencia a atención humana' : 'Esperando tu respuesta')));
         touchSession();
 
-        setTimeout(async () => {
-          await refresh();
-          try {
-            state.ws?.close();
-            const next = await call({ action: 'bootstrap' });
-            connect(next);
-          } catch {
-            // El polling mantiene la conversación incluso si el WebSocket no reconecta.
-          }
-        }, 180);
+        // La conexión WebSocket permanece abierta durante toda la conversación.
+        // El ACK HTTP ya contiene el historial canónico y el socket entrega en tiempo real
+        // los mensajes posteriores del bot o de un agente humano.
       } catch (error) {
         typing?.remove();
         showLocal(error.message);
@@ -1082,6 +1080,7 @@
     }
 
     messages = normalizeConversationMessages(messages);
+    state.messageCache = messages;
     const oldCount = state.lastCount;
     state.lastCount = messages.length;
     const box = state.shadow.querySelector('.msgs');
@@ -1138,16 +1137,46 @@
     }
   }
 
+  function mergeRealtimeMessage(message) {
+    if (!message || !Number(message.id)) {
+      return;
+    }
+
+    const messageConversationId = Number(message.conversation_id || 0);
+    if (messageConversationId > 0) {
+      if (state.conversation_id > 0 && messageConversationId !== Number(state.conversation_id)) {
+        return;
+      }
+      state.conversation_id = messageConversationId;
+    }
+
+    const byId = new Map(
+      (Array.isArray(state.messageCache) ? state.messageCache : [])
+        .filter(row => Number(row?.id || 0) > 0)
+        .map(row => [Number(row.id), row])
+    );
+    byId.set(Number(message.id), message);
+    renderMessages([...byId.values()]);
+    syncProfileUi();
+    touchSession();
+  }
+
   async function refresh() {
     try {
       const data = await call({ action: 'messages' });
-      state.conversation_id = data.conversation_id;
+      const serverConversationId = Number(data.conversation_id || 0);
+      if (serverConversationId > 0) {
+        state.conversation_id = serverConversationId;
+      }
       state.conversationClosed = Boolean(data.conversation_closed);
       state.handoffActive = Boolean(data.conversation_pending || data.human_assigned);
       state.humanAssigned = Boolean(data.human_assigned);
       state.handoffAgent = data.handoff_agent?.name || state.handoffAgent || '';
       state.surveyConversationId = data.survey?.conversation_id || state.surveyConversationId;
-      renderMessages(data.messages || []);
+      const serverMessages = Array.isArray(data.messages) ? data.messages : [];
+      if (serverMessages.length || !state.conversation_id) {
+        renderMessages(serverMessages);
+      }
       syncProfileUi();
       const composer = state.shadow?.querySelector('.composer');
       if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
@@ -1173,12 +1202,11 @@
   function connect(data) {
     if (state.poll) {
       clearInterval(state.poll);
+      state.poll = null;
     }
 
     const experience = state.widget?.experience || {};
-    const poll = Math.max(3, Math.min(60, parseInt(experience.poll_interval_seconds || 5, 10))) * 1000;
     const reconnect = Math.max(1, Math.min(30, parseInt(experience.reconnect_seconds || 3, 10))) * 1000;
-    state.poll = setInterval(refresh, poll);
 
     if (state.wsReconnectTimer) {
       clearTimeout(state.wsReconnectTimer);
@@ -1186,6 +1214,7 @@
     }
 
     if (!data.ws_url || !data.ws_token) {
+      state.wsConnected = false;
       return;
     }
 
@@ -1202,35 +1231,85 @@
       const socket = new WebSocket(target.href);
       state.ws = socket;
 
-      socket.onopen = () => {
+      socket.onopen = async () => {
         if (generation !== state.wsGeneration) return;
-        if (state.humanAssigned && state.handoffAgent) setPresence(`Conectado con ${state.handoffAgent}`);
+        state.wsConnected = true;
+        if (state.humanAssigned && state.handoffAgent) {
+          setPresence(`Conectado con ${state.handoffAgent}`);
+        }
+        // Recupera cualquier evento ocurrido durante una reconexión sin depender de polling.
+        await refresh();
       };
 
       socket.onmessage = event => {
         try {
-          const message = JSON.parse(event.data);
-          const eventConversation = message.data?.conversation_id || message.entity_id;
+          const packet = JSON.parse(event.data);
 
-          if (message.type === 'event' && (!state.conversation_id || String(eventConversation) === String(state.conversation_id))) {
+          if (packet.type === 'connected') {
+            const connectedConversation = Number(packet.conversation_id || 0);
+            if (connectedConversation > 0) {
+              state.conversation_id = connectedConversation;
+            }
+            return;
+          }
+
+          if (packet.type !== 'event') {
+            return;
+          }
+
+          const eventConversation = Number(
+            packet.data?.conversation_id
+            || packet.data?.message?.conversation_id
+            || 0
+          );
+
+          if (state.conversation_id > 0 && eventConversation > 0 && eventConversation !== Number(state.conversation_id)) {
+            return;
+          }
+
+          if (eventConversation > 0 && !state.conversation_id) {
+            state.conversation_id = eventConversation;
+          }
+
+          if (packet.event === 'message.created' && packet.data?.message) {
+            mergeRealtimeMessage(packet.data.message);
+            setPresence(packet.data.message.sender_type === 'bot' ? 'Esperando tu respuesta' : 'Nuevo mensaje', true);
+            return;
+          }
+
+          if (['conversation.assigned','conversation.updated','conversation.resolved','conversation.closed'].includes(packet.event)) {
             refresh();
           }
         } catch {
-          // Ignoramos frames inválidos y dejamos el polling como respaldo.
+          // Un frame inválido no reemplaza ni elimina el historial ya renderizado.
         }
       };
 
       socket.onerror = () => {
+        state.wsConnected = false;
         try { socket.close(); } catch {}
       };
 
       socket.onclose = () => {
         if (generation !== state.wsGeneration) return;
+        state.wsConnected = false;
         state.wsReconnectTimer = setTimeout(async () => {
           try {
+            // Bootstrap actúa como recuperación del gap: conserva visitor_token,
+            // recupera conversation_id e historial canónico y emite un token nuevo.
             const next = await call({ action: 'bootstrap' });
             state.visitor_token = next.visitor_token || state.visitor_token;
             state.conversation_id = next.conversation_id || state.conversation_id;
+            state.conversationClosed = Boolean(next.conversation_closed);
+            state.handoffActive = Boolean(next.conversation_pending || next.human_assigned);
+            state.humanAssigned = Boolean(next.human_assigned);
+            state.handoffAgent = next.handoff_agent?.name || state.handoffAgent || '';
+            if (state.visitor_token) {
+              localStorage.setItem(storagePrefix, state.visitor_token);
+            }
+            if (Array.isArray(next.messages)) {
+              renderMessages(next.messages, false);
+            }
             connect(next);
           } catch {
             state.wsReconnectTimer = setTimeout(() => connect(data), reconnect);
@@ -1238,6 +1317,7 @@
         }, reconnect);
       };
     } catch {
+      state.wsConnected = false;
       state.wsReconnectTimer = setTimeout(() => connect(data), reconnect);
     }
   }

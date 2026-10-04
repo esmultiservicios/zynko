@@ -1,3 +1,28 @@
+## V2.32.01 · Mensajería bilateral realtime sin pérdida de estado
+
+- La mensajería usa `messages` como fuente de verdad y `realtime_events` como outbox durable para WebSocket.
+- Los eventos `message.created` transportan el mensaje canónico completo (`message_id`, conversación, remitente, cuerpo, adjuntos, estado y fecha), evitando reconstrucciones ambiguas en el navegador.
+- El primer mensaje del Web Chat, el saludo inicial, la conversación y sus eventos realtime se confirman en la misma transacción.
+- El WebSocket de visitantes ya no queda atado a `conversation_id=0`: resuelve dinámicamente la conversación del `visitor_id`, por lo que el mismo socket sigue vivo desde antes del primer mensaje.
+- Widget y Bandeja insertan los mensajes recibidos por WebSocket directamente y en orden por `message_id`; no dependen de polling periódico para la comunicación normal.
+- Cuando un WebSocket se reconecta, se hace una resincronización canónica para recuperar cualquier gap sin borrar el historial local.
+- El daemon WebSocket usa cola de salida por cliente para evitar frames parciales en sockets no bloqueantes.
+- Producción HTTPS usa por defecto `wss://<dominio>/ws`, con proxy interno hacia `ws://127.0.0.1:8080`; el puerto 8080 puede permanecer privado.
+- El despliegue cPanel reinicia el daemon mediante `bin/restart-websocket.sh` para que los cambios de realtime entren en vigor después de publicar.
+- La API de canales externos también publica eventos completos, dejando la misma base preparada para WhatsApp, Messenger y futuras integraciones.
+- No requiere cambios estructurales de base de datos ni ejecutar UPDATE SQL.
+
+## V2.32.00 · Historial persistente, Bandeja sincronizada y NIVO IA coherente
+
+- El primer mensaje del visitante, el saludo inicial y la creación de la conversación se persisten de forma atómica para evitar conversaciones parciales o historiales incompletos.
+- El widget usa como fuente de verdad el historial completo devuelto por el servidor después de cada envío y evita borrar la conversación visible ante una respuesta temporal vacía del polling.
+- Si una instalación conserva un visitante válido pero pierde el vínculo `conversation_id`, el backend intenta recuperar de forma segura la conversación activa del mismo contacto, tenant y widget.
+- La Bandeja recibe los eventos de creación/mensaje por WebSocket y resincroniza al reconectar o volver a enfocar la ventana; no depende de polling periódico para el flujo normal.
+- Las respuestas de capacidades de NIVO enumeran dinámicamente las soluciones configuradas del tenant (por ejemplo IZZY, CAMI y ZYNKO), no solo ZYNKO.
+- La consulta combinada sobre **NIVO Web Chat y NIVO IA** tiene una respuesta explícita y no depende de que una regla parcial gane la coincidencia.
+- Se conserva el aislamiento por tenant y no se comparte conocimiento entre empresas distintas.
+- No requiere cambios estructurales de base de datos ni ejecutar UPDATE SQL.
+
 ## V2.31.98 · Compatibilidad de actualización Local + Servidor
 
 Esta entrega separa el update acumulativo de base de datos por entorno porque MariaDB/phpMyAdmin local puede devolver el error **#1295** al ejecutar `PREPARE/EXECUTE` con DDL, mientras el servidor de producción ya ejecuta correctamente ese método.
