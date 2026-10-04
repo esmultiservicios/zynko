@@ -38,7 +38,8 @@
     initialMessages: [],
     conversationClosed: false,
     surveyConversationId: 0,
-    selectedRating: 0
+    selectedRating: 0,
+    bootAt: Date.now()
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -475,6 +476,7 @@
           <div class="survey-card" hidden><b>¿Cómo fue tu atención?</b><small>Tu opinión nos ayuda a mejorar. Selecciona de 1 a 5 estrellas.</small><div class="survey-stars">${[1,2,3,4,5].map(v=>`<button type="button" data-rating="${v}" aria-label="${v} estrellas">★</button>`).join('')}</div><textarea class="survey-comment" maxlength="1000" placeholder="Comentario opcional"></textarea><div class="survey-actions"><button type="button" class="survey-skip">Ahora no</button><button type="button" class="survey-submit">Enviar opinión</button></div></div>
           <div class="session-actions new-chat-wrap" ${state.conversationClosed ? '' : 'hidden'}><button type="button" class="new-chat"><span class="new-chat-icon">＋</span><span class="new-chat-copy"><b>Iniciar nuevo chat</b><small>Comienza una conversación nueva desde cero</small></span><span class="new-chat-arrow">›</span></button></div>
           <form class="composer${state.conversationClosed ? ' is-closed' : ''}">
+            <input class="website-hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important">
             <input class="text" autocomplete="off" placeholder="Escribe un mensaje…">
             <button class="send" aria-label="Enviar">➤</button>
           </form>
@@ -727,7 +729,9 @@
           body,
           name: state.profile.name,
           email: state.profile.email,
-          privacy_accepted: !widget.privacy_enabled || Boolean(privacyOk?.checked)
+          privacy_accepted: !widget.privacy_enabled || Boolean(privacyOk?.checked),
+          website: shadow.querySelector('.website-hp')?.value || '',
+          client_elapsed_ms: Math.max(0, Date.now() - state.bootAt)
         });
 
         state.conversation_id = result.conversation_id;

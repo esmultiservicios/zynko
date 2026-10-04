@@ -1,3 +1,15 @@
+## V2.31.87 · NIVO Web Chat anti-spam + trazabilidad
+
+- Protección anti-spam multiempresa antes de crear conversaciones.
+- Honeypot invisible, rate limit por huella anónima, repetición, enlaces y user-agent automatizado.
+- Registro de eventos de seguridad sin guardar IP en texto plano.
+- Conversaciones sospechosas visibles en Bandeja con origen y estado de seguridad.
+- Spam de alto riesgo se descarta antes de ensuciar la Bandeja.
+- Mensajes humanos simples siguen llegando a NIVO IA.
+- Cierre por inactividad reforzado también del lado servidor.
+- Umbrales configurables desde NIVO Web Chat.
+- Tablas de seguridad creadas defensivamente en runtime y documentadas en schema/update acumulativo.
+
 ## V2.31.86 · NIVO IA multiempresa + aprendizaje supervisado + documentación completa
 
 ### MULTIEMPRESA

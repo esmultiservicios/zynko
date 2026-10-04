@@ -142,3 +142,24 @@ Si NIVO no responde, revisar:
 - agente humano asignado;
 - política de horario;
 - cola de aprendizaje para preguntas que aún no tienen respuesta.
+
+## Protección anti-spam y trazabilidad (V2.31.87)
+
+NIVO Web Chat valida cada mensaje antes de crear o ensuciar una conversación. La protección es multiempresa y se aplica después de validar `installation_key` + dominio autorizado.
+
+Controles activos:
+- honeypot invisible para bots de formularios;
+- límite de mensajes por conversación y huella anónima de origen;
+- detección de ráfagas y mensajes repetidos;
+- detección de exceso de enlaces y mensajes compuestos solo por URLs;
+- detección de user-agents automatizados;
+- puntaje de riesgo configurable por tenant;
+- registro de eventos `clean`, `suspicious` y `blocked`;
+- IP protegida mediante HMAC/SHA-256: no se almacena la IP en texto plano;
+- origen/dominio trazable en Bandeja;
+- conversaciones sospechosas marcadas como `Posible spam`;
+- eventos bloqueados se descartan antes de crear una conversación;
+- mensajes humanos cortos como `Hola`, `Hello` o `¿Quién eres?` no se bloquean solo por ser breves;
+- cierre por inactividad reforzado también del lado servidor.
+
+NIVO IA continúa respondiendo mensajes válidos aunque tengan poco contenido. Solo se descartan automáticamente eventos que superan el umbral alto de riesgo.

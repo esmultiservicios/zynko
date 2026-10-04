@@ -92,6 +92,231 @@ function nivoOrigin(): string
     return $normalized;
 }
 
+function nivoEnsureSecurityRuntime(PDO $pdo): void
+{
+    $pdo->exec("CREATE TABLE IF NOT EXISTS webchat_security_events (
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        tenant_id BIGINT UNSIGNED NOT NULL,
+        widget_id BIGINT UNSIGNED NOT NULL,
+        installation_id BIGINT UNSIGNED NULL,
+        visitor_id BIGINT UNSIGNED NULL,
+        conversation_id BIGINT UNSIGNED NULL,
+        origin_domain VARCHAR(255) NULL,
+        ip_hash CHAR(64) NULL,
+        user_agent VARCHAR(500) NULL,
+        body_hash CHAR(64) NULL,
+        score SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+        verdict ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+        reasons_json JSON NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_wc_security_tenant_created(tenant_id,created_at),
+        INDEX idx_wc_security_ip_created(tenant_id,ip_hash,created_at),
+        INDEX idx_wc_security_body_created(tenant_id,body_hash,created_at),
+        INDEX idx_wc_security_verdict(tenant_id,verdict,created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS webchat_conversation_security (
+        tenant_id BIGINT UNSIGNED NOT NULL,
+        conversation_id BIGINT UNSIGNED NOT NULL,
+        origin_domain VARCHAR(255) NULL,
+        ip_hash CHAR(64) NULL,
+        user_agent VARCHAR(500) NULL,
+        risk_score SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+        verdict ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+        blocked_events INT UNSIGNED NOT NULL DEFAULT 0,
+        last_reason VARCHAR(500) NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY(tenant_id,conversation_id),
+        INDEX idx_wc_conversation_security_verdict(tenant_id,verdict,risk_score)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+}
+
+function nivoRequestIpHash(array $env): string
+{
+    $ip = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    if ($ip === '') {
+        return '';
+    }
+
+    $secret = (string) ($env['APP_KEY'] ?? '');
+    if ($secret === '') {
+        $secret = 'zynko-webchat-security';
+    }
+
+    return hash_hmac('sha256', $ip, $secret);
+}
+
+function nivoSecurityAssessment(
+    PDO $pdo,
+    int $tenantId,
+    int $widgetId,
+    int $installationId,
+    ?array $visitor,
+    string $originHost,
+    string $body,
+    array $input,
+    array $env,
+    array $experience
+): array {
+    nivoEnsureSecurityRuntime($pdo);
+
+    $score = 0;
+    $reasons = [];
+    $normalized = nivoNorm($body);
+    $ua = mb_substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 500);
+    $ipHash = nivoRequestIpHash($env);
+    $bodyHash = hash('sha256', $normalized);
+
+    // Honeypot invisible: a normal visitor never fills this field.
+    $honeypot = trim((string) ($input['website'] ?? ''));
+    if ($honeypot !== '') {
+        $score += 100;
+        $reasons[] = 'honeypot';
+    }
+
+    if ($ua === '') {
+        $score += 20;
+        $reasons[] = 'sin_user_agent';
+    } elseif (preg_match('/(?:curl|wget|python-requests|scrapy|httpclient|headless|phantomjs|selenium|bot\b|crawler|spider)/i', $ua)) {
+        $score += 35;
+        $reasons[] = 'user_agent_automatizado';
+    }
+
+    if (preg_match('/(.)\1{24,}/u', $body)) {
+        $score += 20;
+        $reasons[] = 'repeticion_excesiva';
+    }
+
+    preg_match_all('~https?://|www\.~iu', $body, $urlMatches);
+    $urlCount = count($urlMatches[0] ?? []);
+    if ($urlCount >= 4) {
+        $score += 35;
+        $reasons[] = 'muchos_enlaces';
+    } elseif ($urlCount >= 2) {
+        $score += 15;
+        $reasons[] = 'varios_enlaces';
+    }
+
+    if (preg_match('~^\s*(?:https?://|www\.)\S+\s*$~iu', $body)) {
+        $score += 30;
+        $reasons[] = 'solo_enlace';
+    }
+
+    $clientElapsed = (int) ($input['client_elapsed_ms'] ?? 0);
+    if ($clientElapsed > 0 && $clientElapsed < 700) {
+        $score += 25;
+        $reasons[] = 'envio_demasiado_rapido';
+    }
+
+    if ($visitor && !empty($visitor['created_at'])) {
+        $age = time() - strtotime((string) $visitor['created_at']);
+        if ($age >= 0 && $age < 1) {
+            $score += 20;
+            $reasons[] = 'sesion_instantanea';
+        }
+    }
+
+    if ($ipHash !== '') {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM webchat_security_events WHERE tenant_id=? AND ip_hash=? AND created_at>=DATE_SUB(NOW(),INTERVAL 1 MINUTE)");
+        $q->execute([$tenantId, $ipHash]);
+        $perMinute = (int) $q->fetchColumn();
+        $hardLimit = max(10, min(120, (int) ($experience['antispam_ip_per_minute'] ?? 30)));
+        if ($perMinute >= $hardLimit) {
+            $score += 80;
+            $reasons[] = 'limite_ip';
+        } elseif ($perMinute >= max(6, (int) floor($hardLimit / 2))) {
+            $score += 25;
+            $reasons[] = 'trafico_ip_alto';
+        }
+
+        $q = $pdo->prepare("SELECT COUNT(*) FROM webchat_security_events WHERE tenant_id=? AND ip_hash=? AND body_hash=? AND created_at>=DATE_SUB(NOW(),INTERVAL 10 MINUTE)");
+        $q->execute([$tenantId, $ipHash, $bodyHash]);
+        $duplicates = (int) $q->fetchColumn();
+        if ($duplicates >= 4) {
+            $score += 70;
+            $reasons[] = 'mensaje_repetido_masivo';
+        } elseif ($duplicates >= 2) {
+            $score += 30;
+            $reasons[] = 'mensaje_repetido';
+        }
+    }
+
+    // Mensajes humanos cortos habituales nunca se bloquean solo por ser breves.
+    $safeShort = ['hola','hello','hi','buenas','buenos dias','buenas tardes','buenas noches','quien eres','quién eres','ayuda','info','informacion','información'];
+    if (in_array($normalized, array_map('nivoNorm', $safeShort), true)) {
+        $score = min($score, 35);
+        $reasons = array_values(array_filter($reasons, static fn($r) => !in_array($r, ['sesion_instantanea','envio_demasiado_rapido'], true)));
+    }
+
+    $blockThreshold = max(60, min(100, (int) ($experience['antispam_block_score'] ?? 70)));
+    $reviewThreshold = max(20, min($blockThreshold - 5, (int) ($experience['antispam_review_score'] ?? 40)));
+
+    $verdict = $score >= $blockThreshold ? 'blocked' : ($score >= $reviewThreshold ? 'suspicious' : 'clean');
+
+    return [
+        'score' => min(100, $score),
+        'verdict' => $verdict,
+        'reasons' => $reasons,
+        'origin_domain' => $originHost,
+        'ip_hash' => $ipHash,
+        'user_agent' => $ua,
+        'body_hash' => $bodyHash,
+        'installation_id' => $installationId,
+        'widget_id' => $widgetId
+    ];
+}
+
+function nivoLogSecurityEvent(PDO $pdo, int $tenantId, ?array $visitor, int $conversationId, array $assessment): void
+{
+    $pdo->prepare(
+        "INSERT INTO webchat_security_events(tenant_id,widget_id,installation_id,visitor_id,conversation_id,origin_domain,ip_hash,user_agent,body_hash,score,verdict,reasons_json)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+    )->execute([
+        $tenantId,
+        (int) ($assessment['widget_id'] ?? 0),
+        (int) ($assessment['installation_id'] ?? 0) ?: null,
+        (int) ($visitor['id'] ?? 0) ?: null,
+        $conversationId ?: null,
+        $assessment['origin_domain'] ?? null,
+        $assessment['ip_hash'] ?? null,
+        $assessment['user_agent'] ?? null,
+        $assessment['body_hash'] ?? null,
+        (int) ($assessment['score'] ?? 0),
+        (string) ($assessment['verdict'] ?? 'clean'),
+        json_encode($assessment['reasons'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+    ]);
+
+    if ($conversationId > 0) {
+        $reasonText = implode(', ', (array) ($assessment['reasons'] ?? []));
+        $pdo->prepare(
+            "INSERT INTO webchat_conversation_security(tenant_id,conversation_id,origin_domain,ip_hash,user_agent,risk_score,verdict,blocked_events,last_reason)
+             VALUES(?,?,?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+                origin_domain=VALUES(origin_domain),
+                ip_hash=VALUES(ip_hash),
+                user_agent=VALUES(user_agent),
+                risk_score=GREATEST(risk_score,VALUES(risk_score)),
+                verdict=CASE
+                    WHEN verdict='blocked' OR VALUES(verdict)='blocked' THEN 'blocked'
+                    WHEN verdict='suspicious' OR VALUES(verdict)='suspicious' THEN 'suspicious'
+                    ELSE 'clean'
+                END,
+                blocked_events=blocked_events + VALUES(blocked_events),
+                last_reason=VALUES(last_reason)"
+        )->execute([
+            $tenantId,
+            $conversationId,
+            $assessment['origin_domain'] ?? null,
+            $assessment['ip_hash'] ?? null,
+            $assessment['user_agent'] ?? null,
+            (int) ($assessment['score'] ?? 0),
+            (string) ($assessment['verdict'] ?? 'clean'),
+            ($assessment['verdict'] ?? '') === 'blocked' ? 1 : 0,
+            mb_substr($reasonText, 0, 500)
+        ]);
+    }
+}
+
 function nivoFindAuthorizedInstallation(PDO $pdo, string $key, string $originHost): array
 {
     if ($key === '' || $originHost === '') {
@@ -412,9 +637,24 @@ if ($action === 'bootstrap') {
     $cid = (int) ($v['conversation_id'] ?? 0);
 
     if ($cid) {
-        $conversationQuery = $pdo->prepare('SELECT status,archived_at,deleted_at FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+        $conversationQuery = $pdo->prepare('SELECT status,archived_at,deleted_at,last_message_at FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
         $conversationQuery->execute([$cid, $tid]);
         $conversation = $conversationQuery->fetch();
+
+        $closeMinutes = max(2, min(1440, (int) ($experience['inactivity_close_minutes'] ?? 30)));
+        $lastMessageAt = !empty($conversation['last_message_at']) ? strtotime((string) $conversation['last_message_at']) : 0;
+        $serverExpired = $conversation
+            && in_array((string) ($conversation['status'] ?? ''), ['open','pending'], true)
+            && $lastMessageAt > 0
+            && $lastMessageAt <= time() - ($closeMinutes * 60);
+
+        if ($serverExpired) {
+            $pdo->prepare("UPDATE conversations SET status='closed',unread_count=0 WHERE id=? AND tenant_id=?")->execute([$cid, $tid]);
+            $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'], $tid]);
+            zynkoRealtimePublish($pdo,$tid,'conversation.closed',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'server_inactivity'],'conversation',(string)$cid);
+            $cid = 0;
+            $conversation = null;
+        }
 
         if (!$conversation || !empty($conversation['deleted_at'])) {
             $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL WHERE id=?')->execute([$v['id']]);
@@ -721,6 +961,30 @@ if ($action === 'send') {
         out(false, 'Debes aceptar el aviso de privacidad para continuar.', [], 422);
     }
 
+    $securityEnv = envc($root . '/.env');
+    $securityAssessment = nivoSecurityAssessment(
+        $pdo,
+        $tid,
+        $wid,
+        (int) ($installation['id'] ?? 0),
+        $v ?: null,
+        $originHost,
+        $body,
+        $input,
+        $securityEnv,
+        $experience
+    );
+
+    if (($securityAssessment['verdict'] ?? 'clean') === 'blocked') {
+        nivoLogSecurityEvent($pdo, $tid, $v ?: null, 0, $securityAssessment);
+        out(true, 'Mensaje recibido.', [
+            'conversation_id' => (int) ($v['conversation_id'] ?? 0),
+            'bot_reply' => null,
+            'handoff' => false,
+            'discarded' => true
+        ]);
+    }
+
     $contactDisplayName = $rawName !== '' ? $rawName : 'Visitante web';
     $cid = (int) ($v['conversation_id'] ?? 0);
 
@@ -803,6 +1067,8 @@ if ($action === 'send') {
     $pdo->prepare(
         "UPDATE conversations SET unread_count=unread_count+1,last_message_at=NOW(),status='open',archived_at=NULL WHERE id=? AND tenant_id=?"
     )->execute([$cid, $tid]);
+
+    nivoLogSecurityEvent($pdo, $tid, $v ?: null, $cid, $securityAssessment);
 
     zynkoRealtimePublish(
         $pdo,

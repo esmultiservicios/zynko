@@ -569,3 +569,40 @@ CREATE TABLE IF NOT EXISTS nivo_knowledge_websites (
   UNIQUE KEY uq_nivo_web_source(tenant_id,base_url),
   INDEX idx_nivo_web_due(tenant_id,active,auto_sync,last_synced_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- V2.31.87 · Seguridad anti-spam y trazabilidad de NIVO Web Chat
+CREATE TABLE IF NOT EXISTS webchat_security_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  widget_id BIGINT UNSIGNED NOT NULL,
+  installation_id BIGINT UNSIGNED NULL,
+  visitor_id BIGINT UNSIGNED NULL,
+  conversation_id BIGINT UNSIGNED NULL,
+  origin_domain VARCHAR(255) NULL,
+  ip_hash CHAR(64) NULL,
+  user_agent VARCHAR(500) NULL,
+  body_hash CHAR(64) NULL,
+  score SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  verdict ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+  reasons_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_wc_security_tenant_created(tenant_id,created_at),
+  INDEX idx_wc_security_ip_created(tenant_id,ip_hash,created_at),
+  INDEX idx_wc_security_body_created(tenant_id,body_hash,created_at),
+  INDEX idx_wc_security_verdict(tenant_id,verdict,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS webchat_conversation_security (
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  origin_domain VARCHAR(255) NULL,
+  ip_hash CHAR(64) NULL,
+  user_agent VARCHAR(500) NULL,
+  risk_score SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  verdict ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+  blocked_events INT UNSIGNED NOT NULL DEFAULT 0,
+  last_reason VARCHAR(500) NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY(tenant_id,conversation_id),
+  INDEX idx_wc_conversation_security_verdict(tenant_id,verdict,risk_score)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

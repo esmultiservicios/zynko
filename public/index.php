@@ -152,7 +152,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.86';
+$releaseVersion='2.31.87';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -620,6 +620,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'remember_open_state'=>isset($_POST['remember_open_state']),
     'max_message_length'=>max(120,min(3000,(int)($_POST['max_message_length']??1000))),
     'rate_limit_per_minute'=>max(2,min(30,(int)($_POST['rate_limit_per_minute']??12))),
+    'antispam_ip_per_minute'=>max(10,min(120,(int)($_POST['antispam_ip_per_minute']??30))),
+    'antispam_review_score'=>max(20,min(65,(int)($_POST['antispam_review_score']??40))),
+    'antispam_block_score'=>max(60,min(100,(int)($_POST['antispam_block_score']??70))),
     'prevent_double_submit'=>isset($_POST['prevent_double_submit']),
     'show_branding'=>isset($_POST['show_branding']),
     'close_on_escape'=>isset($_POST['close_on_escape']),

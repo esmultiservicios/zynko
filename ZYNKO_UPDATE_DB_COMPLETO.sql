@@ -587,3 +587,48 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.86' AS version_objetivo;
+
+-- ============================================================
+-- ZYNKO V2.31.87 · NIVO WEB CHAT ANTI-SPAM + TRAZABILIDAD
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `webchat_security_events` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `widget_id` BIGINT UNSIGNED NOT NULL,
+  `installation_id` BIGINT UNSIGNED NULL,
+  `visitor_id` BIGINT UNSIGNED NULL,
+  `conversation_id` BIGINT UNSIGNED NULL,
+  `origin_domain` VARCHAR(255) NULL,
+  `ip_hash` CHAR(64) NULL,
+  `user_agent` VARCHAR(500) NULL,
+  `body_hash` CHAR(64) NULL,
+  `score` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `verdict` ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+  `reasons_json` JSON NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_wc_security_tenant_created` (`tenant_id`,`created_at`),
+  KEY `idx_wc_security_ip_created` (`tenant_id`,`ip_hash`,`created_at`),
+  KEY `idx_wc_security_body_created` (`tenant_id`,`body_hash`,`created_at`),
+  KEY `idx_wc_security_verdict` (`tenant_id`,`verdict`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `webchat_conversation_security` (
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
+  `origin_domain` VARCHAR(255) NULL,
+  `ip_hash` CHAR(64) NULL,
+  `user_agent` VARCHAR(500) NULL,
+  `risk_score` SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  `verdict` ENUM('clean','suspicious','blocked') NOT NULL DEFAULT 'clean',
+  `blocked_events` INT UNSIGNED NOT NULL DEFAULT 0,
+  `last_reason` VARCHAR(500) NULL,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`tenant_id`,`conversation_id`),
+  KEY `idx_wc_conversation_security_verdict` (`tenant_id`,`verdict`,`risk_score`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.87')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.87' AS version_objetivo;
