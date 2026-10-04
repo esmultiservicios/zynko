@@ -510,6 +510,12 @@
         badge.classList.remove('on');
         badge.textContent = '0';
         showInitialGreeting(state.initialMessages || []);
+        requestAnimationFrame(() => {
+          const messages = shadow.querySelector('.msgs');
+          if (messages) {
+            messages.scrollTop = messages.scrollHeight;
+          }
+        });
         shadow.querySelector('.text')?.focus();
       }
     };
@@ -775,6 +781,12 @@
         state.opened = true;
         persistOpen();
         showInitialGreeting(state.initialMessages || []);
+        requestAnimationFrame(() => {
+          const messages = shadow.querySelector('.msgs');
+          if (messages) {
+            messages.scrollTop = messages.scrollHeight;
+          }
+        });
         if (experience.proactive_once) {
           localStorage.setItem(`${storagePrefix}.proactive`, '1');
         }

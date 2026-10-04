@@ -94,7 +94,7 @@ Al cerrar por inactividad, la conversación se marca como cerrada y el visitante
 - Las respuestas de satisfacción se guardan por empresa/conversación y se muestran en Cliente 360°.
 
 
-## Conversación continua y controles premium (V2.31.81)
+## Conversación continua y controles premium (V2.31.82)
 
 - Las consultas sobre IZZY, CAMI y ZYNKO de la empresa principal se atienden antes de límites automáticos para evitar silencios en medio del flujo.
 - Si una política alcanza el máximo de respuestas automáticas, NIVO informa al visitante y ofrece continuar mediante un nuevo chat o atención humana; nunca queda sin respuesta silenciosamente.

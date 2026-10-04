@@ -1,4 +1,4 @@
-## V2.31.81 · NIVO continuo y controles premium del widget
+## V2.31.82 · NIVO continuo y controles premium del widget
 
 - NIVO ya no deja en silencio consultas principales de IZZY/CAMI/ZYNKO por límites automáticos internos.
 - Las consultas comerciales de ES MULTISERVICIOS se resuelven de forma determinística y guiada.
@@ -50,3 +50,8 @@
 - Bandeja: margen inferior adicional para Seguimiento dentro de Cliente 360°.
 - NIVO Web Chat: cabeceras con icono alineado al lado del título/subtítulo en escritorio y móvil.
 - Sin cambios de base de datos.
+
+
+### V2.31.82
+- El Widget NIVO y la Bandeja abren por defecto en el mensaje más reciente.
+- Los controles Inicio / Último continúan disponibles para navegar el historial sin alterar el comportamiento manual posterior.

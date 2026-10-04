@@ -554,6 +554,8 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  const removeNode=selector=>q(selector)?.remove();
  const hydrateSelect2=()=>{if(window.jQuery&&jQuery.fn.select2){jQuery('.inbox-layout select:not(.no-select2)').each(function(){const el=jQuery(this);if(!el.hasClass('select2-hidden-accessible'))el.select2({width:'100%',minimumResultsForSearch:6,dropdownAutoWidth:false})})}};
  const scrollMessages=()=>{const box=q('#messages');if(box)requestAnimationFrame(()=>{box.scrollTop=box.scrollHeight;box.dataset.historyReady='1'})};
+ // La Bandeja abre por defecto en el mensaje más reciente; luego respeta la posición manual del agente.
+ scrollMessages();
  const navigate=async(url,push=true)=>{
    if(navigating)return;
    navigating=true;setLoading(true);

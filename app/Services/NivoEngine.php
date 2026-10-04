@@ -83,7 +83,7 @@ final class NivoEngine
             $normMessage=self::norm($message);
             foreach($blocked as $word){if($word!==''&&mb_strpos($normMessage,$word)!==false){$result['reason']='blocked_keyword';$result['handoff']=true;$result['reply']='Por seguridad no puedo procesar ese contenido automáticamente. Una persona puede continuar contigo.';return $result;}}
 
-            // V2.31.81 · Las consultas comerciales principales nunca deben quedar en silencio.
+            // V2.31.82 · Las consultas comerciales principales nunca deben quedar en silencio.
             // Se resuelven antes de los límites de respuestas automáticas para mantener una conversación natural.
             $companyNorm=self::norm($companyName);
             $displayNameEarly=trim($contactName);
