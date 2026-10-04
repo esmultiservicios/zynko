@@ -197,3 +197,12 @@ Si el visitante continúa inactivo hasta el segundo tiempo, ZYNKO cierra la conv
 - La conversación abre por defecto en el último mensaje; `Inicio` lleva al primer evento y `Último` al más reciente.
 - El visitante puede editar su nombre/correo desde el chip de perfil durante una conversación activa.
 - Se conservan Finalizar chat, encuesta de satisfacción, nuevo chat, inactividad, handoff humano, anti-spam, aislamiento por tenant y NIVO IA.
+
+## Resolución de conocimiento y transferencia segura (V2.31.94)
+
+- NIVO Web Chat consulta el motor NIVO IA del mismo tenant antes de transferir.
+- Las reglas, soluciones, fuentes web y conocimiento aprobado están aislados por `tenant_id`.
+- Las preguntas de identidad o definición de una empresa/solución se intentan resolver como entidad antes de caer en el mensaje de baja confianza.
+- Las fuentes web autorizadas se consultan como conocimiento activo del tenant cuando están `ready` y `approved`.
+- Una transferencia automática por desconocimiento requiere al menos tres fallos consecutivos. Una solicitud explícita de “agente”, “asesor”, “persona”, etc. puede transferir de inmediato.
+- La transferencia humana mantiene la conversación abierta/pending. La encuesta aparece cuando el visitante usa **Finalizar chat** o cuando la sesión se cierra por inactividad, no al iniciar un handoff.

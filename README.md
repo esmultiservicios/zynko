@@ -1,3 +1,13 @@
+## V2.31.94 · NIVO IA: conocimiento confiable y handoff seguro
+
+- NIVO resuelve preguntas sobre la empresa y soluciones del tenant usando reglas, catálogo y fuentes web aprobadas.
+- Las fuentes web se consultan aunque una instalación heredada tenga el flag `knowledge_enabled` desactualizado.
+- Preguntas como “qué es ES MULTISERVICIOS”, “qué es IZZY”, “qué es CAMI” y “qué es ZYNKO” tienen resolución por entidad antes del fallback.
+- Las soluciones configuradas en `nivo_solutions` se usan como conocimiento estructurado cuando corresponde.
+- La transferencia automática ya no ocurre por un único fallo aislado: requiere al menos 3 fallos consecutivos, salvo solicitud explícita de un humano.
+- El aislamiento por `tenant_id` se mantiene en reglas, fuentes, soluciones y aprendizaje.
+- La encuesta se solicita al finalizar el chat o por cierre de inactividad; una transferencia humana no finaliza la conversación ni dispara encuesta por sí sola.
+
 ## V2.31.93 · Historial cronológico estable de NIVO
 
 - El saludo inicial se crea una sola vez al nacer la conversación.

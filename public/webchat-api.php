@@ -569,7 +569,7 @@ if (!$contextualBranding) {
 
 $brandFooter = 'NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS';
 
-// V2.31.93 · El saludo inicial es un único evento de apertura de la conversación.
+// V2.31.94 · El saludo inicial es un único evento de apertura de la conversación.
 // Se inserta solamente cuando nace una conversación y nunca se reconstruye durante
 // lecturas, polling o refrescos. El orden visual también lo fuerza como primer mensaje.
 $ensureInitialGreeting = static function (int $conversationId) use ($pdo, $tid, $initialGreeting): void {

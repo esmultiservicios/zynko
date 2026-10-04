@@ -48,7 +48,7 @@ try{
  if(!$selected&&$cid){$q=$pdo->prepare("SELECT c.id,c.uuid,c.contact_id,c.assigned_user_id,c.status,c.unread_count,c.last_message_at,c.archived_at,c.priority,c.created_at,ct.name contact_name,ct.phone,ct.email,ct.avatar_url,ch.type channel_type,ch.name channel_name,u.name agent_name,wcs.risk_score,wcs.verdict security_verdict,wcs.origin_domain webchat_origin FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL LIMIT 1");$q->execute([$cid,$tid]);$selected=$q->fetch()?:null;}
  if($selected){
   if(isset($_GET['conversation'])&&(int)$selected['unread_count']>0){$pdo->prepare('UPDATE conversations SET unread_count=0 WHERE id=? AND tenant_id=?')->execute([$selected['id'],$tid]);$selected['unread_count']=0;}
-  // V2.31.93 · La Bandeja nunca modifica el historial al leerlo.
+  // V2.31.94 · La Bandeja nunca modifica el historial al leerlo.
   // El saludo se crea exclusivamente al iniciar la conversación desde NIVO Web Chat.
   $q=$pdo->prepare("SELECT m.*,u.name sender_name FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id WHERE m.tenant_id=? AND m.conversation_id=? ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END,m.sent_at,m.id");$q->execute([$tid,$selected['id']]);$messages=$q->fetchAll();
   $q=$pdo->prepare('SELECT category_id FROM contact_category_map WHERE contact_id=?');$q->execute([$selected['contact_id']]);$selectedCategories=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));

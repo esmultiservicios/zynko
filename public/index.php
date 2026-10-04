@@ -153,7 +153,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.93';
+$releaseVersion='2.31.94';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -738,7 +738,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'language_auto'=>isset($_POST['language_auto']),
     'context_messages'=>max(0,min(20,(int)($_POST['context_messages']??6))),
     'duplicate_guard'=>isset($_POST['duplicate_guard']),
-    'unknown_before_handoff'=>max(1,min(10,(int)($_POST['unknown_before_handoff']??3))),
+    'unknown_before_handoff'=>max(3,min(10,(int)($_POST['unknown_before_handoff']??3))),
     'max_auto_replies'=>max(0,min(10000,(int)($_POST['max_auto_replies']??0))),
     'cooldown_seconds'=>max(0,min(30,(int)($_POST['cooldown_seconds']??1))),
     'pause_when_assigned'=>isset($_POST['pause_when_assigned']),

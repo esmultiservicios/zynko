@@ -146,3 +146,11 @@ Por eso el Web Chat de una empresa utiliza exactamente el motor NIVO IA y la bas
 - aprobar únicamente respuestas humanas correctas y vigentes;
 - mantener reglas para información exacta y conocimiento para preguntas abiertas;
 - probar NIVO desde el simulador antes de publicar cambios sensibles.
+
+## Resolución de conocimiento por entidad (V2.31.94)
+
+- NIVO detecta preguntas como “qué es…”, “para qué sirve…”, “funciones…” y “cómo funciona…” sobre la empresa y las soluciones del tenant.
+- La resolución sigue este orden: reglas exactas → entidad/solución → fuentes web y conocimiento aprobado → respaldo externo opcional → aclaración/fallback.
+- `nivo_solutions`, `knowledge_sources`, reglas y aprendizaje siempre se filtran por `tenant_id`.
+- Las fuentes `ready` + `approved` se consideran activas para el motor aun cuando una instalación heredada tenga desactualizado el flag `knowledge_enabled`.
+- La transferencia automática por baja confianza requiere al menos 3 fallos consecutivos; una petición explícita de atención humana puede transferir inmediatamente.

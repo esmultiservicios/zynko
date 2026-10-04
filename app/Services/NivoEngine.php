@@ -162,6 +162,161 @@ final class NivoEngine
         return $out;
     }
 
+
+    private static function tenantSolutions(PDO $pdo, int $tenantId): array
+    {
+        try {
+            $query = $pdo->prepare(
+                "SELECT id,name,code,description FROM nivo_solutions WHERE tenant_id=? AND active=1 ORDER BY name"
+            );
+            $query->execute([$tenantId]);
+            return $query->fetchAll() ?: [];
+        } catch (Throwable $ignore) {
+            return [];
+        }
+    }
+
+    private static function entityIntentReply(
+        PDO $pdo,
+        int $tenantId,
+        string $message,
+        string $companyName,
+        array $settings
+    ): ?array {
+        $norm = self::norm($message);
+        $companyNorm = self::norm($companyName);
+        $asksDefinition = (bool) preg_match(
+            '/\b(que es|qué es|quien es|quién es|que hace|qué hace|para que sirve|para qué sirve|como funciona|cómo funciona|funciones|funcionalidades|servicios|soluciones|beneficios)\b/u',
+            $norm
+        );
+
+        $solutions = self::tenantSolutions($pdo, $tenantId);
+        $targetName = '';
+        $targetDescription = '';
+
+        foreach ($solutions as $solution) {
+            $solutionName = trim((string) ($solution['name'] ?? ''));
+            $solutionNorm = self::norm($solutionName);
+            if ($solutionNorm !== '' && str_contains($norm, $solutionNorm)) {
+                $targetName = $solutionName;
+                $targetDescription = trim((string) ($solution['description'] ?? ''));
+                break;
+            }
+        }
+
+        $companyMentioned = $companyNorm !== '' && (
+            str_contains($norm, $companyNorm)
+            || ($companyNorm === 'es multiservicios' && str_contains($norm, 'multiservicios'))
+        );
+
+        if ($targetName === '' && !$companyMentioned) {
+            foreach (['izzy', 'cami', 'zynko'] as $canonical) {
+                if (preg_match('/\b' . preg_quote($canonical, '/') . '\b/u', $norm)) {
+                    $targetName = strtoupper($canonical);
+                    break;
+                }
+            }
+        }
+
+        if (!$asksDefinition && $targetName === '' && !$companyMentioned) {
+            return null;
+        }
+
+        $searchQuery = trim($targetName !== '' ? $targetName . ' ' . $message : $companyName . ' ' . $message);
+        $words = self::expandedWords($searchQuery);
+        $ranked = self::rankedKnowledge($pdo, $tenantId, $searchQuery, $words, 3);
+
+        if ($ranked) {
+            $limit = max(260, min(1200, (int) ($settings['max_response_length'] ?? 700)));
+            $best = $ranked[0];
+            $excerpt = self::relevantExcerpt((string) ($best['content'] ?? ''), $words, $limit);
+            if ($excerpt !== '') {
+                $label = (string) ($best['name'] ?? 'Conocimiento aprobado');
+                return [
+                    'reply' => $excerpt,
+                    'source' => 'knowledge-entity:' . $label,
+                    'confidence' => (int) ($best['_score'] ?? 0) >= 7 ? 'high' : 'medium',
+                    'sources' => [$label],
+                ];
+            }
+        }
+
+        if ($targetName !== '' && $targetDescription !== '') {
+            return [
+                'reply' => $targetDescription,
+                'source' => 'solution:' . $targetName,
+                'confidence' => 'high',
+                'sources' => ['Solución: ' . $targetName],
+            ];
+        }
+
+        if ($companyMentioned) {
+            $solutionNames = array_values(array_filter(array_map(
+                static fn(array $row): string => trim((string) ($row['name'] ?? '')),
+                $solutions
+            )));
+            $reply = $companyName . ' es la empresa propietaria de este asistente y de las soluciones configuradas en este tenant.';
+            if ($solutionNames) {
+                $reply .= ' Entre las soluciones registradas están ' . implode(', ', $solutionNames) . '.';
+            }
+            $reply .= ' Puedo explicarte sus servicios, soluciones y funciones usando únicamente el conocimiento aprobado de esta empresa.';
+
+            return [
+                'reply' => $reply,
+                'source' => 'tenant:identity',
+                'confidence' => 'high',
+                'sources' => [$companyName],
+            ];
+        }
+
+        if ($companyNorm === 'es multiservicios') {
+            $fallbacks = [
+                'IZZY' => 'IZZY es una solución empresarial de ES MULTISERVICIOS orientada a facturación, inventario, POS, restaurantes y gestión administrativa.',
+                'CAMI' => 'CAMI es una solución de ES MULTISERVICIOS orientada a clínicas y centros médicos, con herramientas para pacientes, procesos clínicos, farmacia y facturación.',
+                'ZYNKO' => 'ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS para centralizar conversaciones, NIVO Web Chat, NIVO IA, usuarios, asignaciones e integraciones.',
+            ];
+            if (isset($fallbacks[$targetName])) {
+                return [
+                    'reply' => $fallbacks[$targetName],
+                    'source' => 'platform-catalog:' . strtolower($targetName),
+                    'confidence' => 'high',
+                    'sources' => [$targetName],
+                ];
+            }
+        }
+
+        return null;
+    }
+
+    private static function consecutiveUnknownCount(PDO $pdo, int $tenantId, int $conversationId): int
+    {
+        if ($conversationId <= 0) {
+            return 0;
+        }
+
+        try {
+            $query = $pdo->prepare(
+                "SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 12"
+            );
+            $query->execute([$tenantId, $conversationId]);
+            $count = 0;
+            foreach ($query->fetchAll() as $row) {
+                $body = self::norm((string) ($row['body'] ?? ''));
+                $isUnknown = str_contains($body, 'no tengo informacion')
+                    || str_contains($body, 'todavia no tengo suficiente')
+                    || str_contains($body, 'enough approved information');
+
+                if (!$isUnknown) {
+                    break;
+                }
+                $count++;
+            }
+            return $count;
+        } catch (Throwable $ignore) {
+            return 0;
+        }
+    }
+
     public static function evaluate(PDO $pdo,int $tenantId,int $conversationId,string $message,string $channelType,string $contactName,string $companyName): array
     {
         $result=['enabled'=>false,'reply'=>null,'handoff'=>false,'source'=>null,'sources'=>[],'confidence'=>'none','channel'=>$channelType,'reason'=>'inactive'];
@@ -258,6 +413,24 @@ final class NivoEngine
             $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
             foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
 
+            $entityReply = self::entityIntentReply($pdo, $tenantId, $effectiveNorm, $companyName, $settings);
+            if ($entityReply !== null) {
+                $result['sources'] = $entityReply['sources'] ?? [];
+                return self::finish(
+                    $pdo,
+                    $tenantId,
+                    $conversationId,
+                    $policy,
+                    $result,
+                    (string) $entityReply['reply'],
+                    (string) $entityReply['source'],
+                    (string) $entityReply['confidence'],
+                    false,
+                    $displayName,
+                    $english
+                );
+            }
+
             $companyNorm=self::norm($companyName);
             if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='izzy'){
                 $reply='Claro. IZZY puede ayudarte con facturación y documentos de venta, control de inventario y existencias, POS para ventas rápidas, operación de restaurantes y mesas/comandas cuando aplica, cuentas por cobrar y pagar, y gestión administrativa desde un solo sistema. Para saber si encaja en tu negocio, dime qué tipo de empresa tienes y cómo llevas hoy ventas, inventario o facturación; con eso te indico qué módulos te servirían más.';
@@ -272,7 +445,7 @@ final class NivoEngine
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:zynko:functions','high',false,$displayName,$english);
             }
 
-            if(!empty($bot['knowledge_enabled'])){
+            {
                 $searchText=self::contextualSearchText($pdo,$tenantId,$conversationId,$message);
                 $words=self::expandedWords($searchText);
                 $ranked=self::rankedKnowledge($pdo,$tenantId,$searchText,$words,3);
@@ -339,8 +512,18 @@ final class NivoEngine
                 $q->execute([$tenantId,$conversationId]);
                 if((int)$q->fetchColumn()===0)$fallback=($english?'I’m NIVO, the virtual assistant for '.$companyName.'. ':'Soy NIVO, el asistente virtual de '.$companyName.'. ').$fallback;
             }
-            $unknownBefore=max(1,min(10,(int)($policy['unknown_before_handoff']??3)));$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 20");$q->execute([$tenantId,$conversationId]);$unknown=0;foreach($q->fetchAll() as $m){if(str_contains(self::norm((string)$m['body']),'no tengo informacion')||str_contains(self::norm((string)$m['body']),'todavia no tengo suficiente')||str_contains(self::norm((string)$m['body']),'enough approved information'))$unknown++;}
-            $handoff=(!array_key_exists('auto_handoff',$settings)||!empty($settings['auto_handoff']))&&($unknown+1>=$unknownBefore);
+            $configuredUnknownBefore = (int) ($policy['unknown_before_handoff'] ?? 3);
+            $unknownBefore = max(3, min(10, $configuredUnknownBefore));
+            $consecutiveUnknown = self::consecutiveUnknownCount($pdo, $tenantId, $conversationId);
+            $handoff = (!array_key_exists('auto_handoff', $settings) || !empty($settings['auto_handoff']))
+                && ($consecutiveUnknown + 1 >= $unknownBefore);
+
+            if ($handoff) {
+                $fallback .= $english
+                    ? ' I have reached the configured number of unresolved attempts, so I will also notify a human agent. You can keep writing here.'
+                    : ' Ya agoté los intentos configurados sin una respuesta segura, así que también avisaré a una persona. Puedes seguir escribiendo aquí.';
+            }
+
             return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$fallback,'fallback','low',$handoff,$displayName,$english);
         }catch(Throwable $e){$result['reason']='engine_error';return $result;}
     }
