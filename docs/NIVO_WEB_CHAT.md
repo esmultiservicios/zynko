@@ -163,3 +163,20 @@ Controles activos:
 - cierre por inactividad reforzado también del lado servidor.
 
 NIVO IA continúa respondiendo mensajes válidos aunque tengan poco contenido. Solo se descartan automáticamente eventos que superan el umbral alto de riesgo.
+
+
+## Continuidad conversacional e historial (V2.31.89)
+
+- El saludo inicial de NIVO se persiste únicamente al crear una conversación nueva; no se vuelve a insertar durante polling, bootstrap o refrescos.
+- Preguntas de seguimiento como “explícame las funciones” conservan el contexto del producto hablado anteriormente (por ejemplo IZZY, CAMI o ZYNKO).
+- Los controles Inicio y Último usan el contenedor real del historial y conservan su posición aun cuando entra polling/realtime.
+- El chat abre por defecto en el último mensaje, pero al elegir Inicio permanece arriba hasta que el visitante vuelva a desplazarse.
+- Finalizar chat se mantiene visible en conversaciones activas, conserva el historial y habilita la encuesta de satisfacción.
+- El formulario de nombre/correo se oculta una vez que existe una conversación para no desplazar las acciones del chat.
+
+
+## Handoff visible y cierre de conversación (V2.31.90)
+
+Cuando NIVO determina que una persona debe continuar, el Web Chat no se limita a notificar al administrador por correo. El visitante ve una respuesta explícita y un estado persistente **Atención humana solicitada**. Mientras la conversación está pendiente, los mensajes posteriores se conservan para el agente y NIVO deja de intervenir automáticamente hasta que la atención sea retomada.
+
+La acción **Finalizar chat** permanece accesible durante toda conversación activa, incluso si el visitante abre la edición de su nombre/correo. Al finalizar se conserva el historial, se solicita satisfacción cuando corresponde y se ofrece iniciar una conversación nueva.

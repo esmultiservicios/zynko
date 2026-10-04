@@ -678,3 +678,13 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.88' AS version_objetivo;
+
+
+-- ============================================================
+-- ZYNKO V2.31.90 · CONTINUIDAD NIVO WEB CHAT / HISTORIAL
+-- Sin cambios de estructura. Solo actualiza metadato de versión.
+-- ============================================================
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.90')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.90' AS version_objetivo;

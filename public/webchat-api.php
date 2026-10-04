@@ -665,7 +665,8 @@ if ($action === 'bootstrap') {
                     ->execute([$cid, $tid]);
             }
 
-            $ensureInitialGreeting($cid);
+            // No insertamos saludos retroactivamente en conversaciones existentes.
+            // El saludo se persiste únicamente al crear una conversación nueva para evitar duplicados o re-presentaciones tardías.
             $messageQuery = $pdo->prepare(
                 'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
             );
@@ -731,6 +732,7 @@ if ($action === 'bootstrap') {
         'conversation_id' => $cid,
         'conversation_status' => $conversationStatus,
         'conversation_closed' => in_array($conversationStatus, ['resolved','closed'], true),
+        'conversation_pending' => $conversationStatus === 'pending',
         'survey' => $survey,
         'visitor_profile' => [
             'name' => $profileName,
@@ -1099,19 +1101,43 @@ if ($action === 'send') {
     } catch (Throwable $ignore) {
     }
 
-    $engine = NivoEngine::evaluate(
-        $pdo,
-        $tid,
-        $cid,
-        $body,
-        'webchat',
-        $rawName,
-        $assistantCompany
-    );
+    $statusQuery = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+    $statusQuery->execute([$cid, $tid]);
+    $currentStatus = (string) ($statusQuery->fetchColumn() ?: 'open');
+    $alreadyPending = $currentStatus === 'pending';
+
+    if ($alreadyPending) {
+        // La transferencia ya fue solicitada. Conservamos los mensajes del visitante para el agente
+        // y evitamos que NIVO siga interviniendo como si la conversación continuara automatizada.
+        $engine = [
+            'reply' => null,
+            'handoff' => true,
+            'source' => 'handoff:pending',
+            'sources' => [],
+            'reason' => 'awaiting_human'
+        ];
+    } else {
+        $engine = NivoEngine::evaluate(
+            $pdo,
+            $tid,
+            $cid,
+            $body,
+            'webchat',
+            $rawName,
+            $assistantCompany
+        );
+    }
+
     $reply = $engine['reply'] ?? null;
     $handoff = !empty($engine['handoff']);
     $replySource = $engine['source'] ?? null;
     $replySources = $engine['sources'] ?? [];
+
+    if ($handoff && !$alreadyPending && trim((string) $reply) === '') {
+        // Nunca dejamos al visitante sin explicación si el motor decidió transferir.
+        $reply = 'Necesito que una persona continúe contigo para ayudarte correctamente. Ya solicité atención humana; puedes seguir escribiendo aquí y el equipo verá tus mensajes.';
+        $replySource = 'handoff:notice';
+    }
 
     if ($reply) {
         $pdo->prepare(
@@ -1162,6 +1188,7 @@ if ($action === 'send') {
         'conversation_id' => $cid,
         'bot_reply' => $reply,
         'handoff' => $handoff,
+        'conversation_pending' => $handoff || $alreadyPending,
         'reply_source' => $replySource,
         'reply_sources' => $replySources
     ]);
@@ -1174,7 +1201,6 @@ if ($action === 'messages') {
     $survey = null;
 
     if ($cid) {
-        $ensureInitialGreeting($cid);
         $query = $pdo->prepare(
             'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
         );
@@ -1194,6 +1220,7 @@ if ($action === 'messages') {
         'conversation_id' => $cid,
         'conversation_status' => $conversationStatus,
         'conversation_closed' => in_array($conversationStatus,['resolved','closed'],true),
+        'conversation_pending' => $conversationStatus === 'pending',
         'survey' => $survey,
         'messages' => $messages
     ]);

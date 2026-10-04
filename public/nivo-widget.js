@@ -39,7 +39,9 @@
     conversationClosed: false,
     surveyConversationId: 0,
     selectedRating: 0,
-    bootAt: Date.now()
+    bootAt: Date.now(),
+    historyMode: 'end',
+    handoffActive: false
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -256,6 +258,7 @@
       state.visitor_token = data.visitor_token;
       state.conversation_id = data.conversation_id;
       state.conversationClosed = Boolean(data.conversation_closed);
+      state.handoffActive = Boolean(data.conversation_pending);
       state.surveyConversationId = data.survey?.conversation_id || 0;
       state.widget = data.widget;
       state.initialMessages = data.messages || [];
@@ -388,13 +391,20 @@
         .send:disabled{opacity:.55;cursor:not-allowed}
         .msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc}
         .msgs-wrap .msgs{flex:1;min-height:0;overflow-y:auto}
-        .history-nav{position:relative;z-index:2;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:7px 10px;background:#fff;border-bottom:1px solid #e6efed;box-shadow:0 5px 16px #0f172a0a}
+        .history-nav{position:relative;z-index:2;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:7px;padding:8px 10px;background:linear-gradient(180deg,#ffffff,#f8fcfb);border-bottom:1px solid #dfeae7;box-shadow:0 5px 16px #0f172a0a}
         .history-nav-label{display:inline-flex;align-items:center;gap:4px;margin-right:auto;color:#64748b;font-size:9px;font-weight:850;white-space:nowrap}
-        .history-nav button{height:30px;border:1px solid #d8e5e2;background:#f8fcfb;color:#0f766e;border-radius:9px;padding:0 9px;font-size:9px;font-weight:850;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:.18s ease}
+        .history-nav button{height:31px;border:1px solid #cfe3de;background:#fff;color:#0f766e;border-radius:10px;padding:0 10px;font-size:9.5px;font-weight:850;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 3px 10px #0f172a0a;transition:.18s ease}
         .history-nav button:hover{background:#eaf8f4;border-color:#a8d9ce;transform:translateY(-1px)}
         .history-nav button:active{transform:translateY(0)}
-        .session-actions{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-top:1px solid #eef2f7;background:#fff}
+        .session-actions{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 12px;border-top:1px solid #e6efed;background:linear-gradient(180deg,#fff,#fbfdfd)}
         .session-actions[hidden]{display:none!important}
+        .session-actions{flex:0 0 auto}
+        .handoff-banner{margin:8px 12px 0;padding:10px 11px;border:1px solid #bfe4da;border-radius:13px;background:#effaf7;display:flex;align-items:flex-start;gap:9px;color:#184c43;box-shadow:0 4px 14px #0f766e0d;flex:0 0 auto}
+        .handoff-banner[hidden]{display:none!important}
+        .handoff-banner-icon{width:28px;height:28px;min-width:28px;border-radius:9px;background:#dff5ef;display:grid;place-items:center;color:#0f8a78;font-size:13px}
+        .handoff-banner-copy{display:grid;gap:2px;min-width:0}
+        .handoff-banner-copy b{font-size:10px;line-height:1.2;color:#0d594d}
+        .handoff-banner-copy small{font-size:8.7px;line-height:1.35;color:#52756f}
         .finish-chat,.new-chat{width:100%;border-radius:13px;padding:9px 11px;font-size:10px;font-weight:850;cursor:pointer;display:flex;align-items:center;gap:9px;text-align:left;transition:.18s ease}
         .finish-chat{background:linear-gradient(180deg,#fffaf8,#fff4f1);color:#8f352b;border:1px solid #efc8c1;box-shadow:0 5px 14px #7f1d1d0d}
         .finish-chat:hover{border-color:#e7aaa0;background:#fff0ec;transform:translateY(-1px)}
@@ -455,6 +465,8 @@
             <div class="history-nav" aria-label="Navegar historial"><span class="history-nav-label">↕ Historial</span><button type="button" class="history-start"><span>↑</span><span>Inicio</span></button><button type="button" class="history-end"><span>↓</span><span>Último</span></button></div>
             <div class="msgs"></div>
           </div>
+          <div class="handoff-banner" ${state.handoffActive && !state.conversationClosed ? '' : 'hidden'}><span class="handoff-banner-icon">☏</span><span class="handoff-banner-copy"><b>Atención humana solicitada</b><small>NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.</small></span></div>
+          <div class="session-actions" ${state.conversation_id && !state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
           <div class="profile" ${(widget.ask_name || widget.ask_email) && !state.conversation_id ? '' : 'hidden'}>
             ${widget.ask_name ? `<input class="name" placeholder="Tu nombre" value="${esc(state.profile.name)}">` : ''}
             ${widget.ask_email ? `<input class="email" type="email" placeholder="Tu correo" value="${esc(state.profile.email)}">` : ''}
@@ -471,7 +483,6 @@
           ${experience.quick_replies_enabled && Array.isArray(experience.quick_replies) && experience.quick_replies.length
             ? `<div class="quick-replies">${experience.quick_replies.map(value => `<button type="button" class="quick" data-q="${esc(value)}">${esc(value)}</button>`).join('')}</div>`
             : ''}
-          <div class="session-actions" ${state.conversation_id && !state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
           <div class="finish-confirm" hidden><b>¿Finalizar esta conversación?</b><span>El historial se conserva y podrás calificar la atención.</span><div class="finish-confirm-actions"><button type="button" class="cancel-finish">Cancelar</button><button type="button" class="confirm-finish">Finalizar</button></div></div>
           <div class="survey-card" hidden><b>¿Cómo fue tu atención?</b><small>Tu opinión nos ayuda a mejorar. Selecciona de 1 a 5 estrellas.</small><div class="survey-stars">${[1,2,3,4,5].map(v=>`<button type="button" data-rating="${v}" aria-label="${v} estrellas">★</button>`).join('')}</div><textarea class="survey-comment" maxlength="1000" placeholder="Comentario opcional"></textarea><div class="survey-actions"><button type="button" class="survey-skip">Ahora no</button><button type="button" class="survey-submit">Enviar opinión</button></div></div>
           <div class="session-actions new-chat-wrap" ${state.conversationClosed ? '' : 'hidden'}><button type="button" class="new-chat"><span class="new-chat-icon">＋</span><span class="new-chat-copy"><b>Iniciar nuevo chat</b><small>Comienza una conversación nueva desde cero</small></span><span class="new-chat-arrow">›</span></button></div>
@@ -496,6 +507,7 @@
     const box = shadow.querySelector('.box');
     const launch = shadow.querySelector('.launch');
     const badge = shadow.querySelector('.badge');
+    state.shadow = shadow;
 
     const persistOpen = () => {
       if (experience.remember_open_state) {
@@ -512,6 +524,7 @@
         badge.classList.remove('on');
         badge.textContent = '0';
         showInitialGreeting(state.initialMessages || []);
+        state.historyMode = 'end';
         requestAnimationFrame(() => {
           const messages = shadow.querySelector('.msgs');
           if (messages) {
@@ -530,14 +543,24 @@
       persistOpen();
     };
 
-    shadow.querySelector('.history-start')?.addEventListener('click', () => {
+    const jumpHistory = position => {
       const messages = shadow.querySelector('.msgs');
-      if (messages) messages.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-    shadow.querySelector('.history-end')?.addEventListener('click', () => {
-      const messages = shadow.querySelector('.msgs');
-      if (messages) messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
-    });
+      if (!messages) return;
+      state.historyMode = position;
+      const target = position === 'start' ? 0 : messages.scrollHeight;
+      messages.scrollTop = target;
+      requestAnimationFrame(() => { messages.scrollTop = position === 'start' ? 0 : messages.scrollHeight; });
+      setTimeout(() => { messages.scrollTop = position === 'start' ? 0 : messages.scrollHeight; }, 80);
+    };
+    shadow.querySelector('.history-start')?.addEventListener('click', () => jumpHistory('start'));
+    shadow.querySelector('.history-end')?.addEventListener('click', () => jumpHistory('end'));
+    shadow.querySelector('.msgs')?.addEventListener('scroll', event => {
+      const messages = event.currentTarget;
+      const fromBottom = messages.scrollHeight - messages.clientHeight - messages.scrollTop;
+      if (messages.scrollTop <= 18) state.historyMode = 'start';
+      else if (fromBottom <= 24) state.historyMode = 'end';
+      else state.historyMode = 'manual';
+    }, { passive: true });
 
     if (experience.close_on_escape) {
       document.addEventListener('keydown', event => {
@@ -578,11 +601,13 @@
       const actions = shadow.querySelector('.session-actions:not(.new-chat-wrap)');
       const newWrap = shadow.querySelector('.new-chat-wrap');
       const surveyCard = shadow.querySelector('.survey-card');
+      const handoffBanner = shadow.querySelector('.handoff-banner');
       if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
       if (actions) actions.hidden = !state.conversation_id || state.conversationClosed;
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const shouldSurvey = state.conversationClosed && survey?.requested && !survey?.answered;
       if (surveyCard) surveyCard.hidden = !shouldSurvey;
+      if (handoffBanner) handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
       if (state.conversationClosed) setPresence('Chat finalizado');
     };
 
@@ -646,9 +671,11 @@
         state.conversationClosed = false;
         state.surveyConversationId = 0;
         state.selectedRating = 0;
+        state.handoffActive = false;
         state.lastCount = 0;
         state.initialGreetingShown = false;
         state.initialMessages = [];
+        state.historyMode = 'end';
         const messages = shadow.querySelector('.msgs');
         if (messages) messages.innerHTML = '';
         const surveyCard = shadow.querySelector('.survey-card');
@@ -717,6 +744,7 @@
         sendButton.disabled = true;
       }
 
+      state.historyMode = 'end';
       add(shadow, body, 'out', state.profile.name || 'Tú');
       input.value = '';
       touchSession();
@@ -735,7 +763,9 @@
         });
 
         state.conversation_id = result.conversation_id;
+        state.handoffActive = Boolean(result.handoff) || state.handoffActive;
         persistProfileLocal();
+        syncConversationStateUi(null);
         const delay = Math.max(0, Math.min(2500, parseInt(experience.typing_delay_ms || 650, 10)));
 
         if (delay) {
@@ -785,6 +815,7 @@
         state.opened = true;
         persistOpen();
         showInitialGreeting(state.initialMessages || []);
+        state.historyMode = 'end';
         requestAnimationFrame(() => {
           const messages = shadow.querySelector('.msgs');
           if (messages) {
@@ -803,7 +834,6 @@
       }
     }
 
-    state.shadow = shadow;
     syncProfileUi();
 
     function showLocal(message) {
@@ -900,7 +930,7 @@
     const missingRequiredEmail = Boolean(state.widget?.profile_required && state.widget?.ask_email && !state.profile.email);
 
     if (profile) {
-      profile.hidden = Boolean(state.conversation_id) || (hasProfile && !missingRequiredName && !missingRequiredEmail);
+      profile.hidden = Boolean(state.conversation_id || state.lastCount > 0) || (hasProfile && !missingRequiredName && !missingRequiredEmail);
     }
 
     if (chip) {
@@ -963,7 +993,8 @@
     state.lastCount = messages.length;
     const box = state.shadow.querySelector('.msgs');
     const previousScrollTop = box.scrollTop;
-    const distanceFromBottom = box.scrollHeight - box.clientHeight - box.scrollTop;
+    const previousScrollHeight = box.scrollHeight;
+    const distanceFromBottom = previousScrollHeight - box.clientHeight - previousScrollTop;
     const wasNearBottom = oldCount === 0 || distanceFromBottom < 56;
 
     if (messages.length) {
@@ -977,11 +1008,17 @@
           false
         );
       });
-      if (wasNearBottom) {
-        box.scrollTop = box.scrollHeight;
-      } else {
-        box.scrollTop = Math.min(previousScrollTop, Math.max(0, box.scrollHeight - box.clientHeight));
-      }
+      requestAnimationFrame(() => {
+        if (state.historyMode === 'start') {
+          box.scrollTop = 0;
+        } else if (state.historyMode === 'end' || wasNearBottom) {
+          box.scrollTop = box.scrollHeight;
+          state.historyMode = 'end';
+        } else {
+          const heightDelta = Math.max(0, box.scrollHeight - previousScrollHeight);
+          box.scrollTop = Math.min(previousScrollTop + heightDelta, Math.max(0, box.scrollHeight - box.clientHeight));
+        }
+      });
     }
 
     if (notify && messages.length > oldCount) {
@@ -1013,6 +1050,7 @@
       const data = await call({ action: 'messages' });
       state.conversation_id = data.conversation_id;
       state.conversationClosed = Boolean(data.conversation_closed);
+      state.handoffActive = Boolean(data.conversation_pending);
       state.surveyConversationId = data.survey?.conversation_id || state.surveyConversationId;
       renderMessages(data.messages || []);
       syncProfileUi();
@@ -1023,6 +1061,8 @@
       const newWrap = state.shadow?.querySelector('.new-chat-wrap');
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const surveyCard = state.shadow?.querySelector('.survey-card');
+      const handoffBanner = state.shadow?.querySelector('.handoff-banner');
+      if (handoffBanner) handoffBanner.hidden = !state.handoffActive || state.conversationClosed;
       if (surveyCard && state.conversationClosed && data.survey?.requested && !data.survey?.answered) surveyCard.hidden = false;
     } catch {
       // El refresco silencioso nunca debe bloquear el formulario principal.

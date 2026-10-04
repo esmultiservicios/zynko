@@ -1,3 +1,21 @@
+## V2.31.90 · Finalización visible y handoff comunicado al visitante
+
+- NIVO Web Chat mantiene **Finalizar chat** visible incluso cuando el visitante abre la edición de su perfil.
+- La acción de finalización conserva confirmación, historial, encuesta y creación de un nuevo chat.
+- Cuando NIVO solicita atención humana, el visitante recibe una explicación dentro del chat y un estado persistente de **Atención humana solicitada**.
+- Una conversación en estado `pending` conserva nuevos mensajes para el agente sin continuar respuestas automáticas de NIVO.
+- El correo de handoff y el estado visible para el visitante quedan sincronizados.
+- No requiere cambios estructurales de base de datos.
+
+## V2.31.89 · Continuidad real de NIVO Web Chat
+
+- Corrige re-presentaciones/saludos duplicados durante refrescos del chat.
+- Conserva contexto para preguntas de seguimiento como “explícame las funciones”.
+- Inicio / Último navegan el historial real sin que polling robe la posición.
+- Finalizar chat vuelve a mantenerse visible y conserva encuesta + nuevo chat.
+- El formulario de perfil no desplaza las acciones cuando ya existe conversación.
+- No requiere cambios estructurales de base de datos.
+
 ## V2.31.88 · Formulario público protegido y validación real de correo
 
 - Validación frontend + backend del correo.

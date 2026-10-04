@@ -34,6 +34,28 @@ final class NivoEngine
         return array_values(array_unique(array_merge($words,$extra)));
     }
 
+
+    private static function recentConversationTopic(PDO $pdo,int $tenantId,int $conversationId): string
+    {
+        if($conversationId<=0)return '';
+        try{
+            $q=$pdo->prepare("SELECT direction,sender_type,body FROM messages WHERE tenant_id=? AND conversation_id=? AND body IS NOT NULL ORDER BY id DESC LIMIT 12");
+            $q->execute([$tenantId,$conversationId]);
+            foreach($q->fetchAll() as $row){
+                $body=self::norm((string)($row['body']??''));
+                foreach(['izzy','cami','zynko','nivo web chat','nivo ia'] as $topic){
+                    if(str_contains($body,$topic))return $topic;
+                }
+            }
+        }catch(Throwable $ignore){}
+        return '';
+    }
+
+    private static function isGenericFollowUp(string $norm): bool
+    {
+        return (bool)preg_match('/\b(explicame|explica|cuentame|dime|detallame|ampliame|quiero saber|mas informacion|más informacion)?\s*(las|sus)?\s*(funciones|funcionalidades|caracteristicas|características|beneficios|como funciona|cómo funciona|como me ayuda|cómo me ayuda|para mi negocio|en mi negocio)\b/u',$norm);
+    }
+
     private static function knowledgeScore(string $query,string $name,string $content,array $words): int
     {
         $q=self::norm($query);$n=self::norm($name);$c=self::norm($content);$score=0;
@@ -192,6 +214,10 @@ final class NivoEngine
 
             $norm=self::norm($message);$displayName=trim($contactName);if($displayName===''||in_array(self::norm($displayName),['visitante','visitante web'],true))$displayName='';$personalized=!array_key_exists('personalized_greeting',$policy)||!empty($policy['personalized_greeting']);
             $english=!empty($policy['language_auto'])&&(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks|thank you)\b/i',$message);
+            $contextTopic=self::recentConversationTopic($pdo,$tenantId,$conversationId);
+            $genericFollowUp=self::isGenericFollowUp($norm);
+            $effectiveNorm=$norm;
+            if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
             $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)([!. ,].*)?$/u',$norm);
             $isCapabilities=(bool)preg_match('/\b(que sabes hacer|que puedes hacer|en que puedes ayudar|como me puedes ayudar|tus funciones|tus capacidades|para que sirves|en que te especializas|cual es tu especialidad|cuales son tus especialidades|que haces|que puedes responder|que temas manejas|que temas conoces|como funcionas|que puedes explicarme)\b/u',$norm);
             $isIdentity=(bool)preg_match('/\b(quien eres|quien sos|que eres|eres un bot|eres una ia|eres ia|como te llamas|cual es tu nombre|quien es nivo|que es nivo)\b/u',$norm);
@@ -210,20 +236,41 @@ final class NivoEngine
             }
 
             if($isGreeting){
-                if($english)$reply='Hello'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 I’m NIVO, the virtual assistant for '.$companyName.'. How can I help you today?';
-                else $reply='¡Hola'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 Soy NIVO, el asistente virtual de '.$companyName.'. ¿En qué puedo ayudarte hoy?';
+                $q=$pdo->prepare("SELECT COUNT(*) FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='in'");
+                $q->execute([$tenantId,$conversationId]);
+                $inboundCount=(int)$q->fetchColumn();
+                if($inboundCount<=1){
+                    if($english)$reply='Hello'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 I’m NIVO, the virtual assistant for '.$companyName.'. How can I help you today?';
+                    else $reply='¡Hola'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 Soy NIVO, el asistente virtual de '.$companyName.'. ¿En qué puedo ayudarte hoy?';
+                }else{
+                    $reply=$english?'Hello again. What would you like to continue with?':'¡Hola de nuevo! ¿Qué parte quieres que sigamos revisando?';
+                }
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'greeting','high',false,$displayName,$english);
             }
 
             $handoffWords=array_values(array_filter(array_map([self::class,'norm'],explode(',',(string)($settings['handoff_keywords']??'agente, asesor, persona, humano, representante')))));
-            foreach($handoffWords as $kw){if($kw!==''&&mb_strpos($norm,$kw)!==false){
+            foreach($handoffWords as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false){
                 $hours=json_decode($bot['business_hours_json']??'{}',true)?:[];$inHours=self::inBusinessHours($hours);
                 $reply=$english?'Of course. I’ll hand this conversation over to a person from '.$companyName.'.':($inHours?'Claro. Te transfiero con una persona de '.$companyName.' para que continúe contigo.':($hours['outside_message']??'En este momento estamos fuera del horario de atención. Dejé tu conversación pendiente para que una persona continúe contigo.'));
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'handoff','high',true,$displayName,$english);
             }}
 
             $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
-            foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($norm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
+            foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
+
+            $companyNorm=self::norm($companyName);
+            if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='izzy'){
+                $reply='Claro. IZZY puede ayudarte con facturación y documentos de venta, control de inventario y existencias, POS para ventas rápidas, operación de restaurantes y mesas/comandas cuando aplica, cuentas por cobrar y pagar, y gestión administrativa desde un solo sistema. Para saber si encaja en tu negocio, dime qué tipo de empresa tienes y cómo llevas hoy ventas, inventario o facturación; con eso te indico qué módulos te servirían más.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:izzy:functions','high',false,$displayName,$english);
+            }
+            if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='cami'){
+                $reply='Claro. CAMI está orientado a clínicas y centros médicos: organiza pacientes y expedientes, procesos clínicos, farmacia, facturación y seguimiento administrativo. Si me dices qué tipo de clínica manejas y qué proceso deseas mejorar, puedo orientarte sobre las funciones que más te convienen.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:cami:functions','high',false,$displayName,$english);
+            }
+            if($companyNorm==='es multiservicios'&&$genericFollowUp&&in_array($contextTopic,['zynko','nivo web chat','nivo ia'],true)){
+                $reply='Claro. ZYNKO reúne conversaciones en una bandeja, permite trabajar con NIVO Web Chat y NIVO IA, administrar usuarios y asignaciones, conectar canales e integraciones y mantener trazabilidad de la atención. Si me dices qué canal o proceso quieres mejorar, te explico el flujo exacto.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:zynko:functions','high',false,$displayName,$english);
+            }
 
             if(!empty($bot['knowledge_enabled'])){
                 $searchText=self::contextualSearchText($pdo,$tenantId,$conversationId,$message);
@@ -257,7 +304,6 @@ final class NivoEngine
 
             // Respuestas base comerciales: solo se usan cuando el conocimiento aprobado del tenant no resolvió.
             // Así las fuentes web y la base de conocimiento siempre tienen prioridad y estos textos evitan silencios mientras una fuente aún no existe.
-            $companyNorm=self::norm($companyName);
             if($companyNorm==='es multiservicios'&&(
                 str_contains($norm,'soluciones')||str_contains($norm,'servicios')||str_contains($norm,'que ofrecen')||str_contains($norm,'que tiene es multiservicios')
             )&&!str_contains($norm,'izzy')&&!str_contains($norm,'cami')&&!str_contains($norm,'zynko')){
@@ -288,7 +334,11 @@ final class NivoEngine
             if($fallback==='')$fallback=$english
                 ? 'I do not have enough approved information yet. Could you give me one more detail about what you need? I will use it to search the approved knowledge again.'
                 : 'Todavía no tengo suficiente información aprobada para responder con seguridad. ¿Puedes darme un detalle más de lo que necesitas? Lo usaré para buscar mejor en el conocimiento autorizado.';
-            if(!empty($policy['identity_enabled'])&&!str_contains(self::norm($fallback),'nivo'))$fallback=($english?'I’m NIVO, the virtual assistant for '.$companyName.'. ':'Soy NIVO, el asistente virtual de '.$companyName.'. ').$fallback;
+            if(!empty($policy['identity_enabled'])&&!str_contains(self::norm($fallback),'nivo')){
+                $q=$pdo->prepare("SELECT COUNT(*) FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot'");
+                $q->execute([$tenantId,$conversationId]);
+                if((int)$q->fetchColumn()===0)$fallback=($english?'I’m NIVO, the virtual assistant for '.$companyName.'. ':'Soy NIVO, el asistente virtual de '.$companyName.'. ').$fallback;
+            }
             $unknownBefore=max(1,min(10,(int)($policy['unknown_before_handoff']??3)));$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 20");$q->execute([$tenantId,$conversationId]);$unknown=0;foreach($q->fetchAll() as $m){if(str_contains(self::norm((string)$m['body']),'no tengo informacion')||str_contains(self::norm((string)$m['body']),'todavia no tengo suficiente')||str_contains(self::norm((string)$m['body']),'enough approved information'))$unknown++;}
             $handoff=(!array_key_exists('auto_handoff',$settings)||!empty($settings['auto_handoff']))&&($unknown+1>=$unknownBefore);
             return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$fallback,'fallback','low',$handoff,$displayName,$english);
