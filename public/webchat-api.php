@@ -569,41 +569,26 @@ if (!$contextualBranding) {
 
 $brandFooter = 'NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS';
 
-// V2.31.78 · El saludo inicial forma parte real del historial de la conversación.
-// Se persiste una sola vez y se coloca antes del primer mensaje del visitante para que
-// Widget y Bandeja muestren exactamente la misma conversación desde el inicio.
+// V2.31.93 · El saludo inicial es un único evento de apertura de la conversación.
+// Se inserta solamente cuando nace una conversación y nunca se reconstruye durante
+// lecturas, polling o refrescos. El orden visual también lo fuerza como primer mensaje.
 $ensureInitialGreeting = static function (int $conversationId) use ($pdo, $tid, $initialGreeting): void {
     if ($conversationId <= 0 || trim($initialGreeting) === '') {
         return;
     }
 
-    $firstInbound = $pdo->prepare(
-        "SELECT sent_at FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='in' ORDER BY sent_at,id LIMIT 1"
-    );
-    $firstInbound->execute([$tid, $conversationId]);
-    $firstInboundAt = $firstInbound->fetchColumn();
-
     $already = $pdo->prepare(
-        "SELECT 1 FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' AND (type='greeting' OR body LIKE '%Soy NIVO%')"
-        . ($firstInboundAt ? " AND sent_at<=?" : '')
-        . " ORDER BY sent_at,id LIMIT 1"
+        "SELECT 1 FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' "
+        . "AND (type='greeting' OR body LIKE '%Soy NIVO, el asistente virtual%') LIMIT 1"
     );
-    $args = [$tid, $conversationId];
-    if ($firstInboundAt) {
-        $args[] = $firstInboundAt;
-    }
-    $already->execute($args);
+    $already->execute([$tid, $conversationId]);
     if ($already->fetchColumn()) {
         return;
     }
 
-    $sentAt = $firstInboundAt
-        ? date('Y-m-d H:i:s', max(0, strtotime((string) $firstInboundAt) - 1))
-        : date('Y-m-d H:i:s');
-
     $pdo->prepare(
-        "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','greeting',?,'sent',?)"
-    )->execute([$tid, $conversationId, uuid4(), $initialGreeting, $sentAt]);
+        "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','greeting',?,'sent',NOW())"
+    )->execute([$tid, $conversationId, uuid4(), $initialGreeting]);
 };
 
 $visitor = (string) ($input['visitor_token'] ?? $_GET['visitor_token'] ?? '');
@@ -668,7 +653,7 @@ if ($action === 'bootstrap') {
             // No insertamos saludos retroactivamente en conversaciones existentes.
             // El saludo se persiste únicamente al crear una conversación nueva para evitar duplicados o re-presentaciones tardías.
             $messageQuery = $pdo->prepare(
-                'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
+                "SELECT id,direction,sender_type,type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY CASE WHEN type='greeting' THEN 0 ELSE 1 END, sent_at,id"
             );
             $messageQuery->execute([$tid, $cid]);
             $messages = $messageQuery->fetchAll();
@@ -875,15 +860,60 @@ if ($action === 'new_chat') {
     out(true,'Nueva conversación lista.',['conversation_id'=>0]);
 }
 
+if ($action === 'inactivity_nudge') {
+    $cid = (int) ($v['conversation_id'] ?? 0);
+    $message = trim((string) ($experience['inactivity_message'] ?? ''));
+
+    if ($message === '') {
+        $message = '¿Sigues por aquí? Si necesitas algo más, estoy pendiente para ayudarte.';
+    }
+
+    if (!$cid) {
+        out(true, 'Sin conversación activa.', ['conversation_id'=>0,'message'=>$message,'persisted'=>false]);
+    }
+
+    $q = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+    $q->execute([$cid,$tid]);
+    $status = (string) ($q->fetchColumn() ?: '');
+    if (in_array($status,['resolved','closed'],true)) {
+        out(true, 'La conversación ya está cerrada.', ['conversation_id'=>$cid,'message'=>$message,'persisted'=>false]);
+    }
+
+    $dup = $pdo->prepare("SELECT COUNT(*) FROM messages WHERE tenant_id=? AND conversation_id=? AND sender_type='bot' AND body=? AND sent_at>=DATE_SUB(NOW(),INTERVAL 2 MINUTE)");
+    $dup->execute([$tid,$cid,$message]);
+    $persisted = false;
+    if ((int)$dup->fetchColumn() === 0) {
+        $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
+            ->execute([$tid,$cid,uuid4(),$message]);
+        $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
+        zynkoRealtimePublish($pdo,$tid,'message.created',['conversation_id'=>$cid,'channel'=>'webchat','reason'=>'visitor_inactivity_nudge'],'conversation',(string)$cid);
+        $persisted = true;
+    }
+
+    out(true, 'Seguimiento de inactividad procesado.', ['conversation_id'=>$cid,'message'=>$message,'persisted'=>$persisted]);
+}
+
 if ($action === 'expire') {
     $cid = (int) ($v['conversation_id'] ?? 0);
     $closeMessage = trim((string) ($experience['inactivity_close_message'] ?? ''));
 
     if ($closeMessage === '') {
-        $closeMessage = 'Cerré esta sesión por inactividad. Cuando quieras, escribe y comenzamos una nueva conversación.';
+        $closeMessage = 'Cerré esta sesión por inactividad. Cuando quieras, puedes calificar la atención e iniciar un nuevo chat.';
     }
 
-    if ($cid) {
+    if (!$cid) {
+        out(true, 'No había una conversación activa para cerrar.', [
+            'conversation_id' => 0,
+            'message' => $closeMessage,
+            'survey' => null
+        ]);
+    }
+
+    $q = $pdo->prepare('SELECT status FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
+    $q->execute([$cid,$tid]);
+    $status = (string) ($q->fetchColumn() ?: '');
+
+    if (!in_array($status,['resolved','closed'],true)) {
         $pdo->beginTransaction();
         try {
             $pdo->prepare(
@@ -892,7 +922,9 @@ if ($action === 'expire') {
             $pdo->prepare(
                 "UPDATE conversations SET status='closed',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?"
             )->execute([$cid, $tid]);
-            $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')
+            $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
+                ->execute([$tid, $cid, (int) $v['id']]);
+            $pdo->prepare('UPDATE webchat_visitors SET last_seen_at=NOW() WHERE id=? AND tenant_id=?')
                 ->execute([$v['id'], $tid]);
             $pdo->commit();
         } catch (Throwable $error) {
@@ -913,8 +945,10 @@ if ($action === 'expire') {
     }
 
     out(true, 'Sesión finalizada por inactividad.', [
-        'conversation_id' => 0,
-        'message' => $closeMessage
+        'conversation_id' => $cid,
+        'conversation_status' => 'closed',
+        'message' => $closeMessage,
+        'survey' => ['conversation_id'=>$cid,'requested'=>true,'answered'=>false,'rating'=>null]
     ]);
 }
 
@@ -1202,7 +1236,7 @@ if ($action === 'messages') {
 
     if ($cid) {
         $query = $pdo->prepare(
-            'SELECT id,direction,sender_type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY sent_at,id'
+            "SELECT id,direction,sender_type,type,body,sent_at FROM messages WHERE tenant_id=? AND conversation_id=? ORDER BY CASE WHEN type='greeting' THEN 0 ELSE 1 END, sent_at,id"
         );
         $query->execute([$tid, $cid]);
         $messages = $query->fetchAll();

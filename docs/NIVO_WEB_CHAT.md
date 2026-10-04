@@ -180,3 +180,20 @@ NIVO IA continúa respondiendo mensajes válidos aunque tengan poco contenido. S
 Cuando NIVO determina que una persona debe continuar, el Web Chat no se limita a notificar al administrador por correo. El visitante ve una respuesta explícita y un estado persistente **Atención humana solicitada**. Mientras la conversación está pendiente, los mensajes posteriores se conservan para el agente y NIVO deja de intervenir automáticamente hasta que la atención sea retomada.
 
 La acción **Finalizar chat** permanece accesible durante toda conversación activa, incluso si el visitante abre la edición de su nombre/correo. Al finalizar se conserva el historial, se solicita satisfacción cuando corresponde y se ofrece iniciar una conversación nueva.
+
+
+## Cierre por inactividad
+
+NIVO mantiene dos tiempos configurables por empresa: un aviso de inactividad y un cierre automático. Cuando se alcanza el primer tiempo, NIVO pregunta al visitante si sigue ahí y ese mensaje queda persistido en el historial de la conversación. Cualquier nueva actividad reinicia ambos temporizadores.
+
+Si el visitante continúa inactivo hasta el segundo tiempo, ZYNKO cierra la conversación conservando todo el historial, muestra el mensaje configurado de cierre, solicita la encuesta de satisfacción y habilita **Iniciar nuevo chat**. El cierre por inactividad utiliza el mismo flujo funcional del cierre manual; no borra mensajes ni crea una conversación nueva hasta que el visitante lo solicite.
+
+## Historial cronológico y continuidad (V2.31.93)
+
+- El saludo inicial se crea una sola vez cuando nace la conversación y se identifica como `type=greeting`.
+- El saludo siempre se presenta como el primer evento del historial en Widget y Bandeja, incluso si una instalación antigua guardó su timestamp fuera de orden.
+- La Bandeja no modifica ni inserta mensajes al consultar una conversación.
+- El Widget normaliza defensivamente el historial y evita mostrar saludos iniciales duplicados heredados.
+- La conversación abre por defecto en el último mensaje; `Inicio` lleva al primer evento y `Último` al más reciente.
+- El visitante puede editar su nombre/correo desde el chip de perfil durante una conversación activa.
+- Se conservan Finalizar chat, encuesta de satisfacción, nuevo chat, inactividad, handoff humano, anti-spam, aislamiento por tenant y NIVO IA.

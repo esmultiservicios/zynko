@@ -41,7 +41,9 @@
     selectedRating: 0,
     bootAt: Date.now(),
     historyMode: 'end',
-    handoffActive: false
+    handoffActive: false,
+    inactivityNudged: false,
+    inactivityClosing: false
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -139,6 +141,7 @@
 
   const touchSession = () => {
     localStorage.setItem(`${storagePrefix}.last`, String(Date.now()));
+    state.inactivityNudged = false;
     scheduleInactivity();
   };
 
@@ -192,41 +195,55 @@
     const closeMinutes = Math.max(nudgeMinutes + 1, Math.min(1440, parseInt(experience.inactivity_close_minutes || 30, 10)));
 
     state.idleNudgeTimer = setTimeout(async () => {
-      if (!state.shadow || !state.conversation_id) {
+      if (!state.shadow || !state.conversation_id || state.conversationClosed || state.inactivityNudged) {
         return;
       }
 
+      state.inactivityNudged = true;
       const typing = experience.typing_indicator === false ? null : addTyping(state.shadow);
       setPresence('NIVO está escribiendo…');
       await sleep(Math.max(500, Math.min(3000, parseInt(experience.typing_delay_ms || 900, 10))));
       typing?.remove();
-      add(
-        state.shadow,
-        experience.inactivity_message || '¿Sigues por aquí? Si necesitas algo más, estoy pendiente para ayudarte.',
-        'in',
-        'NIVO'
-      );
+
+      try {
+        const result = await call({ action: 'inactivity_nudge' });
+        if (result.persisted) {
+          await refresh();
+        } else if (result.message) {
+          add(state.shadow, result.message, 'in', 'NIVO');
+        }
+      } catch (error) {
+        add(
+          state.shadow,
+          experience.inactivity_message || '¿Sigues por aquí? Si necesitas algo más, estoy pendiente para ayudarte.',
+          'in',
+          'NIVO'
+        );
+      }
+
       setPresence('Esperando tu respuesta');
     }, nudgeMinutes * 60000);
 
     state.idleCloseTimer = setTimeout(async () => {
-      if (!state.shadow || !state.conversation_id) {
+      if (!state.shadow || !state.conversation_id || state.conversationClosed || state.inactivityClosing) {
         return;
       }
 
+      state.inactivityClosing = true;
       try {
         const result = await call({ action: 'expire' });
-        state.conversation_id = 0;
-        setPresence('Sesión finalizada');
-        add(
-          state.shadow,
-          result.message || experience.inactivity_close_message || 'Cerré esta sesión por inactividad. Cuando quieras, escribe y comenzamos una nueva conversación.',
-          'in',
-          'NIVO'
-        );
-        syncProfileUi();
+        state.conversationClosed = true;
+        state.surveyConversationId = result.survey?.conversation_id || result.conversation_id || state.conversation_id;
+        state.handoffActive = false;
+        clearInactivityTimers();
+        await refresh();
+        syncConversationStateUi(result.survey || { requested: true, answered: false });
+        setPresence('Sesión finalizada por inactividad');
       } catch (error) {
         console.warn('NIVO Web Chat:', error.message);
+        scheduleInactivity();
+      } finally {
+        state.inactivityClosing = false;
       }
     }, closeMinutes * 60000);
   };
@@ -477,7 +494,7 @@
           </div>
           <div class="profile-chip" ${experience.show_profile_chip === false || (!state.profile.name && !state.profile.email) ? 'hidden' : ''}>
             <strong class="profile-chip-text">${esc(state.profile.name || state.profile.email || 'Visitante')}</strong>
-            <button type="button" class="profile-edit">Editar</button>
+            <button type="button" class="profile-edit" title="Editar nombre o correo">Editar</button>
           </div>
           ${privacy}
           ${experience.quick_replies_enabled && Array.isArray(experience.quick_replies) && experience.quick_replies.length
@@ -686,6 +703,8 @@
         state.surveyConversationId = 0;
         state.selectedRating = 0;
         state.handoffActive = false;
+        state.inactivityNudged = false;
+        state.inactivityClosing = false;
         state.lastCount = 0;
         state.initialGreetingShown = false;
         state.initialMessages = [];
@@ -998,11 +1017,57 @@
     return message;
   }
 
+  function normalizeConversationMessages(messages) {
+    const rows = Array.isArray(messages) ? [...messages] : [];
+    const seenGreeting = new Set();
+
+    const isGreeting = message => {
+      if (String(message?.type || '').toLowerCase() === 'greeting') {
+        return true;
+      }
+
+      return String(message?.sender_type || '').toLowerCase() === 'bot'
+        && /soy\s+nivo,?\s+el\s+asistente\s+virtual/i.test(String(message?.body || ''));
+    };
+
+    const normalized = rows.filter(message => {
+      if (!isGreeting(message)) {
+        return true;
+      }
+
+      const key = `${message?.conversation_id || state.conversation_id || 0}:greeting`;
+      if (seenGreeting.has(key)) {
+        return false;
+      }
+      seenGreeting.add(key);
+      return true;
+    });
+
+    normalized.sort((a, b) => {
+      const aGreeting = isGreeting(a) ? 0 : 1;
+      const bGreeting = isGreeting(b) ? 0 : 1;
+      if (aGreeting !== bGreeting) {
+        return aGreeting - bGreeting;
+      }
+
+      const at = Date.parse(String(a?.sent_at || '').replace(' ', 'T')) || 0;
+      const bt = Date.parse(String(b?.sent_at || '').replace(' ', 'T')) || 0;
+      if (at !== bt) {
+        return at - bt;
+      }
+
+      return Number(a?.id || 0) - Number(b?.id || 0);
+    });
+
+    return normalized;
+  }
+
   function renderMessages(messages, notify = true) {
     if (!state.shadow) {
       return;
     }
 
+    messages = normalizeConversationMessages(messages);
     const oldCount = state.lastCount;
     state.lastCount = messages.length;
     const box = state.shadow.querySelector('.msgs');

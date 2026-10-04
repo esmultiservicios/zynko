@@ -1,4 +1,15 @@
-## V2.31.91 · Restauración definitiva de Finalizar chat + encuesta
+## V2.31.93 · Historial cronológico estable de NIVO
+
+- El saludo inicial se crea una sola vez al nacer la conversación.
+- Widget y Bandeja fuerzan el saludo como primer mensaje del historial.
+- La Bandeja ya no inserta ni reconstruye saludos al abrir conversaciones antiguas.
+- Se agregó normalización defensiva en el widget para evitar saludos duplicados heredados.
+- Inicio / Último conservan la navegación del historial y el chat abre en el último mensaje.
+- La edición de nombre/correo mediante el chip de perfil permanece disponible durante la conversación.
+- Se preservan cierre manual, encuesta, nuevo chat, inactividad, handoff, anti-spam y NIVO IA.
+- No hay cambios estructurales de base de datos.
+
+## V2.31.92 · Restauración definitiva de Finalizar chat + encuesta
 
 - Se mantiene visible el bloque premium **Finalizar chat** mientras el widget esté abierto y la sesión no esté cerrada.
 - Se restaura el flujo completo: confirmación → cierre real → mensaje final → encuesta 1–5 estrellas → comentario opcional → iniciar nuevo chat.

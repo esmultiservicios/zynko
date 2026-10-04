@@ -27,8 +27,8 @@ try{
  try{$bp=$pdo->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bp->execute([$tid]);$nivoEnabled=(int)($bp->fetchColumn()?:0)===1;}catch(Throwable $ignore){}
 
  $sql="SELECT c.id,c.uuid,c.contact_id,c.assigned_user_id,c.status,c.unread_count,c.last_message_at,c.archived_at,c.priority,c.created_at,ct.name contact_name,ct.phone,ct.email,ct.avatar_url,ch.type channel_type,ch.name channel_name,u.name agent_name,
- (SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC,m.id DESC LIMIT 1) last_body,
- (SELECT direction FROM messages m WHERE m.conversation_id=c.id ORDER BY m.sent_at DESC,m.id DESC LIMIT 1) last_direction,
+ (SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END DESC,m.sent_at DESC,m.id DESC LIMIT 1) last_body,
+ (SELECT direction FROM messages m WHERE m.conversation_id=c.id ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END DESC,m.sent_at DESC,m.id DESC LIMIT 1) last_direction,
  (SELECT GROUP_CONCAT(cc.name ORDER BY cc.name SEPARATOR ' · ') FROM contact_category_map ccm JOIN contact_categories cc ON cc.id=ccm.category_id WHERE ccm.contact_id=c.contact_id AND cc.active=1) category_names,
  wcs.risk_score,wcs.verdict security_verdict,wcs.origin_domain webchat_origin
  FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id WHERE c.tenant_id=? AND c.deleted_at IS NULL";$params=[$tid];
@@ -41,25 +41,16 @@ try{
  if($categoryFilter>0){$sql.=' AND EXISTS(SELECT 1 FROM contact_category_map ccmf JOIN contact_categories ccf ON ccf.id=ccmf.category_id WHERE ccmf.contact_id=c.contact_id AND ccf.tenant_id=? AND ccf.active=1 AND ccf.id=?)';$params[]=$tid;$params[]=$categoryFilter;}
  if($attentionFilter==='unread')$sql.=' AND c.unread_count>0';
  elseif($attentionFilter==='followup')$sql.=" AND EXISTS(SELECT 1 FROM conversation_followups cf WHERE cf.tenant_id=c.tenant_id AND cf.conversation_id=c.id AND cf.status='pending')";
- elseif($attentionFilter==='waiting')$sql.=" AND c.last_message_at IS NOT NULL AND TIMESTAMPDIFF(MINUTE,c.last_message_at,NOW())>=15 AND (SELECT direction FROM messages lm WHERE lm.conversation_id=c.id ORDER BY lm.sent_at DESC,lm.id DESC LIMIT 1)='in'";
+ elseif($attentionFilter==='waiting')$sql.=" AND c.last_message_at IS NOT NULL AND TIMESTAMPDIFF(MINUTE,c.last_message_at,NOW())>=15 AND (SELECT direction FROM messages lm WHERE lm.conversation_id=c.id ORDER BY CASE WHEN lm.type='greeting' THEN 0 ELSE 1 END DESC,lm.sent_at DESC,lm.id DESC LIMIT 1)='in'";
  $sql.=' ORDER BY COALESCE(c.last_message_at,c.created_at) DESC';
  $q=$pdo->prepare($sql);$q->execute($params);$convs=$q->fetchAll();
  $cid=(int)($_GET['conversation']??($convs[0]['id']??0));foreach($convs as $c)if((int)$c['id']===$cid)$selected=$c;
  if(!$selected&&$cid){$q=$pdo->prepare("SELECT c.id,c.uuid,c.contact_id,c.assigned_user_id,c.status,c.unread_count,c.last_message_at,c.archived_at,c.priority,c.created_at,ct.name contact_name,ct.phone,ct.email,ct.avatar_url,ch.type channel_type,ch.name channel_name,u.name agent_name,wcs.risk_score,wcs.verdict security_verdict,wcs.origin_domain webchat_origin FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL LIMIT 1");$q->execute([$cid,$tid]);$selected=$q->fetch()?:null;}
  if($selected){
   if(isset($_GET['conversation'])&&(int)$selected['unread_count']>0){$pdo->prepare('UPDATE conversations SET unread_count=0 WHERE id=? AND tenant_id=?')->execute([$selected['id'],$tid]);$selected['unread_count']=0;}
-  // V2.31.78 · Conversaciones Web Chat antiguas también muestran el saludo inicial en la Bandeja.
-  if(($selected['channel_type']??'')==='webchat'){
-   try{
-    $firstIn=$pdo->prepare("SELECT sent_at FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='in' ORDER BY sent_at,id LIMIT 1");$firstIn->execute([$tid,$selected['id']]);$firstAt=$firstIn->fetchColumn();
-    $hasBot=$pdo->prepare("SELECT 1 FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' AND (type='greeting' OR body LIKE '%Soy NIVO%')".($firstAt?" AND sent_at<=?":"")." ORDER BY sent_at,id LIMIT 1");$ha=[$tid,$selected['id']];if($firstAt)$ha[]=$firstAt;$hasBot->execute($ha);
-    if(!$hasBot->fetchColumn()){
-     $brand=(string)($company?:'Tu empresa');try{$pt=(int)($pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn()?:0);if($tid===$pt)$brand='ES MULTISERVICIOS';}catch(Throwable $ignoreBrand){}$greeting='¡Hola! 👋 Soy NIVO, el asistente virtual de '.$brand.'. ¿En qué puedo ayudarte hoy?';$sentAt=$firstAt?date('Y-m-d H:i:s',max(0,strtotime((string)$firstAt)-1)):date('Y-m-d H:i:s');
-     $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','greeting',?,'sent',?)")->execute([$tid,$selected['id'],bin2hex(random_bytes(16)),$greeting,$sentAt]);
-    }
-   }catch(Throwable $ignore){}
-  }
-  $q=$pdo->prepare('SELECT m.*,u.name sender_name FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id WHERE m.tenant_id=? AND m.conversation_id=? ORDER BY m.sent_at,m.id');$q->execute([$tid,$selected['id']]);$messages=$q->fetchAll();
+  // V2.31.93 · La Bandeja nunca modifica el historial al leerlo.
+  // El saludo se crea exclusivamente al iniciar la conversación desde NIVO Web Chat.
+  $q=$pdo->prepare("SELECT m.*,u.name sender_name FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id WHERE m.tenant_id=? AND m.conversation_id=? ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END,m.sent_at,m.id");$q->execute([$tid,$selected['id']]);$messages=$q->fetchAll();
   $q=$pdo->prepare('SELECT category_id FROM contact_category_map WHERE contact_id=?');$q->execute([$selected['contact_id']]);$selectedCategories=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
   $q=$pdo->prepare("SELECT follow_up_at,note FROM conversation_followups WHERE tenant_id=? AND conversation_id=? AND status='pending' ORDER BY id DESC LIMIT 1");$q->execute([$tid,$selected['id']]);$followup=$q->fetch()?:null;
   $q=$pdo->prepare('SELECT cn.body,cn.created_at,u.name FROM conversation_notes cn JOIN users u ON u.id=cn.user_id WHERE cn.tenant_id=? AND cn.conversation_id=? ORDER BY cn.id DESC LIMIT 5');$q->execute([$tid,$selected['id']]);$notes=$q->fetchAll();
