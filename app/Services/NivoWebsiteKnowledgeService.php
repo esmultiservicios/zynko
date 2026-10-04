@@ -27,6 +27,19 @@ final class NivoWebsiteKnowledgeService
             UNIQUE KEY uq_nivo_web_source(tenant_id,base_url),
             INDEX idx_nivo_web_due(tenant_id,active,auto_sync,last_synced_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // Compatibilidad defensiva para instalaciones antiguas: el contenido
+        // sincronizado puede incluir flechas, símbolos y emojis que requieren utf8mb4.
+        try {
+            $q=$this->pdo->query("SELECT CHARACTER_SET_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='content' LIMIT 1");
+            $charset=strtolower((string)($q?->fetchColumn()?:''));
+            if($charset!==''&&$charset!=='utf8mb4'){
+                $this->pdo->exec("ALTER TABLE knowledge_sources CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $this->pdo->exec("ALTER TABLE knowledge_sources MODIFY content LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL");
+            }
+        } catch (Throwable $e) {
+            // El script acumulativo de BD realiza la migración definitiva en producción.
+        }
     }
 
     public function list(int $tenantId): array

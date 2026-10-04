@@ -518,3 +518,33 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.83' AS version_objetivo;
+
+-- =============================================================
+-- ZYNKO V2.31.84 · UTF8MB4 EN CONOCIMIENTO WEB + RESET DE FUENTES
+-- =============================================================
+-- Corrige instalaciones existentes donde knowledge_sources heredó
+-- latin1/utf8mb3. Esto evita SQLSTATE 1366 al sincronizar contenido
+-- web con flechas, símbolos, emojis o caracteres Unicode completos.
+SET @db_name := DATABASE();
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources');
+SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='name');
+SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `name` VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='source_ref');
+SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `source_ref` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='content');
+SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `content` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.84')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.84' AS version_objetivo;
+

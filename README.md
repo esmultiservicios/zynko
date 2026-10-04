@@ -1,3 +1,10 @@
+## V2.31.84 · Fuentes web UTF8MB4 + modal limpio
+
+- Corrige `knowledge_sources` para contenido web Unicode/emoji con `utf8mb4`.
+- Refuerza la sincronización web en instalaciones antiguas.
+- Al guardar una fuente web, el modal se cierra y el formulario se limpia antes de recargar.
+- Mantiene `ZYNKO_UPDATE_DB_COMPLETO.sql` acumulativo para producción.
+
 ## V2.31.83 · UTF-8/emoji seguro en NIVO Web Chat
 
 - Corrige producción cuando MySQL/MariaDB tenía `messages.body` heredado con charset distinto de `utf8mb4`.
