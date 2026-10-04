@@ -1,3 +1,12 @@
+## V2.31.83 · UTF-8/emoji seguro en NIVO Web Chat
+
+- Corrige producción cuando MySQL/MariaDB tenía `messages.body` heredado con charset distinto de `utf8mb4`.
+- NIVO puede guardar saludos y mensajes con emojis sin lanzar `SQLSTATE[22007]/1366 Incorrect string value`.
+- `webchat-api.php` verifica defensivamente la columna `messages.body` y la migra a `utf8mb4` si detecta una instalación antigua.
+- Todas las conexiones principales fuerzan `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci`.
+- El paquete acumulativo `ZYNKO_UPDATE_DB_COMPLETO.sql` normaliza las columnas de texto críticas de chat y conocimiento.
+- No se eliminan mensajes ni conversaciones existentes.
+
 ## V2.31.82 · NIVO continuo y controles premium del widget
 
 - NIVO ya no deja en silencio consultas principales de IZZY/CAMI/ZYNKO por límites automáticos internos.

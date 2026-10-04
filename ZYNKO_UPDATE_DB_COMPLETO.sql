@@ -484,3 +484,37 @@ ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.79' AS version_objetivo;
 
+
+
+-- =============================================================
+-- ZYNKO V2.31.83 · UTF8MB4 / EMOJIS SEGUROS EN CHAT Y NIVO
+-- =============================================================
+-- Corrige instalaciones antiguas donde columnas de texto heredaron
+-- latin1/utf8mb3 y provocaban SQLSTATE 1366 al guardar emojis.
+SET @db_name := DATABASE();
+
+SET @sql := CONCAT('ALTER DATABASE `', REPLACE(@db_name,'`','``'), '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='messages' AND COLUMN_NAME='body');
+SET @sql := IF(@exists>0,'ALTER TABLE `messages` MODIFY `body` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='conversation_notes' AND COLUMN_NAME='body');
+SET @sql := IF(@exists>0,'ALTER TABLE `conversation_notes` MODIFY `body` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='quick_replies' AND COLUMN_NAME='body');
+SET @sql := IF(@exists>0,'ALTER TABLE `quick_replies` MODIFY `body` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='conversation_surveys' AND COLUMN_NAME='comment');
+SET @sql := IF(@exists>0,'ALTER TABLE `conversation_surveys` MODIFY `comment` VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='contacts' AND COLUMN_NAME='name');
+SET @sql := IF(@exists>0,'ALTER TABLE `contacts` MODIFY `name` VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='webchat_visitors' AND COLUMN_NAME='name');
+SET @sql := IF(@exists>0,'ALTER TABLE `webchat_visitors` MODIFY `name` VARCHAR(160) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.83')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.83' AS version_objetivo;

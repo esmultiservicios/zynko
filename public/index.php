@@ -9,7 +9,7 @@ require_once $root.'/app/Services/NivoWebsiteKnowledgeService.php';
 if (!is_file($root.'/storage/installed.lock')) { header('Location: install.php'); exit; }
 session_start();
 function envConfig(string $path): array { $v=@parse_ini_file($path,false,INI_SCANNER_RAW); return is_array($v)?$v:[]; }
-function appDb(): PDO { static $pdo; if($pdo)return $pdo; global $root; $e=envConfig($root.'/.env'); $dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4'; return $pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); }
+function appDb(): PDO { static $pdo; if($pdo)return $pdo; global $root; $e=envConfig($root.'/.env'); $dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4'; $pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]); $pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"); return $pdo; }
 $loginError='';
 if(($_GET['action']??'')==='lang' && isset($_SESSION['user'])){ $lang=($_GET['lang']??'es')==='en'?'en':'es'; $_SESSION['lang']=$lang; try{appDb()->prepare('UPDATE users SET locale=? WHERE id=?')->execute([$lang,$_SESSION['user']['id']]); $_SESSION['user']['locale']=$lang;}catch(Throwable $e){} header('Location: ?page='.urlencode($_GET['page']??'dashboard')); exit; }
 if ($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='login') {
@@ -152,7 +152,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.82';
+$releaseVersion='2.31.83';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
