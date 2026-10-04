@@ -1,3 +1,12 @@
+## V2.31.91 · Restauración definitiva de Finalizar chat + encuesta
+
+- Se mantiene visible el bloque premium **Finalizar chat** mientras el widget esté abierto y la sesión no esté cerrada.
+- Se restaura el flujo completo: confirmación → cierre real → mensaje final → encuesta 1–5 estrellas → comentario opcional → iniciar nuevo chat.
+- Si el visitante todavía no ha enviado ningún mensaje, Finalizar chat simplemente cierra la sesión visual sin crear una conversación vacía ni una encuesta falsa.
+- Después del primer mensaje, el cierre usa la conversación persistida y conserva todo el historial.
+- Se mantienen Inicio / Último, handoff humano, perfil, anti-spam, NIVO IA y el resto de mejoras existentes.
+- No requiere cambios estructurales de base de datos.
+
 ## V2.31.90 · Finalización visible y handoff comunicado al visitante
 
 - NIVO Web Chat mantiene **Finalizar chat** visible incluso cuando el visitante abre la edición de su perfil.

@@ -466,7 +466,7 @@
             <div class="msgs"></div>
           </div>
           <div class="handoff-banner" ${state.handoffActive && !state.conversationClosed ? '' : 'hidden'}><span class="handoff-banner-icon">☏</span><span class="handoff-banner-copy"><b>Atención humana solicitada</b><small>NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.</small></span></div>
-          <div class="session-actions" ${state.conversation_id && !state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
+          <div class="session-actions" ${!state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
           <div class="profile" ${(widget.ask_name || widget.ask_email) && !state.conversation_id ? '' : 'hidden'}>
             ${widget.ask_name ? `<input class="name" placeholder="Tu nombre" value="${esc(state.profile.name)}">` : ''}
             ${widget.ask_email ? `<input class="email" type="email" placeholder="Tu correo" value="${esc(state.profile.email)}">` : ''}
@@ -603,7 +603,7 @@
       const surveyCard = shadow.querySelector('.survey-card');
       const handoffBanner = shadow.querySelector('.handoff-banner');
       if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
-      if (actions) actions.hidden = !state.conversation_id || state.conversationClosed;
+      if (actions) actions.hidden = state.conversationClosed;
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const shouldSurvey = state.conversationClosed && survey?.requested && !survey?.answered;
       if (surveyCard) surveyCard.hidden = !shouldSurvey;
@@ -623,10 +623,24 @@
       const button = shadow.querySelector('.confirm-finish');
       if (button) button.disabled = true;
       try {
+        const confirmBox = shadow.querySelector('.finish-confirm');
+
+        // Si el visitante todavía no ha enviado ningún mensaje, existe únicamente
+        // el saludo visual de NIVO y aún no hay una conversación persistida en BD.
+        // Permitimos cerrar esa sesión visual sin fabricar conversaciones vacías ni
+        // generar encuestas que no corresponderían a una atención real.
+        if (!state.conversation_id) {
+          if (confirmBox) confirmBox.hidden = true;
+          box.classList.remove('open');
+          state.opened = false;
+          persistOpen();
+          setPresence('Listo para ayudarte');
+          return;
+        }
+
         const result = await call({ action: 'close' });
         state.conversationClosed = true;
         state.surveyConversationId = result.survey?.conversation_id || state.conversation_id;
-        const confirmBox = shadow.querySelector('.finish-confirm');
         if (confirmBox) confirmBox.hidden = true;
         await refresh();
         syncConversationStateUi(result.survey || { requested: true, answered: false });
@@ -1057,7 +1071,7 @@
       const composer = state.shadow?.querySelector('.composer');
       if (composer) composer.classList.toggle('is-closed', state.conversationClosed);
       const actions = state.shadow?.querySelector('.session-actions:not(.new-chat-wrap)');
-      if (actions) actions.hidden = !state.conversation_id || state.conversationClosed;
+      if (actions) actions.hidden = state.conversationClosed;
       const newWrap = state.shadow?.querySelector('.new-chat-wrap');
       if (newWrap) newWrap.hidden = !state.conversationClosed;
       const surveyCard = state.shadow?.querySelector('.survey-card');
