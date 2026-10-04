@@ -1,20 +1,39 @@
 <?php
 $title='NIVO · Asistente inteligente'; require __DIR__.'/partials/top.php'; require_once dirname(__DIR__).'/Services/OpenAIProviderService.php';
-$tid=(int)$_SESSION['user']['tenant_id'];$botcfg=[];$sources=[];$rules=[];$solutions=[];$modules=[];$webSources=[];$stats=['sources'=>0,'rules'=>0,'websites'=>0];
+$tid=(int)$_SESSION['user']['tenant_id'];$botcfg=[];$sources=[];$rules=[];$solutions=[];$modules=[];$webSources=[];$learningQueue=[];$stats=['sources'=>0,'rules'=>0,'websites'=>0,'learning'=>0];
 try{
  $db=appDb();
  $db->exec("CREATE TABLE IF NOT EXISTS nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(160) NOT NULL,keywords VARCHAR(500) NOT NULL,response TEXT NOT NULL,priority INT NOT NULL DEFAULT 100,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,INDEX idx_nivo_rules_tenant(tenant_id,active,priority)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
  $db->exec("CREATE TABLE IF NOT EXISTS nivo_solutions(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,name VARCHAR(120) NOT NULL,code VARCHAR(80) NOT NULL,description VARCHAR(700) NULL,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_nivo_solution(tenant_id,code),INDEX(tenant_id,active))");
  $db->exec("CREATE TABLE IF NOT EXISTS nivo_solution_modules(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,solution_id BIGINT UNSIGNED NOT NULL,name VARCHAR(120) NOT NULL,description VARCHAR(500) NULL,active TINYINT(1) NOT NULL DEFAULT 1,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,UNIQUE KEY uq_nivo_module(solution_id,name),INDEX(tenant_id,solution_id,active))");
+ $db->exec("CREATE TABLE IF NOT EXISTS nivo_learning_queue (
+   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+   tenant_id BIGINT UNSIGNED NOT NULL,
+   conversation_id BIGINT UNSIGNED NULL,
+   channel_type VARCHAR(40) NULL,
+   question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+   normalized_question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+   suggested_answer TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+   source_hint VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+   occurrences INT UNSIGNED NOT NULL DEFAULT 1,
+   status ENUM('pending','review','approved','rejected') NOT NULL DEFAULT 'pending',
+   first_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   reviewed_by BIGINT UNSIGNED NULL,
+   reviewed_at DATETIME NULL,
+   INDEX idx_nivo_learning_tenant_status(tenant_id,status,last_seen_at),
+   INDEX idx_nivo_learning_conversation(tenant_id,conversation_id)
+ ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
  if(isPlatformOwner()){$c=$db->prepare('SELECT COUNT(*) FROM nivo_solutions WHERE tenant_id=?');$c->execute([$tid]);if(!(int)$c->fetchColumn()){$db->prepare("INSERT INTO nivo_solutions(tenant_id,name,code,description) VALUES(?, 'CAMI','cami','Solución para clínicas, laboratorios, pacientes, expedientes, procesos médicos y facturación relacionada al entorno médico.'),(?, 'IZZY','izzy','Solución empresarial para facturación general, POS, inventario, cuentas por cobrar, cuentas por pagar, restaurantes y operación comercial.')")->execute([$tid,$tid]);}}
  $st=$db->prepare('SELECT * FROM nivo_solutions WHERE tenant_id=? AND active=1 ORDER BY name');$st->execute([$tid]);$solutions=$st->fetchAll();
- $st=$db->prepare('SELECT m.*,s.name solution_name FROM nivo_solution_modules m JOIN nivo_solutions s ON s.id=m.solution_id WHERE m.tenant_id=? AND m.active=1 ORDER BY s.name,m.name');$st->execute([$tid]);$modules=$st->fetchAll();
+ $st=$db->prepare('SELECT m.*,s.name solution_name FROM nivo_solution_modules m JOIN nivo_solutions s ON s.id=m.solution_id AND s.tenant_id=m.tenant_id WHERE m.tenant_id=? AND m.active=1 ORDER BY s.name,m.name');$st->execute([$tid]);$modules=$st->fetchAll();
  $st=$db->prepare('SELECT * FROM bot_profiles WHERE tenant_id=?');$st->execute([$tid]);$botcfg=$st->fetch()?:[];
- $st=$db->prepare("SELECT ks.id,ks.name,ks.source_type,ks.status,ks.approval_status,ks.solution_id,ks.module_id,ks.updated_at,s.name solution_name,m.name module_name FROM knowledge_sources ks LEFT JOIN nivo_solutions s ON s.id=ks.solution_id LEFT JOIN nivo_solution_modules m ON m.id=ks.module_id WHERE ks.tenant_id=? AND NOT (ks.source_type='url' AND ks.source_ref LIKE 'website:%') ORDER BY ks.updated_at DESC LIMIT 100");$st->execute([$tid]);$sources=$st->fetchAll();
+ $st=$db->prepare("SELECT ks.id,ks.name,ks.source_type,ks.status,ks.approval_status,ks.solution_id,ks.module_id,ks.updated_at,s.name solution_name,m.name module_name FROM knowledge_sources ks LEFT JOIN nivo_solutions s ON s.id=ks.solution_id AND s.tenant_id=ks.tenant_id LEFT JOIN nivo_solution_modules m ON m.id=ks.module_id AND m.tenant_id=ks.tenant_id WHERE ks.tenant_id=? AND NOT (ks.source_type='url' AND ks.source_ref LIKE 'website:%') ORDER BY ks.updated_at DESC LIMIT 100");$st->execute([$tid]);$sources=$st->fetchAll();
  $st=$db->prepare("SELECT id,name,keywords,response,priority,active FROM nivo_rules WHERE tenant_id=? ORDER BY active DESC,priority ASC,id DESC");$st->execute([$tid]);$rules=$st->fetchAll();
  require_once dirname(__DIR__).'/Services/NivoWebsiteKnowledgeService.php';$webSvc=new NivoWebsiteKnowledgeService($db,dirname(__DIR__,2));$webSources=$webSvc->list($tid);
- $stats=['sources'=>count(array_filter($sources,fn($r)=>($r['approval_status']??'approved')==='approved')),'rules'=>count(array_filter($rules,fn($r)=>(int)$r['active']===1)),'websites'=>count(array_filter($webSources,fn($r)=>(int)$r['active']===1))];
+ $lq=$db->prepare("SELECT id,conversation_id,channel_type,question,suggested_answer,source_hint,occurrences,status,first_seen_at,last_seen_at FROM nivo_learning_queue WHERE tenant_id=? AND status IN ('pending','review') ORDER BY occurrences DESC,last_seen_at DESC LIMIT 50");$lq->execute([$tid]);$learningQueue=$lq->fetchAll();
+ $stats=['sources'=>count(array_filter($sources,fn($r)=>($r['approval_status']??'approved')==='approved')),'rules'=>count(array_filter($rules,fn($r)=>(int)$r['active']===1)),'websites'=>count(array_filter($webSources,fn($r)=>(int)$r['active']===1)),'learning'=>count($learningQueue)];
 }catch(Throwable $e){}
 $webchatActive=false;try{$wq=$db->prepare('SELECT COUNT(*) FROM webchat_widgets WHERE tenant_id=? AND enabled=1');$wq->execute([$tid]);$webchatActive=(int)$wq->fetchColumn()>0;}catch(Throwable $e){}
 $aliases=[];if(isPlatformOwner()){try{$q=$db->prepare('SELECT id,display_name FROM nivo_agent_aliases WHERE tenant_id=? AND active=1 ORDER BY display_name');$q->execute([$tid]);$aliases=$q->fetchAll();}catch(Throwable $e){}}
@@ -31,13 +50,14 @@ $monthTokens=(int)($openAiUsage['input_tokens']??0)+(int)($openAiUsage['output_t
  <article><span class="kpi-icon"><i class="fa-solid fa-route"></i></span><div><span>Motor actual</span><b><?= $tenantExternalEnabled?'Local → OpenAI':'Local' ?></b><small><?= $tenantExternalEnabled?'Fallback externo activo':'Reglas + conocimiento' ?></small></div></article>
  <article><span class="kpi-icon"><i class="fa-solid fa-book-open"></i></span><div><span>Conocimiento</span><b><?=$stats['sources']?></b><small><?=$stats['websites']?> sitio(s) web · fuentes aprobadas</small></div></article>
  <article><span class="kpi-icon"><i class="fa-solid fa-bolt"></i></span><div><span>Reglas activas</span><b><?=$stats['rules']?></b><small>Respuestas determinísticas</small></div></article>
+ <article><span class="kpi-icon"><i class="fa-solid fa-graduation-cap"></i></span><div><span>Aprendizaje</span><b><?=$stats['learning']?></b><small>Consultas pendientes de revisión</small></div></article>
 </section>
 <section class="nivo-ai-explainer">
  <div class="nivo-ai-explainer-brand"><img src="assets/img/nivo-email.png" alt="NIVO"><span><small>NIVO IA + WEB CHAT</small><b><?=($botcfg['enabled']??0)?'Tu asistente ya puede participar en las conversaciones':'Activa NIVO para automatizar con control'?></b></span></div>
  <div class="nivo-ai-flow"><span><i class="fa-solid fa-diagram-project"></i><b>1. Reglas</b><small>Responde exactamente lo definido cuando detecta palabras clave.</small></span><span><i class="fa-solid fa-book-open"></i><b>2. Conocimiento</b><small>Busca información aprobada por tu empresa antes de contestar.</small></span><span><i class="fa-solid fa-headset"></i><b>3. Transferencia</b><small>Pasa a una persona cuando el visitante lo pide o falta información segura.</small></span><span><i class="fa-solid fa-inbox"></i><b>4. Bandeja</b><small>Todo queda dentro de la conversación para que tu equipo continúe.</small></span></div>
  <div class="nivo-ai-connection <?=($webchatActive&&($botcfg['enabled']??0))?'is-on':''?>"><i class="fa-solid fa-link"></i><span><b><?=($webchatActive&&($botcfg['enabled']??0))?'NIVO IA está conectado al flujo de NIVO Web Chat':'Integración preparada con NIVO Web Chat'?></b><small><?=($webchatActive&&($botcfg['enabled']??0))?'Cuando llega un mensaje por Web Chat, NIVO evalúa reglas, conocimiento y transferencia humana automáticamente.':'Activa el asistente y el Web Chat para usar este flujo con visitantes reales.'?></small></span></div>
 </section>
-<section class="nivo-tabs" aria-label="Secciones de NIVO"><a href="#behavior"><i class="fa-solid fa-sliders"></i> Comportamiento</a><a href="#solutions"><i class="fa-solid fa-layer-group"></i> Soluciones</a><a href="#rules"><i class="fa-solid fa-diagram-project"></i> Reglas</a><a href="#knowledge-sites"><i class="fa-solid fa-globe"></i> Fuentes web</a><a href="#knowledge"><i class="fa-solid fa-book-open"></i> Conocimiento</a><a href="#external-ai"><i class="fa-solid fa-cloud"></i> IA externa</a><a href="#playground"><i class="fa-solid fa-flask"></i> Probar NIVO</a></section>
+<section class="nivo-tabs" aria-label="Secciones de NIVO"><a href="#behavior"><i class="fa-solid fa-sliders"></i> Comportamiento</a><a href="#solutions"><i class="fa-solid fa-layer-group"></i> Soluciones</a><a href="#rules"><i class="fa-solid fa-diagram-project"></i> Reglas</a><a href="#knowledge-sites"><i class="fa-solid fa-globe"></i> Fuentes web</a><a href="#knowledge"><i class="fa-solid fa-book-open"></i> Conocimiento</a><a href="#learning"><i class="fa-solid fa-graduation-cap"></i> Aprendizaje</a><a href="#external-ai"><i class="fa-solid fa-cloud"></i> IA externa</a><a href="#playground"><i class="fa-solid fa-flask"></i> Probar NIVO</a></section>
 <form id="botForm"><input type="hidden" name="action" value="bot_save"><section class="panel nivo-section" id="behavior"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-robot"></i></span><div><b>Comportamiento de NIVO</b><small>NIVO usa primero reglas y conocimiento local. Si habilitas IA externa, OpenAI entra únicamente como segunda fase cuando el motor interno no resuelve.</small></div></div><div class="settings-grid">
  <div class="field"><label>Asistente habilitado</label><label class="switch-line nivo-master-switch"><input name="enabled" type="checkbox" <?=($botcfg['enabled']??0)?'checked':''?>><span class="switch-control" aria-hidden="true"></span><span class="switch-label-text"><?=($botcfg['enabled']??0)?'NIVO activo':'Activar NIVO'?></span></label><small class="field-help">Al activarlo, NIVO puede responder, sugerir borradores y automatizar según reglas y conocimiento aprobados.</small></div>
  <div class="field"><label>Nombre visible</label><input name="name" maxlength="100" value="<?=htmlspecialchars($botcfg['name']??'NIVO')?>"><small class="field-help">Nombre que verán agentes y clientes cuando corresponda.</small></div>
@@ -65,8 +85,8 @@ $monthTokens=(int)($openAiUsage['input_tokens']??0)+(int)($openAiUsage['output_t
   </div>
   <div class="nivo-policy-numbers">
    <div class="field"><label>Mensajes de contexto</label><input name="context_messages" type="number" min="0" max="20" value="<?=htmlspecialchars((string)($policy['context_messages']??6))?>"><small class="field-help">Últimos mensajes que NIVO considera como referencia operativa.</small></div>
-   <div class="field"><label>Fallos antes de transferir</label><input name="unknown_before_handoff" type="number" min="1" max="5" value="<?=htmlspecialchars((string)($policy['unknown_before_handoff']??1))?>"></div>
-   <div class="field"><label>Máximo respuestas automáticas</label><input name="max_auto_replies" type="number" min="1" max="100" value="<?=htmlspecialchars((string)($policy['max_auto_replies']??25))?>"></div>
+   <div class="field"><label>Fallos antes de transferir</label><input name="unknown_before_handoff" type="number" min="1" max="10" value="<?=htmlspecialchars((string)($policy['unknown_before_handoff']??3))?>"><small class="field-help">NIVO primero pide contexto adicional y registra la duda para aprendizaje.</small></div>
+   <div class="field"><label>Límite de respuestas automáticas</label><input name="max_auto_replies" type="number" min="0" max="10000" value="<?=htmlspecialchars((string)($policy['max_auto_replies']??0))?>"><small class="field-help">0 = conversación continua. Usa un límite solo si tu operación lo necesita.</small></div>
    <div class="field"><label>Pausa entre respuestas</label><div class="input-suffix"><input name="cooldown_seconds" type="number" min="0" max="30" value="<?=htmlspecialchars((string)($policy['cooldown_seconds']??1))?>"><span>seg</span></div></div>
    <div class="field"><label>Máximo de caracteres por pregunta</label><input name="max_input_chars" type="number" min="200" max="10000" value="<?=htmlspecialchars((string)($policy['max_input_chars']??3000))?>"></div>
    <div class="field"><label>Palabras bloqueadas</label><input name="blocked_keywords" maxlength="1200" value="<?=htmlspecialchars((string)($policy['blocked_keywords']??''))?>" placeholder="secreto, contraseña, tarjeta completa"></div>
@@ -102,6 +122,34 @@ $monthTokens=(int)($openAiUsage['input_tokens']??0)+(int)($openAiUsage['output_t
  <?php if(!$sources):?><div class="empty-compact"><i class="fa-solid fa-book-open"></i><b>Sin conocimiento todavía</b><span>Agrega FAQs, productos, procesos o políticas.</span></div><?php else:?><div class="nivo-list"><?php foreach($sources as $src):?><div class="nivo-list-row"><div><b><?=htmlspecialchars($src['name'])?></b><small><?=htmlspecialchars($src['solution_name']?:'General')?><?=!empty($src['module_name'])?' · '.htmlspecialchars($src['module_name']):''?> · <?=htmlspecialchars(strtoupper($src['source_type']))?></small><span class="knowledge-state <?=($src['approval_status']??'approved')==='approved'?'approved':'pending'?>"><?=($src['approval_status']??'approved')==='approved'?'Publicado':'Pendiente de revisión'?></span></div><?php if(($src['approval_status']??'approved')!=='approved'):?><button type="button" class="icon-btn knowledge-approve" data-id="<?=$src['id']?>" title="Aprobar y publicar"><i class="fa-solid fa-check"></i></button><?php endif?><button type="button" class="icon-btn knowledge-delete" data-id="<?=$src['id']?>" title="Eliminar fuente"><i class="fa-solid fa-trash"></i></button></div><?php endforeach?></div><?php endif?>
  <div class="knowledge-import-meta"><select id="knowledgeFileSolution" class="select2"><option value="0">Conocimiento general</option><?php foreach($solutions as $sol):?><option value="<?=$sol['id']?>"><?=htmlspecialchars($sol['name'])?></option><?php endforeach?></select><select id="knowledgeFileModule" class="select2"><option value="0">Sin módulo específico</option><?php foreach($modules as $m):?><option value="<?=$m['id']?>" data-solution="<?=$m['solution_id']?>"><?=htmlspecialchars($m['solution_name'].' · '.$m['name'])?></option><?php endforeach?></select></div><label class="upload-zone nivo-upload" tabindex="0"><i class="fa-solid fa-file-arrow-up"></i><b>Importar archivo de conocimiento</b><small>TXT, MD, CSV o JSON · máximo 2 MB · entra como pendiente para revisión</small><input id="knowledgeFile" type="file" accept=".txt,.md,.csv,.json,text/plain,text/csv,application/json" hidden></label>
  </article>
+</section>
+<section class="panel nivo-section nivo-learning-section" id="learning">
+ <div class="panel-head premium-card-head">
+  <span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-graduation-cap"></i></span>
+  <div><b>Aprendizaje supervisado por empresa</b><small>NIVO registra preguntas que no pudo resolver y respuestas humanas candidatas. Nada se publica automáticamente: primero lo revisa tu empresa.</small></div>
+  <span class="status-badge <?=count($learningQueue)?'warning':'connected'?>"><i class="fa-solid fa-circle"></i> <?=count($learningQueue)?> pendientes</span>
+ </div>
+ <div class="nivo-web-source-info">
+  <span><i class="fa-solid fa-building-shield"></i><b>Aislado por tenant</b><small>Estas preguntas pertenecen únicamente a <?=htmlspecialchars($_SESSION['user']['company']??'esta empresa')?>.</small></span>
+  <span><i class="fa-solid fa-user-check"></i><b>Revisión humana</b><small>NIVO propone; un administrador decide qué conocimiento se publica.</small></span>
+  <span><i class="fa-solid fa-arrow-trend-up"></i><b>Mejora continua</b><small>Las preguntas repetidas suben de prioridad por número de ocurrencias.</small></span>
+ </div>
+ <?php if(!$learningQueue):?>
+  <div class="empty-compact"><i class="fa-solid fa-circle-check"></i><b>Sin preguntas pendientes</b><span>Cuando NIVO encuentre una duda sin respuesta segura, aparecerá aquí para revisión.</span></div>
+ <?php else:?><div class="nivo-list">
+  <?php foreach($learningQueue as $learn):?>
+   <div class="nivo-list-row nivo-learning-row">
+    <div><b><?=htmlspecialchars(mb_strimwidth($learn['question'],0,150,'…'))?></b>
+     <small><?=htmlspecialchars(strtoupper((string)($learn['channel_type']?:'canal')))?> · <?=$learn['occurrences']?> ocurrencia(s) · Última <?=htmlspecialchars((string)$learn['last_seen_at'])?></small>
+     <?php if(!empty($learn['suggested_answer'])):?><span><?=htmlspecialchars(mb_strimwidth($learn['suggested_answer'],0,240,'…'))?></span><?php else:?><span class="knowledge-state pending">Pendiente de una respuesta aprobada</span><?php endif?>
+    </div>
+    <div class="nivo-row-actions">
+     <?php if(!empty($learn['suggested_answer'])):?><button type="button" class="icon-btn learning-approve" data-id="<?=$learn['id']?>" title="Aprobar como conocimiento"><i class="fa-solid fa-check"></i></button><?php endif?>
+     <button type="button" class="icon-btn danger learning-reject" data-id="<?=$learn['id']?>" title="Descartar"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+   </div>
+  <?php endforeach?>
+ </div><?php endif?>
 </section>
 <?php if(isPlatformOwner()):?><section class="panel nivo-section" id="demo-agents"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-robot"></i></span><div><b>Agentes de demostración</b><small>Solo para tu empresa principal. Permite probar transferencias con nombres alternos cuando todavía no tienes suficientes usuarios reales.</small></div></div><form id="aliasForm" class="inline-form"><input type="hidden" name="action" value="nivo_alias_add"><div class="field"><label>Nombre visible</label><input name="display_name" required maxlength="160" placeholder="Ej. Juan Velásquez"></div><button class="primary"><i class="fa-solid fa-user-plus"></i> Agregar agente</button></form><div class="nivo-list"><?php foreach($aliases as $a):?><div class="nivo-list-row"><div><b><?=htmlspecialchars($a['display_name'])?></b><small>Agente de demostración</small></div><button type="button" class="icon-btn alias-delete" data-id="<?=$a['id']?>"><i class="fa-solid fa-trash"></i></button></div><?php endforeach?></div></section><?php endif?>
 <section class="panel nivo-section" id="external-ai">

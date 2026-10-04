@@ -845,6 +845,7 @@ if ($action === 'send') {
     $reply = $engine['reply'] ?? null;
     $handoff = !empty($engine['handoff']);
     $replySource = $engine['source'] ?? null;
+    $replySources = $engine['sources'] ?? [];
 
     if ($reply) {
         $pdo->prepare(
@@ -895,7 +896,8 @@ if ($action === 'send') {
         'conversation_id' => $cid,
         'bot_reply' => $reply,
         'handoff' => $handoff,
-        'reply_source' => $replySource
+        'reply_source' => $replySource,
+        'reply_sources' => $replySources
     ]);
 }
 

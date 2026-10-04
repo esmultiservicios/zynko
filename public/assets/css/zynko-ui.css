@@ -5405,3 +5405,11 @@ body:has(.inbox-premium-toolbar) .chat-actions .history-jump:hover{
   body:has(.inbox-premium-toolbar) .chat-actions .history-jump{width:34px!important;min-width:34px!important;padding:0!important;font-size:0!important}
   body:has(.inbox-premium-toolbar) .chat-actions .history-jump i{font-size:11px!important}
 }
+
+/* V2.31.86 · NIVO learning / tenant isolation */
+.nivo-learning-section .nivo-list{max-height:460px}
+.nivo-learning-row{grid-template-columns:minmax(0,1fr) auto!important}
+.nivo-learning-row>div:first-child{display:grid;gap:5px}
+.nivo-learning-row .nivo-row-actions{display:flex!important;align-items:center;gap:8px}
+.nivo-learning-section .status-badge.warning{background:#fff6df;color:#8b5b00;border-color:#f2d18a}
+@media(max-width:760px){.nivo-learning-row{grid-template-columns:1fr!important}.nivo-learning-row .nivo-row-actions{justify-content:flex-end}}

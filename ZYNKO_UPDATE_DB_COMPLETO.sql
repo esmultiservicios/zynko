@@ -557,3 +557,33 @@ ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.85' AS version_objetivo;
 
+
+
+-- ============================================================
+-- ZYNKO V2.31.86 · NIVO IA multiempresa + aprendizaje supervisado
+-- Este bloque no usa PREPARE/EXECUTE.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `nivo_learning_queue` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `conversation_id` BIGINT UNSIGNED NULL,
+  `channel_type` VARCHAR(40) NULL,
+  `question` VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `normalized_question` VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `suggested_answer` TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `source_hint` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `occurrences` INT UNSIGNED NOT NULL DEFAULT 1,
+  `status` ENUM('pending','review','approved','rejected') NOT NULL DEFAULT 'pending',
+  `first_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_seen_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reviewed_by` BIGINT UNSIGNED NULL,
+  `reviewed_at` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_nivo_learning_tenant_status` (`tenant_id`,`status`,`last_seen_at`),
+  KEY `idx_nivo_learning_conversation` (`tenant_id`,`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.86')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.86' AS version_objetivo;

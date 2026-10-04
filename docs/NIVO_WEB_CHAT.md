@@ -1,102 +1,144 @@
-# NIVO Web Chat — instalación, permisos y operación
+# NIVO Web Chat — instalación, experiencia, seguridad y NIVO IA
+
+NIVO Web Chat es el canal web propio de ZYNKO. Cada empresa configura su widget, autoriza sus dominios y atiende las conversaciones desde su Bandeja. Cuando NIVO IA está activo, el mismo chat utiliza reglas y conocimiento **del tenant propietario**.
+
+## Flujo completo
+
+1. El visitante abre el widget en un dominio autorizado.
+2. ZYNKO valida `installation_key` + origen real.
+3. Se identifica el tenant dueño de esa instalación.
+4. Se crea o recupera la conversación del visitante.
+5. El mensaje entra a la Bandeja del tenant.
+6. NIVO IA evalúa reglas, contexto y conocimiento de ese mismo tenant.
+7. La respuesta se guarda en el historial completo.
+8. Si NIVO no tiene suficiente confianza, pide contexto adicional o transfiere a humano según la política.
+9. El visitante o el agente pueden finalizar el chat.
+10. Al cierre puede solicitarse una encuesta de satisfacción.
 
 ## Modelo de seguridad
-Cada sitio externo autorizado recibe una `installation_key` única. ZYNKO valida la clave junto con el dominio real que hace la petición. Una clave copiada a otro dominio no debe funcionar.
+
+Cada sitio externo autorizado recibe una `installation_key` única. ZYNKO valida la clave junto con el dominio real que hace la petición. Una clave copiada a otro dominio no funciona.
+
+CORS es dinámico: no existe una lista global hardcodeada de clientes. `webchat-api.php` valida la instalación y solo devuelve `Access-Control-Allow-Origin` para el origen autorizado correspondiente.
 
 ## Instalación
+
 1. En **NIVO Web Chat**, configura apariencia y comportamiento.
-2. En **Sitios autorizados**, registra el dominio exacto del cliente.
+2. En **Sitios autorizados**, registra el dominio exacto.
 3. Copia el script único generado para ese sitio.
 4. Pégalo antes de `</body>` o en el gestor global de scripts del CMS.
 5. Recarga el sitio y verifica **Último uso**.
-
-Ejemplo:
 
 ```html
 <script src="https://TU-DOMINIO-ZYNKO/nivo-widget.js" data-zynko-key="CLAVE_UNICA_DEL_SITIO" async></script>
 ```
 
+## Relación con NIVO IA
+
+NIVO Web Chat no tiene una base de conocimiento independiente. Cuando NIVO IA está activo, el widget utiliza:
+
+- reglas del tenant;
+- conocimiento manual aprobado;
+- archivos aprobados;
+- fuentes web sincronizadas del tenant;
+- aprendizaje supervisado aprobado;
+- IA externa, únicamente cuando está permitida.
+
+El conocimiento de otras empresas queda fuera de la consulta.
+
+## Experiencia conversacional
+
+- indicador “NIVO está escribiendo…” antes del saludo inicial;
+- identidad contextual de la empresa;
+- nombre opcional del visitante y perfil editable;
+- historial completo desde el primer saludo;
+- apertura por defecto en el último mensaje;
+- controles Inicio / Último sin tapar la conversación;
+- estado online y NIVO IA activo;
+- sonido y contador de mensajes;
+- persistencia abierto/minimizado;
+- inactividad y cierre automático configurables;
+- Finalizar chat;
+- encuesta de satisfacción de 1 a 5 estrellas;
+- Iniciar nuevo chat sin mezclar el historial anterior.
+
+## Sesiones e historial
+
+El historial se guarda por tenant, conversación y visitante. El polling/realtime no debe forzar al visitante al final si está leyendo mensajes antiguos. Al abrir inicialmente el chat sí se posiciona en el mensaje más reciente.
+
+## Transferencia humana
+
+NIVO puede transferir cuando:
+
+- el visitante pide una persona;
+- una regla lo exige;
+- se superan los intentos de aclaración configurados;
+- el canal/política impide respuesta automática;
+- un agente toma la conversación.
+
+Cuando existe un agente asignado y la política `pause_when_assigned` está activa, NIVO deja de intervenir automáticamente.
+
+## Aprendizaje desde la Bandeja
+
+Si NIVO no sabe responder una pregunta, la registra para revisión. Si después un agente responde al cliente, esa respuesta puede quedar como candidata de aprendizaje. El administrador decide si se publica. El widget se beneficia de ese conocimiento en conversaciones futuras del mismo tenant.
+
 ## Controles premium
-- activar/desactivar instalación sin borrar historial;
-- autoapertura;
-- autoapertura una sola vez;
+
+- activar/desactivar widget;
+- autoapertura y autoapertura única;
 - typing y retraso configurable;
 - respuestas rápidas;
 - timestamps;
 - sonido y contador;
 - persistencia abierto/minimizado;
-- caducidad de sesión del visitante;
+- caducidad de sesión;
 - ocultar en móvil;
-- rutas permitidas;
-- rutas bloqueadas;
+- rutas permitidas/bloqueadas;
 - polling y reconexión;
+- WebSocket cuando esté disponible;
 - estado online;
 - alerta mediante título del navegador;
 - animación del launcher;
-- respeto a `prefers-reduced-motion`.
+- respeto a `prefers-reduced-motion`;
+- perfil de visitante;
+- seguimiento por inactividad;
+- cierre seguro;
+- encuesta de satisfacción.
 
 ## Multiempresa
-Cada empresa administra únicamente sus propios sitios. Los límites de cantidad de sitios dependen del plan. El sitio principal de ZYNKO se administra automáticamente y no consume el cupo de sitios externos.
 
-## CORS
-NIVO Web Chat no debe usar una lista global de dominios hardcodeados. `webchat-api.php` valida dinámicamente la `installation_key` contra el sitio autorizado y responde CORS para el origen válido.
+Cada empresa administra únicamente:
+
+- sus widgets;
+- sus sitios autorizados;
+- sus visitantes y conversaciones;
+- su NIVO IA;
+- sus reglas;
+- su conocimiento;
+- sus fuentes web;
+- su aprendizaje supervisado.
+
+La empresa principal de ZYNKO puede administrar su propio tenant, pero eso no convierte su conocimiento en conocimiento global de clientes.
 
 ## Diagnóstico
-Si el script carga pero el widget no aparece, revisar: sitio activo, clave correcta, dominio normalizado, plan/límite, consola del navegador, respuesta de `webchat-api.php` y última detección en Admin.
 
-## Experiencia conversacional V2.31.62
+Si el script carga pero el widget no aparece, revisar:
 
-NIVO Web Chat ya no muestra el saludo inicial como texto estático. En una conversación nueva, el widget muestra primero el estado **NIVO está escribiendo…** y después presenta un saludo dinámico.
+- sitio activo;
+- clave correcta;
+- dominio normalizado;
+- CORS/preflight;
+- plan y límite de sitios;
+- consola del navegador;
+- respuesta de `webchat-api.php`;
+- última detección en Admin.
 
-### Identidad y contexto
+Si NIVO no responde, revisar:
 
-- Para el tenant principal, NIVO mantiene la identidad propietaria de **ES MULTISERVICIOS**.
-- Si el sitio autorizado corresponde a ZYNKO, IZZY o CAMI, el saludo y subtítulo contextualizan ese producto sin perder la marca propietaria.
-- Para empresas cliente, NIVO utiliza automáticamente el nombre del tenant del cliente.
-- El pie de marca del widget mantiene `NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS`.
-
-### Perfil del visitante
-
-El nombre y correo son opcionales salvo que el administrador los marque como requeridos. Cuando existen, se conservan durante la sesión, pueden editarse desde el propio widget y se sincronizan con el contacto de la Bandeja. El motor NIVO utiliza el nombre para personalizar respuestas cuando la política de IA lo permite.
-
-### Inactividad y cierre de sesión
-
-Desde Admin se pueden configurar:
-
-- minutos antes del mensaje de seguimiento;
-- texto del seguimiento;
-- minutos antes del cierre automático;
-- texto del cierre por inactividad;
-- duración máxima del token local del visitante.
-
-Al cerrar por inactividad, la conversación se marca como cerrada y el visitante puede iniciar una nueva conversación sin arrastrar el estado anterior.
-
-### Controles premium agregados
-
-- saludo según horario;
-- retardo del primer saludo;
-- perfil persistente del visitante;
-- perfil editable durante la conversación;
-- identidad contextual por sitio;
-- estado conversacional visible;
-- seguimiento por inactividad;
-- cierre automático seguro.
-
-
-## Historial, cierre y satisfacción (V2.31.79)
-
-- El historial Web Chat se devuelve completo y ordenado por fecha + ID, incluyendo el saludo inicial persistido.
-- El visitante dispone de accesos **Inicio** y **Último** para recorrer conversaciones largas sin que el polling lo devuelva al final.
-- **Finalizar chat** cierra la atención sin borrar el historial.
-- Al finalizar, NIVO puede solicitar una calificación de 1 a 5 estrellas y un comentario opcional.
-- Después del cierre, **Iniciar nuevo chat** separa la nueva conversación del historial anterior.
-- Si un agente finaliza una conversación Web Chat desde Bandeja, el widget recibe la solicitud de encuesta en tiempo real/polling.
-- Las respuestas de satisfacción se guardan por empresa/conversación y se muestran en Cliente 360°.
-
-
-## Conversación continua y controles premium (V2.31.82)
-
-- Las consultas sobre IZZY, CAMI y ZYNKO de la empresa principal se atienden antes de límites automáticos para evitar silencios en medio del flujo.
-- Si una política alcanza el máximo de respuestas automáticas, NIVO informa al visitante y ofrece continuar mediante un nuevo chat o atención humana; nunca queda sin respuesta silenciosamente.
-- El navegador de historial Inicio / Último usa un control compacto premium que mantiene el espacio útil del chat.
-- Finalizar chat e Iniciar nuevo chat muestran acciones con icono, título, descripción y jerarquía visual consistente.
+- NIVO IA activo;
+- canal Web Chat habilitado;
+- conocimiento/reglas aprobados;
+- confianza mínima;
+- agente humano asignado;
+- política de horario;
+- cola de aprendizaje para preguntas que aún no tienen respuesta.

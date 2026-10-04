@@ -54,9 +54,95 @@ final class NivoEngine
 ",$picked);return mb_strlen($reply)>$limit?mb_substr($reply,0,$limit).'…':$reply;
     }
 
+
+    private static function ensureLearningQueue(PDO $pdo): void
+    {
+        try {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS nivo_learning_queue (
+                id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                tenant_id BIGINT UNSIGNED NOT NULL,
+                conversation_id BIGINT UNSIGNED NULL,
+                channel_type VARCHAR(40) NULL,
+                question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                normalized_question VARCHAR(1200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+                suggested_answer TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                source_hint VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+                occurrences INT UNSIGNED NOT NULL DEFAULT 1,
+                status ENUM('pending','review','approved','rejected') NOT NULL DEFAULT 'pending',
+                first_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_seen_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                reviewed_by BIGINT UNSIGNED NULL,
+                reviewed_at DATETIME NULL,
+                INDEX idx_nivo_learning_tenant_status(tenant_id,status,last_seen_at),
+                INDEX idx_nivo_learning_conversation(tenant_id,conversation_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (Throwable $ignore) {
+        }
+    }
+
+    private static function captureLearningQuestion(PDO $pdo,int $tenantId,int $conversationId,string $channelType,string $question,?string $sourceHint=null): void
+    {
+        self::ensureLearningQueue($pdo);
+        $question=trim($question);
+        if($question==='')return;
+        $normalized=mb_substr(self::norm($question),0,1200);
+        try {
+            $q=$pdo->prepare("SELECT id FROM nivo_learning_queue WHERE tenant_id=? AND normalized_question=? AND status IN ('pending','review') ORDER BY id DESC LIMIT 1");
+            $q->execute([$tenantId,$normalized]);
+            $id=(int)($q->fetchColumn()?:0);
+            if($id){
+                $pdo->prepare("UPDATE nivo_learning_queue SET occurrences=occurrences+1,last_seen_at=NOW(),conversation_id=?,channel_type=?,source_hint=COALESCE(?,source_hint) WHERE id=? AND tenant_id=?")
+                    ->execute([$conversationId?:null,$channelType,$sourceHint,$id,$tenantId]);
+            }else{
+                $pdo->prepare("INSERT INTO nivo_learning_queue(tenant_id,conversation_id,channel_type,question,normalized_question,source_hint,status) VALUES(?,?,?,?,?,?,'pending')")
+                    ->execute([$tenantId,$conversationId?:null,$channelType,mb_substr($question,0,1200),$normalized,$sourceHint]);
+            }
+        } catch (Throwable $ignore) {
+        }
+    }
+
+    private static function contextualSearchText(PDO $pdo,int $tenantId,int $conversationId,string $message): string
+    {
+        if($conversationId<=0)return $message;
+        try{
+            $q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='in' AND body IS NOT NULL ORDER BY id DESC LIMIT 6");
+            $q->execute([$tenantId,$conversationId]);
+            $history=array_reverse(array_values(array_filter(array_map('trim',array_column($q->fetchAll(PDO::FETCH_ASSOC),'body')))));
+            if($history){
+                $history[]=$message;
+                return implode("\n",$history);
+            }
+        }catch(Throwable $ignore){}
+        return $message;
+    }
+
+    private static function rankedKnowledge(PDO $pdo,int $tenantId,string $query,array $words,int $limit=3): array
+    {
+        $q=$pdo->prepare("SELECT id,name,source_type,source_ref,content,updated_at FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 500");
+        $q->execute([$tenantId]);
+        $ranked=[];
+        foreach($q->fetchAll() as $r){
+            $score=self::knowledgeScore($query,(string)($r['name']??''),(string)($r['content']??''),$words);
+            if($score<=0)continue;
+            $ts=strtotime((string)($r['updated_at']??'')); if($ts && $ts>=time()-2592000)$score+=1;
+            $r['_score']=$score;
+            $ranked[]=$r;
+        }
+        usort($ranked,fn($a,$b)=>(int)$b['_score']<=>(int)$a['_score']);
+        $out=[];$seen=[];
+        foreach($ranked as $r){
+            $fingerprint=sha1(self::norm(mb_substr((string)$r['content'],0,1200)));
+            if(isset($seen[$fingerprint]))continue;
+            $seen[$fingerprint]=true;
+            $out[]=$r;
+            if(count($out)>=max(1,min(5,$limit)))break;
+        }
+        return $out;
+    }
+
     public static function evaluate(PDO $pdo,int $tenantId,int $conversationId,string $message,string $channelType,string $contactName,string $companyName): array
     {
-        $result=['enabled'=>false,'reply'=>null,'handoff'=>false,'source'=>null,'confidence'=>'none','channel'=>$channelType,'reason'=>'inactive'];
+        $result=['enabled'=>false,'reply'=>null,'handoff'=>false,'source'=>null,'sources'=>[],'confidence'=>'none','channel'=>$channelType,'reason'=>'inactive'];
         try{
             $q=$pdo->prepare('SELECT enabled,name,mode,fallback_message,handoff_rules_json,business_hours_json,knowledge_enabled,channel_policy_json FROM bot_profiles WHERE tenant_id=? LIMIT 1');
             $q->execute([$tenantId]);$bot=$q->fetch();
@@ -83,37 +169,20 @@ final class NivoEngine
             $normMessage=self::norm($message);
             foreach($blocked as $word){if($word!==''&&mb_strpos($normMessage,$word)!==false){$result['reason']='blocked_keyword';$result['handoff']=true;$result['reply']='Por seguridad no puedo procesar ese contenido automáticamente. Una persona puede continuar contigo.';return $result;}}
 
-            // V2.31.82 · Las consultas comerciales principales nunca deben quedar en silencio.
-            // Se resuelven antes de los límites de respuestas automáticas para mantener una conversación natural.
-            $companyNorm=self::norm($companyName);
-            $displayNameEarly=trim($contactName);
-            if($displayNameEarly===''||in_array(self::norm($displayNameEarly),['visitante','visitante web'],true))$displayNameEarly='';
-            $englishEarly=!empty($policy['language_auto'])&&(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks|thank you)\b/i',$message);
-            if(str_contains($companyNorm,'es multiservicios')&&str_contains($normMessage,'izzy')){
-                $reply='IZZY puede ayudarte a manejar facturación, inventario, productos, ventas, POS, restaurantes y tareas administrativas desde una misma solución. Para saber si encaja en tu negocio, dime qué tipo de empresa tienes, cuántas personas o puntos de venta manejas y qué proceso quieres mejorar; con eso puedo orientarte de forma concreta sobre los módulos que te convienen.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:izzy:guided','high',false,$displayNameEarly,$englishEarly);
-            }
-            if(str_contains($companyNorm,'es multiservicios')&&str_contains($normMessage,'cami')){
-                $reply='CAMI está pensado para clínicas y centros médicos. Ayuda a organizar pacientes, procesos clínicos, farmacia y facturación. Si me dices qué tipo de clínica manejas y qué proceso deseas ordenar, puedo indicarte cómo CAMI puede adaptarse a tu operación.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:cami:guided','high',false,$displayNameEarly,$englishEarly);
-            }
-            if(str_contains($companyNorm,'es multiservicios')&&(str_contains($normMessage,'zynko')||str_contains($normMessage,'nivo web chat'))){
-                $reply='ZYNKO centraliza las conversaciones de atención al cliente en una sola bandeja para que tu equipo pueda responder, asignar, dar seguimiento y mantener el historial ordenado. Incluye NIVO Web Chat, NIVO IA e integraciones; y puede incorporar canales externos cuando estén habilitados. Si me cuentas cómo atiendes hoy a tus clientes, puedo orientarte sobre cómo usarlo.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:zynko:guided','high',false,$displayNameEarly,$englishEarly);
-            }
-
             if(!empty($policy['pause_when_assigned'])){
                 $q=$pdo->prepare('SELECT assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');$q->execute([$conversationId,$tenantId]);
                 if((int)($q->fetchColumn()?:0)>0){$result['reason']='human_assigned';return $result;}
             }
 
-            $max=max(1,min(100,(int)($policy['max_auto_replies']??25)));
-            $q=$pdo->prepare("SELECT COUNT(*) FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot'");$q->execute([$tenantId,$conversationId]);
-            if((int)$q->fetchColumn()>=$max){
-                $result['reason']='max_auto_replies';
-                $result['handoff']=true;
-                $result['reply']='He llegado al límite de respuestas automáticas configurado para esta conversación. Puedes finalizar este chat e iniciar uno nuevo, o solicitar que una persona continúe contigo.';
-                return $result;
+            $max=max(0,min(10000,(int)($policy['max_auto_replies']??0)));
+            if($max>0){
+                $q=$pdo->prepare("SELECT COUNT(*) FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot'");$q->execute([$tenantId,$conversationId]);
+                if((int)$q->fetchColumn()>=$max){
+                    $result['reason']='max_auto_replies';
+                    $result['handoff']=true;
+                    $result['reply']='Esta conversación alcanzó el límite operativo configurado. Puedes iniciar un nuevo chat o pedir que una persona continúe contigo.';
+                    return $result;
+                }
             }
 
             $cool=max(0,min(30,(int)($policy['cooldown_seconds']??1)));
@@ -140,29 +209,6 @@ final class NivoEngine
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'capabilities','high',false,$displayName,$english);
             }
 
-            // V2.31.79 · Lenguaje comercial claro para la empresa principal.
-            if(self::norm($companyName)==='es multiservicios'&&(
-                str_contains($norm,'soluciones')||str_contains($norm,'servicios')||str_contains($norm,'que ofrecen')||str_contains($norm,'que tiene es multiservicios')
-            )&&!str_contains($norm,'izzy')&&!str_contains($norm,'cami')&&!str_contains($norm,'zynko')){
-                $reply='ES MULTISERVICIOS ofrece tres soluciones principales: IZZY para facturación, inventario, POS, restaurantes y gestión empresarial; CAMI para clínicas, pacientes, farmacia y facturación; y ZYNKO para reunir en una sola bandeja las conversaciones que llegan desde distintos canales, además de NIVO Web Chat, NIVO IA e integraciones. Si me dices qué tipo de negocio tienes, puedo ayudarte a identificar cuál encaja mejor.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'company:solutions','high',false,$displayName,$english);
-            }
-
-            // V2.31.78 · Intenciones de productos principales. Estas respuestas base evitan
-            // silencios cuando el visitante pregunta por funciones, utilidad o ajuste al negocio.
-            if(self::norm($companyName)==='es multiservicios'&&str_contains($norm,'izzy')){
-                $reply='IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa. Puede ayudarte a controlar ventas, productos y existencias, operar puntos de venta, manejar procesos de restaurante y centralizar tareas administrativas. Si me dices qué tipo de negocio tienes y qué proceso quieres mejorar, puedo orientarte sobre cómo encaja IZZY en tu operación.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:izzy','high',false,$displayName,$english);
-            }
-            if(self::norm($companyName)==='es multiservicios'&&str_contains($norm,'cami')){
-                $reply='CAMI es la solución de ES MULTISERVICIOS orientada a clínicas y centros médicos. Ayuda a organizar pacientes, procesos clínicos, farmacia y facturación. Si me cuentas qué tipo de clínica o servicio manejas, puedo orientarte sobre las áreas de CAMI que mejor se ajustan a tu operación.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:cami','high',false,$displayName,$english);
-            }
-            if(self::norm($companyName)==='es multiservicios'&&(str_contains($norm,'zynko')||str_contains($norm,'nivo web chat'))){
-                $reply='ZYNKO reúne en una sola bandeja las conversaciones que llegan desde distintos canales, por ejemplo NIVO Web Chat y, cuando estén habilitados, WhatsApp o Messenger. También incorpora NIVO IA, equipos, asignaciones e integraciones para que la empresa atienda y organice sus conversaciones desde un solo lugar.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:zynko','high',false,$displayName,$english);
-            }
-
             if($isGreeting){
                 if($english)$reply='Hello'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 I’m NIVO, the virtual assistant for '.$companyName.'. How can I help you today?';
                 else $reply='¡Hola'.($personalized&&$displayName!==''?', '.$displayName:'').'! 👋 Soy NIVO, el asistente virtual de '.$companyName.'. ¿En qué puedo ayudarte hoy?';
@@ -180,10 +226,55 @@ final class NivoEngine
             foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($norm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
 
             if(!empty($bot['knowledge_enabled'])){
-                $words=self::expandedWords($norm);$q=$pdo->prepare("SELECT name,source_type,source_ref,content FROM knowledge_sources WHERE tenant_id=? AND status='ready' AND approval_status='approved' AND content IS NOT NULL ORDER BY updated_at DESC LIMIT 350");$q->execute([$tenantId]);$best=null;$score=0;
-                foreach($q->fetchAll() as $r){$n=self::knowledgeScore($message,(string)($r['name']??''),(string)($r['content']??''),$words);if($n>$score){$score=$n;$best=$r;}}
+                $searchText=self::contextualSearchText($pdo,$tenantId,$conversationId,$message);
+                $words=self::expandedWords($searchText);
+                $ranked=self::rankedKnowledge($pdo,$tenantId,$searchText,$words,3);
                 $min=$settings['min_confidence']??'medium';$required=$min==='high'?7:($min==='low'?2:4);
-                if($best&&$score>=$required){$limit=max(180,min(1500,(int)($settings['max_response_length']??700)));$reply=self::relevantExcerpt((string)$best['content'],$words,$limit);$tone=$settings['tone']??'professional';if($tone==='friendly')$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';$source='knowledge:'.($best['name']??'');if(($best['source_type']??'')==='url'&&str_contains((string)($best['source_ref']??''),'|')){$parts=explode('|',(string)$best['source_ref'],2);$source.=' · '.($parts[1]??'');}return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,$source,$score>=9?'high':'medium',false,$displayName,$english);}
+                $best=$ranked[0]??null;$score=(int)($best['_score']??0);
+                if($best&&$score>=$required){
+                    $limit=max(180,min(1500,(int)($settings['max_response_length']??700)));
+                    $chunks=[];$sources=[];$used=0;
+                    foreach($ranked as $r){
+                        if((int)($r['_score']??0)<max(2,$required-1))continue;
+                        $chunk=self::relevantExcerpt((string)$r['content'],$words,max(180,(int)floor($limit/max(1,min(3,count($ranked))))));
+                        if($chunk===''||$used+mb_strlen($chunk)>$limit)continue;
+                        $chunks[]=$chunk;$used+=mb_strlen($chunk)+2;
+                        $label=(string)($r['name']??'Fuente');
+                        if(($r['source_type']??'')==='url'&&str_contains((string)($r['source_ref']??''),'|')){
+                            $parts=explode('|',(string)$r['source_ref'],2);$label.=' · '.($parts[1]??'');
+                        }
+                        $sources[]=$label;
+                    }
+                    $reply=implode("
+
+",$chunks?:[self::relevantExcerpt((string)$best['content'],$words,$limit)]);
+                    $tone=$settings['tone']??'professional';if($tone==='friendly')$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';
+                    $result['sources']=$sources;
+                    $source='knowledge:'.implode(' | ',array_slice($sources,0,3));
+                    return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,$source,$score>=9?'high':'medium',false,$displayName,$english);
+                }
+            }
+
+            // Respuestas base comerciales: solo se usan cuando el conocimiento aprobado del tenant no resolvió.
+            // Así las fuentes web y la base de conocimiento siempre tienen prioridad y estos textos evitan silencios mientras una fuente aún no existe.
+            $companyNorm=self::norm($companyName);
+            if($companyNorm==='es multiservicios'&&(
+                str_contains($norm,'soluciones')||str_contains($norm,'servicios')||str_contains($norm,'que ofrecen')||str_contains($norm,'que tiene es multiservicios')
+            )&&!str_contains($norm,'izzy')&&!str_contains($norm,'cami')&&!str_contains($norm,'zynko')){
+                $reply='ES MULTISERVICIOS ofrece tres soluciones principales: IZZY para facturación, inventario, POS, restaurantes y gestión empresarial; CAMI para clínicas, pacientes, farmacia y facturación; y ZYNKO para reunir en una sola bandeja las conversaciones que llegan desde distintos canales, además de NIVO Web Chat, NIVO IA e integraciones. Si me dices qué tipo de negocio tienes, puedo ayudarte a identificar cuál encaja mejor.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'company:solutions:fallback','high',false,$displayName,$english);
+            }
+            if($companyNorm==='es multiservicios'&&str_contains($norm,'izzy')){
+                $reply='IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa. Puede ayudarte a controlar ventas, productos y existencias, operar puntos de venta y centralizar tareas administrativas. Si me dices qué tipo de negocio tienes y qué proceso quieres mejorar, puedo orientarte con más precisión.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:izzy:fallback','high',false,$displayName,$english);
+            }
+            if($companyNorm==='es multiservicios'&&str_contains($norm,'cami')){
+                $reply='CAMI es la solución de ES MULTISERVICIOS orientada a clínicas y centros médicos. Ayuda a organizar pacientes, procesos clínicos, farmacia y facturación. Si me cuentas qué tipo de clínica o servicio manejas, puedo orientarte sobre las áreas que mejor se ajustan a tu operación.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:cami:fallback','high',false,$displayName,$english);
+            }
+            if($companyNorm==='es multiservicios'&&(str_contains($norm,'zynko')||str_contains($norm,'nivo web chat'))){
+                $reply='ZYNKO centraliza conversaciones de atención en una sola bandeja, incorpora NIVO Web Chat, NIVO IA, equipos, asignaciones e integraciones, y puede conectar canales externos cuando estén habilitados. Si me cuentas cómo atiendes hoy a tus clientes, puedo orientarte sobre el flujo que mejor encaja.';
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:zynko:fallback','high',false,$displayName,$english);
             }
 
             // Segunda fase opcional: NIVO local siempre intenta primero. OpenAI solo entra como fallback cuando está conectado, habilitado y permitido por el plan/tenant/canal.
@@ -192,9 +283,13 @@ final class NivoEngine
                 if($external&&trim((string)($external['reply']??''))!=='')return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$external['reply'],(string)($external['source']??'openai'),(string)($external['confidence']??'ai'),false,$displayName,$english);
             }catch(Throwable $ignore){}
 
-            $fallback=trim((string)($bot['fallback_message']??''));if($fallback==='')$fallback=$english?'I don’t have enough approved information to answer that safely. I can transfer you to a person.':'No tengo información suficiente para responder eso con seguridad. Si quieres, te transfiero con una persona para que continúe contigo.';
+            self::captureLearningQuestion($pdo,$tenantId,$conversationId,$channelType,$message,'low-confidence');
+            $fallback=trim((string)($bot['fallback_message']??''));
+            if($fallback==='')$fallback=$english
+                ? 'I do not have enough approved information yet. Could you give me one more detail about what you need? I will use it to search the approved knowledge again.'
+                : 'Todavía no tengo suficiente información aprobada para responder con seguridad. ¿Puedes darme un detalle más de lo que necesitas? Lo usaré para buscar mejor en el conocimiento autorizado.';
             if(!empty($policy['identity_enabled'])&&!str_contains(self::norm($fallback),'nivo'))$fallback=($english?'I’m NIVO, the virtual assistant for '.$companyName.'. ':'Soy NIVO, el asistente virtual de '.$companyName.'. ').$fallback;
-            $unknownBefore=max(1,min(5,(int)($policy['unknown_before_handoff']??1)));$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 10");$q->execute([$tenantId,$conversationId]);$unknown=0;foreach($q->fetchAll() as $m){if(str_contains(self::norm((string)$m['body']),'no tengo informacion')||str_contains(self::norm((string)$m['body']),'enough approved information'))$unknown++;}
+            $unknownBefore=max(1,min(10,(int)($policy['unknown_before_handoff']??3)));$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 20");$q->execute([$tenantId,$conversationId]);$unknown=0;foreach($q->fetchAll() as $m){if(str_contains(self::norm((string)$m['body']),'no tengo informacion')||str_contains(self::norm((string)$m['body']),'todavia no tengo suficiente')||str_contains(self::norm((string)$m['body']),'enough approved information'))$unknown++;}
             $handoff=(!array_key_exists('auto_handoff',$settings)||!empty($settings['auto_handoff']))&&($unknown+1>=$unknownBefore);
             return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$fallback,'fallback','low',$handoff,$displayName,$english);
         }catch(Throwable $e){$result['reason']='engine_error';return $result;}

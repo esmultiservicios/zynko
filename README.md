@@ -1,3 +1,33 @@
+## V2.31.86 · NIVO IA multiempresa + aprendizaje supervisado + documentación completa
+
+### MULTIEMPRESA
+- Se reforzó el aislamiento por `tenant_id` en reglas, conocimiento, soluciones, módulos, fuentes web y búsquedas de NIVO.
+- NIVO Web Chat resuelve el tenant desde su instalación/conversación y utiliza únicamente el conocimiento de esa empresa.
+- Se endurecieron joins y validaciones para evitar referencias cruzadas entre soluciones/módulos de tenants distintos.
+
+### 10 MEJORAS DE NIVO IA
+1. Contexto reciente de conversación para preguntas de seguimiento.
+2. Recuperación de hasta 3 fuentes relevantes por respuesta.
+3. Desduplicación de contenido web sincronizado.
+4. Cola de aprendizaje por tenant para preguntas sin respuesta segura.
+5. Priorización de dudas por número de ocurrencias.
+6. Respuestas humanas candidatas desde la Bandeja.
+7. Aprobación/rechazo humano antes de publicar conocimiento aprendido.
+8. Conversación continua con `0 = sin límite fijo` de respuestas automáticas.
+9. Fallback aclaratorio antes de transferir a humano.
+10. Trazabilidad de fuentes y conocimiento aprobado por empresa.
+
+### DOCUMENTACIÓN
+- Se reescribió `docs/NIVO_IA.md` con arquitectura multiempresa, fuentes web, aprendizaje, contexto, recuperación y seguridad.
+- Se reescribió `docs/NIVO_WEB_CHAT.md` con instalación, CORS, historial, cierre, encuestas, NIVO IA y aislamiento por tenant.
+- Se agregó `docs/NIVO_MULTIEMPRESA_APRENDIZAJE.md`.
+- La documentación pública explica cómo NIVO Web Chat identifica el tenant y usa únicamente el conocimiento de esa empresa.
+
+### BASE DE DATOS
+- `nivo_learning_queue` se crea defensivamente en runtime para instalaciones existentes.
+- `database/schema.sql` incluye la tabla para instalaciones nuevas.
+- El acumulativo contiene el bloque V2.31.86, pero esta versión no obliga a ejecutarlo para empezar a usar la mejora porque el runtime crea la estructura faltante.
+
 ## V2.31.85 · Fuentes web UTF8MB4 + modal limpio
 
 - Corrige `knowledge_sources` para contenido web Unicode/emoji con `utf8mb4`.

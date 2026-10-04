@@ -93,6 +93,15 @@ final class NivoWebsiteKnowledgeService
         try{
             $pages=$this->crawl($site);
             if(!$pages)throw new RuntimeException('No se encontró contenido público legible en esa URL.');
+            // Evita publicar dos veces contenido idéntico cuando distintas rutas renderizan la misma página.
+            $unique=[];$seenHashes=[];
+            foreach($pages as $page){
+                $hash=sha1(preg_replace('/\s+/u',' ',trim((string)($page['content']??'')))??'');
+                if($hash===''||isset($seenHashes[$hash]))continue;
+                $seenHashes[$hash]=true;$unique[]=$page;
+            }
+            $pages=$unique;
+            if(!$pages)throw new RuntimeException('Las páginas encontradas no contienen conocimiento único para publicar.');
             $this->pdo->beginTransaction();
             $pattern='website:'.$id.'|%';
             $this->pdo->prepare("DELETE FROM knowledge_sources WHERE tenant_id=? AND source_type='url' AND source_ref LIKE ?")->execute([$tenantId,$pattern]);
