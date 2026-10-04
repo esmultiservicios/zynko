@@ -520,31 +520,40 @@ ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.83' AS version_objetivo;
 
 -- =============================================================
--- ZYNKO V2.31.84 · UTF8MB4 EN CONOCIMIENTO WEB + RESET DE FUENTES
+-- ZYNKO V2.31.85 · FIX CPANEL/MARIADB + UTF8MB4 CONOCIMIENTO WEB
 -- =============================================================
--- Corrige instalaciones existentes donde knowledge_sources heredó
--- latin1/utf8mb3. Esto evita SQLSTATE 1366 al sincronizar contenido
--- web con flechas, símbolos, emojis o caracteres Unicode completos.
-SET @db_name := DATABASE();
+-- IMPORTANTE:
+-- Algunas versiones de MariaDB disponibles en cPanel no permiten
+-- ejecutar ALTER TABLE mediante PREPARE/EXECUTE y devuelven #1295.
+-- Por eso este bloque usa DDL directo y no el protocolo preparado.
+-- CREATE TABLE IF NOT EXISTS mantiene el script acumulativo seguro.
 
-SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources');
-SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci','SELECT 1');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+CREATE TABLE IF NOT EXISTS `knowledge_sources` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `solution_id` BIGINT UNSIGNED NULL,
+  `module_id` BIGINT UNSIGNED NULL,
+  `name` VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `source_type` ENUM('text','url','file','faq','integration') NOT NULL,
+  `source_ref` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `content` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `status` ENUM('pending','ready','error') NOT NULL DEFAULT 'pending',
+  `approval_status` ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved',
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_knowledge_sources_tenant_status` (`tenant_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='name');
-SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `name` VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL','SELECT 1');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+ALTER TABLE `knowledge_sources`
+  CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='source_ref');
-SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `source_ref` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+ALTER TABLE `knowledge_sources`
+  MODIFY `name` VARCHAR(180) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  MODIFY `source_ref` VARCHAR(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  MODIFY `content` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
 
-SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='knowledge_sources' AND COLUMN_NAME='content');
-SET @sql := IF(@exists>0,'ALTER TABLE `knowledge_sources` MODIFY `content` LONGTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL','SELECT 1');
-PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.84')
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.85')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.84' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.85' AS version_objetivo;
 

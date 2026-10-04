@@ -1,4 +1,4 @@
-## V2.31.84 · Fuentes web UTF8MB4 + modal limpio
+## V2.31.85 · Fuentes web UTF8MB4 + modal limpio
 
 - Corrige `knowledge_sources` para contenido web Unicode/emoji con `utf8mb4`.
 - Refuerza la sincronización web en instalaciones antiguas.
