@@ -87,6 +87,79 @@ function mainTenantId(): int {
         return (int)$pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn();
     }catch(Throwable $e){return 0;}
 }
+function zynkoNormalizeWebchatDomain(string $domain): string {
+    $domain=strtolower(trim($domain));
+    $domain=preg_replace('#^https?://#','',$domain);
+    $domain=preg_replace('#/.*$#','',$domain);
+    $domain=preg_replace('/:\\d+$/','',$domain);
+    return preg_replace('/^www\\./','',$domain);
+}
+function zynkoCanonicalWebchatHost(): string {
+    global $root;
+    $host='';
+    try{
+        $q=appDb()->prepare("SELECT setting_value FROM system_settings WHERE setting_key='seo_site_url' LIMIT 1");
+        $q->execute();
+        $configured=trim((string)($q->fetchColumn()?:''));
+        if($configured!=='')$host=(string)(parse_url($configured,PHP_URL_HOST)?:'');
+    }catch(Throwable $e){}
+    if($host===''){
+        $env=envConfig($root.'/.env');
+        $configured=trim((string)($env['APP_URL']??''));
+        if($configured!=='')$host=(string)(parse_url($configured,PHP_URL_HOST)?:'');
+    }
+    if($host==='')$host=(string)($_SERVER['HTTP_HOST']??'');
+    return zynkoNormalizeWebchatDomain($host);
+}
+function zynkoEnsureOfficialWebchatInstallation(PDO $pdo,int $tenantId,int $widgetId): array {
+    if($tenantId!==mainTenantId()||$widgetId<=0)return ['id'=>0,'domain'=>'','installation_key'=>''];
+    $canonicalHost=zynkoCanonicalWebchatHost();
+    if($canonicalHost==='')return ['id'=>0,'domain'=>'','installation_key'=>''];
+
+    $q=$pdo->prepare('SELECT * FROM webchat_installations WHERE tenant_id=? AND widget_id=? ORDER BY id ASC');
+    $q->execute([$tenantId,$widgetId]);
+    $rows=$q->fetchAll();
+
+    $keeper=null;
+    foreach($rows as $row){
+        if(zynkoNormalizeWebchatDomain((string)($row['domain']??''))===$canonicalHost){$keeper=$row;break;}
+    }
+    if(!$keeper){
+        foreach($rows as $row){
+            if(empty($row['created_by'])){$keeper=$row;break;}
+        }
+    }
+
+    if($keeper){
+        $keeperId=(int)$keeper['id'];
+        $key=trim((string)($keeper['installation_key']??''));
+        if($key==='')$key=bin2hex(random_bytes(20));
+        $label=trim((string)($keeper['label']??''));
+        if($label==='')$label='Sitio principal ZYNKO';
+        $pdo->prepare('UPDATE webchat_installations SET installation_key=?,domain=?,label=?,enabled=1,created_by=NULL WHERE id=? AND tenant_id=?')->execute([$key,$canonicalHost,$label,$keeperId,$tenantId]);
+    }else{
+        $key=bin2hex(random_bytes(20));
+        $pdo->prepare("INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,'Sitio principal ZYNKO',1,NULL)")->execute([$tenantId,$widgetId,$key,$canonicalHost]);
+        $keeperId=(int)$pdo->lastInsertId();
+        $label='Sitio principal ZYNKO';
+    }
+
+    // Limpia instalaciones automáticas heredadas creadas por hosts/alias anteriores.
+    // Los sitios autorizados manualmente (IZZY, ES MULTISERVICIOS, clientes, etc.) conservan created_by y nunca se tocan aquí.
+    $cleanup=$pdo->prepare('DELETE FROM webchat_installations WHERE tenant_id=? AND widget_id=? AND id<>? AND created_by IS NULL');
+    $cleanup->execute([$tenantId,$widgetId,$keeperId]);
+
+    // Evita también duplicados manuales accidentales del mismo dominio oficial.
+    $dupes=$pdo->prepare('SELECT id,domain FROM webchat_installations WHERE tenant_id=? AND widget_id=? AND id<>?');
+    $dupes->execute([$tenantId,$widgetId,$keeperId]);
+    foreach($dupes->fetchAll() as $row){
+        if(zynkoNormalizeWebchatDomain((string)$row['domain'])===$canonicalHost){
+            $pdo->prepare('DELETE FROM webchat_installations WHERE id=? AND tenant_id=?')->execute([(int)$row['id'],$tenantId]);
+        }
+    }
+
+    return ['id'=>$keeperId,'domain'=>$canonicalHost,'installation_key'=>$key,'label'=>$label];
+}
 function isPlatformOwner(): bool { return isset($_SESSION['user']) && (int)$_SESSION['user']['tenant_id']===mainTenantId() && in_array($_SESSION['user']['role']??'', ['owner','admin'],true); }
 function zynkoIsImpersonating(): bool { return !empty($_SESSION['zynko_platform_context']['user']) && is_array($_SESSION['zynko_platform_context']['user']); }
 function zynkoPlatformAudit(PDO $pdo,string $action,?int $tenantId=null,?int $userId=null,array $details=[]): void { try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,target_user_id,action,details_json,ip_address,created_at) VALUES(?,?,?,?,?,?,NOW())')->execute([(int)($_SESSION['zynko_platform_context']['user']['id']??$_SESSION['user']['id']??0),$tenantId,$userId,$action,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64)]);}catch(Throwable $e){} }
@@ -178,7 +251,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.98';
+$releaseVersion='2.31.99';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -739,7 +812,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   if($action==='settings_save'){$name=trim($_POST['company_name']??'');$theme=in_array($_POST['theme']??'system',['system','light','dark'],true)?$_POST['theme']:'system';$contextHelp=isset($_POST['context_help'])?1:0;if($name==='')throw new RuntimeException('El nombre de empresa es obligatorio.');$locale=($_POST['locale']??'es')==='en'?'en':'es';$tz=trim($_POST['timezone']??'America/Tegucigalpa');$title=trim($_POST['tab_title']??'ZYNKO')?:'ZYNKO';$pdo->prepare('UPDATE tenants SET name=?,locale=?,timezone=? WHERE id=?')->execute([$name,$locale,$tz,$tid]);$q=$pdo->prepare('SELECT logo_path,logo_dark_path,favicon_path,login_image_path FROM branding_settings WHERE tenant_id=?');$q->execute([$tid]);$brand=$q->fetch()?:[];$map=['logo'=>'logo_path','logo_dark'=>'logo_dark_path','favicon'=>'favicon_path','login_image'=>'login_image_path'];$dir=__DIR__.'/uploads/branding/'.$tid;if(!is_dir($dir))mkdir($dir,0775,true);foreach($map as $field=>$col){if(empty($_FILES[$field]['tmp_name']))continue;$f=$_FILES[$field];if($f['size']>5*1024*1024)throw new RuntimeException('Cada imagen debe pesar máximo 5 MB.');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/svg+xml'=>'svg','image/x-icon'=>'ico','image/vnd.microsoft.icon'=>'ico'][$mime]??null;if(!$ext)throw new RuntimeException('Formato de imagen no permitido.');$fn=$field.'_'.bin2hex(random_bytes(5)).'.'.$ext;if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$fn))throw new RuntimeException('No se pudo guardar un archivo de marca.');$brand[$col]='uploads/branding/'.$tid.'/'.$fn;}$pdo->prepare('INSERT INTO branding_settings(tenant_id,app_title,logo_path,logo_dark_path,favicon_path,login_image_path) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE app_title=VALUES(app_title),logo_path=VALUES(logo_path),logo_dark_path=VALUES(logo_dark_path),favicon_path=VALUES(favicon_path),login_image_path=VALUES(login_image_path)')->execute([$tid,$title,$brand['logo_path']??null,$brand['logo_dark_path']??null,$brand['favicon_path']??null,$brand['login_image_path']??null]);$pdo->prepare("INSERT INTO user_preferences(user_id,theme,context_help) VALUES(?,?,?) ON DUPLICATE KEY UPDATE theme=VALUES(theme),context_help=VALUES(context_help)")->execute([(int)$_SESSION['user']['id'],$theme,$contextHelp]);$_SESSION['user']['company']=$name;$_SESSION['user']['locale']=$locale;jsonOut(true,'Configuración, marca y preferencias guardadas correctamente.',['theme'=>$theme,'context_help'=>$contextHelp]);}
   $normalizeWebchatDomain=static function(string $domain):string{$domain=strtolower(trim($domain));$domain=preg_replace('#^https?://#','',$domain);$domain=preg_replace('#/.*$#','',$domain);return $domain;};
   $webchatDomainKey=static function(string $domain) use ($normalizeWebchatDomain):string{$domain=$normalizeWebchatDomain($domain);return preg_replace('/^www\./','',$domain);};
-  $officialWebchatHost=$webchatDomainKey((string)($_SERVER['HTTP_HOST']??''));$isOfficialWebchatInstallation=static function(array $row,int $tenantId) use ($webchatDomainKey,$officialWebchatHost):bool{return $tenantId===mainTenantId()&&empty($row['created_by'])&&$officialWebchatHost!==''&&$webchatDomainKey((string)($row['domain']??''))===$officialWebchatHost;};
+  $officialWebchatHost=zynkoCanonicalWebchatHost();$isOfficialWebchatInstallation=static function(array $row,int $tenantId) use ($webchatDomainKey,$officialWebchatHost):bool{return $tenantId===mainTenantId()&&empty($row['created_by'])&&$officialWebchatHost!==''&&$webchatDomainKey((string)($row['domain']??''))===$officialWebchatHost;};
   if($action==='webchat_widget_save'){
    $id=(int)($_POST['widget_id']??0);$name=trim($_POST['name']??'NIVO Web Chat');$position=$_POST['position']??'bottom-right';if(!in_array($position,['bottom-right','bottom-left','top-right','top-left'],true))$position='bottom-right';$displayMode=$_POST['display_mode']??'launcher';if(!in_array($displayMode,['launcher','open'],true))$displayMode='launcher';$color=trim($_POST['accent_color']??'#0F766E');if(!preg_match('/^#[0-9A-Fa-f]{6}$/',$color))$color='#0F766E';$multi=isset($_POST['allow_multiple_domains'])?1:0;$siteLimit=zynkoPlanLimit($planCtx,'max_webchat_sites');if($siteLimit===1)$multi=0;$enabled=isset($_POST['enabled'])?1:0;$sound=isset($_POST['sound_enabled'])?1:0;$privacy=isset($_POST['privacy_enabled'])?1:0;$required=isset($_POST['profile_required'])?1:0;$launcher=str_replace(["\r\n","\r"],"\n",trim(strip_tags((string)($_POST['launcher_label']??''))));$launcher=preg_replace('/[ \t]+/u',' ',$launcher);$launcher=preg_replace('/ *\n */u',"\n",$launcher);$launcher=preg_replace('/\n{3,}/u',"\n\n",$launcher);$launcherLines=explode("\n",$launcher);if(count($launcherLines)>2)$launcher=implode("\n",array_slice($launcherLines,0,2));$visibleLauncher=preg_replace('/(\*\*|__)/u','',$launcher);if(mb_strlen($visibleLauncher)>120)throw new RuntimeException('El texto junto al botón admite hasta 120 caracteres visibles.');$launcher=mb_substr($launcher,0,240);if(substr_count($launcher,'**')%2!==0)throw new RuntimeException('El formato de negrita del texto junto al botón está incompleto.');if(substr_count($launcher,'__')%2!==0)throw new RuntimeException('El formato de cursiva del texto junto al botón está incompleto.');if($launcher===''||mb_strtolower(trim(preg_replace('/(\*\*|__)/u','',$launcher)))==='¿necesitas ayuda?')$launcher='**NIVO Web Chat** · ¿Necesitas ayuda?';$privacyText=mb_substr(trim($_POST['privacy_text']??''),0,240);$privacyUrl=trim($_POST['privacy_url']??'');if($privacyUrl!==''&&!filter_var($privacyUrl,FILTER_VALIDATE_URL))throw new RuntimeException('La URL de privacidad no es válida.');
    $quick=array_values(array_filter(array_map('trim',preg_split('/\r?\n/',(string)($_POST['quick_replies']??'')))));
