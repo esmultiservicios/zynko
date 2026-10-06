@@ -400,8 +400,8 @@ SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.103' AS v
 -- No agrega tablas: conserva el esquema V2.31.102 y actualiza únicamente la versión objetivo.
 
 
--- ZYNKO V2.31.104 · reconciliación bilateral durable (sin cambios estructurales)
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.104')
+-- ZYNKO V2.31.105 · reconciliación bilateral durable (sin cambios estructurales)
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.105')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.104' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.105' AS version_objetivo;

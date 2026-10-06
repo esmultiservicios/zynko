@@ -201,6 +201,7 @@ function nivoSecurityAssessment(
 
     $score = 0;
     $reasons = [];
+    $hardBlock = false;
     $normalized = nivoNorm($body);
     $ua = mb_substr(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')), 0, 500);
     $ipHash = nivoRequestIpHash($env);
@@ -211,6 +212,7 @@ function nivoSecurityAssessment(
     if ($honeypot !== '') {
         $score += 100;
         $reasons[] = 'honeypot';
+        $hardBlock = true;
     }
 
     if ($ua === '') {
@@ -263,6 +265,7 @@ function nivoSecurityAssessment(
         if ($perMinute >= $hardLimit) {
             $score += 80;
             $reasons[] = 'limite_ip';
+            $hardBlock = true;
         } elseif ($perMinute >= max(6, (int) floor($hardLimit / 2))) {
             $score += 25;
             $reasons[] = 'trafico_ip_alto';
@@ -271,11 +274,13 @@ function nivoSecurityAssessment(
         $q = $pdo->prepare("SELECT COUNT(*) FROM webchat_security_events WHERE tenant_id=? AND ip_hash=? AND body_hash=? AND created_at>=DATE_SUB(NOW(),INTERVAL 10 MINUTE)");
         $q->execute([$tenantId, $ipHash, $bodyHash]);
         $duplicates = (int) $q->fetchColumn();
-        if ($duplicates >= 4) {
-            $score += 70;
-            $reasons[] = 'mensaje_repetido_masivo';
-        } elseif ($duplicates >= 2) {
-            $score += 30;
+        // Repetir una pregunta es comportamiento humano normal (pruebas, reintentos, mala conexión).
+        // Nunca debe provocar por sí solo que el mensaje desaparezca de la Bandeja.
+        if ($duplicates >= 8) {
+            $score += 25;
+            $reasons[] = 'mensaje_repetido_frecuente';
+        } elseif ($duplicates >= 3) {
+            $score += 12;
             $reasons[] = 'mensaje_repetido';
         }
     }
@@ -290,7 +295,15 @@ function nivoSecurityAssessment(
     $blockThreshold = max(60, min(100, (int) ($experience['antispam_block_score'] ?? 70)));
     $reviewThreshold = max(20, min($blockThreshold - 5, (int) ($experience['antispam_review_score'] ?? 40)));
 
-    $verdict = $score >= $blockThreshold ? 'blocked' : ($score >= $reviewThreshold ? 'suspicious' : 'clean');
+    // Bloqueo silencioso eliminado: un score heurístico alto no basta para tirar mensajes.
+    // Solo señales inequívocas (honeypot o límite duro de IP) bloquean. El resto se
+    // persiste como suspicious para que la conversación siempre llegue a la Bandeja.
+    if (!$hardBlock && in_array('user_agent_automatizado', $reasons, true) && $urlCount >= 4 && $score >= $blockThreshold) {
+        $hardBlock = true;
+        $reasons[] = 'automatizacion_con_spam';
+    }
+
+    $verdict = $hardBlock ? 'blocked' : ($score >= $reviewThreshold ? 'suspicious' : 'clean');
 
     return [
         'score' => min(100, $score),
@@ -1162,12 +1175,12 @@ if ($action === 'send') {
 
     if (($securityAssessment['verdict'] ?? 'clean') === 'blocked') {
         nivoLogSecurityEvent($pdo, $tid, $v ?: null, 0, $securityAssessment);
-        out(true, 'Mensaje recibido.', [
+        // Nunca responder OK si el servidor no persistió el mensaje. El widget debe saber
+        // que el envío falló y conservar el texto para reintentar, en vez de simular entrega.
+        out(false, 'No fue posible aceptar este mensaje por protección anti-spam. Espera unos segundos e inténtalo de nuevo.', [
             'conversation_id' => (int) ($v['conversation_id'] ?? 0),
-            'bot_reply' => null,
-            'handoff' => false,
-            'discarded' => true
-        ]);
+            'security_blocked' => true
+        ], 429);
     }
 
     $contactDisplayName = $rawName !== '' ? $rawName : 'Visitante web';

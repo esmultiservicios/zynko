@@ -797,7 +797,8 @@
       }
 
       state.historyMode = 'end';
-      add(shadow, body, 'out', state.profile.name || 'Tú');
+      const optimisticMessage = add(shadow, body, 'out', state.profile.name || 'Tú');
+      optimisticMessage?.classList.add('pending-send');
       input.value = '';
       touchSession();
       setPresence('NIVO está escribiendo…');
@@ -814,6 +815,7 @@
           client_elapsed_ms: Math.max(0, Date.now() - state.bootAt)
         });
 
+        optimisticMessage?.classList.remove('pending-send');
         state.conversation_id = result.conversation_id;
         state.handoffActive = Boolean(result.handoff || result.conversation_pending || result.human_assigned) || state.handoffActive;
         state.humanAssigned = Boolean(result.human_assigned) || state.humanAssigned;
@@ -849,6 +851,10 @@
         // los mensajes posteriores del bot o de un agente humano.
       } catch (error) {
         typing?.remove();
+        // Si el servidor no confirmó persistencia, no dejamos un mensaje fantasma en pantalla.
+        // Restauramos el texto para que el visitante pueda reintentar conscientemente.
+        optimisticMessage?.remove();
+        if (!input.value.trim()) input.value = body;
         showLocal(error.message);
         setPresence('No se pudo enviar', true);
       } finally {
@@ -1028,6 +1034,7 @@
     if (autoScroll) {
       box.scrollTop = box.scrollHeight;
     }
+    return message;
   }
 
   function addTyping(shadow) {
