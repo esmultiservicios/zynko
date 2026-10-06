@@ -223,7 +223,11 @@ function webchatMayReceiveEvent(PDO $pdo, array &$client, array $payload, array 
 }
 
 $env = wsEnv($root . '/.env');
-$host = $env['WS_HOST'] ?? '127.0.0.1';
+$host = trim((string)($env['WS_HOST'] ?? '127.0.0.1'));
+// Producción segura: localhost puede resolver a ::1 en algunos servidores y romper el proxy Apache que apunta a IPv4.
+if ($host === '' || strtolower($host) === 'localhost') {
+    $host = '127.0.0.1';
+}
 $port = (int) ($env['WS_PORT'] ?? 8080);
 $appKey = $env['APP_KEY'] ?? '';
 

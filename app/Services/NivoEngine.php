@@ -417,7 +417,7 @@ final class NivoEngine
             $genericFollowUp=self::isGenericFollowUp($norm);
             $effectiveNorm=$norm;
             if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
-            $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)([!. ,].*)?$/u',$norm);
+            $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)[!., ]*$/u',$norm);
             $isCapabilities=(bool)preg_match('/\b(que sabes hacer|que puedes hacer|en que puedes ayudar|como me puedes ayudar|tus funciones|tus capacidades|para que sirves|en que te especializas|cual es tu especialidad|cuales son tus especialidades|que haces|que puedes responder|que temas manejas|que temas conoces|como funcionas|que puedes explicarme)\b/u',$norm);
             $isIdentity=(bool)preg_match('/\b(quien eres|quien sos|que eres|eres un bot|eres una ia|eres ia|como te llamas|cual es tu nombre|quien es nivo|que es nivo)\b/u',$norm);
             if($isIdentity){

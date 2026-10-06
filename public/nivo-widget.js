@@ -1050,14 +1050,7 @@
     const rows = Array.isArray(messages) ? [...messages] : [];
     const seenGreeting = new Set();
 
-    const isGreeting = message => {
-      if (String(message?.type || '').toLowerCase() === 'greeting') {
-        return true;
-      }
-
-      return String(message?.sender_type || '').toLowerCase() === 'bot'
-        && /soy\s+nivo,?\s+el\s+asistente\s+virtual/i.test(String(message?.body || ''));
-    };
+    const isGreeting = message => String(message?.type || '').toLowerCase() === 'greeting';
 
     const normalized = rows.filter(message => {
       if (!isGreeting(message)) {

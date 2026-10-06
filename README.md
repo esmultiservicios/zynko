@@ -1,9 +1,18 @@
-## V2.31.105 · Entrega confirmada y anti-spam no destructivo
+## V2.31.106 · NIVO bilateral + salud integral del servidor
+
+- Corrige la detección de saludos para que `Hola, ¿qué es ES MULTISERVICIOS?` no se reduzca a un saludo genérico.
+- NIVO procesa la intención completa y prioriza reglas/conocimiento de empresa y soluciones.
+- El widget solo deduplica mensajes cuyo tipo real es `greeting`; una respuesta legítima ya no se oculta por contener “Soy NIVO…”.
+- Configuración permite administrar `WS_HOST` y normaliza `localhost` a `127.0.0.1` en producción.
+- Añade Salud integral del servidor con DB, WebSocket interno/público, proxy, PID, PHP, storage, URL y canales.
+- La Bandeja recupera el dominio de origen desde `webchat_visitors` cuando una conversación antigua no tiene aún registro de seguridad.
+
+## V2.31.106 · Entrega confirmada y anti-spam no destructivo
 - Corrige una causa real de mensajes visibles solo en el widget: el anti-spam podía descartar preguntas repetidas y aun responder HTTP como si hubieran sido recibidas.
 - Ningún mensaje se considera enviado si no quedó persistido. Repetir preguntas ya no bloquea por sí solo una conversación.
 - Widget, Bandeja y NIVO conservan WebSocket como tiempo real y BD como fuente de verdad.
 
-## V2.31.105 · Comunicación bilateral durable y omnicanal
+## V2.31.106 · Comunicación bilateral durable y omnicanal
 
 - La Bandeja ya no depende exclusivamente del WebSocket: reconcilia periódicamente contra la base de datos.
 - NIVO Web Chat conserva WebSocket para inmediatez y agrega reconciliación de integridad aunque el socket figure conectado.

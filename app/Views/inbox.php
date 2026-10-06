@@ -30,8 +30,8 @@ try{
  (SELECT body FROM messages m WHERE m.conversation_id=c.id ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END DESC,m.sent_at DESC,m.id DESC LIMIT 1) last_body,
  (SELECT direction FROM messages m WHERE m.conversation_id=c.id ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END DESC,m.sent_at DESC,m.id DESC LIMIT 1) last_direction,
  (SELECT GROUP_CONCAT(cc.name ORDER BY cc.name SEPARATOR ' · ') FROM contact_category_map ccm JOIN contact_categories cc ON cc.id=ccm.category_id WHERE ccm.contact_id=c.contact_id AND cc.active=1) category_names,
- wcs.risk_score,wcs.verdict security_verdict,wcs.origin_domain webchat_origin
- FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id WHERE c.tenant_id=? AND c.deleted_at IS NULL";$params=[$tid];
+ wcs.risk_score,wcs.verdict security_verdict,COALESCE(wcs.origin_domain,wv.origin_domain) webchat_origin
+ FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id LEFT JOIN webchat_visitors wv ON wv.tenant_id=c.tenant_id AND wv.conversation_id=c.id WHERE c.tenant_id=? AND c.deleted_at IS NULL";$params=[$tid];
  if($stateFilter==='active')$sql.=" AND c.archived_at IS NULL AND c.status IN ('open','pending')";
  elseif($stateFilter==='resolved')$sql.=" AND c.archived_at IS NULL AND c.status IN ('resolved','closed')";
  else $sql.=" AND c.archived_at IS NOT NULL";
@@ -45,7 +45,7 @@ try{
  $sql.=' ORDER BY COALESCE(c.last_message_at,c.created_at) DESC';
  $q=$pdo->prepare($sql);$q->execute($params);$convs=$q->fetchAll();
  $cid=(int)($_GET['conversation']??($convs[0]['id']??0));foreach($convs as $c)if((int)$c['id']===$cid)$selected=$c;
- if(!$selected&&$cid){$q=$pdo->prepare("SELECT c.id,c.uuid,c.contact_id,c.assigned_user_id,c.status,c.unread_count,c.last_message_at,c.archived_at,c.priority,c.created_at,ct.name contact_name,ct.phone,ct.email,ct.avatar_url,ch.type channel_type,ch.name channel_name,u.name agent_name,wcs.risk_score,wcs.verdict security_verdict,wcs.origin_domain webchat_origin FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL LIMIT 1");$q->execute([$cid,$tid]);$selected=$q->fetch()?:null;}
+ if(!$selected&&$cid){$q=$pdo->prepare("SELECT c.id,c.uuid,c.contact_id,c.assigned_user_id,c.status,c.unread_count,c.last_message_at,c.archived_at,c.priority,c.created_at,ct.name contact_name,ct.phone,ct.email,ct.avatar_url,ch.type channel_type,ch.name channel_name,u.name agent_name,wcs.risk_score,wcs.verdict security_verdict,COALESCE(wcs.origin_domain,wv.origin_domain) webchat_origin FROM conversations c JOIN contacts ct ON ct.id=c.contact_id JOIN channels ch ON ch.id=c.channel_id LEFT JOIN users u ON u.id=c.assigned_user_id LEFT JOIN webchat_conversation_security wcs ON wcs.tenant_id=c.tenant_id AND wcs.conversation_id=c.id LEFT JOIN webchat_visitors wv ON wv.tenant_id=c.tenant_id AND wv.conversation_id=c.id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL LIMIT 1");$q->execute([$cid,$tid]);$selected=$q->fetch()?:null;}
  if($selected){
   if(isset($_GET['conversation'])&&(int)$selected['unread_count']>0){$pdo->prepare('UPDATE conversations SET unread_count=0 WHERE id=? AND tenant_id=?')->execute([$selected['id'],$tid]);$selected['unread_count']=0;}
   // V2.31.94 · La Bandeja nunca modifica el historial al leerlo.

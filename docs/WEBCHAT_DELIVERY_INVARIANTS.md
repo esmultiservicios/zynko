@@ -1,4 +1,4 @@
-# ZYNKO V2.31.105 · Invariantes de entrega de NIVO Web Chat
+# ZYNKO V2.31.106 · Invariantes de entrega de NIVO Web Chat
 
 ## Regla principal
 Un mensaje que el widget muestra como enviado debe existir primero en `messages` y pertenecer a una conversación persistida en `conversations`.
@@ -18,5 +18,5 @@ Las heurísticas (repetición, rapidez, enlaces) pueden marcar un mensaje como `
 
 Nunca se devuelve `ok=true` a un mensaje que no fue persistido. Si un bloqueo real ocurre, el widget retira el mensaje optimista, restaura el texto y comunica el error.
 
-## Razón del cambio 2.31.105
+## Razón del cambio 2.31.106
 Versiones anteriores podían elevar el puntaje por repetir una misma pregunta durante pruebas. Al superar el umbral, el servidor respondía `Mensaje recibido` pero descartaba el contenido antes de crear el mensaje. El widget lo mostraba localmente, mientras la Bandeja y NIVO no podían verlo porque nunca existió en BD. Este flujo quedó eliminado.
