@@ -67,18 +67,31 @@ final class ZynkoServerHealth
 
         $pidFile = $this->root.'/storage/websocket.pid';
         $pid = is_file($pidFile) ? trim((string)@file_get_contents($pidFile)) : '';
-        $pidOk = $pid !== '' && ctype_digit($pid);
-        if ($pidOk && function_exists('posix_kill')) {
-            $pidOk = @posix_kill((int)$pid,0);
+        $pidNumeric = $pid !== '' && ctype_digit($pid);
+        $pidConfirmed = false;
+        if ($pidNumeric && function_exists('posix_kill')) {
+            $pidConfirmed = @posix_kill((int)$pid,0);
         }
-        $add($items,'ws_pid','Proceso WebSocket',$pidOk?'ok':'warning',$pid ?: 'Sin PID',$pidOk?'PID registrado para websocket/server.php.':'No se pudo confirmar el proceso mediante el PID guardado; revisa el daemon si el puerto interno también falla.','Tiempo real');
+        // En hosting compartido posix_kill puede no estar disponible aun cuando el daemon está vivo.
+        // Si el puerto interno responde, consideramos el runtime activo y dejamos el PID como dato informativo.
+        $pidOk = $pidConfirmed || $tcp;
+        $pidDetail = $pidConfirmed
+            ? 'PID confirmado para websocket/server.php.'
+            : ($tcp ? 'El puerto interno responde. El hosting no permitió confirmar el PID desde PHP, pero el daemon está accesible.' : 'No se pudo confirmar el proceso y el puerto interno tampoco responde.');
+        $add($items,'ws_pid','Proceso WebSocket',$pidOk?'ok':'warning',$pid ?: 'Sin PID',$pidDetail,'Tiempo real');
+
+        $disabledFns=array_filter(array_map('trim',explode(',',strtolower((string)ini_get('disable_functions')))));
+        $controlFns=['exec','proc_open','shell_exec','system','passthru','popen'];
+        $availableControl=array_values(array_filter($controlFns,static fn(string $fn): bool => function_exists($fn) && !in_array($fn,$disabledFns,true)));
+        $controlOk=!empty($availableControl);
+        $add($items,'ws_runtime_control','Control desde panel',$controlOk?'ok':'warning',$controlOk?implode(', ',$availableControl):'Bloqueado por hosting',$controlOk?'El panel dispone de al menos un método permitido para iniciar/detener/reiniciar el daemon.':'El hosting bloquea la creación/gestión de procesos desde PHP. El deploy Git/cPanel puede seguir reiniciando WebSocket automáticamente, pero los botones del panel no pueden saltarse esta política.','Tiempo real');
 
         $marker = $this->root.'/storage/websocket.restart.marker';
         $markerTime = is_file($marker) ? (int)@filemtime($marker) : 0;
         $watched = [$this->root.'/websocket/server.php',$this->root.'/app/Support/Realtime.php',$this->root.'/.htaccess',$this->root.'/.env'];
         $latestChange = 0;
         foreach ($watched as $watchedFile) { if (is_file($watchedFile)) $latestChange=max($latestChange,(int)@filemtime($watchedFile)); }
-        $restartRecommended = !$pidOk || $markerTime===0 || $latestChange>$markerTime;
+        $restartRecommended = !$tcp || $markerTime===0 || $latestChange>$markerTime;
         $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartRecommended?'Hay cambios operativos posteriores al último arranque o no existe constancia del reinicio. Reinicia WebSocket desde el Dashboard y vuelve a comprobar.':'El daemon fue reiniciado después de los últimos cambios operativos detectados.','Tiempo real');
 
         $publicUrl = trim((string)($this->env['WS_PUBLIC_URL'] ?? ''));

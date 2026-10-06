@@ -154,3 +154,8 @@ Por eso el Web Chat de una empresa utiliza exactamente el motor NIVO IA y la bas
 - `nivo_solutions`, `knowledge_sources`, reglas y aprendizaje siempre se filtran por `tenant_id`.
 - Las fuentes `ready` + `approved` se consideran activas para el motor aun cuando una instalación heredada tenga desactualizado el flag `knowledge_enabled`.
 - La transferencia automática por baja confianza requiere al menos 3 fallos consecutivos; una petición explícita de atención humana puede transferir inmediatamente.
+
+## V2.31.112
+- Se mantiene la resolución contextual y tolerante a variaciones ortográficas introducida en versiones anteriores.
+- Las respuestas de satisfacción del Web Chat se presentan en un módulo administrativo dedicado para evaluar resolución y utilidad de NIVO.
+- La documentación de capacidades e historial se publica de forma versionada.

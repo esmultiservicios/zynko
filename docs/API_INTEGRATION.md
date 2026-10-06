@@ -120,3 +120,7 @@ Los webhooks de Meta / WhatsApp / Messenger son comunicaciones servidor-a-servid
 - Otorgar solo los scopes necesarios.
 - Revocar credenciales que ya no se utilicen.
 - No colocar claves privadas dentro de JavaScript público cuando la integración pueda resolverse desde backend.
+
+## V2.31.112
+- La documentación administrativa y pública muestra historial de versión para mantener API, NIVO y conectores sincronizados con cada release funcional.
+- Correo SMTP/Microsoft Graph configurado actualmente cubre envío y notificaciones; una bandeja entrante de correo requiere un conector IMAP/Graph webhook real y no se marca como vinculada de forma ficticia.

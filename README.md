@@ -1,4 +1,14 @@
-## V2.31.111 · Dashboard operativo + control seguro de servicios
+## V2.31.112 · Consolidación operativa, encuestas y documentación versionada
+
+- Salud WebSocket más precisa y control desde panel con múltiples métodos permitidos por el hosting.
+- Dashboard y analítica con cabeceras uniformes, estados con formato y KPIs con movimiento.
+- Vista previa administrativa de NIVO Web Chat alineada con el widget publicado.
+- Módulo de Encuestas y satisfacción con métricas, filtros y acceso a la conversación.
+- Documentación versionada en panel y sitio público con historial seleccionable.
+- Selector de emojis estabilizado y experiencia responsive preservada.
+- Correo diferenciado correctamente entre envío/notificaciones y recepción omnicanal.
+
+## V2.31.112 · Dashboard operativo + control seguro de servicios
 - Accesos rápidos configurables por usuario.
 - Centro de servicios con estado, iniciar, detener y reiniciar WebSocket con confirmación SweetAlert2.
 - Recomendación automática de reinicio cuando archivos operativos cambian después del último arranque.

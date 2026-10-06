@@ -1,0 +1,64 @@
+[
+  {
+    "version": "2.31.112",
+    "date": "2026-10-06",
+    "title": "Operación, documentación y experiencia consolidada",
+    "changes": [
+      "Mejoras de salud WebSocket y control desde panel con múltiples métodos permitidos por hosting.",
+      "Encuestas visibles en administración con KPIs y filtros.",
+      "Documentación versionada en panel y sitio público.",
+      "Vista previa de NIVO Web Chat alineada con el widget publicado.",
+      "UX y movimiento uniforme en KPIs y controles."
+    ]
+  },
+  {
+    "version": "2.31.111",
+    "date": "2026-10-06",
+    "title": "Dashboard operativo y control seguro de servicios",
+    "changes": [
+      "Accesos rápidos configurables.",
+      "Centro de servicios WebSocket.",
+      "Salud integral y reinicio recomendado."
+    ]
+  },
+  {
+    "version": "2.31.110",
+    "date": "2026-10-06",
+    "title": "WebSocket, fullscreen, encuestas y CRM",
+    "changes": [
+      "Widget expandible.",
+      "Encuesta ampliada.",
+      "Categorías CRM por conversación."
+    ]
+  },
+  {
+    "version": "2.31.109",
+    "date": "2026-10-06",
+    "title": "Recuperación WebSocket y expansión responsive",
+    "changes": [
+      "Recuperación del daemon.",
+      "Fallback HTTP.",
+      "Control expandir/restaurar."
+    ]
+  },
+  {
+    "version": "2.31.108",
+    "date": "2026-10-06",
+    "title": "NIVO contextual y CRM de conversaciones",
+    "changes": [
+      "Mejor interpretación de consultas.",
+      "Categorías por conversación.",
+      "Encuesta y cierre mejorados."
+    ]
+  },
+  {
+    "version": "2.31.107",
+    "date": "2026-10-06",
+    "title": "Inactividad y scroll inteligente",
+    "changes": [
+      "Aviso único de inactividad.",
+      "Cierre automático.",
+      "Lectura de respuestas largas mejorada."
+    ]
+  }
+]

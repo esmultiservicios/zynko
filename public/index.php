@@ -163,6 +163,28 @@ function zynkoEnsureOfficialWebchatInstallation(PDO $pdo,int $tenantId,int $widg
 
     return ['id'=>$keeperId,'domain'=>$canonicalHost,'installation_key'=>$key,'label'=>$label];
 }
+
+function zynkoRunServiceCommand(string $command): array {
+    $disabled=array_filter(array_map('trim',explode(',',strtolower((string)ini_get('disable_functions')))));
+    $isAllowed=static fn(string $fn): bool => function_exists($fn) && !in_array(strtolower($fn),$disabled,true);
+    $output='';$code=1;$backend='';
+    if($isAllowed('exec')){
+        $lines=[];@exec($command.' 2>&1',$lines,$code);$output=implode("\n",$lines);$backend='exec';
+    } elseif($isAllowed('proc_open')){
+        $desc=[1=>['pipe','w'],2=>['pipe','w']];$pipes=[];$proc=@proc_open($command,$desc,$pipes);
+        if(is_resource($proc)){ $output=(string)stream_get_contents($pipes[1]).(string)stream_get_contents($pipes[2]);foreach($pipes as $pipe)if(is_resource($pipe))fclose($pipe);$code=proc_close($proc);$backend='proc_open';}
+    } elseif($isAllowed('shell_exec')){
+        $token='__ZYNKO_EXIT__';$raw=(string)@shell_exec($command.' 2>&1; printf "\n'.$token.'%s" "$?"');$backend='shell_exec';
+        if(preg_match('/\n'.$token.'(\d+)\s*$/',$raw,$m)){$code=(int)$m[1];$output=preg_replace('/\n'.$token.'\d+\s*$/','',$raw)??$raw;}else{$output=$raw;$code=$raw!==''?0:1;}
+    } elseif($isAllowed('system')){
+        ob_start();@system($command.' 2>&1',$code);$output=(string)ob_get_clean();$backend='system';
+    } elseif($isAllowed('passthru')){
+        ob_start();@passthru($command.' 2>&1',$code);$output=(string)ob_get_clean();$backend='passthru';
+    } elseif($isAllowed('popen')){
+        $h=@popen($command.' 2>&1','r');if(is_resource($h)){while(!feof($h))$output.=fgets($h);$status=pclose($h);$code=is_int($status)?$status:1;$backend='popen';}
+    }
+    return ['available'=>$backend!=='','backend'=>$backend,'code'=>(int)$code,'output'=>trim($output)];
+}
 function isPlatformOwner(): bool { return isset($_SESSION['user']) && (int)$_SESSION['user']['tenant_id']===mainTenantId() && in_array($_SESSION['user']['role']??'', ['owner','admin'],true); }
 function zynkoIsImpersonating(): bool { return !empty($_SESSION['zynko_platform_context']['user']) && is_array($_SESSION['zynko_platform_context']['user']); }
 function zynkoPlatformAudit(PDO $pdo,string $action,?int $tenantId=null,?int $userId=null,array $details=[]): void { try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,target_user_id,action,details_json,ip_address,created_at) VALUES(?,?,?,?,?,?,NOW())')->execute([(int)($_SESSION['zynko_platform_context']['user']['id']??$_SESSION['user']['id']??0),$tenantId,$userId,$action,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64)]);}catch(Throwable $e){} }
@@ -254,7 +276,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.111';
+$releaseVersion='2.31.112';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -732,18 +754,21 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $op=$action==='websocket_restart'?'restart':strtolower(trim((string)($_POST['operation']??'status')));
    if(!in_array($op,['status','start','stop','restart'],true))throw new RuntimeException('Acción de servicio no permitida.');
    $script=$root.'/bin/manage-websocket.sh';if(!is_file($script))throw new RuntimeException('No se encontró bin/manage-websocket.sh.');
-   $disabled=array_map('trim',explode(',',(string)ini_get('disable_functions')));$output=[];$code=1;$started=microtime(true);
-   if(function_exists('exec')&&!in_array('exec',$disabled,true)){@exec('/bin/bash '.escapeshellarg($script).' '.escapeshellarg($op).' 2>&1',$output,$code);}else throw new RuntimeException('El hosting bloquea exec(). Administra WebSocket desde terminal o cPanel.');
-   $elapsed=round(microtime(true)-$started,2);$text=trim(implode(' ',array_slice($output,-4)));
+   $started=microtime(true);
+   $result=zynkoRunServiceCommand('/bin/bash '.escapeshellarg($script).' '.escapeshellarg($op));
+   if(!$result['available']){
+      throw new RuntimeException('El hosting bloquea todas las funciones PHP disponibles para administrar procesos. El deploy por Git/cPanel sí puede reiniciar WebSocket automáticamente; desde el panel no es posible saltarse esta política del servidor.');
+   }
+   $elapsed=round(microtime(true)-$started,2);$text=(string)$result['output'];$code=(int)$result['code'];
    $running=str_contains($text,'RUNNING');
-   if($op==='status' && $code===3)jsonOut(true,'WebSocket detenido.',['state'=>'stopped','duration'=>$elapsed,'output'=>$text]);
-   if($code!==0)throw new RuntimeException('No fue posible ejecutar la acción WebSocket: '.$text);
+   if($op==='status' && $code===3)jsonOut(true,'WebSocket detenido.',['state'=>'stopped','duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']]);
+   if($code!==0)throw new RuntimeException('No fue posible ejecutar la acción WebSocket: '.($text?:'sin detalle del sistema').'. Método: '.$result['backend'].'.');
    $state=$running?'running':'stopped';
-   try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'websocket.'.$op,json_encode(['state'=>$state,'duration'=>$elapsed,'output'=>$text],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
+   try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'websocket.'.$op,json_encode(['state'=>$state,'duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
    $label=['start'=>'iniciado','stop'=>'detenido','restart'=>'reiniciado','status'=>'consultado'][$op];
-   jsonOut(true,'WebSocket '.$label.'.',['state'=>$state,'duration'=>$elapsed,'output'=>$text]);
+   jsonOut(true,'WebSocket '.$label.'.',['state'=>$state,'duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']]);
   }
-  if($action==='system_version_save'){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');$v=trim($_POST['version']??'');if(!preg_match('/^\d+\.\d+\.\d+$/',$v))throw new RuntimeException('Usa el formato 2.23.1.');$pdo->prepare("INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES('app_version',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)")->execute([$v,(int)$_SESSION['user']['id']]);jsonOut(true,'Versión actualizada a '.$v.'.');}
+  if($action==='system_version_save' ){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');$v=trim($_POST['version']??'');if(!preg_match('/^\d+\.\d+\.\d+$/',$v))throw new RuntimeException('Usa el formato 2.23.1.');$pdo->prepare("INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES('app_version',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)")->execute([$v,(int)$_SESSION['user']['id']]);jsonOut(true,'Versión actualizada a '.$v.'.');}
   if($action==='env_save'){
     if(!isPlatformOwner())throw new RuntimeException('Solo el administrador principal puede modificar la configuración del servidor.');
     $manager=new ZynkoEnvManager($root);$payload=[];
@@ -861,7 +886,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    try{require_once $root.'/app/Services/NotificationService.php';$company=(string)($_SESSION['user']['company']??'tu empresa');$msg='Hola '.$urow['name'].'. Se cerraron todas tus sesiones activas de ZYNKO para '.$company.'. Si no reconoces esta acción, contacta inmediatamente al administrador de tu empresa.';(new NotificationService($pdo,$root))->sendUserLifecycle(mainTenantId(),(string)$urow['email'],'Tus sesiones de ZYNKO fueron cerradas',$msg,['tenant_id'=>$tid,'user_id'=>$uid,'action'=>'revoke_all_sessions']);}catch(Throwable $mailError){}
    jsonOut(true,'Sesiones del usuario cerradas y notificación procesada.');
   }
-  if($action==='dashboard_preferences_save'){$allowed=['kpis','activity','channels','attention','quick_actions','service_center'];$widgets=array_values(array_intersect($allowed,(array)($_POST['widgets']??[])));$allowedQuick=['inbox','webchat','nivo','channels','automations','health','knowledge','email'];$quick=array_values(array_intersect($allowedQuick,(array)($_POST['quick_actions']??[])));$pdo->prepare("INSERT INTO dashboard_preferences(user_id,widgets_json,quick_actions_json) VALUES(?,?,?) ON DUPLICATE KEY UPDATE widgets_json=VALUES(widgets_json),quick_actions_json=VALUES(quick_actions_json)")->execute([(int)$_SESSION['user']['id'],json_encode($widgets),json_encode($quick)]);jsonOut(true,'Dashboard personalizado y guardado en tu cuenta.');}
+  if($action==='dashboard_preferences_save'){$allowed=['kpis','activity','channels','attention','quick_actions','service_center'];$widgets=array_values(array_intersect($allowed,(array)($_POST['widgets']??[])));$allowedQuick=['inbox','webchat','nivo','channels','automations','health','knowledge','email','surveys','documentation'];$quick=array_values(array_intersect($allowedQuick,(array)($_POST['quick_actions']??[])));$pdo->prepare("INSERT INTO dashboard_preferences(user_id,widgets_json,quick_actions_json) VALUES(?,?,?) ON DUPLICATE KEY UPDATE widgets_json=VALUES(widgets_json),quick_actions_json=VALUES(quick_actions_json)")->execute([(int)$_SESSION['user']['id'],json_encode($widgets),json_encode($quick)]);jsonOut(true,'Dashboard personalizado y guardado en tu cuenta.');}
   if($action==='user_session_revoke'){
    $sid=(int)($_POST['session_id']??0);$uid=(int)($_POST['user_id']??0);$q=$pdo->prepare('SELECT s.id,s.ip_address,s.user_agent,u.email,u.name FROM user_sessions s JOIN tenant_users tu ON tu.user_id=s.user_id JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.user_id=? AND tu.tenant_id=? AND s.revoked_at IS NULL');$q->execute([$sid,$uid,$tid]);$sessionRow=$q->fetch();if(!$sessionRow)throw new RuntimeException('Sesión inválida o ya cerrada.');
    $pdo->prepare('UPDATE user_sessions SET revoked_at=NOW() WHERE id=?')->execute([$sid]);
@@ -1176,4 +1201,4 @@ if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='email_save' 
   try{$pdo=appDb();$tid=(int)$_SESSION['user']['tenant_id'];$pc=zynkoPlanContext($pdo,$tid,isPlatformOwner());if(!zynkoPlanAllowsModule($pc,'email'))throw new RuntimeException('La configuración de correo requiere un plan superior.');$method=strtoupper(trim($_POST['method']??'SMTP'));if(!in_array($method,['SMTP','GRAPH'],true))throw new RuntimeException('Método inválido.');$sender=$method==='GRAPH'?trim($_POST['graph_user']??''):trim($_POST['sender']??'');if(!filter_var($sender,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo emisor inválido.');$e=envConfig($root.'/.env');$hex=$e['APP_KEY']??'';if(!preg_match('/^[a-f0-9]{64}$/i',$hex))throw new RuntimeException('APP_KEY inválida.');$enc=function($plain)use($hex){if($plain==='')return null;$key=hex2bin($hex);$iv=random_bytes(12);$tag='';$c=openssl_encrypt($plain,'aes-256-gcm',$key,OPENSSL_RAW_DATA,$iv,$tag);if($c===false)throw new RuntimeException('No se pudo cifrar la credencial.');return 'enc:v1:'.base64_encode($iv.$tag.$c);};$type=(int)$pdo->query("SELECT correo_tipo_id FROM correo_tipo WHERE codigo='email_tests' LIMIT 1")->fetchColumn();if(!$type)throw new RuntimeException('Falta el catálogo de correo.');$old=$pdo->prepare('SELECT * FROM correo WHERE tenant_id=? AND is_default=1 ORDER BY correo_id DESC LIMIT 1');$old->execute([$tid]);$old=$old->fetch()?:[];$smtpPass=$_POST['smtp_password']??'';$clientSecret=$_POST['client_secret']??'';$password=$smtpPass!==''?$enc($smtpPass):($old['password']??null);$clientCipher=$clientSecret!==''?$enc($clientSecret):($old['client_secret']??null);$pdo->prepare('UPDATE correo SET is_default=0 WHERE tenant_id=?')->execute([$tid]);$sql="INSERT INTO correo(tenant_id,correo_tipo_id,nombre,metodo_envio,server,correo,destinatario,copia,password,port,smtp_secure,tenant_graph_id,client_id,client_secret,graph_user,save_to_sent_items,estado,is_default) VALUES(?,?,'Principal',?,?,?,?,?,?,?,?,?,?,?,?,?,1,1)";$pdo->prepare($sql)->execute([$tid,$type,$method,trim($_POST['server']??''),$sender,trim($_POST['recipient']??''),trim($_POST['bcc']??''),$password,(int)($_POST['port']??587),strtolower($_POST['smtp_secure']??'tls'),trim($_POST['graph_tenant']??''),trim($_POST['client_id']??''),$clientCipher,trim($_POST['graph_user']??''),isset($_POST['save_to_sent'])?1:0]);$pdo->prepare("INSERT INTO notification_preferences(tenant_id,correo_tipo_id,email_enabled,in_app_enabled) SELECT ?,correo_tipo_id,1,1 FROM correo_tipo WHERE activo=1 ON DUPLICATE KEY UPDATE email_enabled=VALUES(email_enabled),in_app_enabled=VALUES(in_app_enabled)")->execute([$tid]);$emailSettingsMessage='Configuración de correo guardada correctamente.';}catch(Throwable $e){$emailSettingsError=$e->getMessage();}
 }
 if($page==='logout'){zynkoClearAuthentication(true);header('Location: ?page=login');exit;}
-$allowed=['home','login','register','verify-email','forgot-password','reset-password','dashboard','inbox','channels','webchat','users','companies','chatbot','automations','integrations','billing','email','settings','onboarding'];if(!in_array($page,$allowed,true))$page='dashboard';$publicPages=['home','login','register','verify-email','forgot-password','reset-password'];if(!in_array($page,$publicPages,true)&&!isset($_SESSION['user'])){header('Location: ?page=login');exit;}if(in_array($page,$publicPages,true)&&isset($_SESSION['user'])&&$page!=='home'){header('Location: ?page=dashboard');exit;}if($page==='companies'&&!isPlatformOwner()){header('Location: ?page=dashboard');exit;}if(isset($_SESSION['user'])&&!isPlatformOwner()){$pagePlan=zynkoPlanContext(appDb(),(int)$_SESSION['user']['tenant_id'],false);if(!zynkoPlanAllowsPage($pagePlan,$page)){$lockedPage=$page;require $root.'/app/Views/upgrade.php';exit;}}require $root.'/app/Views/'.$page.'.php';
+$allowed=['home','login','register','verify-email','forgot-password','reset-password','dashboard','inbox','channels','webchat','users','companies','chatbot','automations','integrations','billing','email','settings','onboarding','surveys','documentation'];if(!in_array($page,$allowed,true))$page='dashboard';$publicPages=['home','login','register','verify-email','forgot-password','reset-password'];if(!in_array($page,$publicPages,true)&&!isset($_SESSION['user'])){header('Location: ?page=login');exit;}if(in_array($page,$publicPages,true)&&isset($_SESSION['user'])&&$page!=='home'){header('Location: ?page=dashboard');exit;}if($page==='companies'&&!isPlatformOwner()){header('Location: ?page=dashboard');exit;}if(isset($_SESSION['user'])&&!isPlatformOwner()){$pagePlan=zynkoPlanContext(appDb(),(int)$_SESSION['user']['tenant_id'],false);if(!zynkoPlanAllowsPage($pagePlan,$page)){$lockedPage=$page;require $root.'/app/Views/upgrade.php';exit;}}require $root.'/app/Views/'.$page.'.php';

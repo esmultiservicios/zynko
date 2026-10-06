@@ -117,3 +117,8 @@ Para verificar producción abre DevTools > Network > WS y confirma una conexión
 ## V2.31.110 · Binding IPv4 estable
 
 ZYNKO normaliza `WS_HOST=localhost` a `127.0.0.1` al iniciar `websocket/server.php`. Esto evita que Linux resuelva `localhost` a `::1` mientras el proxy Apache `/ws` apunta a `127.0.0.1`. Para producción se recomienda guardar explícitamente `WS_HOST=127.0.0.1`. La pantalla **Configuración → Salud integral del servidor** comprueba daemon, puerto, proxy y endpoint WSS público.
+
+## V2.31.112 · diagnóstico y control
+- Salud del servidor valida WS_HOST/WS_PORT, TCP interno, PID, proxy /ws, endpoint WSS público y si el hosting permite control de procesos desde PHP.
+- Los controles del panel prueban métodos permitidos (`exec`, `proc_open`, `shell_exec`, `system`, `passthru`, `popen`) sin desactivar políticas del hosting.
+- Si todos están bloqueados, el panel lo explica y el flujo normal **Update/Deploy de cPanel** continúa reiniciando el daemon mediante `.cpanel.yml`.

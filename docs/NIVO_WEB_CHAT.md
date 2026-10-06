@@ -206,3 +206,9 @@ Si el visitante continúa inactivo hasta el segundo tiempo, ZYNKO cierra la conv
 - Las fuentes web autorizadas se consultan como conocimiento activo del tenant cuando están `ready` y `approved`.
 - Una transferencia automática por desconocimiento requiere al menos tres fallos consecutivos. Una solicitud explícita de “agente”, “asesor”, “persona”, etc. puede transferir de inmediato.
 - La transferencia humana mantiene la conversación abierta/pending. La encuesta aparece cuando el visitante usa **Finalizar chat** o cuando la sesión se cierra por inactividad, no al iniciar un handoff.
+
+## V2.31.112
+- La vista previa administrativa replica el widget publicado: cabecera, estado, historial, cierre, perfil, compositor y launcher.
+- El tiempo real usa WebSocket como vía principal y reconciliación HTTP como respaldo.
+- Salud del sistema distingue daemon interno, endpoint público, proxy y capacidad de control desde PHP.
+- Las encuestas se consultan desde **NIVO IA → Encuestas y satisfacción**.

@@ -1207,10 +1207,10 @@ ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.110' AS version_objetivo;
 
 
--- ZYNKO V2.31.111 · Dashboard operativo administrable y centro de servicios
+-- ZYNKO V2.31.112 · Dashboard operativo administrable y centro de servicios
 SET @db_name := DATABASE();
 SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='dashboard_preferences' AND COLUMN_NAME='quick_actions_json');
 SET @sql := IF(@exists=0,'ALTER TABLE `dashboard_preferences` ADD `quick_actions_json` TEXT NULL AFTER `widgets_json`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.111')
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.112')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.111' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.112' AS version_objetivo;
