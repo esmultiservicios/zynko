@@ -15,25 +15,11 @@ if($w){
   $missing=$pdo->prepare("SELECT id FROM webchat_installations WHERE tenant_id=? AND widget_id=? AND (installation_key IS NULL OR installation_key='')");$missing->execute([$tid,$w['id']]);
   foreach($missing->fetchAll(PDO::FETCH_COLUMN) as $missingId){$pdo->prepare('UPDATE webchat_installations SET installation_key=? WHERE id=? AND tenant_id=?')->execute([bin2hex(random_bytes(20)),(int)$missingId,$tid]);}
   if($isPlatformTenant){
-   // El sitio oficial se determina por el host real del ambiente actual.
-   $candidateHost=(string)($_SERVER['HTTP_HOST']??'');
-   if($candidateHost===''){
-     $sq=$pdo->prepare("SELECT setting_value FROM system_settings WHERE setting_key='seo_site_url' LIMIT 1");$sq->execute();
-     $configured=trim((string)($sq->fetchColumn()?:''));$candidateHost=(string)(parse_url($configured,PHP_URL_HOST)?:'');
-   }
-   $candidateHost=strtolower(preg_replace('/:\\d+$/','',$candidateHost));$officialDomain=preg_replace('/^www\\./','',$candidateHost);
-   if($officialDomain!==''){
-    $aq=$pdo->prepare('SELECT * FROM webchat_installations WHERE tenant_id=? AND widget_id=? ORDER BY id');$aq->execute([$tid,$w['id']]);$aliases=[];
-    foreach($aq->fetchAll() as $row){$norm=preg_replace('/^www\\./','',strtolower(preg_replace('/:\\d+$/','',(string)$row['domain'])));if($norm===$officialDomain)$aliases[]=$row;}
-    if($aliases){
-     $keeper=$aliases[0];foreach($aliases as $row){if(strtolower((string)$row['domain'])===$officialDomain){$keeper=$row;break;}}
-     foreach($aliases as $row){if((int)$row['id']!==(int)$keeper['id'])$pdo->prepare('DELETE FROM webchat_installations WHERE id=? AND tenant_id=?')->execute([(int)$row['id'],$tid]);}
-     $officialSiteId=(int)$keeper['id'];$key=trim((string)($keeper['installation_key']??''));if($key==='')$key=bin2hex(random_bytes(20));
-     $pdo->prepare("UPDATE webchat_installations SET installation_key=?,domain=?,label=CASE WHEN label IS NULL OR TRIM(label)='' THEN 'Sitio principal ZYNKO' ELSE label END,enabled=1,created_by=NULL WHERE id=? AND tenant_id=?")->execute([$key,$officialDomain,$officialSiteId,$tid]);
-    }else{
-     $key=bin2hex(random_bytes(20));$pdo->prepare("INSERT INTO webchat_installations(tenant_id,widget_id,installation_key,domain,label,enabled,created_by) VALUES(?,?,?,?,'Sitio principal ZYNKO',1,NULL)")->execute([$tid,$w['id'],$key,$officialDomain]);$officialSiteId=(int)$pdo->lastInsertId();
-    }
-   }
+   // El sitio principal se ancla al dominio canónico configurado y se consolida en una sola instalación.
+   // Esto elimina registros automáticos heredados de alias/hosts anteriores sin tocar sitios autorizados manualmente.
+   $official=zynkoEnsureOfficialWebchatInstallation($pdo,$tid,(int)$w['id']);
+   $officialSiteId=(int)($official['id']??0);
+   $officialDomain=(string)($official['domain']??'');
   }
  }catch(Throwable $e){}
  $q=appDb()->prepare('SELECT wi.*,u.name created_by_name FROM webchat_installations wi LEFT JOIN users u ON u.id=wi.created_by WHERE wi.tenant_id=? AND wi.widget_id=? ORDER BY CASE WHEN wi.id=? THEN 0 ELSE 1 END,wi.created_at DESC');$q->execute([$tid,$w['id'],$officialSiteId]);$inst=$q->fetchAll();$webStats['sites']=count($inst);foreach($inst as $site){if(!empty($site['enabled']))$webStats['active']++;if(!empty($site['last_seen_at']))$webStats['detected']++;}try{$sq=appDb()->prepare('SELECT COUNT(*) FROM webchat_visitors WHERE tenant_id=? AND widget_id=?');$sq->execute([$tid,$w['id']]);$webStats['visitors']=(int)$sq->fetchColumn();}catch(Throwable $e){}

@@ -1,0 +1,13 @@
+{
+  "name": "zynko-whatsapp-qr-bridge",
+  "version": "2.31.103",
+  "private": true,
+  "type": "module",
+  "scripts": {"start": "node server.js"},
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "express": "^5.1.0",
+    "pino": "^9.6.0",
+    "qrcode": "^1.5.4"
+  }
+}

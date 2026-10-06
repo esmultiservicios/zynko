@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);$root=dirname(__DIR__);require_once $root.'/app/Support/Realtime.php';require_once $root.'/app/Support/Plan.php';require_once $root.'/app/Support/Cors.php';require_once $root.'/app/Services/NivoEngine.php';
+require_once $root.'/app/Services/AutomationEngine.php';
 function envc($p){$v=@parse_ini_file($p,false,INI_SCANNER_RAW);return is_array($v)?$v:[];}
 function ensureMessagesUtf8mb4(PDO $pdo): void {
     static $done=false;
@@ -1269,6 +1270,9 @@ if ($action === 'send') {
                 'channel' => 'webchat',
                 'sender' => 'contact'
             ]);
+            zynkoRealtimePublish($pdo,$tid,'conversation.updated',[
+                'conversation_id'=>$cid,'visitor_id'=>$visitorId,'channel'=>'webchat','reason'=>'inbound_message','message_id'=>$inboundMessageId
+            ],'conversation',(string)$cid);
 
             $pdo->commit();
             $firstMessagePersisted = true;
@@ -1305,6 +1309,9 @@ if ($action === 'send') {
                 'channel' => 'webchat',
                 'sender' => 'contact'
             ]);
+            zynkoRealtimePublish($pdo,$tid,'conversation.updated',[
+                'conversation_id'=>$cid,'visitor_id'=>$visitorId,'channel'=>'webchat','reason'=>'inbound_message','message_id'=>$inboundMessageId
+            ],'conversation',(string)$cid);
 
             $pdo->commit();
         } catch (Throwable $messageError) {
@@ -1380,7 +1387,8 @@ if ($action === 'send') {
             // Mientras la conversación espera un humano, NIVO puede seguir ayudando con conocimiento aprobado.
             // Esto también recupera conversaciones antiguas que quedaron en pending por el comportamiento previo.
             try {
-                $engine = NivoEngine::evaluate(
+                $automation = AutomationEngine::evaluate($pdo, $tid, $cid, 'webchat', $body);
+                $engine = ($automation && (!empty($automation['stop']) || !empty($automation['reply']))) ? $automation : NivoEngine::evaluate(
                     $pdo,
                     $tid,
                     $cid,
@@ -1404,7 +1412,8 @@ if ($action === 'send') {
         }
     } else {
         try {
-            $engine = NivoEngine::evaluate(
+            $automation = AutomationEngine::evaluate($pdo, $tid, $cid, 'webchat', $body);
+            $engine = ($automation && (!empty($automation['stop']) || !empty($automation['reply']))) ? $automation : NivoEngine::evaluate(
                 $pdo,
                 $tid,
                 $cid,
@@ -1429,10 +1438,15 @@ if ($action === 'send') {
 
     $alreadyHuman = $assignedUserId > 0 || $handoffAgent !== null;
 
-    // Un mensaje válido nunca debe quedar sin respuesta por un fallo interno del motor mientras NIVO conserva el control.
-    if (!$alreadyHuman && !empty($engine['enabled']) && trim((string)($engine['reply'] ?? '')) === '' && empty($engine['handoff'])) {
-        $engine['reply'] = 'Recibí tu mensaje. Estoy revisando el conocimiento aprobado de ' . $assistantCompany . '. Puedes reformular la pregunta y seguiré intentando resolverla sin cerrar la conversación.';
+    // Garantía definitiva de respuesta: mientras ningún humano sea dueño de la conversación,
+    // cada mensaje entrante debe terminar con respuesta o handoff explícito. Esta protección
+    // cubre perfiles deshabilitados por datos heredados, reglas de canal, cooldowns y fallos
+    // secundarios sin permitir que el visitante vea su mensaje enviado y quede en silencio.
+    if (!$alreadyHuman && trim((string)($engine['reply'] ?? '')) === '' && empty($engine['handoff'])) {
+        $engine['enabled'] = true;
+        $engine['reply'] = 'Recibí tu mensaje. En este momento no pude construir una respuesta segura con el conocimiento aprobado de ' . $assistantCompany . '. Puedes reformular la pregunta y seguiré intentando ayudarte sin cerrar la conversación.';
         $engine['source'] = 'engine:non-silent-fallback';
+        $engine['sources'] = $engine['sources'] ?? [];
         $engine['confidence'] = 'low';
         $engine['reason'] = 'non_silent_fallback';
     }
@@ -1484,6 +1498,9 @@ if ($action === 'send') {
                 'channel' => 'webchat',
                 'sender' => 'bot'
             ]);
+            zynkoRealtimePublish($pdo,$tid,'conversation.updated',[
+                'conversation_id'=>$cid,'visitor_id'=>$visitorId,'channel'=>'webchat','reason'=>'bot_reply','message_id'=>$replyMessageId
+            ],'conversation',(string)$cid);
 
             $pdo->commit();
         } catch (Throwable $replyPersistenceError) {

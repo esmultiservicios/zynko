@@ -177,6 +177,13 @@
     if(head.closest('.conv-list,.chat,.info,.modal-shell,.hero-panel,.metric-grid'))return;
     const copy=head.querySelector(':scope > div');
     if(!copy)return;
+
+    // Las cabeceras que ya renderizan su propio icono no deben recibir otro
+    // icono desde el mejorador universal. Esto evita duplicados visuales.
+    if(copy.querySelector(':scope > .env-panel-icon, :scope > .premium-card-head-icon, :scope > .zynko-card-head-icon')){
+      head.dataset.zynkoCardHead='1';
+      return;
+    }
     const title=copy.querySelector('b,h2,h3,h4');
     if(!title)return;
     const text=(title.textContent||'').trim();

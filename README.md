@@ -1,3 +1,43 @@
+## V2.31.104 · Comunicación bilateral durable y omnicanal
+
+- La Bandeja ya no depende exclusivamente del WebSocket: reconcilia periódicamente contra la base de datos.
+- NIVO Web Chat conserva WebSocket para inmediatez y agrega reconciliación de integridad aunque el socket figure conectado.
+- Cada mensaje Web Chat publica eventos de mensaje y de conversación, pero la BD permanece como fuente de verdad.
+- Cuando un humano tiene asignada una conversación, NIVO deja de responder automáticamente en Web Chat y canales externos.
+- Las respuestas NIVO generadas desde WhatsApp, Messenger, Instagram o Telegram se despachan por el gateway real del canal cuando éste está autorizado.
+- La conversación, el historial y el orden de mensajes se reconstruyen por ID persistido, evitando depender de memoria de navegador.
+
+## V2.31.103 · Mensajería NIVO Web Chat resiliente
+
+- Restaura y blinda el ciclo emisor/receptor de NIVO Web Chat.
+- Garantiza respuesta explícita cuando NIVO conserva el control y ningún humano está asignado.
+- Mantiene WebSocket como transporte principal y activa polling de recuperación únicamente cuando el socket no está disponible.
+- Reconcilia el historial después de enviar para recuperar respuestas que lleguen durante latencia de proxy/proveedor.
+- Conserva la persistencia en BD como fuente de verdad y evita duplicados al re-renderizar.
+
+## V2.31.103 · Conectores omnicanal completos y WhatsApp QR
+
+Esta versión conecta la bandeja/CRM con Meta Cloud API (WhatsApp, Messenger e Instagram), Telegram Bot API y un bridge dedicado para WhatsApp por QR. También incorpora despacho real de campañas, webhooks entrantes para NIVO/automatizaciones, Comment-to-DM y orquestación de perfiles de llamadas WhatsApp + IA.
+
+## V2.31.101 · Automatizaciones omnicanal y crecimiento
+
+Esta versión incorpora un centro de automatizaciones con constructor visual, reglas sociales, campañas de WhatsApp y perfiles de llamadas con NIVO IA. También integra los flujos activos al procesamiento real de mensajes de NIVO en Web Chat y API.
+
+Los conectores externos continúan respetando el principio de no simular estados: WhatsApp, Messenger, Instagram, llamadas y Comment-to-DM solo pueden completar entregas cuando la cuenta/proveedor oficial correspondiente está autorizado. El emparejamiento de WhatsApp por QR no se presenta como API Oficial de Meta porque son mecanismos distintos; ZYNKO mantiene la conexión oficial como vía principal.
+
+## V2.31.100 · Limpieza visual de Configuración
+- Corrige la duplicación del icono de servidor en la cabecera “Servidor y dominio”.
+- Protege las cabeceras con iconografía propia frente al mejorador universal de tarjetas.
+- Mantiene intacta la lógica de configuración, .env, permisos, WebSocket y base de datos.
+
+
+## V2.31.99 · Sitio principal NIVO único
+
+- El sitio principal de ZYNKO se vincula únicamente al dominio canónico configurado en `seo_site_url` / `APP_URL`.
+- Se consolidan automáticamente instalaciones antiguas generadas por alias o dominios históricos.
+- Los sitios autorizados manualmente, como IZZY y ES MULTISERVICIOS, se conservan intactos.
+- Visitar ZYNKO desde un alias ya no crea otra tarjeta `Sitio principal ZYNKO`.
+
 ## V2.32.01 · Mensajería bilateral realtime sin pérdida de estado
 
 - La mensajería usa `messages` como fuente de verdad y `realtime_events` como outbox durable para WebSocket.

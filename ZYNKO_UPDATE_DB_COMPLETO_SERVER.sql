@@ -1047,3 +1047,139 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.99' AS version_objetivo;
+
+
+-- ============================================================
+-- ZYNKO V2.31.101 · Automatizaciones, campañas y social automation
+-- Seguro para ejecutar más de una vez.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `automation_flows` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `uuid` CHAR(36) NOT NULL,
+  `name` VARCHAR(160) NOT NULL,
+  `trigger_type` VARCHAR(60) NOT NULL DEFAULT 'message_received',
+  `channel_type` VARCHAR(50) NOT NULL DEFAULT 'all',
+  `status` ENUM('draft','active','paused','archived') NOT NULL DEFAULT 'draft',
+  `definition_json` JSON NOT NULL,
+  `created_by` BIGINT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_automation_uuid` (`uuid`), KEY `idx_automation_tenant` (`tenant_id`,`status`,`trigger_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `social_automation_rules` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `channel_type` VARCHAR(30) NOT NULL,
+  `rule_type` VARCHAR(40) NOT NULL,
+  `name` VARCHAR(160) NOT NULL,
+  `keywords` VARCHAR(1000) NULL,
+  `response_text` TEXT NULL,
+  `active` TINYINT(1) NOT NULL DEFAULT 1,
+  `settings_json` JSON NULL,
+  `created_by` BIGINT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), KEY `idx_social_auto_tenant` (`tenant_id`,`channel_type`,`rule_type`,`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `outbound_campaigns` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `uuid` CHAR(36) NOT NULL,
+  `name` VARCHAR(160) NOT NULL,
+  `channel_type` VARCHAR(30) NOT NULL DEFAULT 'whatsapp',
+  `audience_type` VARCHAR(40) NOT NULL DEFAULT 'all_contacts',
+  `template_name` VARCHAR(160) NULL,
+  `message_body` TEXT NOT NULL,
+  `status` ENUM('draft','scheduled','running','paused','completed','cancelled') NOT NULL DEFAULT 'draft',
+  `scheduled_at` DATETIME NULL,
+  `total_recipients` INT NOT NULL DEFAULT 0,
+  `queued_count` INT NOT NULL DEFAULT 0,
+  `sent_count` INT NOT NULL DEFAULT 0,
+  `delivered_count` INT NOT NULL DEFAULT 0,
+  `failed_count` INT NOT NULL DEFAULT 0,
+  `created_by` BIGINT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_campaign_uuid` (`uuid`), KEY `idx_campaign_tenant` (`tenant_id`,`status`,`scheduled_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `campaign_recipients` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `campaign_id` BIGINT UNSIGNED NOT NULL,
+  `contact_id` BIGINT UNSIGNED NOT NULL,
+  `destination` VARCHAR(190) NULL,
+  `status` ENUM('pending','queued','sent','delivered','failed','skipped') NOT NULL DEFAULT 'pending',
+  `provider_message_id` VARCHAR(190) NULL,
+  `error_message` VARCHAR(500) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), UNIQUE KEY `uq_campaign_contact` (`campaign_id`,`contact_id`), KEY `idx_campaign_recipient` (`tenant_id`,`campaign_id`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `whatsapp_ai_call_profiles` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `name` VARCHAR(160) NOT NULL,
+  `channel_id` BIGINT UNSIGNED NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 0,
+  `provider` VARCHAR(80) NOT NULL DEFAULT 'meta',
+  `voice_name` VARCHAR(120) NULL,
+  `system_prompt` TEXT NULL,
+  `handoff_enabled` TINYINT(1) NOT NULL DEFAULT 1,
+  `settings_json` JSON NULL,
+  `created_by` BIGINT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`), KEY `idx_ai_calls_tenant` (`tenant_id`,`enabled`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+UPDATE `subscription_plans`
+SET `module_access_json`=JSON_SET(COALESCE(`module_access_json`,JSON_OBJECT()),'$.automations',IF(`code` IN ('pro','business'),1,0))
+WHERE `code` IN ('free','starter','pro','business');
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.101')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+
+-- ============================================================
+-- ZYNKO V2.31.103 · Conectores reales, WhatsApp QR y llamadas IA
+-- Seguro para ejecutar más de una vez.
+-- ============================================================
+UPDATE `channel_connector_catalog` SET `connector_ready`=1,`visible`=1,`linkable`=1 WHERE `code` IN ('instagram','telegram');
+
+CREATE TABLE IF NOT EXISTS `whatsapp_ai_calls` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `profile_id` BIGINT UNSIGNED NOT NULL,
+  `channel_id` BIGINT UNSIGNED NOT NULL,
+  `external_call_id` VARCHAR(190) NULL,
+  `caller` VARCHAR(190) NULL,
+  `status` ENUM('ringing','answered','completed','failed','rejected') NOT NULL DEFAULT 'ringing',
+  `event_json` JSON NULL,
+  `started_at` DATETIME NULL,
+  `answered_at` DATETIME NULL,
+  `ended_at` DATETIME NULL,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_ai_call_external` (`tenant_id`,`external_call_id`),
+  KEY `idx_ai_call_status` (`tenant_id`,`status`,`updated_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.103')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.103' AS version_objetivo;
+
+-- ZYNKO V2.31.103 · Mensajería Web Chat resiliente y respuesta no silenciosa
+-- No agrega tablas: conserva el esquema V2.31.102 y actualiza únicamente la versión objetivo.
+
+
+-- ZYNKO V2.31.104 · reconciliación bilateral durable (sin cambios estructurales)
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.104')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.104' AS version_objetivo;

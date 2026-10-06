@@ -48,6 +48,9 @@
     handoffAgent: '',
     wsReconnectTimer: null,
     wsGeneration: 0,
+    realtimeFallbackTimer: null,
+    integrityTimer: null,
+    realtimeFallbackBusy: false,
     inactivityNudged: false,
     inactivityClosing: false
   };
@@ -786,6 +789,7 @@
         return;
       }
 
+      const previousServerCount = state.lastCount;
       state.sending = true;
       const sendButton = shadow.querySelector('.send');
       if (sendButton) {
@@ -828,6 +832,12 @@
           renderMessages(result.messages, false);
         } else if (result.bot_reply) {
           add(shadow, result.bot_reply, 'in', 'NIVO');
+        }
+
+        const hasServerReply = Array.isArray(result.messages)
+          && result.messages.some(message => message.direction === 'out' && Number(message.id || 0) > 0);
+        if (!hasServerReply && !result.bot_reply && !result.human_assigned) {
+          reconcileAfterSend(previousServerCount).catch(() => {});
         }
 
         syncProfileUi();
@@ -1199,7 +1209,57 @@
     }
   }
 
+  function stopRealtimeFallback() {
+    if (state.realtimeFallbackTimer) {
+      clearInterval(state.realtimeFallbackTimer);
+      state.realtimeFallbackTimer = null;
+    }
+    state.realtimeFallbackBusy = false;
+  }
+
+  function startRealtimeFallback(intervalMs = 1800) {
+    if (state.realtimeFallbackTimer) return;
+    const delay = Math.max(1000, Math.min(5000, Number(intervalMs) || 1800));
+    state.realtimeFallbackTimer = setInterval(async () => {
+      if (state.wsConnected || state.realtimeFallbackBusy || !state.conversation_id) return;
+      state.realtimeFallbackBusy = true;
+      try {
+        await refresh();
+      } finally {
+        state.realtimeFallbackBusy = false;
+      }
+    }, delay);
+  }
+
+  async function reconcileAfterSend(previousCount) {
+    // El ACK HTTP debe traer el historial canónico; si por latencia de proveedor, proxy o
+    // WebSocket todavía no llegó una respuesta, hacemos una reconciliación corta y acotada.
+    // No crea mensajes duplicados: renderMessages usa el historial persistido del servidor.
+    const checkpoints = [250, 900, 1800];
+    for (const wait of checkpoints) {
+      if (state.lastCount > previousCount + 1 || state.humanAssigned || state.conversationClosed) return;
+      await sleep(wait);
+      await refresh();
+    }
+  }
+
+  function startIntegrityReconciliation() {
+    if (state.integrityTimer) return;
+    state.integrityTimer = setInterval(async () => {
+      if (document.hidden || !state.conversation_id || state.realtimeFallbackBusy) return;
+      state.realtimeFallbackBusy = true;
+      try {
+        await refresh();
+      } finally {
+        state.realtimeFallbackBusy = false;
+      }
+    }, 3200);
+  }
+
   function connect(data) {
+    // La sincronización de integridad permanece activa incluso con WebSocket conectado.
+    // WebSocket entrega instantáneamente; este pulso repara cualquier evento perdido.
+    startIntegrityReconciliation();
     if (state.poll) {
       clearInterval(state.poll);
       state.poll = null;
@@ -1215,6 +1275,7 @@
 
     if (!data.ws_url || !data.ws_token) {
       state.wsConnected = false;
+      startRealtimeFallback();
       return;
     }
 
@@ -1234,6 +1295,7 @@
       socket.onopen = async () => {
         if (generation !== state.wsGeneration) return;
         state.wsConnected = true;
+        stopRealtimeFallback();
         if (state.humanAssigned && state.handoffAgent) {
           setPresence(`Conectado con ${state.handoffAgent}`);
         }
@@ -1293,6 +1355,7 @@
       socket.onclose = () => {
         if (generation !== state.wsGeneration) return;
         state.wsConnected = false;
+        startRealtimeFallback();
         state.wsReconnectTimer = setTimeout(async () => {
           try {
             // Bootstrap actúa como recuperación del gap: conserva visitor_token,
@@ -1318,6 +1381,7 @@
       };
     } catch {
       state.wsConnected = false;
+      startRealtimeFallback();
       state.wsReconnectTimer = setTimeout(() => connect(data), reconnect);
     }
   }
