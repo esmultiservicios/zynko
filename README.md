@@ -1,4 +1,12 @@
-## V2.31.107 · NIVO bilateral + salud integral del servidor
+## V2.31.108 · NIVO preciso + CRM de conversaciones + UX estable
+- Respuestas determinísticas para intenciones clave (IZZY, ZYNKO, WhatsApp, inventario, restaurantes) con normalización tolerante a errores comunes.
+- Categorías CRM por conversación y acceso visible desde la cabecera del chat.
+- Eliminación segura con campo de contraseña visible y enfocado.
+- Emoji picker con X y cierre al hacer clic fuera.
+- Chat expandible/restaurable, scroll inteligente y cierre/encuesta sin obligar a pulsar “Iniciar nuevo chat”.
+- Salud del servidor y filtros de Bandeja ordenados.
+
+## V2.31.108 · NIVO bilateral + salud integral del servidor
 
 - Corrige la detección de saludos para que `Hola, ¿qué es ES MULTISERVICIOS?` no se reduzca a un saludo genérico.
 - NIVO procesa la intención completa y prioriza reglas/conocimiento de empresa y soluciones.
@@ -7,12 +15,12 @@
 - Añade Salud integral del servidor con DB, WebSocket interno/público, proxy, PID, PHP, storage, URL y canales.
 - La Bandeja recupera el dominio de origen desde `webchat_visitors` cuando una conversación antigua no tiene aún registro de seguridad.
 
-## V2.31.107 · Entrega confirmada y anti-spam no destructivo
+## V2.31.108 · Entrega confirmada y anti-spam no destructivo
 - Corrige una causa real de mensajes visibles solo en el widget: el anti-spam podía descartar preguntas repetidas y aun responder HTTP como si hubieran sido recibidas.
 - Ningún mensaje se considera enviado si no quedó persistido. Repetir preguntas ya no bloquea por sí solo una conversación.
 - Widget, Bandeja y NIVO conservan WebSocket como tiempo real y BD como fuente de verdad.
 
-## V2.31.107 · Comunicación bilateral durable y omnicanal
+## V2.31.108 · Comunicación bilateral durable y omnicanal
 
 - La Bandeja ya no depende exclusivamente del WebSocket: reconcilia periódicamente contra la base de datos.
 - NIVO Web Chat conserva WebSocket para inmediatez y agrega reconciliación de integridad aunque el socket figure conectado.
@@ -299,7 +307,7 @@ El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF
 - El Widget NIVO y la Bandeja abren por defecto en el mensaje más reciente.
 - Los controles Inicio / Último continúan disponibles para navegar el historial sin alterar el comportamiento manual posterior.
 
-## ZYNKO V2.31.107
+## ZYNKO V2.31.108
 - Inactividad estable: un solo aviso, cierre automático configurable y sin bucles de seguimiento.
 - Scroll inteligente: respuestas largas se posicionan desde el inicio del mensaje; respuestas cortas permanecen al final.
 - Salud integral amplía diagnóstico con hora/zona horaria PHP y MySQL, además de WebSocket, proxy y puertos.

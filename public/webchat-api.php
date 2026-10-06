@@ -988,6 +988,16 @@ if ($action === 'survey') {
     out(true, 'Gracias por tu opinión.', ['conversation_id'=>$cid,'rating'=>$rating]);
 }
 
+if ($action === 'survey_skip') {
+    $cid = max(1, (int) ($input['conversation_id'] ?? 0));
+    $q = $pdo->prepare('SELECT c.id FROM conversations c WHERE c.id=? AND c.tenant_id=? AND c.contact_id=? LIMIT 1');
+    $q->execute([$cid, $tid, (int) ($v['contact_id'] ?? 0)]);
+    if (!$q->fetchColumn()) out(false, 'No fue posible validar esta encuesta.', [], 403);
+    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,comment,requested_at,responded_at) VALUES(?,?,?,NULL,NULL,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,responded_at=NOW()")
+        ->execute([$tid,$cid,(int)$v['id']]);
+    out(true,'Encuesta omitida.',['conversation_id'=>$cid]);
+}
+
 if ($action === 'new_chat') {
     $cid = (int) ($v['conversation_id'] ?? 0);
     if ($cid) {

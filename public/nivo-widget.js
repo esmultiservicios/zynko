@@ -52,7 +52,8 @@
     integrityTimer: null,
     realtimeFallbackBusy: false,
     inactivityNudged: false,
-    inactivityClosing: false
+    inactivityClosing: false,
+    expanded: false
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -296,6 +297,9 @@
       state.surveyConversationId = data.survey?.conversation_id || 0;
       state.widget = data.widget;
       state.initialMessages = data.messages || [];
+      if (state.conversationClosed && data.survey?.answered) {
+        try { await call({ action: 'new_chat' }); state.conversation_id=0; state.conversationClosed=false; state.surveyConversationId=0; state.initialMessages=[]; } catch (_) {}
+      }
       state.profile = {
         name: data.visitor_profile?.name || localStorage.getItem(`${storagePrefix}.name`) || '',
         email: data.visitor_profile?.email || localStorage.getItem(`${storagePrefix}.email`) || ''
@@ -335,6 +339,37 @@
     } catch {
       // El sonido es un detalle opcional y nunca debe bloquear el chat.
     }
+  }
+
+  async function resetAfterSurvey() {
+    await call({ action: 'new_chat' });
+    state.conversation_id = 0;
+    state.conversationClosed = false;
+    state.surveyConversationId = 0;
+    state.selectedRating = 0;
+    state.handoffActive = false;
+    state.humanAssigned = false;
+    state.inactivityNudged = false;
+    state.inactivityClosing = false;
+    state.lastCount = 0;
+    state.initialGreetingShown = false;
+    state.initialMessages = [];
+    state.messageCache = [];
+    state.historyMode = 'end';
+    const messages = state.shadow?.querySelector('.msgs');
+    if (messages) messages.innerHTML = '';
+    const surveyCard = state.shadow?.querySelector('.survey-card');
+    if (surveyCard) surveyCard.hidden = true;
+    state.shadow?.querySelectorAll('.survey-stars button').forEach(star=>star.classList.remove('active'));
+    const surveyComment=state.shadow?.querySelector('.survey-comment');if(surveyComment)surveyComment.value='';
+    const composer=state.shadow?.querySelector('.composer');if(composer)composer.classList.remove('is-closed');
+    const actions=state.shadow?.querySelector('.session-actions:not(.new-chat-wrap)');if(actions)actions.hidden=false;
+    const newWrap=state.shadow?.querySelector('.new-chat-wrap');if(newWrap)newWrap.hidden=true;
+    const handoffBanner=state.shadow?.querySelector('.handoff-banner');if(handoffBanner)handoffBanner.hidden=true;
+    syncProfileUi();
+    setPresence('Listo para ayudarte');
+    await showInitialGreeting([]);
+    state.shadow?.querySelector('.text')?.focus();
   }
 
   function mount(data) {
@@ -378,8 +413,10 @@
         .launch-logo img{width:43px;height:43px;object-fit:contain;object-position:center center;display:block;margin:auto}
         .badge{display:none;position:absolute;right:-3px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#dc2626;color:#fff;border:2px solid #fff;font-size:11px;font-weight:800;place-items:center}
         .badge.on{display:grid}
+        .box.expanded{width:min(760px,calc(100vw - 28px));height:min(760px,calc(100dvh - 28px));max-height:calc(100dvh - 28px)}
         .box{width:min(390px,calc(100vw - 28px));height:min(610px,calc(100dvh - 105px));background:#fff;border:1px solid #dce5eb;border-radius:21px;box-shadow:0 22px 60px #0f172a35;overflow:hidden;display:none;flex-direction:column;margin-${vertical === 'bottom' ? 'bottom' : 'top'}:12px}
         .box.open{display:flex}
+        .head-window-actions{display:flex;align-items:center;gap:6px}.head-window-actions button{width:34px;height:34px;border-radius:10px;border:1px solid #ffffff18;background:#ffffff0d;color:#fff;cursor:pointer;font-size:17px}.head-window-actions button:hover{background:#ffffff18}
         .head{padding:14px 15px;background:#0f172a;color:#fff;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:11px}
         .bot{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#fff;overflow:hidden;box-shadow:0 8px 18px #00000020}
         .bot img{width:47px;height:47px;display:block;object-fit:contain;object-position:center center;margin:auto}
@@ -463,12 +500,14 @@
         .nivo-pulse{animation:nivoLauncherPulse 3.8s ease-in-out infinite}
         @media(max-width:480px){
           .wrap{left:12px!important;right:12px!important;${vertical}:12px!important}
-          .box{width:100%;height:min(585px,calc(100dvh - 92px));border-radius:18px}
+          .box.expanded{width:min(760px,calc(100vw - 28px));height:min(760px,calc(100dvh - 28px));max-height:calc(100dvh - 28px)}
+        .box{width:100%;height:min(585px,calc(100dvh - 92px));border-radius:18px}
           .launch-label{width:190px;max-width:calc(100vw - 92px);font-size:12px;padding:9px 11px;white-space:normal;line-height:1.25}
           .launch{width:56px;height:56px}
           .launch-logo{width:42px;height:42px}
           .launch-logo img{width:39px;height:39px}
-          .head{grid-template-columns:44px minmax(0,1fr) 34px}
+          .head-window-actions{display:flex;align-items:center;gap:6px}.head-window-actions button{width:34px;height:34px;border-radius:10px;border:1px solid #ffffff18;background:#ffffff0d;color:#fff;cursor:pointer;font-size:17px}.head-window-actions button:hover{background:#ffffff18}
+        .head{grid-template-columns:44px minmax(0,1fr) 34px}
           .history-nav{padding:6px 8px}
           .history-nav-label{display:none}
           .history-nav button{height:29px;padding:0 8px}
@@ -493,7 +532,7 @@
                 <span class="presence-text">${state.conversation_id ? 'Esperando tu respuesta' : 'Listo para ayudarte'}</span>
               </div>
             </div>
-            <button class="close" aria-label="Minimizar">×</button>
+            <div class="head-window-actions"><button class="expand" type="button" aria-label="Expandir chat" title="Expandir chat">↗</button><button class="close" aria-label="Minimizar">×</button></div>
           </div>
           <div class="msgs-wrap">
             <div class="history-nav" aria-label="Navegar historial"><span class="history-nav-label">↕ Historial</span><button type="button" class="history-start"><span>↑</span><span>Inicio</span></button><button type="button" class="history-end"><span>↓</span><span>Último</span></button></div>
@@ -576,6 +615,13 @@
       state.opened = false;
       persistOpen();
     };
+    shadow.querySelector('.expand')?.addEventListener('click', () => {
+      state.expanded = !state.expanded;
+      box.classList.toggle('expanded', state.expanded);
+      const button = shadow.querySelector('.expand');
+      if (button) { button.textContent = state.expanded ? '↙' : '↗'; button.title = state.expanded ? 'Restaurar tamaño' : 'Expandir chat'; }
+      requestAnimationFrame(() => smartScrollToLatest(shadow.querySelector('.msgs'), state.messageCache || [], true));
+    });
 
     const jumpHistory = position => {
       const messages = shadow.querySelector('.msgs');
@@ -703,18 +749,19 @@
       if (button) button.disabled = true;
       try {
         await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, comment: shadow.querySelector('.survey-comment')?.value || '' });
-        const surveyCard = shadow.querySelector('.survey-card');
-        if (surveyCard) surveyCard.innerHTML = '<b>¡Gracias por tu opinión! 💚</b><small>Tu calificación quedó registrada.</small>';
-        setPresence('Opinión registrada', true);
+        setPresence('Opinión registrada · preparando chat nuevo…', true);
+        setTimeout(()=>resetAfterSurvey().catch(error=>console.warn('NIVO Web Chat:',error.message)),500);
       } catch (error) {
         add(shadow, error.message, 'in', 'Sistema');
       } finally {
         if (button) button.disabled = false;
       }
     });
-    shadow.querySelector('.survey-skip')?.addEventListener('click', () => {
-      const surveyCard = shadow.querySelector('.survey-card');
-      if (surveyCard) surveyCard.hidden = true;
+    shadow.querySelector('.survey-skip')?.addEventListener('click', async () => {
+      const button=shadow.querySelector('.survey-skip');if(button)button.disabled=true;
+      try{await call({action:'survey_skip',conversation_id:state.surveyConversationId||state.conversation_id});await resetAfterSurvey();}
+      catch(error){add(shadow,error.message,'in','Sistema');}
+      finally{if(button)button.disabled=false;}
     });
     shadow.querySelector('.new-chat')?.addEventListener('click', async () => {
       const button = shadow.querySelector('.new-chat');
@@ -1038,7 +1085,7 @@
     box.appendChild(message);
     if (autoScroll) {
       const isIncoming = direction === 'in';
-      const isLong = isIncoming && message.offsetHeight > Math.max(150, box.clientHeight * 0.48);
+      const isLong = isIncoming && (String(body||'').length>180 || message.offsetHeight > Math.max(110, box.clientHeight * 0.34));
       box.scrollTop = isLong ? Math.max(0, message.offsetTop - 10) : box.scrollHeight;
     }
     return message;
@@ -1104,7 +1151,7 @@
     if (!lastNode) return;
 
     const isIncomingReply = String(lastMessage?.direction || '') === 'out';
-    const isLongReply = isIncomingReply && lastNode.offsetHeight > Math.max(150, box.clientHeight * 0.48);
+    const isLongReply = isIncomingReply && (String(lastMessage?.body||'').length>180 || lastNode.offsetHeight > Math.max(110, box.clientHeight * 0.34));
 
     if (isLongReply) {
       box.scrollTop = Math.max(0, lastNode.offsetTop - 10);

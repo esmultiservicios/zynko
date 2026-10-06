@@ -62,7 +62,7 @@
       <article class="server-health-card is-<?=$hs?>"><span class="server-health-state"><i class="fa-solid <?=$hs==='ok'?'fa-circle-check':($hs==='warning'?'fa-triangle-exclamation':'fa-circle-xmark')?>"></i></span><div><small><?=htmlspecialchars((string)($healthItem['group']??'Servidor'))?></small><b><?=htmlspecialchars((string)($healthItem['label']??''))?></b><code><?=htmlspecialchars((string)($healthItem['value']??''))?></code><p><?=htmlspecialchars((string)($healthItem['detail']??''))?></p></div></article>
     <?php endforeach?>
   </div>
-  <div class="server-health-actions"><a class="soft" href="?page=settings#server-health"><i class="fa-solid fa-rotate"></i> Volver a comprobar</a><small>Si cambias .env o reinicias WebSocket, usa este botón para ejecutar nuevamente todas las comprobaciones.</small></div>
+  <div class="server-health-actions"><a class="soft" href="?page=settings#server-health"><i class="fa-solid fa-rotate"></i> Volver a comprobar</a><small>Si cambias .env, puertos, proxy o reinicias WebSocket, ejecuta nuevamente el diagnóstico completo.</small></div>
 </section>
 
 <?php endif?>

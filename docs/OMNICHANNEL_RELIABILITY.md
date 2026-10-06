@@ -1,4 +1,4 @@
-# ZYNKO V2.31.107 · Contrato de comunicación bilateral
+# ZYNKO V2.31.108 · Contrato de comunicación bilateral
 
 1. Todo mensaje entrante se persiste antes de intentar IA, automatizaciones o realtime.
 2. `conversations` y `messages` son la fuente de verdad para Widget, Bandeja y canales externos.

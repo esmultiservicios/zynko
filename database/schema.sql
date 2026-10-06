@@ -344,6 +344,7 @@ CREATE TABLE nivo_rules (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id
 -- CRM ligero de contactos y seguimiento
 CREATE TABLE IF NOT EXISTS contact_categories (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(80) NOT NULL, color VARCHAR(20) NULL, active TINYINT(1) NOT NULL DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_contact_category(tenant_id,name));
 CREATE TABLE IF NOT EXISTS contact_category_map (contact_id BIGINT UNSIGNED NOT NULL, category_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY(contact_id,category_id));
+CREATE TABLE IF NOT EXISTS conversation_category_map (conversation_id BIGINT UNSIGNED NOT NULL, category_id BIGINT UNSIGNED NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(conversation_id,category_id), INDEX idx_conversation_category(category_id,conversation_id));
 CREATE TABLE IF NOT EXISTS conversation_followups (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, follow_up_at DATETIME NOT NULL, status ENUM('pending','done','cancelled') NOT NULL DEFAULT 'pending', note VARCHAR(500) NULL, created_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,status,follow_up_at));
 CREATE TABLE IF NOT EXISTS contact_activity (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, contact_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NULL, action VARCHAR(80) NOT NULL, detail VARCHAR(500) NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,contact_id,created_at));
 
@@ -437,7 +438,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_calls (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.107');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.108');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

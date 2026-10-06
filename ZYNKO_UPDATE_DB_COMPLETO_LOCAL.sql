@@ -400,8 +400,24 @@ SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.103' AS v
 -- No agrega tablas: conserva el esquema V2.31.102 y actualiza únicamente la versión objetivo.
 
 
--- ZYNKO V2.31.107 · reconciliación bilateral durable (sin cambios estructurales)
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.107')
+-- ZYNKO V2.31.108 · reconciliación bilateral durable (sin cambios estructurales)
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.108')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.107' AS version_objetivo;
+
+
+-- ZYNKO V2.31.108 · categorías por conversación (CRM)
+CREATE TABLE IF NOT EXISTS `conversation_category_map` (
+  `conversation_id` BIGINT UNSIGNED NOT NULL,
+  `category_id` BIGINT UNSIGNED NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`conversation_id`,`category_id`),
+  KEY `idx_conversation_category` (`category_id`,`conversation_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Migra categorías existentes del contacto a sus conversaciones para conservar el historial CRM.
+INSERT IGNORE INTO `conversation_category_map` (`conversation_id`,`category_id`)
+SELECT c.id, ccm.category_id FROM conversations c JOIN contact_category_map ccm ON ccm.contact_id=c.contact_id WHERE c.deleted_at IS NULL;
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.108')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.108' AS version_objetivo;

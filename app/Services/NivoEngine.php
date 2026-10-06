@@ -12,6 +12,64 @@ final class NivoEngine
         return preg_replace('/\s+/u',' ',$s) ?: '';
     }
 
+
+    /** Normalización tolerante a abreviaturas y errores frecuentes sin alterar el texto original. */
+    private static function intentNorm(string $s): string
+    {
+        $n=self::norm($s);
+        $n=preg_replace('/\bpara\s+q\b/u','para que',$n)??$n;
+        $n=preg_replace('/\bq\s+es\b/u','que es',$n)??$n;
+        $n=preg_replace('/\bq\s+(?:ase|hase|ace)\b/u','que hace',$n)??$n;
+        $aliases=[
+            '/\b(?:izy|izzi|izyy|isy)\b/u'=>'izzy',
+            '/\b(?:zinko|zynco|sinco|sinko)\b/u'=>'zynko',
+            '/\b(?:watsap|whatsap|whasap|wasap|guasap|watsapp)\b/u'=>'whatsapp',
+            '/\b(?:imventario|inbentario|inventaryo|inventaro)\b/u'=>'inventario',
+            '/\b(?:restauramte|restorante|restaurantee)\b/u'=>'restaurante',
+            '/\b(?:multiservisio|multiservisios|multiservico)\b/u'=>'multiservicios',
+            '/\b(?:facturasion|faturacion)\b/u'=>'facturacion',
+        ];
+        foreach($aliases as $pattern=>$replacement)$n=preg_replace($pattern,$replacement,$n)??$n;
+        return trim($n);
+    }
+
+    private static function coreIntentReply(PDO $pdo,int $tenantId,string $message,string $companyName): ?array
+    {
+        $n=self::intentNorm($message);
+        $company=self::norm($companyName);
+        if($company!=='es multiservicios')return null;
+        $asksWhat=(bool)preg_match('/\b(que es|que hace|para que sirve|como funciona|funciones|funcionalidades|beneficios|sirve para|maneja|tienen|tiene)\b/u',$n);
+        if(!$asksWhat)return null;
+
+        if(str_contains($n,'whatsapp')){
+            $enabled='1';$number='';
+            try{$q=$pdo->query("SELECT setting_key,setting_value FROM system_settings WHERE setting_key IN ('public_whatsapp_enabled','public_whatsapp_number')");foreach($q->fetchAll() as $r){if($r['setting_key']==='public_whatsapp_enabled')$enabled=(string)$r['setting_value'];if($r['setting_key']==='public_whatsapp_number')$number=trim((string)$r['setting_value']);}}catch(Throwable $ignore){}
+            $reply=$enabled==='1'?'Sí. ES MULTISERVICIOS tiene atención por WhatsApp'.($number!==''?' en '.$number:'').'. También puedes continuar aquí con NIVO Web Chat.':'En este momento no tengo un número público de WhatsApp habilitado en la configuración de ES MULTISERVICIOS.';
+            return ['reply'=>$reply,'source'=>'platform:contact:whatsapp','confidence'=>'high','sources'=>['Configuración pública']];
+        }
+        if(str_contains($n,'izzy')){
+            if(str_contains($n,'restaurante'))$reply='Sí. IZZY incluye funciones para restaurantes, como operación POS y gestión orientada al servicio de restaurante. Si quieres, puedo explicarte qué funciones están disponibles para mesas, pedidos, ventas e inventario según la configuración de tu negocio.';
+            elseif(str_contains($n,'inventario'))$reply='Sí. IZZY maneja inventario y existencias, además de facturación, POS, restaurantes y gestión administrativa.';
+            elseif(str_contains($n,'funcion'))$reply='IZZY puede ayudarte con facturación, documentos de venta, inventario y existencias, POS, operación de restaurantes y gestión administrativa. Si me dices qué proceso te interesa, te explico esa función en detalle.';
+            elseif(str_contains($n,'para que sirve')||str_contains($n,'que hace')||str_contains($n,'que es'))$reply='IZZY es la solución empresarial de ES MULTISERVICIOS para administrar facturación, inventario, ventas/POS, restaurantes y procesos administrativos desde un mismo sistema.';
+            else return null;
+            return ['reply'=>$reply,'source'=>'platform:intent:izzy','confidence'=>'high','sources'=>['IZZY']];
+        }
+        if(str_contains($n,'zynko')){
+            $reply='ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS: centraliza conversaciones de NIVO Web Chat y canales externos en una sola Bandeja, permite atención con NIVO IA y agentes humanos, asignaciones, seguimiento CRM, automatizaciones e integraciones.';
+            return ['reply'=>$reply,'source'=>'platform:intent:zynko','confidence'=>'high','sources'=>['ZYNKO']];
+        }
+        if(str_contains($n,'cami')){
+            $reply='CAMI es la solución de ES MULTISERVICIOS orientada a clínicas y centros médicos, con gestión de pacientes, procesos clínicos, farmacia y facturación.';
+            return ['reply'=>$reply,'source'=>'platform:intent:cami','confidence'=>'high','sources'=>['CAMI']];
+        }
+        if(str_contains($n,'multiservicios')){
+            $reply='ES MULTISERVICIOS desarrolla software, sitios web, integraciones y soluciones digitales para empresas. Entre sus soluciones están IZZY, CAMI y ZYNKO.';
+            return ['reply'=>$reply,'source'=>'platform:intent:company','confidence'=>'high','sources'=>['ES MULTISERVICIOS']];
+        }
+        return null;
+    }
+
     private static function words(string $s): array
     {
         $stop=['que','como','para','por','con','una','uno','unos','unas','del','las','los','este','esta','esto','esa','ese','soy','eres','es','son','hay','muy','mas','pero','porque','donde','cuando','puedo','puede','quiero','quiere','necesito','me','mi','tu','su','de','la','el','y','o','a','en','un'];
@@ -188,7 +246,7 @@ final class NivoEngine
         string $companyName,
         array $settings
     ): ?array {
-        $norm = self::norm($message);
+        $norm = self::intentNorm($message);
         $companyNorm = self::norm($companyName);
         $asksDefinition = (bool) preg_match(
             '/\b(que es|qué es|quien es|quién es|que hace|qué hace|para que sirve|para qué sirve|como funciona|cómo funciona|funciones|funcionalidades|servicios|soluciones|beneficios)\b/u',
@@ -411,12 +469,19 @@ final class NivoEngine
             // En Web Chat procesamos cada mensaje normalmente; el rate limit ya protege contra abuso.
             if($cool>0&&$channelType!=='webchat'){$q=$pdo->prepare("SELECT sent_at FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$conversationId]);$last=$q->fetchColumn();if($last&&time()-strtotime((string)$last)<$cool){$result['reason']='cooldown';return $result;}}
 
-            $norm=self::norm($message);$displayName=trim($contactName);if($displayName===''||in_array(self::norm($displayName),['visitante','visitante web'],true))$displayName='';$personalized=!array_key_exists('personalized_greeting',$policy)||!empty($policy['personalized_greeting']);
+            $norm=self::intentNorm($message);$displayName=trim($contactName);if($displayName===''||in_array(self::norm($displayName),['visitante','visitante web'],true))$displayName='';$personalized=!array_key_exists('personalized_greeting',$policy)||!empty($policy['personalized_greeting']);
             $english=!empty($policy['language_auto'])&&(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks|thank you)\b/i',$message);
             $contextTopic=self::recentConversationTopic($pdo,$tenantId,$conversationId);
             $genericFollowUp=self::isGenericFollowUp($norm);
             $effectiveNorm=$norm;
             if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
+            $intentMessage=$message;
+            if($contextTopic!==''&&!preg_match('/\b(izzy|cami|zynko|nivo)\b/u',$norm)&&preg_match('/\b(funcion|restaurante|inventario|facturacion|pos|sirve|maneja|beneficio)\b/u',$norm))$intentMessage.=' '.$contextTopic;
+            $coreIntent=self::coreIntentReply($pdo,$tenantId,$intentMessage,$companyName);
+            if($coreIntent){
+                $result['sources']=$coreIntent['sources']??[];
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$coreIntent['reply'],(string)$coreIntent['source'],(string)$coreIntent['confidence'],false,$displayName,$english);
+            }
             $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)[!., ]*$/u',$norm);
             $isCapabilities=(bool)preg_match('/\b(que sabes hacer|que puedes hacer|en que puedes ayudar|como me puedes ayudar|tus funciones|tus capacidades|para que sirves|en que te especializas|cual es tu especialidad|cuales son tus especialidades|que haces|que puedes responder|que temas manejas|que temas conoces|como funcionas|que puedes explicarme)\b/u',$norm);
             $isIdentity=(bool)preg_match('/\b(quien eres|quien sos|que eres|eres un bot|eres una ia|eres ia|como te llamas|cual es tu nombre|quien es nivo|que es nivo)\b/u',$norm);
