@@ -2,6 +2,37 @@
 declare(strict_types=1);$root=dirname(__DIR__);require_once $root.'/app/Support/Realtime.php';require_once $root.'/app/Support/Plan.php';require_once $root.'/app/Support/Cors.php';require_once $root.'/app/Services/NivoEngine.php';
 require_once $root.'/app/Services/AutomationEngine.php';
 function envc($p){$v=@parse_ini_file($p,false,INI_SCANNER_RAW);return is_array($v)?$v:[];}
+function nivoWsTcpAlive(string $host,int $port,float $timeout=0.25):bool{
+    $host=trim($host);if($host===''||$port<1||$port>65535)return false;
+    if(strtolower($host)==='localhost')$host='127.0.0.1';
+    $target=str_contains($host,':')?'['.$host.']':$host;$errno=0;$errstr='';
+    $fp=@stream_socket_client('tcp://'.$target.':'.$port,$errno,$errstr,$timeout,STREAM_CLIENT_CONNECT);
+    if(!is_resource($fp))return false;@fclose($fp);return true;
+}
+function nivoEnsureWebSocketRuntime(string $root,array $env):bool{
+    $host=trim((string)($env['WS_HOST']??'127.0.0.1'))?:'127.0.0.1';
+    if(strtolower($host)==='localhost')$host='127.0.0.1';
+    $port=(int)($env['WS_PORT']??8080);
+    if(nivoWsTcpAlive($host,$port))return true;
+    $storage=$root.'/storage';if(!is_dir($storage))@mkdir($storage,0775,true);
+    $lockPath=$storage.'/websocket-autostart.lock';$lock=@fopen($lockPath,'c');
+    if($lock && @flock($lock,LOCK_EX|LOCK_NB)){
+        try{
+            if(!nivoWsTcpAlive($host,$port)){
+                $script=$root.'/bin/restart-websocket.sh';
+                if(is_file($script)){
+                    $disabled=array_map('trim',explode(',',(string)ini_get('disable_functions')));
+                    if(function_exists('exec')&&!in_array('exec',$disabled,true)){
+                        $cmd='/bin/bash '.escapeshellarg($script).' >/dev/null 2>&1';$out=[];$code=1;@exec($cmd,$out,$code);
+                    }elseif(function_exists('shell_exec')&&!in_array('shell_exec',$disabled,true)){
+                        @shell_exec('/bin/bash '.escapeshellarg($script).' >/dev/null 2>&1');
+                    }
+                }
+            }
+        }finally{@flock($lock,LOCK_UN);@fclose($lock);}
+    }elseif($lock){@fclose($lock);}
+    return nivoWsTcpAlive($host,$port,0.5);
+}
 function ensureMessagesUtf8mb4(PDO $pdo): void {
     static $done=false;
     if($done)return;
@@ -548,7 +579,8 @@ try {
 $tid = (int) $w['tenant_id'];
 $wid = (int) $w['id'];
 ensureNivoRuntime($pdo, $tid);
-$pdo->exec("CREATE TABLE IF NOT EXISTS conversation_surveys(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,conversation_id BIGINT UNSIGNED NOT NULL,visitor_id BIGINT UNSIGNED NULL,rating TINYINT UNSIGNED NULL,comment VARCHAR(1000) NULL,requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,responded_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_conversation_survey(tenant_id,conversation_id),INDEX idx_survey_tenant(tenant_id,responded_at,requested_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+$pdo->exec("CREATE TABLE IF NOT EXISTS conversation_surveys(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,conversation_id BIGINT UNSIGNED NOT NULL,visitor_id BIGINT UNSIGNED NULL,rating TINYINT UNSIGNED NULL,resolved TINYINT(1) NULL,nivo_helpful TINYINT(1) NULL,comment VARCHAR(1000) NULL,requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,responded_at DATETIME NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,UNIQUE KEY uq_conversation_survey(tenant_id,conversation_id),INDEX idx_survey_tenant(tenant_id,responded_at,requested_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+try{foreach(['resolved'=>'TINYINT(1) NULL','nivo_helpful'=>'TINYINT(1) NULL'] as $c=>$d){if(!$pdo->query("SHOW COLUMNS FROM conversation_surveys LIKE ".$pdo->quote($c))->fetch())$pdo->exec("ALTER TABLE conversation_surveys ADD `{$c}` {$d} AFTER rating");}}catch(Throwable $ignoreSurveyCols){}
 zynkoEnsurePlanSchema($pdo);
 $planCtx = zynkoPlanContext($pdo, $tid, false);
 
@@ -786,7 +818,7 @@ if ($action === 'bootstrap') {
             $conversationStatus = (string) ($conversationRow['status'] ?? 'open');
             $conversationAssignedUserId = (int) ($conversationRow['assigned_user_id'] ?? 0);
             $conversationAgentName = trim((string) ($conversationRow['agent_name'] ?? ''));
-            $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,comment,requested_at,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
+            $surveyQuery = $pdo->prepare('SELECT conversation_id,rating,resolved,nivo_helpful,comment,requested_at,responded_at FROM conversation_surveys WHERE tenant_id=? AND conversation_id=? LIMIT 1');
             $surveyQuery->execute([$tid, $cid]);
             $surveyRow = $surveyQuery->fetch();
             if ($surveyRow) {
@@ -794,7 +826,9 @@ if ($action === 'bootstrap') {
                     'conversation_id' => (int) $surveyRow['conversation_id'],
                     'requested' => true,
                     'answered' => !empty($surveyRow['responded_at']),
-                    'rating' => $surveyRow['rating'] !== null ? (int) $surveyRow['rating'] : null
+                    'rating' => $surveyRow['rating'] !== null ? (int) $surveyRow['rating'] : null,
+                    'resolved' => $surveyRow['resolved'] !== null ? (int)$surveyRow['resolved'] : null,
+                    'nivo_helpful' => $surveyRow['nivo_helpful'] !== null ? (int)$surveyRow['nivo_helpful'] : null
                 ];
             }
         } catch (Throwable $ignoreSurvey) {
@@ -830,6 +864,11 @@ if ($action === 'bootstrap') {
         $aiEnabled = (int) ($aiQuery->fetchColumn() ?: 0) === 1;
     } catch (Throwable $ignore) {
     }
+
+    // El Web Chat intenta recuperar el daemon si una sustitución manual/deploy dejó el proceso detenido.
+    // Si el hosting bloquea exec/shell_exec o el daemon no arranca, no anunciamos WSS al navegador:
+    // el widget entra en reconciliación HTTP sin inundar la consola con reconexiones fallidas.
+    $wsRuntimeReady = nivoEnsureWebSocketRuntime($root, $env);
 
     $profileName = trim((string) ($v['name'] ?? ''));
     if (mb_strtolower($profileName, 'UTF-8') === 'visitante web') {
@@ -885,8 +924,9 @@ if ($action === 'bootstrap') {
             'monthly_chat_usage' => zynkoPlanMonthlyChatUsage($pdo, $tid)
         ],
         'messages' => $messages,
-        'ws_url' => $ws,
-        'ws_token' => $encoded . '.' . b64u($signature)
+        'ws_url' => $wsRuntimeReady ? $ws : null,
+        'ws_token' => $wsRuntimeReady ? ($encoded . '.' . b64u($signature)) : null,
+        'realtime_mode' => $wsRuntimeReady ? 'websocket' : 'http_reconciliation'
     ]);
 }
 
@@ -941,7 +981,7 @@ if ($action === 'close') {
         }
         $pdo->prepare("UPDATE conversations SET status='resolved',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?")
             ->execute([$cid, $tid]);
-        $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
+        $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,resolved=NULL,nivo_helpful=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
             ->execute([$tid, $cid, (int) $v['id']]);
         if ($closingMessageId > 0) {
             zynkoRealtimePublishMessage($pdo, $tid, $closingMessageId, [
@@ -977,14 +1017,16 @@ if ($action === 'close') {
 if ($action === 'survey') {
     $cid = max(1, (int) ($input['conversation_id'] ?? 0));
     $rating = max(1, min(5, (int) ($input['rating'] ?? 0)));
+    $resolved = array_key_exists('resolved',$input) ? ((int)$input['resolved']===1?1:0) : null;
+    $nivoHelpful = array_key_exists('nivo_helpful',$input) ? ((int)$input['nivo_helpful']===1?1:0) : null;
     $comment = mb_substr(trim((string) ($input['comment'] ?? '')), 0, 1000);
     $q = $pdo->prepare('SELECT c.id FROM conversations c WHERE c.id=? AND c.tenant_id=? AND c.contact_id=? LIMIT 1');
     $q->execute([$cid, $tid, (int) ($v['contact_id'] ?? 0)]);
     if (!$q->fetchColumn()) {
         out(false, 'No fue posible validar esta encuesta.', [], 403);
     }
-    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,comment,requested_at,responded_at) VALUES(?,?,?,?,?,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=VALUES(rating),comment=VALUES(comment),responded_at=NOW()")
-        ->execute([$tid, $cid, (int) $v['id'], $rating, $comment ?: null]);
+    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,resolved,nivo_helpful,comment,requested_at,responded_at) VALUES(?,?,?,?,?,?,?,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=VALUES(rating),resolved=VALUES(resolved),nivo_helpful=VALUES(nivo_helpful),comment=VALUES(comment),responded_at=NOW()")
+        ->execute([$tid, $cid, (int) $v['id'], $rating, $resolved, $nivoHelpful, $comment ?: null]);
     out(true, 'Gracias por tu opinión.', ['conversation_id'=>$cid,'rating'=>$rating]);
 }
 
@@ -993,7 +1035,7 @@ if ($action === 'survey_skip') {
     $q = $pdo->prepare('SELECT c.id FROM conversations c WHERE c.id=? AND c.tenant_id=? AND c.contact_id=? LIMIT 1');
     $q->execute([$cid, $tid, (int) ($v['contact_id'] ?? 0)]);
     if (!$q->fetchColumn()) out(false, 'No fue posible validar esta encuesta.', [], 403);
-    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,comment,requested_at,responded_at) VALUES(?,?,?,NULL,NULL,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,responded_at=NOW()")
+    $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,resolved,nivo_helpful,comment,requested_at,responded_at) VALUES(?,?,?,NULL,NULL,NULL,NULL,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,resolved=NULL,nivo_helpful=NULL,comment=NULL,responded_at=NOW()")
         ->execute([$tid,$cid,(int)$v['id']]);
     out(true,'Encuesta omitida.',['conversation_id'=>$cid]);
 }
@@ -1088,7 +1130,7 @@ if ($action === 'expire') {
             $pdo->prepare(
                 "UPDATE conversations SET status='closed',unread_count=0,last_message_at=NOW() WHERE id=? AND tenant_id=?"
             )->execute([$cid, $tid]);
-            $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
+            $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,resolved=NULL,nivo_helpful=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
                 ->execute([$tid, $cid, (int) $v['id']]);
             $persistProfile = !array_key_exists('persist_profile', $experience) || !empty($experience['persist_profile']);
             if ($persistProfile) {

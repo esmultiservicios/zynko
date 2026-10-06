@@ -400,13 +400,13 @@ SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.103' AS v
 -- No agrega tablas: conserva el esquema V2.31.102 y actualiza únicamente la versión objetivo.
 
 
--- ZYNKO V2.31.108 · reconciliación bilateral durable (sin cambios estructurales)
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.108')
+-- ZYNKO V2.31.110 · reconciliación bilateral durable (sin cambios estructurales)
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.110')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 
 
--- ZYNKO V2.31.108 · categorías por conversación (CRM)
+-- ZYNKO V2.31.110 · categorías por conversación (CRM)
 CREATE TABLE IF NOT EXISTS `conversation_category_map` (
   `conversation_id` BIGINT UNSIGNED NOT NULL,
   `category_id` BIGINT UNSIGNED NOT NULL,
@@ -417,7 +417,16 @@ CREATE TABLE IF NOT EXISTS `conversation_category_map` (
 -- Migra categorías existentes del contacto a sus conversaciones para conservar el historial CRM.
 INSERT IGNORE INTO `conversation_category_map` (`conversation_id`,`category_id`)
 SELECT c.id, ccm.category_id FROM conversations c JOIN contact_category_map ccm ON ccm.contact_id=c.contact_id WHERE c.deleted_at IS NULL;
-INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.108')
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.110')
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
-SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.108' AS version_objetivo;
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.110' AS version_objetivo;
+
+
+-- ZYNKO V2.31.111 · Dashboard operativo administrable y centro de servicios
+SET @db_name := DATABASE();
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='dashboard_preferences' AND COLUMN_NAME='quick_actions_json');
+SET @sql := IF(@exists=0,'ALTER TABLE `dashboard_preferences` ADD `quick_actions_json` TEXT NULL AFTER `widgets_json`','SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.111')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.111' AS version_objetivo;

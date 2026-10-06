@@ -40,7 +40,7 @@ CREATE TABLE conversations (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenan
 CREATE TABLE messages (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, external_message_id VARCHAR(190) NULL, direction ENUM('in','out') NOT NULL, sender_type ENUM('contact','user','bot','system') NOT NULL, sender_user_id BIGINT UNSIGNED NULL, type VARCHAR(40) NOT NULL DEFAULT 'text', body TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL, media_json JSON NULL, status VARCHAR(40) NULL, sent_at DATETIME NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uq_external(tenant_id,external_message_id), INDEX(conversation_id,sent_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE media_library (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, original_name VARCHAR(255) NOT NULL, stored_path VARCHAR(500) NOT NULL, mime_type VARCHAR(120) NOT NULL, size_bytes BIGINT UNSIGNED NOT NULL, purpose ENUM('branding','chat','template','attachment') NOT NULL DEFAULT 'attachment', uploaded_by BIGINT UNSIGNED NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,purpose));
 CREATE TABLE conversation_notes (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, body TEXT NOT NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE conversation_surveys (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, visitor_id BIGINT UNSIGNED NULL, rating TINYINT UNSIGNED NULL, comment VARCHAR(1000) NULL, requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, responded_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_conversation_survey(tenant_id,conversation_id), INDEX idx_survey_tenant(tenant_id,responded_at,requested_at));
+CREATE TABLE conversation_surveys (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, conversation_id BIGINT UNSIGNED NOT NULL, visitor_id BIGINT UNSIGNED NULL, rating TINYINT UNSIGNED NULL, resolved TINYINT(1) NULL, nivo_helpful TINYINT(1) NULL, comment VARCHAR(1000) NULL, requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, responded_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_conversation_survey(tenant_id,conversation_id), INDEX idx_survey_tenant(tenant_id,responded_at,requested_at));
 CREATE TABLE tags (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, name VARCHAR(80) NOT NULL, color VARCHAR(20), UNIQUE KEY uq_tag(tenant_id,name));
 CREATE TABLE conversation_tags (conversation_id BIGINT UNSIGNED NOT NULL, tag_id BIGINT UNSIGNED NOT NULL, PRIMARY KEY(conversation_id,tag_id));
 CREATE TABLE quick_replies (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, shortcut VARCHAR(80) NOT NULL, title VARCHAR(120) NOT NULL, body TEXT NOT NULL, media_json JSON NULL, team_id BIGINT UNSIGNED NULL, active TINYINT(1) DEFAULT 1, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, UNIQUE KEY uq_qr(tenant_id,shortcut), INDEX idx_qr_tenant(tenant_id,active));
@@ -413,6 +413,7 @@ CREATE TABLE IF NOT EXISTS nivo_contact_solutions (
 CREATE TABLE IF NOT EXISTS dashboard_preferences (
  user_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
  widgets_json TEXT NULL,
+ quick_actions_json TEXT NULL,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
@@ -438,7 +439,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_calls (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.108');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.111');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

@@ -41,6 +41,8 @@
     conversationClosed: false,
     surveyConversationId: 0,
     selectedRating: 0,
+    surveyResolved: null,
+    surveyNivoHelpful: null,
     bootAt: Date.now(),
     historyMode: 'end',
     handoffActive: false,
@@ -347,6 +349,8 @@
     state.conversationClosed = false;
     state.surveyConversationId = 0;
     state.selectedRating = 0;
+        state.surveyResolved = null;
+        state.surveyNivoHelpful = null;
     state.handoffActive = false;
     state.humanAssigned = false;
     state.inactivityNudged = false;
@@ -360,7 +364,8 @@
     if (messages) messages.innerHTML = '';
     const surveyCard = state.shadow?.querySelector('.survey-card');
     if (surveyCard) surveyCard.hidden = true;
-    state.shadow?.querySelectorAll('.survey-stars button').forEach(star=>star.classList.remove('active'));
+    state.shadow?.querySelectorAll('.survey-stars button,[data-survey-choice] button').forEach(star=>star.classList.remove('active'));
+    state.surveyResolved=null;state.surveyNivoHelpful=null;
     const surveyComment=state.shadow?.querySelector('.survey-comment');if(surveyComment)surveyComment.value='';
     const composer=state.shadow?.querySelector('.composer');if(composer)composer.classList.remove('is-closed');
     const actions=state.shadow?.querySelector('.session-actions:not(.new-chat-wrap)');if(actions)actions.hidden=false;
@@ -413,10 +418,10 @@
         .launch-logo img{width:43px;height:43px;object-fit:contain;object-position:center center;display:block;margin:auto}
         .badge{display:none;position:absolute;right:-3px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:999px;background:#dc2626;color:#fff;border:2px solid #fff;font-size:11px;font-weight:800;place-items:center}
         .badge.on{display:grid}
-        .box.expanded{width:min(760px,calc(100vw - 28px));height:min(760px,calc(100dvh - 28px));max-height:calc(100dvh - 28px)}
-        .box{width:min(390px,calc(100vw - 28px));height:min(610px,calc(100dvh - 105px));background:#fff;border:1px solid #dce5eb;border-radius:21px;box-shadow:0 22px 60px #0f172a35;overflow:hidden;display:none;flex-direction:column;margin-${vertical === 'bottom' ? 'bottom' : 'top'}:12px}
+        .box.expanded{position:fixed!important;inset:12px!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:18px!important;z-index:2147483646!important}
+        .box{width:min(405px,calc(100vw - 28px));height:min(675px,calc(100dvh - 78px));background:#fff;border:1px solid #dce5eb;border-radius:21px;box-shadow:0 22px 60px #0f172a35;overflow:hidden;display:none;flex-direction:column;margin-${vertical === 'bottom' ? 'bottom' : 'top'}:12px}
         .box.open{display:flex}
-        .head-window-actions{display:flex;align-items:center;gap:6px}.head-window-actions button{width:34px;height:34px;border-radius:10px;border:1px solid #ffffff18;background:#ffffff0d;color:#fff;cursor:pointer;font-size:17px}.head-window-actions button:hover{background:#ffffff18}
+        .head-window-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}.head-window-actions button{width:36px;height:36px;min-width:36px;border-radius:10px;border:1px solid #ffffff24;background:#ffffff10;color:#fff;cursor:pointer;font-size:17px;display:grid;place-items:center}.head-window-actions button:hover{background:#ffffff22}.head-window-actions .expand{font-size:15px}
         .head{padding:14px 15px;background:#0f172a;color:#fff;display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:11px}
         .bot{width:48px;height:48px;border-radius:14px;display:grid;place-items:center;background:#fff;overflow:hidden;box-shadow:0 8px 18px #00000020}
         .bot img{width:47px;height:47px;display:block;object-fit:contain;object-position:center center;margin:auto}
@@ -488,7 +493,7 @@
         .new-chat:hover{filter:brightness(.97);transform:translateY(-1px)}
         .finish-confirm{margin:8px 12px;padding:10px;border:1px solid #f0d1ca;border-radius:12px;background:#fff8f6;display:grid;gap:8px;font-size:11px;color:#5f2d28}
         .finish-confirm[hidden]{display:none!important}.finish-confirm-actions{display:flex;justify-content:flex-end;gap:7px}.finish-confirm button{border:0;border-radius:9px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer}.finish-confirm .cancel-finish{background:#edf2f7;color:#334155}.finish-confirm .confirm-finish{background:#b94a3c;color:#fff}
-        .survey-card{margin:9px 12px;padding:12px;border:1px solid #cfe7e1;border-radius:14px;background:#f7fcfa;display:grid;gap:9px}.survey-card[hidden]{display:none!important}.survey-card b{font-size:12px;color:#173a35}.survey-card small{font-size:10px;color:#64748b;line-height:1.35}
+        .survey-card{margin:9px 12px;padding:12px;border:1px solid #cfe7e1;border-radius:14px;background:#f7fcfa;display:grid;gap:10px}.survey-card[hidden]{display:none!important}.survey-card>b{font-size:12px;color:#173a35}.survey-card>small{font-size:10px;color:#64748b;line-height:1.35}.survey-question{display:grid;gap:6px;padding-top:3px}.survey-question b{font-size:10px;color:#334155}.survey-choice{display:flex;gap:7px;flex-wrap:wrap}.survey-choice button{border:1px solid #d7e6e2;background:#fff;color:#334155;border-radius:999px;padding:7px 10px;font-size:10px;font-weight:800;cursor:pointer}.survey-choice button.active{background:#e5f8f2;border-color:#92d8c8;color:#08705c}
         .survey-stars{display:flex;gap:6px}.survey-stars button{width:34px;height:34px;border:1px solid #d7e6e2;border-radius:10px;background:#fff;cursor:pointer;font-size:18px}.survey-stars button.active{background:#fff4c7;border-color:#e5b72f;transform:translateY(-1px)}
         .survey-comment{width:100%;min-height:58px;resize:vertical;border:1px solid #d5dee5;border-radius:10px;padding:9px 10px;font-size:11px;color:#172033;outline:none}.survey-actions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}.survey-actions button{border:0;border-radius:9px;padding:7px 9px;font-size:10px;font-weight:800;cursor:pointer}.survey-submit{background:${widget.accent_color};color:#fff}.survey-skip{background:#edf2f7;color:#334155}
         .composer.is-closed{display:none!important}
@@ -500,14 +505,14 @@
         .nivo-pulse{animation:nivoLauncherPulse 3.8s ease-in-out infinite}
         @media(max-width:480px){
           .wrap{left:12px!important;right:12px!important;${vertical}:12px!important}
-          .box.expanded{width:min(760px,calc(100vw - 28px));height:min(760px,calc(100dvh - 28px));max-height:calc(100dvh - 28px)}
-        .box{width:100%;height:min(585px,calc(100dvh - 92px));border-radius:18px}
+          .box.expanded{position:fixed!important;inset:6px!important;width:auto!important;height:auto!important;max-width:none!important;max-height:none!important;margin:0!important;border-radius:15px!important}
+        .box{width:100%;height:min(640px,calc(100dvh - 72px));border-radius:18px}
           .launch-label{width:190px;max-width:calc(100vw - 92px);font-size:12px;padding:9px 11px;white-space:normal;line-height:1.25}
           .launch{width:56px;height:56px}
           .launch-logo{width:42px;height:42px}
           .launch-logo img{width:39px;height:39px}
-          .head-window-actions{display:flex;align-items:center;gap:6px}.head-window-actions button{width:34px;height:34px;border-radius:10px;border:1px solid #ffffff18;background:#ffffff0d;color:#fff;cursor:pointer;font-size:17px}.head-window-actions button:hover{background:#ffffff18}
-        .head{grid-template-columns:44px minmax(0,1fr) 34px}
+          .head-window-actions{display:flex;align-items:center;gap:6px;flex:0 0 auto}.head-window-actions button{width:36px;height:36px;min-width:36px;border-radius:10px;border:1px solid #ffffff24;background:#ffffff10;color:#fff;cursor:pointer;font-size:17px;display:grid;place-items:center}.head-window-actions button:hover{background:#ffffff22}.head-window-actions .expand{font-size:15px}
+        .head{grid-template-columns:44px minmax(0,1fr) auto}
           .history-nav{padding:6px 8px}
           .history-nav-label{display:none}
           .history-nav button{height:29px;padding:0 8px}
@@ -532,7 +537,7 @@
                 <span class="presence-text">${state.conversation_id ? 'Esperando tu respuesta' : 'Listo para ayudarte'}</span>
               </div>
             </div>
-            <div class="head-window-actions"><button class="expand" type="button" aria-label="Expandir chat" title="Expandir chat">↗</button><button class="close" aria-label="Minimizar">×</button></div>
+            <div class="head-window-actions"><button class="expand" type="button" aria-label="Expandir chat" title="Expandir chat">⛶</button><button class="close" aria-label="Minimizar" title="Minimizar">×</button></div>
           </div>
           <div class="msgs-wrap">
             <div class="history-nav" aria-label="Navegar historial"><span class="history-nav-label">↕ Historial</span><button type="button" class="history-start"><span>↑</span><span>Inicio</span></button><button type="button" class="history-end"><span>↓</span><span>Último</span></button></div>
@@ -557,7 +562,7 @@
             ? `<div class="quick-replies">${experience.quick_replies.map(value => `<button type="button" class="quick" data-q="${esc(value)}">${esc(value)}</button>`).join('')}</div>`
             : ''}
           <div class="finish-confirm" hidden><b>¿Finalizar esta conversación?</b><span>El historial se conserva y podrás calificar la atención.</span><div class="finish-confirm-actions"><button type="button" class="cancel-finish">Cancelar</button><button type="button" class="confirm-finish">Finalizar</button></div></div>
-          <div class="survey-card" hidden><b>¿Cómo fue tu atención?</b><small>Tu opinión nos ayuda a mejorar. Selecciona de 1 a 5 estrellas.</small><div class="survey-stars">${[1,2,3,4,5].map(v=>`<button type="button" data-rating="${v}" aria-label="${v} estrellas">★</button>`).join('')}</div><textarea class="survey-comment" maxlength="1000" placeholder="Comentario opcional"></textarea><div class="survey-actions"><button type="button" class="survey-skip">Ahora no</button><button type="button" class="survey-submit">Enviar opinión</button></div></div>
+          <div class="survey-card" hidden><b>Cuéntanos cómo fue tu atención</b><small>Son 3 preguntas rápidas. Tu respuesta ayuda a mejorar NIVO y la atención humana.</small><div class="survey-question"><b>1. Calificación general</b><div class="survey-stars">${[1,2,3,4,5].map(v=>`<button type="button" data-rating="${v}" aria-label="${v} estrellas">★</button>`).join('')}</div></div><div class="survey-question"><b>2. ¿Resolvimos tu consulta?</b><div class="survey-choice" data-survey-choice="resolved"><button type="button" data-value="1">Sí</button><button type="button" data-value="0">No</button></div></div><div class="survey-question"><b>3. ¿La respuesta de NIVO fue útil?</b><div class="survey-choice" data-survey-choice="nivo_helpful"><button type="button" data-value="1">Sí</button><button type="button" data-value="0">No</button></div></div><textarea class="survey-comment" maxlength="1000" placeholder="Comentario opcional"></textarea><div class="survey-actions"><button type="button" class="survey-skip">Ahora no</button><button type="button" class="survey-submit">Enviar opinión</button></div></div>
           <div class="session-actions new-chat-wrap" ${state.conversationClosed ? '' : 'hidden'}><button type="button" class="new-chat"><span class="new-chat-icon">＋</span><span class="new-chat-copy"><b>Iniciar nuevo chat</b><small>Comienza una conversación nueva desde cero</small></span><span class="new-chat-arrow">›</span></button></div>
           <form class="composer${state.conversationClosed ? ' is-closed' : ''}">
             <input class="website-hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important">
@@ -581,6 +586,9 @@
     const launch = shadow.querySelector('.launch');
     const badge = shadow.querySelector('.badge');
     state.shadow = shadow;
+    try{state.expanded=localStorage.getItem(`${storagePrefix}.expanded`)==='1'}catch(_){}
+    box.classList.toggle('expanded',state.expanded);
+    const expandButton=shadow.querySelector('.expand');if(expandButton){expandButton.textContent=state.expanded?'↙':'⛶';expandButton.title=state.expanded?'Restaurar tamaño':'Expandir a pantalla completa';expandButton.setAttribute('aria-label',expandButton.title)}
 
     const persistOpen = () => {
       if (experience.remember_open_state) {
@@ -618,8 +626,9 @@
     shadow.querySelector('.expand')?.addEventListener('click', () => {
       state.expanded = !state.expanded;
       box.classList.toggle('expanded', state.expanded);
+      try{localStorage.setItem(`${storagePrefix}.expanded`,state.expanded?'1':'0')}catch(_){}
       const button = shadow.querySelector('.expand');
-      if (button) { button.textContent = state.expanded ? '↙' : '↗'; button.title = state.expanded ? 'Restaurar tamaño' : 'Expandir chat'; }
+      if (button) { button.textContent = state.expanded ? '↙' : '⛶'; button.title = state.expanded ? 'Restaurar tamaño' : 'Expandir chat'; button.setAttribute('aria-label', button.title); }
       requestAnimationFrame(() => smartScrollToLatest(shadow.querySelector('.msgs'), state.messageCache || [], true));
     });
 
@@ -645,6 +654,7 @@
     if (experience.close_on_escape) {
       document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && state.opened) {
+          if(state.expanded){state.expanded=false;box.classList.remove('expanded');try{localStorage.setItem(`${storagePrefix}.expanded`,'0')}catch(_){};const b=shadow.querySelector('.expand');if(b){b.textContent='⛶';b.title='Expandir a pantalla completa';b.setAttribute('aria-label',b.title)};return;}
           box.classList.remove('open');
           state.opened = false;
           persistOpen();
@@ -740,15 +750,22 @@
       state.selectedRating = parseInt(button.dataset.rating || '0', 10);
       shadow.querySelectorAll('.survey-stars button').forEach(star => star.classList.toggle('active', parseInt(star.dataset.rating || '0', 10) <= state.selectedRating));
     }));
+    shadow.querySelectorAll('[data-survey-choice] button').forEach(button=>button.addEventListener('click',()=>{
+      const group=button.closest('[data-survey-choice]');if(!group)return;
+      group.querySelectorAll('button').forEach(x=>x.classList.toggle('active',x===button));
+      const value=button.dataset.value==='1'?1:0;
+      if(group.dataset.surveyChoice==='resolved')state.surveyResolved=value;
+      if(group.dataset.surveyChoice==='nivo_helpful')state.surveyNivoHelpful=value;
+    }));
     shadow.querySelector('.survey-submit')?.addEventListener('click', async () => {
-      if (!state.selectedRating) {
-        setPresence('Selecciona una calificación', true);
+      if (!state.selectedRating || state.surveyResolved===null || state.surveyNivoHelpful===null) {
+        setPresence('Completa las 3 preguntas de la encuesta', true);
         return;
       }
       const button = shadow.querySelector('.survey-submit');
       if (button) button.disabled = true;
       try {
-        await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, comment: shadow.querySelector('.survey-comment')?.value || '' });
+        await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, resolved: state.surveyResolved, nivo_helpful: state.surveyNivoHelpful, comment: shadow.querySelector('.survey-comment')?.value || '' });
         setPresence('Opinión registrada · preparando chat nuevo…', true);
         setTimeout(()=>resetAfterSurvey().catch(error=>console.warn('NIVO Web Chat:',error.message)),500);
       } catch (error) {
@@ -772,6 +789,8 @@
         state.conversationClosed = false;
         state.surveyConversationId = 0;
         state.selectedRating = 0;
+        state.surveyResolved = null;
+        state.surveyNivoHelpful = null;
         state.handoffActive = false;
         state.inactivityNudged = false;
         state.inactivityClosing = false;
@@ -1151,10 +1170,10 @@
     if (!lastNode) return;
 
     const isIncomingReply = String(lastMessage?.direction || '') === 'out';
-    const isLongReply = isIncomingReply && (String(lastMessage?.body||'').length>180 || lastNode.offsetHeight > Math.max(110, box.clientHeight * 0.34));
+    const isLongReply = isIncomingReply && (String(lastMessage?.body||'').length>140 || lastNode.offsetHeight > Math.max(96, box.clientHeight * 0.28));
 
     if (isLongReply) {
-      box.scrollTop = Math.max(0, lastNode.offsetTop - 10);
+      box.scrollTop = Math.max(0, lastNode.offsetTop - 14);
       return;
     }
 

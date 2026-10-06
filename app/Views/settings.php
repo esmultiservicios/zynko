@@ -62,7 +62,7 @@
       <article class="server-health-card is-<?=$hs?>"><span class="server-health-state"><i class="fa-solid <?=$hs==='ok'?'fa-circle-check':($hs==='warning'?'fa-triangle-exclamation':'fa-circle-xmark')?>"></i></span><div><small><?=htmlspecialchars((string)($healthItem['group']??'Servidor'))?></small><b><?=htmlspecialchars((string)($healthItem['label']??''))?></b><code><?=htmlspecialchars((string)($healthItem['value']??''))?></code><p><?=htmlspecialchars((string)($healthItem['detail']??''))?></p></div></article>
     <?php endforeach?>
   </div>
-  <div class="server-health-actions"><a class="soft" href="?page=settings#server-health"><i class="fa-solid fa-rotate"></i> Volver a comprobar</a><small>Si cambias .env, puertos, proxy o reinicias WebSocket, ejecuta nuevamente el diagnóstico completo.</small></div>
+  <div class="server-health-actions"><div class="server-health-buttons"><a class="soft" href="?page=settings#server-health"><i class="fa-solid fa-rotate"></i> Volver a comprobar</a><button class="soft websocket-control" type="button" data-operation="start"><i class="fa-solid fa-play"></i> Iniciar</button><button class="soft websocket-control" type="button" data-operation="stop"><i class="fa-solid fa-stop"></i> Detener</button><button class="primary websocket-control" type="button" data-operation="restart"><i class="fa-solid fa-rotate"></i> Reiniciar WebSocket</button></div><small>Acciones delicadas: siempre requieren confirmación. Después de cambiar .env, puertos, proxy o archivos del tiempo real, ZYNKO puede recomendar un reinicio.</small></div>
 </section>
 
 <?php endif?>

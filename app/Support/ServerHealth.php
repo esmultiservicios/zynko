@@ -73,6 +73,14 @@ final class ZynkoServerHealth
         }
         $add($items,'ws_pid','Proceso WebSocket',$pidOk?'ok':'warning',$pid ?: 'Sin PID',$pidOk?'PID registrado para websocket/server.php.':'No se pudo confirmar el proceso mediante el PID guardado; revisa el daemon si el puerto interno también falla.','Tiempo real');
 
+        $marker = $this->root.'/storage/websocket.restart.marker';
+        $markerTime = is_file($marker) ? (int)@filemtime($marker) : 0;
+        $watched = [$this->root.'/websocket/server.php',$this->root.'/app/Support/Realtime.php',$this->root.'/.htaccess',$this->root.'/.env'];
+        $latestChange = 0;
+        foreach ($watched as $watchedFile) { if (is_file($watchedFile)) $latestChange=max($latestChange,(int)@filemtime($watchedFile)); }
+        $restartRecommended = !$pidOk || $markerTime===0 || $latestChange>$markerTime;
+        $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartRecommended?'Hay cambios operativos posteriores al último arranque o no existe constancia del reinicio. Reinicia WebSocket desde el Dashboard y vuelve a comprobar.':'El daemon fue reiniciado después de los últimos cambios operativos detectados.','Tiempo real');
+
         $publicUrl = trim((string)($this->env['WS_PUBLIC_URL'] ?? ''));
         if ($publicUrl === '') {
             $scheme = strtolower(trim((string)($this->env['WS_PUBLIC_SCHEME'] ?? ($isHttps?'wss':'ws'))));
@@ -117,14 +125,26 @@ final class ZynkoServerHealth
             }
         } catch (Throwable $e) {}
 
-        $channelRows=[];
+        $channelRows=[];$channelDetails=[];
         try {
-            $q=$this->pdo->prepare("SELECT type,status,COUNT(*) total FROM channels WHERE tenant_id=? GROUP BY type,status ORDER BY type,status");
+            $q=$this->pdo->prepare("SELECT id,name,type,status,display_address,external_account_id,external_phone_id,token_ciphertext,settings_json,last_event_at FROM channels WHERE tenant_id=? ORDER BY type,name,id");
             $q->execute([$this->tenantId]);
-            $channelRows=$q->fetchAll(PDO::FETCH_ASSOC)?:[];
+            $channelDetails=$q->fetchAll(PDO::FETCH_ASSOC)?:[];
+            $summary=[];foreach($channelDetails as $r){$k=(string)$r['type'].'|'.(string)$r['status'];$summary[$k]=($summary[$k]??0)+1;}
+            foreach($summary as $k=>$total){[$type,$status]=explode('|',$k,2);$channelRows[]=['type'=>$type,'status'=>$status,'total'=>$total];}
         } catch (Throwable $e) {}
         $channelValue = $channelRows ? implode(' · ',array_map(static fn(array $r): string => ucfirst((string)$r['type']).' '.(string)$r['status'].' x'.(int)$r['total'],$channelRows)) : 'Sin canales';
         $add($items,'channels','Canales',$channelRows?'ok':'warning',$channelValue,$channelRows?'Estado registrado por los conectores de ZYNKO.':'Todavía no hay canales registrados.','Omnicanal');
+        foreach($channelDetails as $channel){
+            $settings=json_decode((string)($channel['settings_json']??''),true)?:[];$type=(string)($channel['type']??'');$status=(string)($channel['status']??'pending');
+            $provider=(string)($settings['provider_mode']??($type==='whatsapp'?'meta_cloud':$type));$checks=[];
+            if($type==='webchat'){$checks[]='canal interno';}
+            elseif($type==='whatsapp'&&$provider==='qr'){$checks[]='bridge '.(!empty($settings['bridge_url'])?'configurado':'pendiente');$checks[]='sesión '.(!empty($settings['session_id'])?'configurada':'pendiente');}
+            elseif(in_array($type,['whatsapp','messenger','instagram'],true)){$checks[]='token '.(!empty($channel['token_ciphertext'])?'configurado':'pendiente');$checks[]='cuenta '.(!empty($channel['external_account_id'])||!empty($channel['external_phone_id'])?'configurada':'pendiente');}
+            elseif($type==='telegram'){$checks[]='token '.(!empty($channel['token_ciphertext'])?'configurado':'pendiente');}
+            $ok=$status==='connected';$detail='Proveedor: '.$provider.($checks?' · '.implode(' · ',$checks):'').(!empty($channel['last_event_at'])?' · último evento '.$channel['last_event_at']:'');
+            $add($items,'channel_'.$channel['id'],'Canal · '.((string)($channel['name']?:ucfirst($type))),$ok?'ok':($status==='warning'?'warning':'error'),ucfirst($type).' · '.$status,$detail,'Canales externos');
+        }
 
         $counts=['ok'=>0,'warning'=>0,'error'=>0];
         foreach($items as $item){$counts[$item['status']] = ($counts[$item['status']]??0)+1;}
