@@ -202,7 +202,7 @@
 
     const experience = state.widget.experience || {};
     const nudgeMinutes = Math.max(1, Math.min(120, parseInt(experience.inactivity_nudge_minutes || 5, 10)));
-    const closeMinutes = Math.max(nudgeMinutes + 1, Math.min(1440, parseInt(experience.inactivity_close_minutes || 30, 10)));
+    const closeMinutes = Math.max(nudgeMinutes + 1, Math.min(1440, parseInt(experience.inactivity_close_minutes || 15, 10)));
 
     state.idleNudgeTimer = setTimeout(async () => {
       if (!state.shadow || !state.conversation_id || state.conversationClosed || state.inactivityNudged) {
@@ -246,6 +246,11 @@
         state.surveyConversationId = result.survey?.conversation_id || result.conversation_id || state.conversation_id;
         state.handoffActive = false;
         clearInactivityTimers();
+        if (experience.persist_profile === false) {
+          state.profile = { name: '', email: '' };
+          localStorage.removeItem(`${storagePrefix}.name`);
+          localStorage.removeItem(`${storagePrefix}.email`);
+        }
         await refresh();
         syncConversationStateUi(result.survey || { requested: true, answered: false });
         setPresence('Sesión finalizada por inactividad');
@@ -1032,7 +1037,9 @@
     const box = shadow.querySelector('.msgs');
     box.appendChild(message);
     if (autoScroll) {
-      box.scrollTop = box.scrollHeight;
+      const isIncoming = direction === 'in';
+      const isLong = isIncoming && message.offsetHeight > Math.max(150, box.clientHeight * 0.48);
+      box.scrollTop = isLong ? Math.max(0, message.offsetTop - 10) : box.scrollHeight;
     }
     return message;
   }
@@ -1084,6 +1091,31 @@
     return normalized;
   }
 
+  function isInactivityMessage(message) {
+    const type = String(message?.type || '').toLowerCase();
+    return type === 'inactivity_nudge' || type === 'inactivity_close';
+  }
+
+  function smartScrollToLatest(box, messages, preferBottom = true) {
+    if (!box || !messages.length) return;
+    const nodes = box.querySelectorAll('.m');
+    const lastNode = nodes[nodes.length - 1];
+    const lastMessage = messages[messages.length - 1];
+    if (!lastNode) return;
+
+    const isIncomingReply = String(lastMessage?.direction || '') === 'out';
+    const isLongReply = isIncomingReply && lastNode.offsetHeight > Math.max(150, box.clientHeight * 0.48);
+
+    if (isLongReply) {
+      box.scrollTop = Math.max(0, lastNode.offsetTop - 10);
+      return;
+    }
+
+    if (preferBottom) {
+      box.scrollTop = box.scrollHeight;
+    }
+  }
+
   function renderMessages(messages, notify = true) {
     if (!state.shadow) {
       return;
@@ -1114,7 +1146,7 @@
         if (state.historyMode === 'start') {
           box.scrollTop = 0;
         } else if (state.historyMode === 'end' || wasNearBottom) {
-          box.scrollTop = box.scrollHeight;
+          smartScrollToLatest(box, messages, true);
           state.historyMode = 'end';
         } else {
           const heightDelta = Math.max(0, box.scrollHeight - previousScrollHeight);
@@ -1124,11 +1156,16 @@
     }
 
     if (notify && messages.length > oldCount) {
-      const incoming = messages.slice(oldCount).filter(message => message.direction === 'out').length;
+      const newMessages = messages.slice(oldCount);
+      const incomingMessages = newMessages.filter(message => message.direction === 'out');
+      const incoming = incomingMessages.length;
+      const substantiveIncoming = incomingMessages.filter(message => !isInactivityMessage(message)).length;
 
       if (incoming) {
         beep();
-        touchSession();
+        if (substantiveIncoming) {
+          touchSession();
+        }
         setPresence('Nuevo mensaje', true);
 
         if (state.widget?.experience?.page_title_alert && !state.opened) {
@@ -1168,7 +1205,9 @@
     byId.set(Number(message.id), message);
     renderMessages([...byId.values()]);
     syncProfileUi();
-    touchSession();
+    if (!isInactivityMessage(message)) {
+      touchSession();
+    }
   }
 
   async function refresh() {

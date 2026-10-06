@@ -1027,7 +1027,7 @@ if ($action === 'inactivity_nudge') {
     if ((int)$dup->fetchColumn() === 0) {
         $pdo->beginTransaction();
         try {
-            $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())")
+            $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','inactivity_nudge',?,'sent',NOW())")
                 ->execute([$tid,$cid,uuid4(),$message]);
             $nudgeMessageId = (int) $pdo->lastInsertId();
             $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
@@ -1072,7 +1072,7 @@ if ($action === 'expire') {
         $pdo->beginTransaction();
         try {
             $pdo->prepare(
-                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'sent',NOW())"
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','inactivity_close',?,'sent',NOW())"
             )->execute([$tid, $cid, uuid4(), $closeMessage]);
             $closeMessageId = (int) $pdo->lastInsertId();
             $pdo->prepare(
@@ -1080,8 +1080,14 @@ if ($action === 'expire') {
             )->execute([$cid, $tid]);
             $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,requested_at) VALUES(?,?,?,NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,comment=NULL,requested_at=NOW(),responded_at=NULL")
                 ->execute([$tid, $cid, (int) $v['id']]);
-            $pdo->prepare('UPDATE webchat_visitors SET last_seen_at=NOW() WHERE id=? AND tenant_id=?')
-                ->execute([$v['id'], $tid]);
+            $persistProfile = !array_key_exists('persist_profile', $experience) || !empty($experience['persist_profile']);
+            if ($persistProfile) {
+                $pdo->prepare('UPDATE webchat_visitors SET last_seen_at=NOW() WHERE id=? AND tenant_id=?')
+                    ->execute([$v['id'], $tid]);
+            } else {
+                $pdo->prepare('UPDATE webchat_visitors SET name=NULL,email=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')
+                    ->execute([$v['id'], $tid]);
+            }
             zynkoRealtimePublishMessage($pdo,$tid,$closeMessageId,[
                 'visitor_id'=>(int)$v['id'],
                 'channel'=>'webchat',

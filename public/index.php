@@ -254,7 +254,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.106';
+$releaseVersion='2.31.107';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -884,7 +884,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'session_timeout_minutes'=>max(15,min(10080,(int)($_POST['session_timeout_minutes']??1440))),
     'initial_greeting_typing_ms'=>max(350,min(5000,(int)($_POST['initial_greeting_typing_ms']??1200))),
     'inactivity_nudge_minutes'=>max(1,min(120,(int)($_POST['inactivity_nudge_minutes']??5))),
-    'inactivity_close_minutes'=>max(2,min(1440,(int)($_POST['inactivity_close_minutes']??30))),
+    'inactivity_close_minutes'=>max(2,min(1440,(int)($_POST['inactivity_close_minutes']??15))),
     'inactivity_message'=>mb_substr(trim((string)($_POST['inactivity_message']??'¿Sigues por aquí? Si necesitas algo más, estoy pendiente para ayudarte.')),0,500),
     'inactivity_close_message'=>mb_substr(trim((string)($_POST['inactivity_close_message']??'Cerré esta sesión por inactividad. Cuando quieras, escribe y comenzamos una nueva conversación.')),0,500),
     'smart_greeting'=>isset($_POST['smart_greeting']),

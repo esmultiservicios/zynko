@@ -114,6 +114,6 @@ La comunicación normal ya no depende de polling periódico. Cada mensaje se gua
 Para verificar producción abre DevTools > Network > WS y confirma una conexión a `/ws` con respuesta `101 Switching Protocols`. En la Bandeja el indicador debe mostrar **Tiempo real**, no **Auto**.
 
 
-## V2.31.106 · Binding IPv4 estable
+## V2.31.107 · Binding IPv4 estable
 
 ZYNKO normaliza `WS_HOST=localhost` a `127.0.0.1` al iniciar `websocket/server.php`. Esto evita que Linux resuelva `localhost` a `::1` mientras el proxy Apache `/ws` apunta a `127.0.0.1`. Para producción se recomienda guardar explícitamente `WS_HOST=127.0.0.1`. La pantalla **Configuración → Salud integral del servidor** comprueba daemon, puerto, proxy y endpoint WSS público.

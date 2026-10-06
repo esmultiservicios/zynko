@@ -33,6 +33,17 @@ final class ZynkoServerHealth
         $envWritable = $envOk && is_writable($envPath);
         $add($items,'env','.env',$envOk?($envWritable?'ok':'warning'):'error',$envOk?($envWritable?'Legible y escribible':'Solo lectura'):'No disponible',$envOk?'ZYNKO puede leer la configuración'.($envWritable?' y crear respaldos antes de editar.':'.'): 'No se encontró el archivo de entorno.','Aplicación');
 
+        $serverNow = new DateTimeImmutable('now');
+        $tz = date_default_timezone_get();
+        $dbNow = '';
+        try {
+            $dbNow = (string)($this->pdo->query('SELECT NOW()')->fetchColumn() ?: '');
+        } catch (Throwable $e) {}
+        $timeDetail = $dbNow !== ''
+            ? 'PHP: '.$serverNow->format('Y-m-d H:i:s').' · DB: '.$dbNow.'. Si estas horas no coinciden con tu operación, revisa la zona horaria de PHP/MySQL.'
+            : 'Hora PHP: '.$serverNow->format('Y-m-d H:i:s').'. No se pudo leer NOW() de la base de datos.';
+        $add($items,'server_time','Hora / zona horaria','ok',$tz,$timeDetail,'Servidor');
+
         try {
             $this->pdo->query('SELECT 1')->fetchColumn();
             $dbOk = true;
