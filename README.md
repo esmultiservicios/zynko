@@ -1,11 +1,3 @@
-
-## V2.31.99 · Sitio principal NIVO único
-
-- El sitio principal de ZYNKO se vincula únicamente al dominio canónico configurado en `seo_site_url` / `APP_URL`.
-- Se consolidan automáticamente instalaciones antiguas generadas por alias o dominios históricos.
-- Los sitios autorizados manualmente, como IZZY y ES MULTISERVICIOS, se conservan intactos.
-- Visitar ZYNKO desde un alias ya no crea otra tarjeta `Sitio principal ZYNKO`.
-
 ## V2.32.01 · Mensajería bilateral realtime sin pérdida de estado
 
 - La mensajería usa `messages` como fuente de verdad y `realtime_events` como outbox durable para WebSocket.
