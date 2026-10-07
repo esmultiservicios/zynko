@@ -342,7 +342,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.138';
+$releaseVersion='2.31.139';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -1005,24 +1005,16 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $dir=__DIR__.'/uploads/webchat-preview/'.$tid;if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('No se pudo preparar la carpeta del preview.');
    $name='admin-preview-'.bin2hex(random_bytes(6)).'.'.$ext;if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$name))throw new RuntimeException('No se pudo guardar la captura del preview.');
    if($old!==''){ $oldDisk=__DIR__.'/'.ltrim($old,'/'); if(is_file($oldDisk))@unlink($oldDisk); }
-   $experience['admin_preview_image']='uploads/webchat-preview/'.$tid.'/'.$name;$experience['admin_preview_mode']='image';
+   $experience['admin_preview_image']='uploads/webchat-preview/'.$tid.'/'.$name;
    $pdo->prepare('UPDATE webchat_widgets SET experience_json=? WHERE id=? AND tenant_id=?')->execute([json_encode($experience,JSON_UNESCAPED_UNICODE),(int)$widget['id'],$tid]);
    jsonOut(true,'La captura del preview del admin se guardó correctamente.');
-  }
-  if($action==='webchat_preview_mode'){
-   if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('Solo un Owner o administrador puede cambiar el modo del preview.');
-   $mode=(string)($_POST['mode']??'generated');if(!in_array($mode,['generated','image'],true))$mode='generated';
-   $q=$pdo->prepare('SELECT id,experience_json FROM webchat_widgets WHERE tenant_id=? ORDER BY id LIMIT 1');$q->execute([$tid]);$widget=$q->fetch();if(!$widget)throw new RuntimeException('Widget no encontrado.');
-   $experience=json_decode((string)($widget['experience_json']??'{}'),true)?:[];if($mode==='image'&&empty($experience['admin_preview_image']))throw new RuntimeException('Primero guarda una captura personalizada.');
-   $experience['admin_preview_mode']=$mode;$pdo->prepare('UPDATE webchat_widgets SET experience_json=? WHERE id=? AND tenant_id=?')->execute([json_encode($experience,JSON_UNESCAPED_UNICODE),(int)$widget['id'],$tid]);
-   jsonOut(true,'Modo del preview actualizado.');
   }
   if($action==='webchat_preview_reset'){
    if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('Solo un Owner o administrador puede restaurar el preview.');
    $q=$pdo->prepare('SELECT id,experience_json FROM webchat_widgets WHERE tenant_id=? ORDER BY id LIMIT 1');$q->execute([$tid]);$widget=$q->fetch();if(!$widget)throw new RuntimeException('Widget no encontrado.');
    $experience=json_decode((string)($widget['experience_json']??'{}'),true)?:[];$old=trim((string)($experience['admin_preview_image']??''));
    if($old!==''){ $oldDisk=__DIR__.'/'.ltrim($old,'/'); if(is_file($oldDisk))@unlink($oldDisk); }
-   unset($experience['admin_preview_image']);$experience['admin_preview_mode']='generated';
+   unset($experience['admin_preview_image']);unset($experience['admin_preview_mode']);
    $pdo->prepare('UPDATE webchat_widgets SET experience_json=? WHERE id=? AND tenant_id=?')->execute([json_encode($experience,JSON_UNESCAPED_UNICODE),(int)$widget['id'],$tid]);
    jsonOut(true,'La vista previa del admin volvió al modo generado.');
   }
@@ -1077,7 +1069,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'offline_send_guard'=>isset($_POST['offline_send_guard']),
     'retry_failed_message'=>isset($_POST['retry_failed_message'])
    ];
-   if($id){try{$ep=$pdo->prepare('SELECT experience_json FROM webchat_widgets WHERE id=? AND tenant_id=? LIMIT 1');$ep->execute([$id,$tid]);$previousExperience=json_decode((string)($ep->fetchColumn()?:'{}'),true)?:[];if(!empty($previousExperience['admin_preview_image']))$experience['admin_preview_image']=$previousExperience['admin_preview_image'];if(!empty($previousExperience['admin_preview_mode']))$experience['admin_preview_mode']=$previousExperience['admin_preview_mode'];}catch(Throwable $ignorePreview){}}
+   if($id){try{$ep=$pdo->prepare('SELECT experience_json FROM webchat_widgets WHERE id=? AND tenant_id=? LIMIT 1');$ep->execute([$id,$tid]);$previousExperience=json_decode((string)($ep->fetchColumn()?:'{}'),true)?:[];if(!empty($previousExperience['admin_preview_image']))$experience['admin_preview_image']=$previousExperience['admin_preview_image'];}catch(Throwable $ignorePreview){}}
    $channel=$pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type='webchat' ORDER BY id LIMIT 1");$channel->execute([$tid]);$channelId=(int)$channel->fetchColumn();if(!$channelId){$pdo->prepare("INSERT INTO channels(tenant_id,uuid,type,name,display_address,status,settings_json) VALUES(?,?, 'webchat',?,'NIVO Web Chat','connected','{}')")->execute([$tid,uuid4(),$name]);$channelId=(int)$pdo->lastInsertId();}
    $vals=[$channelId,$name,$enabled,$position,$displayMode,max(0,min(200,(int)($_POST['offset_x']??24))),max(0,min(200,(int)($_POST['offset_y']??24))),$color,$launcher,$sound,trim($_POST['welcome_title']??'¡Hola! Soy NIVO'),trim($_POST['assistant_subtitle']??''),trim($_POST['welcome_message']??'¿En qué puedo ayudarte hoy?'),isset($_POST['ask_name'])?1:0,isset($_POST['ask_email'])?1:0,$required,$privacy,$privacyText,$privacyUrl,$multi,json_encode($experience,JSON_UNESCAPED_UNICODE)];
    if($id){$sql="UPDATE webchat_widgets SET channel_id=?,name=?,enabled=?,position=?,display_mode=?,offset_x=?,offset_y=?,accent_color=?,launcher_label=?,sound_enabled=?,welcome_title=?,assistant_subtitle=?,welcome_message=?,ask_name=?,ask_email=?,profile_required=?,privacy_enabled=?,privacy_text=?,privacy_url=?,allow_multiple_domains=?,experience_json=? WHERE id=? AND tenant_id=?";$pdo->prepare($sql)->execute([...$vals,$id,$tid]);}

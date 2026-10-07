@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.139",
+    "date": "2026-10-07",
+    "title": "Preview limpio real y administración simplificada",
+    "changes": [
+      "Elimina el botón 'Usar limpio' y la lógica de modos que generaba confusión en el administrador de NIVO Web Chat.",
+      "Usa como referencia incluida una captura real del widget proporcionada por el usuario, limpiada únicamente recortando el contenido ajeno que aparecía detrás.",
+      "La vista previa del admin muestra siempre una captura: la incluida o la personalizada por el Owner/Admin.",
+      "Administrar preview queda reducido a reemplazar la captura y restaurar la incluida, con arrastrar, pegar o seleccionar archivo.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.138",
     "date": "2026-10-07",
     "title": "Preview limpio y posición administrable de NIVO Web Chat",

@@ -6095,3 +6095,13 @@ body:has(.inbox-premium-toolbar) .message-sender{font-weight:900!important;lette
   #webchatPreviewModal .webchat-preview-mode-card{grid-template-columns:42px minmax(0,1fr)!important}
   #webchatPreviewModal .webchat-preview-mode-card>button{grid-column:1/-1!important;width:100%!important}
 }
+
+
+/* ZYNKO V2.31.139 · preview real limpio, sin modos confusos */
+#webchatPreviewModal .webchat-preview-mode-card{display:none!important}
+.nivo-webchat-page .preview-stage.has-uploaded-preview{min-height:0!important;height:auto!important;padding:14px!important;background:#eef3f6!important;display:flex!important;align-items:center!important;justify-content:center!important}
+.nivo-webchat-page .preview-shot-card{width:min(100%,423px)!important;max-width:423px!important;padding:0!important;border:0!important;border-radius:18px!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}
+.nivo-webchat-page .preview-shot-card img{display:block!important;width:100%!important;height:auto!important;border:0!important;border-radius:18px!important;background:#eef3f6!important}
+#webchatPreviewModal .webchat-preview-file-preview{grid-template-columns:96px minmax(0,1fr)!important}
+#webchatPreviewModal .webchat-preview-file-preview img{width:96px!important;height:128px!important;object-fit:cover!important}
+@media(max-width:760px){.nivo-webchat-page .preview-stage.has-uploaded-preview{padding:10px!important}.nivo-webchat-page .preview-shot-card{width:100%!important}.nivo-webchat-page .preview-shot-card img{width:100%!important}.webchat-preview-modal .modal-actions{display:grid!important;grid-template-columns:1fr!important}.webchat-preview-modal .modal-actions>*{width:100%!important}}
