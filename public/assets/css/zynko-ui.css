@@ -5656,3 +5656,82 @@ body:has(.inbox-premium-toolbar) .inbox-layout.chat-expanded>.chat{grid-column:1
 .bar-value{opacity:1!important;display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:3px 6px;border-radius:999px;background:#fff;border:1px solid #d8e4ea;box-shadow:0 8px 20px rgba(16,40,58,.06);color:#18364c;font-size:10px;font-weight:900;line-height:1}
 .bar-wrap:hover .bar-value{transform:translateY(-2px)}
 @media(max-width:860px){.env-security-note{grid-template-columns:auto minmax(0,1fr)!important}.env-security-note>i{width:44px;height:44px}.turnstile-fixed-site{grid-column:auto}}
+
+
+/* ZYNKO V2.31.120 · Navegación lateral compacta y scrollbar premium */
+#sidebar nav{
+  overflow-y:auto!important;
+  overflow-x:hidden!important;
+  scrollbar-width:thin;
+  scrollbar-color:#1aa78f transparent;
+  scrollbar-gutter:stable;
+  padding-right:4px;
+  margin-right:-2px;
+  overscroll-behavior:contain;
+}
+#sidebar nav::-webkit-scrollbar{width:9px}
+#sidebar nav::-webkit-scrollbar-track{background:transparent;margin-block:8px}
+#sidebar nav::-webkit-scrollbar-thumb{
+  background:#1aa78f;
+  border:2px solid #0b1625;
+  border-radius:999px;
+  min-height:44px;
+}
+#sidebar nav::-webkit-scrollbar-thumb:hover{background:#25c2a7}
+#sidebar nav::-webkit-scrollbar-button{display:none;width:0;height:0}
+#sidebar nav a{
+  position:relative;
+  min-height:44px;
+  transition:background .18s ease,color .18s ease,transform .18s ease;
+}
+#sidebar nav a:hover{transform:translateX(2px)}
+#sidebar nav a.active{box-shadow:inset 3px 0 0 #1bb89d}
+#sidebar nav a>span:first-child{display:grid;place-items:center;width:24px;height:24px}
+#sidebar nav a>span:first-child i{opacity:.58;transition:opacity .18s ease,color .18s ease}
+#sidebar nav a:hover>span:first-child i,#sidebar nav a.active>span:first-child i{opacity:1;color:#55d6bf}
+.flyout{
+  width:244px!important;
+  padding:12px!important;
+  border-radius:16px!important;
+  border:1px solid #dbe8e5!important;
+  box-shadow:0 24px 60px rgba(10,28,42,.18)!important;
+  overflow:hidden;
+}
+.flyout>small{font-size:10px!important;font-weight:900!important;letter-spacing:.12em!important;color:#6f8293!important;padding:2px 6px 0}
+.flyout>b{font-size:14px!important;color:#10283a!important;padding:0 6px 6px;border-bottom:1px solid #e8efef}
+.flyout a{display:grid!important;grid-template-columns:34px minmax(0,1fr);align-items:center!important;gap:9px!important;min-height:42px!important;padding:7px 9px!important;border-radius:11px!important;font-weight:700!important}
+.flyout a i{width:34px;height:34px;border-radius:10px;background:#e8f7f3;color:#0d8b75;display:grid;place-items:center}
+.flyout a:hover{background:#f1f8f6!important;transform:translateX(2px)}
+html.theme-dark .flyout{border-color:#24364a!important;box-shadow:0 24px 60px rgba(0,0,0,.36)!important}
+html.theme-dark .flyout>b{color:#e8eef6!important;border-bottom-color:#24364a}
+html.theme-dark .flyout a i{background:#13352f;color:#4fd1b5}
+html.theme-dark .flyout a:hover{background:#162434!important}
+@media(max-width:760px){
+  #sidebar nav{padding-right:3px;margin-right:0;scrollbar-gutter:auto}
+  #sidebar nav::-webkit-scrollbar{width:7px}
+  #sidebar nav::-webkit-scrollbar-thumb{border-width:1px}
+}
+
+@media(max-width:760px){
+  .flyout.open{
+    display:grid!important;
+    position:fixed!important;
+    left:12px!important;
+    right:12px!important;
+    top:auto!important;
+    bottom:16px!important;
+    width:auto!important;
+    max-height:min(70dvh,520px)!important;
+    overflow:auto!important;
+    z-index:140!important;
+    padding:14px!important;
+    border-radius:18px!important;
+    scrollbar-width:thin;
+    scrollbar-color:#1aa78f transparent;
+  }
+  .flyout.open::-webkit-scrollbar{width:7px}
+  .flyout.open::-webkit-scrollbar-track{background:transparent}
+  .flyout.open::-webkit-scrollbar-thumb{background:#1aa78f;border-radius:999px}
+  .flyout a{grid-template-columns:38px minmax(0,1fr)!important;min-height:48px!important}
+  .flyout a i{width:38px;height:38px}
+}

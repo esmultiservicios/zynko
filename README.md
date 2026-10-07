@@ -1,3 +1,13 @@
+## V2.31.120 · Navegación lateral premium y compacta
+
+- Encuestas deja de ocupar una entrada principal y queda dentro de NIVO Web Chat.
+- Logs deja de ocupar una entrada principal y queda dentro de Configuración.
+- Automatizaciones queda como acceso de NIVO IA.
+- Integraciones queda como acceso de Canales.
+- El menú lateral mantiene resaltado el módulo padre cuando se navega a cualquiera de esos submódulos.
+- El scrollbar del sidebar usa un diseño oscuro/teal discreto, redondeado y coherente con ZYNKO.
+- Los flyouts de submenús reciben un estilo premium con iconografía y separación uniforme.
+
 ## V2.31.119 · Turnstile canónico y gráficas más claras
 
 - La nota “Cambio seguro” y avisos similares mantienen el icono alineado a la izquierda del texto con mejor proporción visual.

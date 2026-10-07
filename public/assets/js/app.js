@@ -59,7 +59,13 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  // sidebar collapse + mobile
  const collapse=$('#sideCollapse'); if(zynkoUiPrefs.get('sidebar.collapsed','0')==='1')document.body.classList.add('sidebar-collapsed');collapse?.addEventListener('click',()=>{document.body.classList.toggle('sidebar-collapsed');zynkoUiPrefs.set('sidebar.collapsed',document.body.classList.contains('sidebar-collapsed')?'1':'0')});
  // real flyouts only where real options exist
- const fly=$('#flyout'); $$('aside nav a[data-menu]').forEach(a=>{a.onmouseenter=()=>{if(innerWidth<=760)return;const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length){fly.classList.remove('open');return;}fly.innerHTML='<small>ACCESOS</small><b>'+a.querySelector('b').textContent+'</b>'+list.map(x=>`<a href="${x[0]}"><i class="fa-solid ${x[2]}"></i>${x[1]}</a>`).join('');const r=a.getBoundingClientRect();fly.style.top=Math.min(r.top,innerHeight-fly.offsetHeight-20)+'px';fly.classList.add('open')};});
+ const fly=$('#flyout');
+ const renderSideFlyout=(a)=>{const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length){fly?.classList.remove('open');return false;}fly.innerHTML='<small>ACCESOS</small><b>'+a.querySelector('b').textContent+'</b>'+list.map(x=>`<a href="${x[0]}"><i class="fa-solid ${x[2]}"></i><span>${x[1]}</span></a>`).join('');if(innerWidth>760){const r=a.getBoundingClientRect();fly.style.top=Math.min(r.top,innerHeight-fly.offsetHeight-20)+'px';}else fly.style.top='';fly.classList.add('open');return true;};
+ $$('aside nav a[data-menu]').forEach(a=>{
+   a.onmouseenter=()=>{if(innerWidth<=760||window.matchMedia?.('(hover: none)').matches)return;renderSideFlyout(a)};
+   a.addEventListener('click',e=>{const touchLike=innerWidth<=760||window.matchMedia?.('(hover: none)').matches;if(!touchLike)return;const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length)return;e.preventDefault();e.stopPropagation();renderSideFlyout(a)});
+ });
+ fly?.addEventListener('click',e=>{if(e.target.closest('a'))fly.classList.remove('open')});
  // deep links del menú lateral: Experiencia y otras secciones deben abrir y enfocarse realmente
  const focusHashSection=()=>{if(!location.hash)return;const target=document.querySelector(location.hash);if(!target)return;requestAnimationFrame(()=>{target.scrollIntoView({behavior:'smooth',block:'start'});target.classList.add('hash-focus');setTimeout(()=>target.classList.remove('hash-focus'),1400)});};
  window.addEventListener('hashchange',focusHashSection);setTimeout(focusHashSection,120);
