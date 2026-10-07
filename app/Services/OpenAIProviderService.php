@@ -152,6 +152,51 @@ final class OpenAIProviderService
         $global['_api_key']=$key;return [true,'ok',$global,$tenant];
     }
 
+
+    /** Embeddings semánticos aislados por tenant. Si OpenAI no está habilitado, devuelve []. */
+    public function embeddingVectors(int $tenantId,array $texts): array
+    {
+        $texts=array_values(array_filter(array_map(static fn($v)=>trim((string)$v),$texts),static fn($v)=>$v!==''));
+        if(!$texts)return [];
+        self::ensureSchema($this->pdo);
+        $global=$this->pdo->query('SELECT * FROM ai_provider_settings WHERE id=1')->fetch()?:[];
+        if(empty($global['enabled']))return [];
+        $key=$this->decrypt($global['api_key_ciphertext']??null);if($key==='')return [];
+        $tenant=$this->tenantSettings($tenantId);if(empty($tenant['enabled']))return [];
+        $texts=array_map(static fn($v)=>mb_substr($v,0,8000),array_slice($texts,0,64));
+        try{$json=$this->curlJson('https://api.openai.com/v1/embeddings',$key,'POST',['model'=>'text-embedding-3-small','input'=>$texts]);$out=[];foreach(($json['data']??[]) as $row){$out[(int)($row['index']??count($out))]=$row['embedding']??[];}ksort($out);return array_values($out);}catch(Throwable $e){return [];}
+    }
+
+    /**
+     * Orquestación conversacional general. No contiene nombres de productos del propietario de ZYNKO.
+     * El modelo recibe exclusivamente memoria, historial y conocimiento ya filtrado por tenant_id.
+     */
+    public function conversationTurn(int $tenantId,int $conversationId,string $channelType,string $message,string $contactName,string $companyName,array $memory,array $history,array $knowledge): ?array
+    {
+        [$allowed,$reason,$cfg,$tenantCfg]=$this->canUse($tenantId,$channelType);if(!$allowed)return null;
+        try{
+            $historyText=[];foreach(array_slice($history,-14) as $h)$historyText[]=strtoupper((string)($h['role']??'customer')).': '.mb_substr((string)($h['text']??''),0,1000);
+            $knowledgeText=[];foreach(array_slice($knowledge,0,6) as $k)$knowledgeText[]='['.($k['title']??'Fuente')."]\n".mb_substr((string)($k['content']??''),0,1800);
+            $memorySafe=[
+                'summary'=>(string)($memory['summary']??''),
+                'intent'=>(string)($memory['current_intent']??''),
+                'entities'=>(array)($memory['entities']??[]),
+                'requirements'=>(array)($memory['requirements']??[]),
+                'open_questions'=>(array)($memory['open_questions']??[]),
+                'commercial_state'=>(array)($memory['commercial_state']??[]),
+            ];
+            $tenantPrompt='';try{$tp=$this->pdo->prepare('SELECT system_prompt FROM bot_profiles WHERE tenant_id=? LIMIT 1');$tp->execute([$tenantId]);$tenantPrompt=trim((string)($tp->fetchColumn()?:''));}catch(Throwable $ignore){}
+            $instructions="Eres NIVO, asistente conversacional de la empresa indicada. Trabajas en una plataforma multiempresa. REGLAS ABSOLUTAS: 1) usa únicamente el contexto y conocimiento que recibes en esta solicitud; nunca mezcles ni supongas datos de otra empresa; 2) no inventes precios, promociones, funciones, políticas, ubicaciones, demos ni disponibilidad; 3) entiende el mensaje en contexto y no repitas preguntas cuya respuesta ya esté en memoria; 4) si falta información crítica, haz UNA sola pregunta de alto valor antes de recomendar; 5) si recomiendas un producto o plan, elige el MÁS ECONÓMICO que cubra correctamente TODAS las necesidades conocidas, nunca el más caro por defecto; si no tienes suficiente información de necesidades o planes, pregunta o reconoce la limitación; 6) una pregunta lateral no borra el contexto comercial anterior: respóndela y conserva el estado de la oportunidad; 7) mencionar palabras como persona, humano o agente NO significa solicitar transferencia. handoff=true solamente cuando el cliente pide explícitamente hablar/conectarse con una persona, o cuando una regla/situación sensible exige intervención; 8) si no sabes, dilo y pide aclaración; jamás cierres, desconectes ni rompas la conversación; 9) lenguaje sencillo, humano, breve y útil para personas no técnicas; 10) el seguimiento comercial es interno: puedes sugerirlo, pero nunca prometas que se enviará automáticamente; 11) si el cliente dice que lo evaluará, lo revisará o volverá después, NO lo marques como perdido: conserva estado evaluating y sugiere seguimiento interno razonable; 12) extrae y conserva datos comerciales útiles (ciudad, negocio, usuarios, sucursales, necesidades, producto, plan evaluado, demo, estado) solo cuando aparezcan realmente; 13) razona con el historial completo resumido, no por palabras aisladas. Devuelve SOLO JSON válido, sin Markdown.".($tenantPrompt!==''?"\n\nINSTRUCCIONES ADICIONALES CONFIGURADAS POR ESTE TENANT:\n".$tenantPrompt:'');
+            $schema="Formato JSON obligatorio: {\"reply\":\"texto para el cliente\",\"intent\":\"intencion breve\",\"language\":\"es|en|otro\",\"confidence\":\"high|medium|low\",\"needs_clarification\":false,\"missing_information\":[\"dato\"],\"open_questions\":[\"pregunta pendiente\"],\"entities\":{},\"requirements\":{},\"commercial\":false,\"commercial_state\":{\"product_interest\":\"\",\"evaluated_plan\":\"\",\"demo_url\":\"\",\"demo_sent\":false,\"status\":\"new|qualifying|evaluating|won|lost|support|\"},\"follow_up_recommended\":false,\"follow_up_days\":3,\"follow_up_reason\":\"\",\"handoff\":false,\"handoff_reason\":\"\",\"memory_summary\":\"resumen acumulativo corto, preservando datos útiles anteriores\"}.";
+            $input="Empresa/tenant: {$companyName}\nCanal: {$channelType}\nCliente: ".($contactName!==''?$contactName:'Visitante')."\n\nMEMORIA ESTRUCTURADA:\n".json_encode($memorySafe,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n\nHISTORIAL RECIENTE:\n".implode("\n",$historyText)."\n\nCONOCIMIENTO RECUPERADO DEL TENANT:\n".($knowledgeText?implode("\n\n",$knowledgeText):'No hay fragmentos relevantes recuperados.')."\n\nMENSAJE ACTUAL:\n{$message}\n\n{$schema}";
+            if(!empty($tenantCfg['redact_sensitive'])){$redact=static fn(string $v):string=>preg_replace(['/\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b/iu','/\b(?:\d[ -]*?){13,19}\b/u'],['[correo protegido]','[dato protegido]'],$v)??$v;$input=$redact($input);}
+            $payload=['model'=>(string)($cfg['model']??'gpt-6-luna'),'instructions'=>$instructions,'input'=>$input,'max_output_tokens'=>max(450,(int)($cfg['max_output_tokens']??700))];$json=$this->curlJson('https://api.openai.com/v1/responses',(string)$cfg['_api_key'],'POST',$payload);
+            $raw='';if(!empty($json['output_text'])&&is_string($json['output_text']))$raw=trim($json['output_text']);if($raw===''){foreach(($json['output']??[]) as $out)foreach(($out['content']??[]) as $c){if(($c['type']??'')==='output_text'&&isset($c['text']))$raw.=($raw!==''?"\n":'').trim((string)$c['text']);}}
+            $candidate=trim($raw);$candidate=preg_replace('/^```(?:json)?\s*|\s*```$/u','',$candidate)??$candidate;$turn=json_decode($candidate,true);if(!is_array($turn)||trim((string)($turn['reply']??''))==='')return null;
+            $usage=$json['usage']??[];$in=(int)($usage['input_tokens']??0);$out=(int)($usage['output_tokens']??0);$cached=(int)($usage['input_tokens_details']['cached_tokens']??0);$billable=max(0,$in-$cached);$cost=($billable/1000000)*(float)$cfg['input_cost_per_million']+($cached/1000000)*(float)$cfg['cached_input_cost_per_million']+($out/1000000)*(float)$cfg['output_cost_per_million'];$this->pdo->prepare("INSERT INTO ai_usage_logs(tenant_id,conversation_id,provider,channel_type,model,request_id,input_tokens,cached_input_tokens,output_tokens,estimated_cost_usd,status) VALUES(?,?,'openai',?,?,?,?,?,?,?,'ok')")->execute([$tenantId,$conversationId,$channelType,(string)$cfg['model'],(string)($json['id']??''),$in,$cached,$out,$cost]);$turn['_source']='openai:conversation-orchestrator:'.($cfg['model']??'gpt-6-luna');return $turn;
+        }catch(Throwable $e){try{$this->pdo->prepare("INSERT INTO ai_usage_logs(tenant_id,conversation_id,provider,channel_type,model,status,error_message) VALUES(?,?,'openai',?,?,'error',?)")->execute([$tenantId,$conversationId,$channelType,(string)($cfg['model']??'gpt-6-luna'),mb_substr($e->getMessage(),0,1000)]);}catch(Throwable $ignore){}return null;}
+    }
+
     public function fallback(int $tenantId,int $conversationId,string $channelType,string $message,string $contactName,string $companyName): ?array
     {
         [$allowed,$reason,$cfg,$tenantCfg]=$this->canUse($tenantId,$channelType);if(!$allowed){return null;}

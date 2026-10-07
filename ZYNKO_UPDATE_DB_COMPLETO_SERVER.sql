@@ -1284,3 +1284,75 @@ SET @sql := IF(@exists=0,"ALTER TABLE `correo` ADD `imap_host` VARCHAR(190) NULL
 UPDATE `channel_connector_catalog` SET `connector_ready`=1 WHERE `code`='email';
 INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.117') ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.117' AS version_objetivo;
+
+-- ZYNKO V2.31.130 · Inteligencia conversacional multiempresa
+CREATE TABLE IF NOT EXISTS nivo_conversation_memory(
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  summary TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  current_intent VARCHAR(120) NULL,
+  language VARCHAR(12) NULL,
+  entities_json JSON NULL,
+  requirements_json JSON NULL,
+  open_questions_json JSON NULL,
+  commercial_state_json JSON NULL,
+  last_user_message TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY(tenant_id,conversation_id),
+  INDEX idx_nivo_memory_updated(tenant_id,updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS nivo_prospects(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  contact_id BIGINT UNSIGNED NULL,
+  product_interest VARCHAR(190) NULL,
+  business_type VARCHAR(190) NULL,
+  city VARCHAR(160) NULL,
+  user_count VARCHAR(80) NULL,
+  branch_count VARCHAR(80) NULL,
+  needs_json JSON NULL,
+  evaluated_plan VARCHAR(190) NULL,
+  demo_url VARCHAR(500) NULL,
+  demo_sent TINYINT(1) NOT NULL DEFAULT 0,
+  status VARCHAR(80) NOT NULL DEFAULT 'new',
+  metadata_json JSON NULL,
+  next_follow_up_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_nivo_prospect_conversation(tenant_id,conversation_id),
+  INDEX idx_nivo_prospect_status(tenant_id,status,updated_at),
+  INDEX idx_nivo_prospect_followup(tenant_id,next_follow_up_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS nivo_knowledge_chunks(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  source_id BIGINT UNSIGNED NOT NULL,
+  chunk_index INT UNSIGNED NOT NULL,
+  title VARCHAR(255) NULL,
+  content TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  content_hash CHAR(64) NOT NULL,
+  embedding_json LONGTEXT NULL,
+  embedding_model VARCHAR(120) NULL,
+  source_updated_at DATETIME NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_nivo_chunk(tenant_id,source_id,chunk_index),
+  INDEX idx_nivo_chunk_tenant_source(tenant_id,source_id),
+  INDEX idx_nivo_chunk_hash(tenant_id,content_hash)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS nivo_followup_suggestions(
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  reason VARCHAR(500) NULL,
+  suggested_days INT UNSIGNED NULL,
+  status ENUM('pending','accepted','dismissed') NOT NULL DEFAULT 'pending',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_nivo_followup_suggestion(tenant_id,status,created_at),
+  INDEX idx_nivo_followup_conversation(tenant_id,conversation_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

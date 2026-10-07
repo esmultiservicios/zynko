@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once dirname(__DIR__).'/Support/Plan.php';
 require_once __DIR__.'/OpenAIProviderService.php';
+require_once __DIR__.'/NivoConversationIntelligence.php';
 
 final class NivoEngine
 {
@@ -21,12 +22,9 @@ final class NivoEngine
         $n=preg_replace('/\bq\s+es\b/u','que es',$n)??$n;
         $n=preg_replace('/\bq\s+(?:ase|hase|ace)\b/u','que hace',$n)??$n;
         $aliases=[
-            '/\b(?:izy|izzi|izyy|isy)\b/u'=>'izzy',
-            '/\b(?:zinko|zynco|sinco|sinko)\b/u'=>'zynko',
             '/\b(?:watsap|whatsap|whasap|wasap|guasap|watsapp)\b/u'=>'whatsapp',
             '/\b(?:imventario|inbentario|inventaryo|inventaro)\b/u'=>'inventario',
             '/\b(?:restauramte|restorante|restaurantee)\b/u'=>'restaurante',
-            '/\b(?:multiservisio|multiservisios|multiservico)\b/u'=>'multiservicios',
             '/\b(?:facturasion|faturacion)\b/u'=>'facturacion',
         ];
         foreach($aliases as $pattern=>$replacement)$n=preg_replace($pattern,$replacement,$n)??$n;
@@ -35,43 +33,6 @@ final class NivoEngine
 
 
     /** Respuestas directas para intenciones comerciales/operativas frecuentes. */
-    private static function businessIntentReply(string $message,string $companyName): ?array
-    {
-        if(self::norm($companyName)!=='es multiservicios')return null;
-        $n=self::intentNorm($message);
-
-        $mentionsAll=str_contains($n,'izzy')&&str_contains($n,'cami')&&str_contains($n,'zynko');
-        if($mentionsAll&&(preg_match('/\b(diferencia|compar|distint|cada uno|entre)\b/u',$n)||str_contains($n,'pero corto'))){
-            return ['reply'=>'IZZY es para gestión empresarial, facturación, inventario, POS y restaurantes; CAMI está orientado a clínicas y centros médicos; ZYNKO centraliza conversaciones de varios canales con NIVO IA y atención humana.','source'=>'platform:intent:compare-solutions','confidence'=>'high','sources'=>['IZZY','CAMI','ZYNKO']];
-        }
-
-        if((preg_match('/\b(tienda|negocio|comercio|empresa)\b/u',$n)&&preg_match('/\b(factur|inventario|pos|vender|ventas)\w*/u',$n))){
-            return ['reply'=>'Para una tienda que necesita facturar, la opción indicada es IZZY. Te ayuda con facturación, ventas/POS, inventario y gestión administrativa desde un solo sistema.','source'=>'platform:intent:store-izzy','confidence'=>'high','sources'=>['IZZY']];
-        }
-
-        if(preg_match('/\b(clinica|consultorio|centro medico|medico|paciente)\b/u',$n)){
-            return ['reply'=>'Para una clínica o centro médico, la opción indicada es CAMI. Está orientado a gestión de pacientes, procesos clínicos, farmacia y facturación.','source'=>'platform:intent:clinic-cami','confidence'=>'high','sources'=>['CAMI']];
-        }
-
-        if((str_contains($n,'zynko')||preg_match('/\b(ese|esa|esto)\b/u',$n))&&preg_match('/\b(para que me sirve|para que sirve|sirve exactamente|que hace exactamente|me interesa)\b/u',$n)){
-            return ['reply'=>'ZYNKO te sirve para atender conversaciones de distintos canales desde una sola Bandeja, usar NIVO IA para responder automáticamente, transferir a agentes humanos, dar seguimiento a clientes y conectar integraciones.','source'=>'platform:intent:zynko-purpose','confidence'=>'high','sources'=>['ZYNKO']];
-        }
-
-        if(preg_match('/\b(varios|multiples|diferentes)\s+canales\b/u',$n)&&preg_match('/\b(un solo lugar|misma bandeja|centraliz|atender)\w*/u',$n)){
-            return ['reply'=>'Sí. ZYNKO está diseñado precisamente para centralizar la atención de varios canales en una sola Bandeja, manteniendo el historial de cada conversación y permitiendo que NIVO IA o un agente humano continúen la atención.','source'=>'platform:intent:omnichannel','confidence'=>'high','sources'=>['ZYNKO']];
-        }
-
-        if(str_contains($n,'nivo')&&preg_match('/\b(responder solo|responde solo|siempre necesito una persona|necesito una persona|persona siempre|automaticamente|automatica)\b/u',$n)){
-            return ['reply'=>'NIVO puede responder automáticamente usando las reglas y el conocimiento aprobado. No necesitas una persona en cada conversación; la atención humana entra cuando el cliente la solicita, una regla lo requiere o NIVO no debe continuar por seguridad o falta de información confiable.','source'=>'platform:intent:nivo-autonomy','confidence'=>'high','sources'=>['NIVO IA']];
-        }
-
-        if(str_contains($n,'nivo')&&preg_match('/\b(no sabe|no conoce|no puede responder|fuera de su conocimiento)\b/u',$n)){
-            return ['reply'=>'Si NIVO no tiene una respuesta confiable, no debería inventarla. Debe indicarlo claramente, intentar orientar con el conocimiento aprobado y, cuando corresponda, ofrecer o realizar la transferencia a atención humana.','source'=>'platform:intent:nivo-unknown','confidence'=>'high','sources'=>['NIVO IA']];
-        }
-
-        return null;
-    }
-
     /** Evita transferencias por mencionar palabras como “persona” dentro de una pregunta informativa. */
     private static function explicitHandoffRequested(string $message,array $keywords): bool
     {
@@ -82,43 +43,6 @@ final class NivoEngine
         // Si el mensaje es muy corto y consiste prácticamente en la palabra de handoff, también cuenta.
         foreach($keywords as $kw){if($kw!==''&&preg_match('/^(quiero\s+)?'.preg_quote($kw,'/').'$/u',$n))return true;}
         return false;
-    }
-
-    private static function coreIntentReply(PDO $pdo,int $tenantId,string $message,string $companyName,bool $typoTolerance=true): ?array
-    {
-        $n=$typoTolerance?self::intentNorm($message):self::norm($message);
-        $company=self::norm($companyName);
-        if($company!=='es multiservicios')return null;
-        $asksWhat=(bool)preg_match('/\b(que es|que hace|para que sirve|como funciona|funciones|funcionalidades|beneficios|sirve para|maneja|tienen|tiene)\b/u',$n);
-        if(!$asksWhat)return null;
-
-        if(str_contains($n,'whatsapp')){
-            $enabled='1';$number='';
-            try{$q=$pdo->query("SELECT setting_key,setting_value FROM system_settings WHERE setting_key IN ('public_whatsapp_enabled','public_whatsapp_number')");foreach($q->fetchAll() as $r){if($r['setting_key']==='public_whatsapp_enabled')$enabled=(string)$r['setting_value'];if($r['setting_key']==='public_whatsapp_number')$number=trim((string)$r['setting_value']);}}catch(Throwable $ignore){}
-            $reply=$enabled==='1'?'Sí. ES MULTISERVICIOS tiene atención por WhatsApp'.($number!==''?' en '.$number:'').'. También puedes continuar aquí con NIVO Web Chat.':'En este momento no tengo un número público de WhatsApp habilitado en la configuración de ES MULTISERVICIOS.';
-            return ['reply'=>$reply,'source'=>'platform:contact:whatsapp','confidence'=>'high','sources'=>['Configuración pública']];
-        }
-        if(str_contains($n,'izzy')){
-            if(str_contains($n,'restaurante'))$reply='Sí. IZZY incluye funciones para restaurantes, como operación POS y gestión orientada al servicio de restaurante. Si quieres, puedo explicarte qué funciones están disponibles para mesas, pedidos, ventas e inventario según la configuración de tu negocio.';
-            elseif(str_contains($n,'inventario'))$reply='Sí. IZZY maneja inventario y existencias, además de facturación, POS, restaurantes y gestión administrativa.';
-            elseif(str_contains($n,'funcion'))$reply='IZZY puede ayudarte con facturación, documentos de venta, inventario y existencias, POS, operación de restaurantes y gestión administrativa. Si me dices qué proceso te interesa, te explico esa función en detalle.';
-            elseif(str_contains($n,'para que sirve')||str_contains($n,'que hace')||str_contains($n,'que es'))$reply='IZZY es la solución empresarial de ES MULTISERVICIOS para administrar facturación, inventario, ventas/POS, restaurantes y procesos administrativos desde un mismo sistema.';
-            else return null;
-            return ['reply'=>$reply,'source'=>'platform:intent:izzy','confidence'=>'high','sources'=>['IZZY']];
-        }
-        if(str_contains($n,'zynko')){
-            $reply='ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS: centraliza conversaciones de NIVO Web Chat y canales externos en una sola Bandeja, permite atención con NIVO IA y agentes humanos, asignaciones, seguimiento CRM, automatizaciones e integraciones.';
-            return ['reply'=>$reply,'source'=>'platform:intent:zynko','confidence'=>'high','sources'=>['ZYNKO']];
-        }
-        if(str_contains($n,'cami')){
-            $reply='CAMI es la solución de ES MULTISERVICIOS orientada a clínicas y centros médicos, con gestión de pacientes, procesos clínicos, farmacia y facturación.';
-            return ['reply'=>$reply,'source'=>'platform:intent:cami','confidence'=>'high','sources'=>['CAMI']];
-        }
-        if(str_contains($n,'multiservicios')){
-            $reply='ES MULTISERVICIOS desarrolla software, sitios web, integraciones y soluciones digitales para empresas. Entre sus soluciones están IZZY, CAMI y ZYNKO.';
-            return ['reply'=>$reply,'source'=>'platform:intent:company','confidence'=>'high','sources'=>['ES MULTISERVICIOS']];
-        }
-        return null;
     }
 
     private static function words(string $s): array
@@ -132,15 +56,8 @@ final class NivoEngine
 
     private static function expandedWords(string $s): array
     {
-        $words=self::words($s);$norm=self::norm($s);$extra=[];
-        $maps=[
-            ['needles'=>['solucion','soluciones','producto','productos','servicio','servicios','ofrecen','ofrece'],'add'=>['izzy','cami','zynko','multiservicios']],
-            ['needles'=>['facturacion','factura','pos','inventario','restaurante'],'add'=>['izzy']],
-            ['needles'=>['clinica','medico','paciente','farmacia','operatorio'],'add'=>['cami']],
-            ['needles'=>['omnicanal','chat','webchat','nivo','whatsapp','messenger'],'add'=>['zynko']],
-        ];
-        foreach($maps as $m){foreach($m['needles'] as $n){if(str_contains($norm,$n)){array_push($extra,...$m['add']);break;}}}
-        return array_values(array_unique(array_merge($words,$extra)));
+        // Recuperación léxica neutral: no expande hacia productos de un tenant específico.
+        return self::words($s);
     }
 
 
@@ -148,14 +65,13 @@ final class NivoEngine
     {
         if($conversationId<=0)return '';
         try{
-            $q=$pdo->prepare("SELECT direction,sender_type,body FROM messages WHERE tenant_id=? AND conversation_id=? AND body IS NOT NULL ORDER BY id DESC LIMIT 12");
+            $solutions=self::tenantSolutions($pdo,$tenantId);
+            $topics=[];foreach($solutions as $solution){$name=trim((string)($solution['name']??''));if($name!=='')$topics[self::norm($name)]=$name;}
+            // Los módulos propios de la plataforma pueden dar continuidad sin depender de productos del tenant.
+            $topics['nivo web chat']='NIVO Web Chat';$topics['nivo ia']='NIVO IA';
+            $q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND body IS NOT NULL ORDER BY id DESC LIMIT 12");
             $q->execute([$tenantId,$conversationId]);
-            foreach($q->fetchAll() as $row){
-                $body=self::norm((string)($row['body']??''));
-                foreach(['izzy','cami','zynko','nivo web chat','nivo ia'] as $topic){
-                    if(str_contains($body,$topic))return $topic;
-                }
-            }
+            foreach($q->fetchAll() as $row){$body=self::norm((string)($row['body']??''));foreach($topics as $needle=>$label){if($needle!==''&&str_contains($body,$needle))return self::norm($label);}}
         }catch(Throwable $ignore){}
         return '';
     }
@@ -318,19 +234,8 @@ final class NivoEngine
             }
         }
 
-        $companyMentioned = $companyNorm !== '' && (
-            str_contains($norm, $companyNorm)
-            || ($companyNorm === 'es multiservicios' && str_contains($norm, 'multiservicios'))
-        );
+        $companyMentioned = $companyNorm !== '' && str_contains($norm, $companyNorm);
 
-        if ($targetName === '' && !$companyMentioned) {
-            foreach (['izzy', 'cami', 'zynko'] as $canonical) {
-                if (preg_match('/\b' . preg_quote($canonical, '/') . '\b/u', $norm)) {
-                    $targetName = strtoupper($canonical);
-                    break;
-                }
-            }
-        }
 
         if (!$asksDefinition && $targetName === '' && !$companyMentioned) {
             return null;
@@ -383,61 +288,7 @@ final class NivoEngine
             ];
         }
 
-        if ($companyNorm === 'es multiservicios') {
-            $fallbacks = [
-                'IZZY' => 'IZZY es una solución empresarial de ES MULTISERVICIOS orientada a facturación, inventario, POS, restaurantes y gestión administrativa.',
-                'CAMI' => 'CAMI es una solución de ES MULTISERVICIOS orientada a clínicas y centros médicos, con herramientas para pacientes, procesos clínicos, farmacia y facturación.',
-                'ZYNKO' => 'ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS para centralizar conversaciones, NIVO Web Chat, NIVO IA, usuarios, asignaciones e integraciones.',
-            ];
-            if (isset($fallbacks[$targetName])) {
-                return [
-                    'reply' => $fallbacks[$targetName],
-                    'source' => 'platform-catalog:' . strtolower($targetName),
-                    'confidence' => 'high',
-                    'sources' => [$targetName],
-                ];
-            }
-        }
 
-        return null;
-    }
-
-    private static function guaranteedPlatformReply(string $message,string $companyName,bool $english=false): ?string
-    {
-        $norm=self::norm($message);
-        $companyNorm=self::norm($companyName);
-        if($companyNorm!=='es multiservicios')return null;
-
-        $asks=(bool)preg_match('/\b(que es|quien es|que hace|para que sirve|como funciona|funciones|funcionalidades|servicios|soluciones|beneficios|explicame|cuentame)\b/u',$norm);
-        if(!$asks)return null;
-
-        if(str_contains($norm,'izzy')){
-            return $english
-                ? 'IZZY is the business solution from ES MULTISERVICIOS for invoicing, inventory, POS, restaurants and administrative management. I can explain its functions and help you identify which modules fit your business.'
-                : 'IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa. Puedo explicarte sus funciones y ayudarte a identificar qué módulos encajan mejor en tu negocio.';
-        }
-        if(str_contains($norm,'cami')){
-            return $english
-                ? 'CAMI is the ES MULTISERVICIOS solution for clinics and medical centers, focused on patients, clinical processes, pharmacy and billing.'
-                : 'CAMI es la solución de ES MULTISERVICIOS para clínicas y centros médicos, enfocada en pacientes, procesos clínicos, farmacia y facturación.';
-        }
-        $mentionsWebChat=str_contains($norm,'nivo web chat')||str_contains($norm,'web chat');
-        $mentionsNivoAi=str_contains($norm,'nivo ia')||str_contains($norm,'nivo ai');
-        if($mentionsWebChat&&$mentionsNivoAi){
-            return $english
-                ? 'NIVO Web Chat is the web conversation channel of ZYNKO: it receives visitor messages, keeps the conversation history and synchronizes it with the omnichannel inbox. NIVO AI is the assistant that works on top of that conversation using approved rules, synchronized web sources and tenant knowledge to answer, learn through supervised review and hand off to a human when appropriate.'
-                : 'NIVO Web Chat es el canal web de conversación de ZYNKO: recibe los mensajes del visitante, conserva el historial y los sincroniza con la Bandeja omnicanal. NIVO IA es el asistente que trabaja sobre esa conversación usando reglas aprobadas, fuentes web sincronizadas y conocimiento del tenant para responder, aprender mediante revisión supervisada y transferir a una persona cuando corresponde.';
-        }
-        if(str_contains($norm,'zynko')||$mentionsWebChat||$mentionsNivoAi){
-            return $english
-                ? 'ZYNKO is the omnichannel platform from ES MULTISERVICIOS. It centralizes customer conversations and includes NIVO Web Chat, NIVO AI, assignments, teams and integrations.'
-                : 'ZYNKO es la plataforma omnicanal de ES MULTISERVICIOS. Centraliza conversaciones de clientes e integra NIVO Web Chat, NIVO IA, asignaciones, equipos e integraciones.';
-        }
-        if(str_contains($norm,'es multiservicios')||str_contains($norm,'multiservicios')){
-            return $english
-                ? 'ES MULTISERVICIOS develops software, websites, integrations and digital solutions for businesses. Its solutions include IZZY, CAMI and ZYNKO, and I can explain each one using the approved knowledge of this company.'
-                : 'ES MULTISERVICIOS desarrolla software, sitios web, integraciones y soluciones digitales para empresas. Entre sus soluciones están IZZY, CAMI y ZYNKO, y puedo explicarte cada una usando el conocimiento aprobado de esta empresa.';
-        }
         return null;
     }
 
@@ -526,18 +377,8 @@ final class NivoEngine
             $genericFollowUp=self::isGenericFollowUp($norm);
             $effectiveNorm=$norm;
             if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
-            $intentMessage=$message;
-            if($contextTopic!==''&&!preg_match('/\b(izzy|cami|zynko|nivo)\b/u',$norm)&&preg_match('/\b(funcion|restaurante|inventario|facturacion|pos|sirve|maneja|beneficio)\b/u',$norm))$intentMessage.=' '.$contextTopic;
-            $businessIntent=self::businessIntentReply($intentMessage,$companyName);
-            if($businessIntent){
-                $result['sources']=$businessIntent['sources']??[];
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$businessIntent['reply'],(string)$businessIntent['source'],(string)$businessIntent['confidence'],false,$displayName,$english);
-            }
-            $coreIntent=self::coreIntentReply($pdo,$tenantId,$intentMessage,$companyName,!array_key_exists('typo_tolerance',$policy)||!empty($policy['typo_tolerance']));
-            if($coreIntent){
-                $result['sources']=$coreIntent['sources']??[];
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$coreIntent['reply'],(string)$coreIntent['source'],(string)$coreIntent['confidence'],false,$displayName,$english);
-            }
+            // V2.31.130: las respuestas comerciales ya no dependen de productos hardcodeados.
+            // El orquestador multiempresa se ejecuta después de reglas explícitas del tenant.
             $isGreeting=(bool)preg_match('/^(hola|buenas|buenos dias|buen dia|buenas tardes|buenas noches|hey|hello|hi)[!., ]*$/u',$norm);
             $isCapabilities=(bool)preg_match('/\b(que sabes hacer|que puedes hacer|en que puedes ayudar|como me puedes ayudar|tus funciones|tus capacidades|para que sirves|en que te especializas|cual es tu especialidad|cuales son tus especialidades|que haces|que puedes responder|que temas manejas|que temas conoces|como funcionas|que puedes explicarme)\b/u',$norm);
             $isIdentity=(bool)preg_match('/\b(quien eres|quien sos|que eres|eres un bot|eres una ia|eres ia|como te llamas|cual es tu nombre|quien es nivo|que es nivo)\b/u',$norm);
@@ -554,7 +395,7 @@ final class NivoEngine
                     static fn(array $row): string => trim((string)($row['name']??'')),
                     $solutions
                 )));
-                $family=$solutionNames?implode(', ',$solutionNames):'IZZY, CAMI y ZYNKO';
+                $family=$solutionNames?implode(', ',$solutionNames):'los productos y servicios configurados';
                 $reply=$english
                   ? 'I can help with '.$companyName.' and the solutions configured for this company ('.$family.'). I can explain products and services, NIVO Web Chat, NIVO AI, plans, channels and integrations, answer common questions, guide you step by step and use approved web sources and knowledge from this tenant. If something is outside my approved knowledge, I will say so; I only transfer you to a person when you ask for one or when the configured rules require it.'
                   : 'Puedo orientarte sobre '.$companyName.' y las soluciones configuradas para esta empresa ('.$family.'). Puedo explicarte productos y servicios, NIVO Web Chat, NIVO IA, planes, canales e integraciones, responder preguntas frecuentes, guiarte paso a paso y utilizar las fuentes web y el conocimiento aprobado de este tenant. Si algo está fuera de mi conocimiento aprobado, te lo diré; solo te transfiero con una persona cuando lo pides o cuando las reglas configuradas realmente lo requieren.';
@@ -593,6 +434,17 @@ final class NivoEngine
             $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
             foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
 
+            // Orquestador conversacional general: memoria + RAG semántico + razonamiento por tenant.
+            if(($bot['mode']??'hybrid')==='hybrid')try{
+                $brain=(new NivoConversationIntelligence($pdo,dirname(__DIR__,2)))->turn($tenantId,$conversationId,$channelType,$message,$contactName,$companyName);
+                if($brain&&trim((string)($brain['reply']??''))!==''){
+                    $handoff=!empty($brain['handoff']);
+                    $confidence=(string)($brain['confidence']??'ai');
+                    $result['sources']=[];
+                    return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$brain['reply'],(string)($brain['_source']??'nivo:conversation-orchestrator'),$confidence,$handoff,$displayName,$english);
+                }
+            }catch(Throwable $ignore){}
+
             $entityReply = self::entityIntentReply($pdo, $tenantId, $effectiveNorm, $companyName, $settings);
             if ($entityReply !== null) {
                 $result['sources'] = $entityReply['sources'] ?? [];
@@ -611,27 +463,7 @@ final class NivoEngine
                 );
             }
 
-            $companyNorm=self::norm($companyName);
-            $companyCompact=str_replace(' ','',$companyNorm);
-            if(in_array($companyCompact,['esmultiservicios','esmultsiervicios'],true)){
-                $companyNorm='es multiservicios';
-            }
-            $guaranteed=self::guaranteedPlatformReply($effectiveNorm,$companyName,$english);
-            if($guaranteed!==null){
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$guaranteed,'platform:guaranteed','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='izzy'){
-                $reply='Claro. IZZY puede ayudarte con facturación y documentos de venta, control de inventario y existencias, POS para ventas rápidas, operación de restaurantes y mesas/comandas cuando aplica, cuentas por cobrar y pagar, y gestión administrativa desde un solo sistema. Para saber si encaja en tu negocio, dime qué tipo de empresa tienes y cómo llevas hoy ventas, inventario o facturación; con eso te indico qué módulos te servirían más.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:izzy:functions','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&$genericFollowUp&&$contextTopic==='cami'){
-                $reply='Claro. CAMI está orientado a clínicas y centros médicos: organiza pacientes y expedientes, procesos clínicos, farmacia, facturación y seguimiento administrativo. Si me dices qué tipo de clínica manejas y qué proceso deseas mejorar, puedo orientarte sobre las funciones que más te convienen.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:cami:functions','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&$genericFollowUp&&in_array($contextTopic,['zynko','nivo web chat','nivo ia'],true)){
-                $reply='Claro. ZYNKO reúne conversaciones en una bandeja, permite trabajar con NIVO Web Chat y NIVO IA, administrar usuarios y asignaciones, conectar canales e integraciones y mantener trazabilidad de la atención. Si me dices qué canal o proceso quieres mejorar, te explico el flujo exacto.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'context:zynko:functions','high',false,$displayName,$english);
-            }
+            // Si el orquestador externo no está disponible, continuamos con conocimiento local del tenant.
 
             {
                 $searchText=self::contextualSearchText($pdo,$tenantId,$conversationId,$message);
@@ -663,32 +495,8 @@ final class NivoEngine
                 }
             }
 
-            // Respuestas base comerciales: solo se usan cuando el conocimiento aprobado del tenant no resolvió.
-            // Así las fuentes web y la base de conocimiento siempre tienen prioridad y estos textos evitan silencios mientras una fuente aún no existe.
-            if($companyNorm==='es multiservicios'&&(
-                str_contains($norm,'soluciones')||str_contains($norm,'servicios')||str_contains($norm,'que ofrecen')||str_contains($norm,'que tiene es multiservicios')
-            )&&!str_contains($norm,'izzy')&&!str_contains($norm,'cami')&&!str_contains($norm,'zynko')){
-                $reply='ES MULTISERVICIOS ofrece tres soluciones principales: IZZY para facturación, inventario, POS, restaurantes y gestión empresarial; CAMI para clínicas, pacientes, farmacia y facturación; y ZYNKO para reunir en una sola bandeja las conversaciones que llegan desde distintos canales, además de NIVO Web Chat, NIVO IA e integraciones. Si me dices qué tipo de negocio tienes, puedo ayudarte a identificar cuál encaja mejor.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'company:solutions:fallback','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&str_contains($norm,'izzy')){
-                $reply='IZZY es la solución empresarial de ES MULTISERVICIOS para facturación, inventario, POS, restaurantes y gestión administrativa. Puede ayudarte a controlar ventas, productos y existencias, operar puntos de venta y centralizar tareas administrativas. Si me dices qué tipo de negocio tienes y qué proceso quieres mejorar, puedo orientarte con más precisión.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:izzy:fallback','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&str_contains($norm,'cami')){
-                $reply='CAMI es la solución de ES MULTISERVICIOS orientada a clínicas y centros médicos. Ayuda a organizar pacientes, procesos clínicos, farmacia y facturación. Si me cuentas qué tipo de clínica o servicio manejas, puedo orientarte sobre las áreas que mejor se ajustan a tu operación.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:cami:fallback','high',false,$displayName,$english);
-            }
-            if($companyNorm==='es multiservicios'&&(str_contains($norm,'zynko')||str_contains($norm,'nivo web chat'))){
-                $reply='ZYNKO centraliza conversaciones de atención en una sola bandeja, incorpora NIVO Web Chat, NIVO IA, equipos, asignaciones e integraciones, y puede conectar canales externos cuando estén habilitados. Si me cuentas cómo atiendes hoy a tus clientes, puedo orientarte sobre el flujo que mejor encaja.';
-                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'product:zynko:fallback','high',false,$displayName,$english);
-            }
-
-            // Segunda fase opcional: NIVO local siempre intenta primero. OpenAI solo entra como fallback cuando está conectado, habilitado y permitido por el plan/tenant/canal.
-            if(($bot['mode']??'hybrid')==='hybrid')try{
-                $external=(new OpenAIProviderService($pdo,dirname(__DIR__,2)))->fallback($tenantId,$conversationId,$channelType,$message,$contactName,$companyName);
-                if($external&&trim((string)($external['reply']??''))!=='')return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$external['reply'],(string)($external['source']??'openai'),(string)($external['confidence']??'ai'),false,$displayName,$english);
-            }catch(Throwable $ignore){}
+            // Sin respuestas comerciales hardcodeadas: el conocimiento del tenant es la fuente de verdad.
+            // El modo híbrido ya fue atendido por el orquestador conversacional al inicio del flujo.
 
             self::captureLearningQuestion($pdo,$tenantId,$conversationId,$channelType,$message,'low-confidence');
             $fallback=trim((string)($bot['fallback_message']??''));
@@ -717,12 +525,11 @@ final class NivoEngine
             $result['enabled']=true;
             $result['reason']='engine_error';
             $english=(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks)\b/i',$message);
-            $recovery=self::guaranteedPlatformReply($message,$companyName,$english);
-            $result['reply']=$recovery ?: ($english
-                ? 'I received your message, but I had a temporary problem consulting the approved knowledge. Please try the question once more; I will keep the conversation active.'
-                : 'Recibí tu mensaje, pero tuve un problema temporal al consultar el conocimiento aprobado. Intenta la pregunta una vez más; mantendré la conversación activa.');
-            $result['source']=$recovery?'platform:recovery':'engine:recovery';
-            $result['confidence']=$recovery?'high':'low';
+            $result['reply']=$english
+                ? 'I received your message, but I had a temporary problem consulting the approved knowledge. Please rephrase it or give me one more detail; I will keep the conversation active.'
+                : 'Recibí tu mensaje, pero tuve un problema temporal al consultar el conocimiento aprobado. Puedes reformularlo o darme un detalle más; mantendré la conversación activa.';
+            $result['source']='engine:recovery';
+            $result['confidence']='low';
             $result['handoff']=false;
             return $result;
         }

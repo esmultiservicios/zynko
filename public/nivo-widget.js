@@ -1210,6 +1210,23 @@
     return message;
   }
 
+  function cleanHumanMessageBody(message) {
+    let body = String(message?.body || '');
+    if (String(message?.direction || '') === 'out' && String(message?.sender_type || '') !== 'bot') {
+      body = body.replace(/\\n/g, '\n').replace(/^\*\*[^\n]+\*\*\s*\n?/u, '').trim();
+    }
+    return body;
+  }
+
+  function messageAuthorLabel(message) {
+    if (String(message?.sender_type || '') === 'bot') return 'NIVO';
+    if (String(message?.direction || '') === 'in') return state.profile.name || 'Tú';
+    const agent = String(message?.sender_name || state.handoffAgent || '').trim();
+    const company = String(state.widget?.company || '').trim();
+    if (agent) return `Agente - ${agent}${company ? ` - ${company}` : ''}`;
+    return company ? `Agente - ${company}` : 'Agente';
+  }
+
   function normalizeConversationMessages(messages) {
     const rows = Array.isArray(messages) ? [...messages] : [];
     const seenGreeting = new Set();
@@ -1293,9 +1310,9 @@
       messages.forEach(message => {
         add(
           state.shadow,
-          message.body || '',
+          cleanHumanMessageBody(message),
           message.direction === 'in' ? 'out' : 'in',
-          message.sender_type === 'bot' ? 'NIVO' : (message.direction === 'in' ? (state.profile.name || 'Tú') : 'Agente'),
+          messageAuthorLabel(message),
           false,
           (()=>{try{return Array.isArray(message.media_json)?message.media_json:JSON.parse(message.media_json||'[]')}catch(_){return []}})()
         );

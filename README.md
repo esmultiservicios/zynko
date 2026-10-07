@@ -1,3 +1,24 @@
+## V2.31.130 · NIVO conversacional multiempresa, memoria y RAG semántico
+
+- Sustituye el flujo comercial hardcodeado por un orquestador conversacional general y multiempresa.
+- Agrega memoria estructurada por conversación: intención, entidades, necesidades, preguntas pendientes y estado comercial.
+- Agrega prospectos generados desde la conversación sin enviar mensajes automáticos invasivos.
+- Agrega RAG por fragmentos (`nivo_knowledge_chunks`) con recuperación híbrida léxica + embeddings cuando OpenAI está habilitado.
+- Mantiene aislamiento estricto por `tenant_id` en memoria, prospectos, chunks y recuperación.
+- La recomendación comercial debe elegir el plan más económico que cubra las necesidades conocidas; si falta información, NIVO pregunta antes de recomendar.
+- Preguntas laterales conservan el contexto comercial anterior.
+- Handoff humano requiere intención explícita o una causa real; mencionar “persona/agente/humano” dentro de una pregunta no transfiere por sí solo.
+- La Bandeja muestra un bloque **Contexto NIVO** con resumen, producto, ciudad, negocio, usuarios, sucursales, plan, estado, demo y seguimiento sugerido cuando esos datos existen.
+- Incluye `bin/nivo-rag-sync.php` para regenerar los fragmentos del conocimiento por tenant.
+- **Requiere ejecutar `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql` o `ZYNKO_UPDATE_DB_COMPLETO.sql` una vez en el servidor.**
+
+## V2.31.129 · Mensajes humanos limpios y emojis corregidos
+- Corrige los saludos automáticos al asignar una conversación para que no guarden Markdown ni secuencias `\n` literales.
+- El encabezado del mensaje humano se presenta como `Agente - Nombre - Empresa` y el cuerpo queda separado, limpio y natural.
+- Mantiene compatibilidad visual con mensajes antiguos que ya tenían `**...**\n` guardado, limpiándolos al mostrarlos sin modificar el historial de base de datos.
+- Corrige las categorías del selector de emojis con símbolos visibles, separación clara y estados activos legibles.
+- No requiere cambios de base de datos.
+
 ## V2.31.128 · NIVO contextual, adjuntos y Bandeja estabilizada
 
 - NIVO prioriza respuestas directas para IZZY, CAMI y ZYNKO, comparaciones y escenarios de negocio frecuentes.

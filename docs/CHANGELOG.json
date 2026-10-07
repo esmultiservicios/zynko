@@ -1,5 +1,33 @@
 [
   {
+    "version": "2.31.130",
+    "date": "2026-10-07",
+    "title": "NIVO conversacional multiempresa con memoria y RAG semántico",
+    "changes": [
+      "Elimina del flujo principal la lógica comercial hardcodeada para productos específicos y usa un orquestador general por tenant.",
+      "Agrega memoria estructurada por conversación con intención, entidades, necesidades, preguntas pendientes y estado comercial.",
+      "Agrega prospectos comerciales y sugerencias internas de seguimiento sin envío automático por defecto.",
+      "Agrega RAG por chunks con recuperación híbrida léxica y embeddings cuando OpenAI está habilitado.",
+      "Aplica aislamiento por tenant_id a conocimiento, chunks, memoria, prospectos e historial.",
+      "Instruye a NIVO a recomendar el plan más económico que cubra correctamente la necesidad y a preguntar antes si falta información.",
+      "Mantiene conversaciones activas ante errores o baja confianza y restringe el handoff a intención explícita o causa real.",
+      "Muestra Contexto NIVO en Cliente 360° para apoyar al agente con resumen y estado comercial."
+    ],
+    "database_update": true
+  },
+  {
+    "version": "2.31.129",
+    "date": "2026-10-07",
+    "title": "Mensajes humanos limpios y emojis corregidos",
+    "changes": [
+      "Corrige el saludo automático de agente para separar autor y contenido sin Markdown literal.",
+      "Muestra Agente - Nombre - Empresa como encabezado del mensaje humano.",
+      "Limpia visualmente mensajes heredados con ** y secuencias \\n literales.",
+      "Corrige categorías del selector de emojis con representación visible y separación clara."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.128",
     "date": "2026-10-07",
     "title": "NIVO contextual, adjuntos y Bandeja estabilizada",
