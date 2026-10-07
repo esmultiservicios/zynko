@@ -33,9 +33,9 @@ final class NivoEngine
         return trim($n);
     }
 
-    private static function coreIntentReply(PDO $pdo,int $tenantId,string $message,string $companyName): ?array
+    private static function coreIntentReply(PDO $pdo,int $tenantId,string $message,string $companyName,bool $typoTolerance=true): ?array
     {
-        $n=self::intentNorm($message);
+        $n=$typoTolerance?self::intentNorm($message):self::norm($message);
         $company=self::norm($companyName);
         if($company!=='es multiservicios')return null;
         $asksWhat=(bool)preg_match('/\b(que es|que hace|para que sirve|como funciona|funciones|funcionalidades|beneficios|sirve para|maneja|tienen|tiene)\b/u',$n);
@@ -469,15 +469,15 @@ final class NivoEngine
             // En Web Chat procesamos cada mensaje normalmente; el rate limit ya protege contra abuso.
             if($cool>0&&$channelType!=='webchat'){$q=$pdo->prepare("SELECT sent_at FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$conversationId]);$last=$q->fetchColumn();if($last&&time()-strtotime((string)$last)<$cool){$result['reason']='cooldown';return $result;}}
 
-            $norm=self::intentNorm($message);$displayName=trim($contactName);if($displayName===''||in_array(self::norm($displayName),['visitante','visitante web'],true))$displayName='';$personalized=!array_key_exists('personalized_greeting',$policy)||!empty($policy['personalized_greeting']);
+            $norm=(!array_key_exists('typo_tolerance',$policy)||!empty($policy['typo_tolerance']))?self::intentNorm($message):self::norm($message);$displayName=trim($contactName);if($displayName===''||in_array(self::norm($displayName),['visitante','visitante web'],true))$displayName='';$personalized=!array_key_exists('personalized_greeting',$policy)||!empty($policy['personalized_greeting']);
             $english=!empty($policy['language_auto'])&&(bool)preg_match('/\b(hello|hi|what|how|where|when|help|please|thanks|thank you)\b/i',$message);
-            $contextTopic=self::recentConversationTopic($pdo,$tenantId,$conversationId);
+            $contextTopic=(!array_key_exists('topic_continuity',$policy)||!empty($policy['topic_continuity']))?self::recentConversationTopic($pdo,$tenantId,$conversationId):'';
             $genericFollowUp=self::isGenericFollowUp($norm);
             $effectiveNorm=$norm;
             if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
             $intentMessage=$message;
             if($contextTopic!==''&&!preg_match('/\b(izzy|cami|zynko|nivo)\b/u',$norm)&&preg_match('/\b(funcion|restaurante|inventario|facturacion|pos|sirve|maneja|beneficio)\b/u',$norm))$intentMessage.=' '.$contextTopic;
-            $coreIntent=self::coreIntentReply($pdo,$tenantId,$intentMessage,$companyName);
+            $coreIntent=self::coreIntentReply($pdo,$tenantId,$intentMessage,$companyName,!array_key_exists('typo_tolerance',$policy)||!empty($policy['typo_tolerance']));
             if($coreIntent){
                 $result['sources']=$coreIntent['sources']??[];
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$coreIntent['reply'],(string)$coreIntent['source'],(string)$coreIntent['confidence'],false,$displayName,$english);
@@ -581,7 +581,7 @@ final class NivoEngine
                 $searchText=self::contextualSearchText($pdo,$tenantId,$conversationId,$message);
                 $words=self::expandedWords($searchText);
                 $ranked=self::rankedKnowledge($pdo,$tenantId,$searchText,$words,3);
-                $min=$settings['min_confidence']??'medium';$required=$min==='high'?7:($min==='low'?2:4);
+                $min=$settings['min_confidence']??'medium';$required=$min==='high'?7:($min==='low'?2:4);if(!array_key_exists('strict_source_relevance',$policy)||!empty($policy['strict_source_relevance']))$required=max($required,4);
                 $best=$ranked[0]??null;$score=(int)($best['_score']??0);
                 if($best&&$score>=$required){
                     $limit=max(180,min(1500,(int)($settings['max_response_length']??700)));
@@ -682,6 +682,8 @@ final class NivoEngine
             $first=trim(preg_split('/\s+/u',$cleanName)[0]??'');
             if($first!==''&&!str_contains($replyNorm,self::norm($first)))$reply=$cleanName.', '.$reply;
         }
+        if(!empty($policy['direct_answer_mode']))$reply=preg_replace('/^(Con gusto|Claro|Por supuesto)\.\s*/u','',$reply)??$reply;
+        if(!empty($policy['avoid_repeat_intro'])&&$conversationId>0){try{$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$conversationId]);$last=trim((string)($q->fetchColumn()?:''));$firstCurrent=trim((string)(preg_split('/(?<=[.!?])\s+/u',$reply,2)[0]??''));$firstLast=trim((string)(preg_split('/(?<=[.!?])\s+/u',$last,2)[0]??''));if($firstCurrent!==''&&$firstLast!==''&&self::norm($firstCurrent)===self::norm($firstLast)){$reply=trim(mb_substr($reply,mb_strlen($firstCurrent)));}}catch(Throwable $ignore){}}
         if(!empty($policy['duplicate_guard'])){$q=$pdo->prepare("SELECT body FROM messages WHERE tenant_id=? AND conversation_id=? AND direction='out' AND sender_type='bot' ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$conversationId]);$last=trim((string)($q->fetchColumn()?:''));if($last!==''&&self::norm($last)===self::norm($reply)){$result['reason']='duplicate_guard';return $result;}}
         if(!empty($policy['safe_links_only'])){$reply=preg_replace('/(?:javascript|data):\s*[^\s]+/iu','[enlace bloqueado]',$reply)??$reply;}
         if(!empty($policy['sensitive_data_guard'])){$reply=preg_replace('/\b(?:\d[ -]*?){13,19}\b/u','[dato protegido]',$reply)??$reply;}

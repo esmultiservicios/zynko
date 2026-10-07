@@ -258,7 +258,7 @@
         syncConversationStateUi(result.survey || { requested: true, answered: false });
         setPresence('Sesión finalizada por inactividad');
       } catch (error) {
-        console.warn('NIVO Web Chat:', error.message);
+        if(window.ZYNKO_DEBUG===true)console.warn('NIVO Web Chat:', error.message);
         scheduleInactivity();
       } finally {
         state.inactivityClosing = false;
@@ -314,7 +314,7 @@
       renderMessages(state.initialMessages, false);
       scheduleInactivity();
     } catch (error) {
-      console.warn('NIVO Web Chat:', error.message);
+      if(window.ZYNKO_DEBUG===true)console.warn('NIVO Web Chat:', error.message);
     }
   };
 
@@ -541,9 +541,9 @@
           </div>
           <div class="msgs-wrap">
             <div class="history-nav" aria-label="Navegar historial"><span class="history-nav-label">↕ Historial</span><button type="button" class="history-start"><span>↑</span><span>Inicio</span></button><button type="button" class="history-end"><span>↓</span><span>Último</span></button></div>
-            <div class="msgs"></div>
+            <div class="msgs" aria-live="polite" aria-relevant="additions text"></div>
           </div>
-          <div class="handoff-banner" ${state.handoffActive && !state.conversationClosed ? '' : 'hidden'}><span class="handoff-banner-icon">☏</span><span class="handoff-banner-copy"><b>Atención humana solicitada</b><small>NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.</small></span></div>
+          <div class="handoff-banner" ${experience.human_handoff_notice !== false && state.handoffActive && !state.conversationClosed ? '' : 'hidden'}><span class="handoff-banner-icon">☏</span><span class="handoff-banner-copy"><b>Atención humana solicitada</b><small>NIVO ya avisó al equipo. Puedes seguir escribiendo; tus mensajes quedarán en esta conversación para que un agente continúe contigo.</small></span></div>
           <div class="session-actions" ${!state.conversationClosed ? '' : 'hidden'}><button type="button" class="finish-chat"><span class="finish-icon">✓</span><span class="finish-copy"><b>Finalizar chat</b><small>Cierra la conversación y permite calificar la atención</small></span><span class="finish-arrow">›</span></button></div>
           <div class="profile" ${(widget.ask_name || widget.ask_email) && !state.conversation_id ? '' : 'hidden'}>
             ${widget.ask_name ? `<input class="name" placeholder="Tu nombre" value="${esc(state.profile.name)}">` : ''}
@@ -577,7 +577,7 @@
           <button class="launch-label" title="${esc(launcherPlain(launcherText))}">${launcherHtml}</button>
           <button class="launch${experience.launcher_animation === false ? '' : ' nivo-pulse'}" aria-label="Abrir NIVO Web Chat">
             <span class="launch-logo"><img src="${esc(mascotUrl)}" alt="NIVO"></span>
-            <span class="badge">0</span>
+            ${experience.unread_counter === false ? '' : '<span class="badge">0</span>'}
           </button>
         </div>
       </div>`;
@@ -602,8 +602,7 @@
       persistOpen();
 
       if (state.opened) {
-        badge.classList.remove('on');
-        badge.textContent = '0';
+        if(badge){badge.classList.remove('on');badge.textContent='0';}
         showInitialGreeting(state.initialMessages || []);
         state.historyMode = 'end';
         requestAnimationFrame(() => {
@@ -616,6 +615,11 @@
       }
     };
 
+    const composerInput=shadow.querySelector('.text');
+    if(composerInput && experience.draft_persistence!==false){
+      try{composerInput.value=localStorage.getItem(`${storagePrefix}.draft`)||'';}catch(_){}
+      composerInput.addEventListener('input',()=>{try{localStorage.setItem(`${storagePrefix}.draft`,composerInput.value)}catch(_){}});
+    }
     launch.onclick = toggle;
     shadow.querySelector('.launch-label')?.addEventListener('click', toggle);
     shadow.querySelector('.close').onclick = () => {
@@ -767,7 +771,7 @@
       try {
         await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, resolved: state.surveyResolved, nivo_helpful: state.surveyNivoHelpful, comment: shadow.querySelector('.survey-comment')?.value || '' });
         setPresence('Opinión registrada · preparando chat nuevo…', true);
-        setTimeout(()=>resetAfterSurvey().catch(error=>console.warn('NIVO Web Chat:',error.message)),500);
+        setTimeout(()=>resetAfterSurvey().catch(error=>window.ZYNKO_DEBUG===true&&console.warn('NIVO Web Chat:',error.message)),500);
       } catch (error) {
         add(shadow, error.message, 'in', 'Sistema');
       } finally {
@@ -860,6 +864,7 @@
         return;
       }
 
+      if(experience.offline_send_guard!==false && state.wsConnected===false){setPresence('Tiempo real reconectando · enviaremos por canal seguro HTTP',true);}
       const previousServerCount = state.lastCount;
       state.sending = true;
       const sendButton = shadow.querySelector('.send');
@@ -871,6 +876,7 @@
       const optimisticMessage = add(shadow, body, 'out', state.profile.name || 'Tú');
       optimisticMessage?.classList.add('pending-send');
       input.value = '';
+      if(experience.draft_persistence!==false){try{localStorage.removeItem(`${storagePrefix}.draft`)}catch(_){}}
       touchSession();
       setPresence('NIVO está escribiendo…');
       const typing = experience.typing_indicator === false ? null : addTyping(shadow);
@@ -914,7 +920,7 @@
         }
 
         syncProfileUi();
-        setPresence(result.human_assigned && state.handoffAgent ? `Conectado con ${state.handoffAgent}` : (result.conversation_pending ? 'En cola para atención humana' : (result.handoff ? 'Transferencia a atención humana' : 'Esperando tu respuesta')));
+        setPresence(result.human_assigned && state.handoffAgent ? `Conectado con ${state.handoffAgent}` : (result.conversation_pending ? 'En cola para atención humana' : (result.handoff ? 'Transferencia a atención humana' : (experience.delivery_status===false?'Esperando tu respuesta':'Enviado · esperando respuesta'))));
         touchSession();
 
         // La conexión WebSocket permanece abierta durante toda la conversación.
@@ -926,7 +932,8 @@
         // Restauramos el texto para que el visitante pueda reintentar conscientemente.
         optimisticMessage?.remove();
         if (!input.value.trim()) input.value = body;
-        showLocal(error.message);
+        if(experience.draft_persistence!==false){try{localStorage.setItem(`${storagePrefix}.draft`,body)}catch(_){}}
+        showLocal(experience.retry_failed_message===false?error.message:(error.message+' · Tu mensaje quedó listo para reintentar.'));
         setPresence('No se pudo enviar', true);
       } finally {
         state.sending = false;
@@ -992,6 +999,7 @@
 
   function persistProfileLocal() {
     const experience = state.widget?.experience || {};
+    const draftKey='zynko:nivo:draft:'+(state.widget?.id||'default');
     if (experience.persist_profile === false) {
       return;
     }
@@ -1228,7 +1236,7 @@
       const substantiveIncoming = incomingMessages.filter(message => !isInactivityMessage(message)).length;
 
       if (incoming) {
-        beep();
+        if(state.widget?.experience?.sound_human_reply!==false)beep();
         if (substantiveIncoming) {
           touchSession();
         }
@@ -1241,10 +1249,9 @@
           }, 5000);
         }
 
-        if (!state.opened) {
+        if (!state.opened && state.widget?.experience?.unread_counter!==false) {
           const badge = state.shadow.querySelector('.badge');
-          badge.textContent = String(Math.min(99, (parseInt(badge.textContent, 10) || 0) + incoming));
-          badge.classList.add('on');
+          if(badge){badge.textContent=String(Math.min(99,(parseInt(badge.textContent,10)||0)+incoming));badge.classList.add('on');}
         }
       }
     }
@@ -1399,8 +1406,9 @@
 
       socket.onopen = async () => {
         if (generation !== state.wsGeneration) return;
-        state.wsConnected = true;
+        const wasDisconnected=state.wsConnected===false;state.wsConnected=true;
         stopRealtimeFallback();
+        if(wasDisconnected && (state.widget?.experience?.reconnect_notice!==false))setPresence('Tiempo real reconectado',true);
         if (state.humanAssigned && state.handoffAgent) {
           setPresence(`Conectado con ${state.handoffAgent}`);
         }
@@ -1459,7 +1467,8 @@
 
       socket.onclose = () => {
         if (generation !== state.wsGeneration) return;
-        state.wsConnected = false;
+        state.wsConnected=false;
+        if(state.widget?.experience?.reconnect_notice!==false)setPresence('Reconectando tiempo real…',true);
         startRealtimeFallback();
         state.wsReconnectTimer = setTimeout(async () => {
           try {

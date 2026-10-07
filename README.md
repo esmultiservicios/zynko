@@ -1,4 +1,4 @@
-## V2.31.116 · Consistencia operativa y UI administrativa
+## V2.31.117 · Consistencia operativa y UI administrativa
 
 - WebSocket usa controles inteligentes: Iniciar solo cuando está detenido; Detener/Reiniciar solo cuando está activo.
 - Dashboard y Configuración explican con el mismo detalle qué significa “Reinicio recomendado”.

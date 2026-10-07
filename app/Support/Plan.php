@@ -151,7 +151,7 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
 function zynkoPlanAllowsModule(array $ctx,string $module): bool{
     if(!empty($ctx['unrestricted']))return true;
     if(empty($ctx['active']))return $module==='billing';
-    if(in_array($module,['dashboard','inbox','channels','webchat','billing','onboarding','surveys','documentation'],true))return true;
+    if(in_array($module,['dashboard','inbox','channels','webchat','billing','onboarding','surveys','documentation','logs'],true))return true;
     $mods=$ctx['modules']??[];
     return !empty($mods[$module]);
 }

@@ -29,7 +29,7 @@ INSERT INTO channel_connector_catalog(code,name,icon_class,icon_style,descriptio
 ('instagram','Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',1,1,1,30),
 ('webchat','NIVO Web Chat','fa-solid fa-message','webchat','Chat inteligente propio de ZYNKO para instalar en sitios y portales.',1,1,1,40),
 ('telegram','Telegram','fa-brands fa-telegram','telegram','Mensajería mediante bots y API oficial de Telegram.',1,1,1,50),
-('email','Correo','fa-solid fa-envelope','email','Centraliza conversaciones recibidas por correo electrónico.',0,1,0,60);
+('email','Correo','fa-solid fa-envelope','email','Centraliza conversaciones recibidas por correo electrónico.',1,1,0,60);
 
 CREATE TABLE tenant_channel_entitlements (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, channel_type VARCHAR(50) NOT NULL, enabled TINYINT(1) NOT NULL DEFAULT 0, monthly_amount DECIMAL(12,2) NOT NULL DEFAULT 0, UNIQUE KEY uq_entitlement(tenant_id,channel_type));
 CREATE TABLE channels (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, type VARCHAR(50) NOT NULL, name VARCHAR(120) NOT NULL, external_account_id VARCHAR(190), external_phone_id VARCHAR(190), display_address VARCHAR(190), token_ciphertext TEXT, token_expires_at DATETIME NULL, status ENUM('pending','connected','warning','disconnected') NOT NULL DEFAULT 'pending', settings_json JSON NULL, last_event_at DATETIME NULL, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,type,status));
@@ -97,6 +97,17 @@ CREATE TABLE correo (
   client_secret TEXT NULL,
   graph_user VARCHAR(190) NULL,
   save_to_sent_items TINYINT(1) NOT NULL DEFAULT 1,
+  inbound_method ENUM('NONE','IMAP','GRAPH') NOT NULL DEFAULT 'NONE',
+  imap_host VARCHAR(190) NULL,
+  imap_port INT UNSIGNED NOT NULL DEFAULT 993,
+  imap_secure ENUM('ssl','tls','none') NOT NULL DEFAULT 'ssl',
+  imap_username VARCHAR(190) NULL,
+  imap_password TEXT NULL,
+  imap_folder VARCHAR(120) NOT NULL DEFAULT 'INBOX',
+  inbound_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  inbound_last_test_at DATETIME NULL,
+  inbound_last_test_status ENUM('ok','error') NULL,
+  inbound_last_test_message VARCHAR(500) NULL,
   estado TINYINT(1) NOT NULL DEFAULT 1,
   is_default TINYINT(1) NOT NULL DEFAULT 0,
   last_test_at DATETIME NULL,
@@ -105,6 +116,20 @@ CREATE TABLE correo (
   fecha_registro DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_correo_tenant_tipo (tenant_id,correo_tipo_id,estado)
+);
+
+
+CREATE TABLE system_event_logs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  level ENUM('info','warning','error') NOT NULL DEFAULT 'info',
+  module VARCHAR(120) NOT NULL DEFAULT 'system',
+  message VARCHAR(500) NOT NULL,
+  context_json JSON NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_system_logs_tenant (tenant_id,created_at),
+  INDEX idx_system_logs_level (tenant_id,level,created_at)
 );
 
 CREATE TABLE notification_preferences (
@@ -462,7 +487,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_calls (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.116');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.117');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),

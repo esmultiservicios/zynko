@@ -472,3 +472,31 @@ INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_versi
 ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.116' AS version_objetivo;
+
+
+-- ============================================================
+-- ZYNKO V2.31.117 · Logs centralizados y correo entrante IMAP/Graph
+-- Seguro para ejecutar más de una vez.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `system_event_logs` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tenant_id` BIGINT UNSIGNED NOT NULL,
+  `user_id` BIGINT UNSIGNED NULL,
+  `level` ENUM('info','warning','error') NOT NULL DEFAULT 'info',
+  `module` VARCHAR(120) NOT NULL DEFAULT 'system',
+  `message` VARCHAR(500) NOT NULL,
+  `context_json` JSON NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_system_logs_tenant` (`tenant_id`,`created_at`),
+  KEY `idx_system_logs_level` (`tenant_id`,`level`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET @db_name := DATABASE();
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='correo' AND COLUMN_NAME='inbound_method');
+SET @sql := IF(@exists=0,"ALTER TABLE `correo` ADD `inbound_method` ENUM('NONE','IMAP','GRAPH') NOT NULL DEFAULT 'NONE' AFTER `save_to_sent_items`",'SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+SET @exists := (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=@db_name AND TABLE_NAME='correo' AND COLUMN_NAME='imap_host');
+SET @sql := IF(@exists=0,"ALTER TABLE `correo` ADD `imap_host` VARCHAR(190) NULL AFTER `inbound_method`, ADD `imap_port` INT UNSIGNED NOT NULL DEFAULT 993 AFTER `imap_host`, ADD `imap_secure` ENUM('ssl','tls','none') NOT NULL DEFAULT 'ssl' AFTER `imap_port`, ADD `imap_username` VARCHAR(190) NULL AFTER `imap_secure`, ADD `imap_password` TEXT NULL AFTER `imap_username`, ADD `imap_folder` VARCHAR(120) NOT NULL DEFAULT 'INBOX' AFTER `imap_password`, ADD `inbound_enabled` TINYINT(1) NOT NULL DEFAULT 0 AFTER `imap_folder`, ADD `inbound_last_test_at` DATETIME NULL AFTER `inbound_enabled`, ADD `inbound_last_test_status` ENUM('ok','error') NULL AFTER `inbound_last_test_at`, ADD `inbound_last_test_message` VARCHAR(500) NULL AFTER `inbound_last_test_status`",'SELECT 1'); PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+UPDATE `channel_connector_catalog` SET `connector_ready`=1 WHERE `code`='email';
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.117') ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.117' AS version_objetivo;

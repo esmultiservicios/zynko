@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.117",
+    "date": "2026-10-06",
+    "title": "Observabilidad, correo entrante y experiencia NIVO",
+    "changes": [
+      "Consola pública silenciosa por defecto y nuevo centro de Logs",
+      "Configuración de recepción IMAP o Microsoft Graph",
+      "Encuestas visibles y KPIs restaurados",
+      "Vista previa NIVO con Expandir y Cerrar en una sola línea",
+      "10 controles adicionales de experiencia para NIVO Web Chat",
+      "Mejoras de diagnóstico y consistencia administrativa"
+    ]
+  },
+  {
     "version": "2.31.116",
     "date": "2026-10-06",
     "title": "Consistencia WebSocket, KPIs, encuestas y vista previa NIVO",
