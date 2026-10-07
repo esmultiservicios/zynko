@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.137",
+    "date": "2026-10-07",
+    "title": "Preview limpio de NIVO con captura opcional",
+    "changes": [
+      "Restaura el preview limpio generado como modo predeterminado para evitar mostrar el contenido del sitio detrás del widget.",
+      "Actualiza el preview generado para reflejar el compositor actual con adjuntos y botón de envío premium.",
+      "Mantiene la captura personalizada como opción administrable y permite alternar al modo limpio sin eliminarla.",
+      "Permite eliminar la captura personalizada desde el mismo modal.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.136",
     "date": "2026-10-07",
     "title": "Administrador de captura NIVO premium y responsive",
