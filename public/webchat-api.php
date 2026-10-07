@@ -1050,8 +1050,11 @@ if ($action === 'new_chat') {
             out(false,'Finaliza el chat actual antes de iniciar uno nuevo.',[],409);
         }
     }
-    $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'],$tid]);
-    out(true,'Nueva conversación lista.',['conversation_id'=>0]);
+    // Una conversación nueva comienza con identidad limpia. La identidad se conserva
+    // mientras el chat siga activo (incluyendo recargas), pero después del cierre/encuesta
+    // no se reutiliza automáticamente el nombre o correo de la conversación anterior.
+    $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,name=NULL,email=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'],$tid]);
+    out(true,'Nueva conversación lista.',['conversation_id'=>0,'profile_reset'=>true]);
 }
 
 if ($action === 'inactivity_nudge') {

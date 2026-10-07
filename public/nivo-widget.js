@@ -323,7 +323,16 @@
       state.widget = data.widget;
       state.initialMessages = data.messages || [];
       if (state.conversationClosed && data.survey?.answered) {
-        try { await call({ action: 'new_chat' }); state.conversation_id=0; state.conversationClosed=false; state.surveyConversationId=0; state.initialMessages=[]; } catch (_) {}
+        try {
+          await call({ action: 'new_chat' });
+          state.profile = { name: '', email: '' };
+          localStorage.removeItem(`${storagePrefix}.name`);
+          localStorage.removeItem(`${storagePrefix}.email`);
+          state.conversation_id=0;
+          state.conversationClosed=false;
+          state.surveyConversationId=0;
+          state.initialMessages=[];
+        } catch (_) {}
       }
       state.profile = {
         name: data.visitor_profile?.name || localStorage.getItem(`${storagePrefix}.name`) || '',
@@ -366,8 +375,18 @@
     }
   }
 
+  function clearVisitorProfileForNewChat() {
+    state.profile = { name: '', email: '' };
+    try {
+      localStorage.removeItem(`${storagePrefix}.name`);
+      localStorage.removeItem(`${storagePrefix}.email`);
+    } catch (_) {}
+    syncProfileUi();
+  }
+
   async function resetAfterSurvey() {
     await call({ action: 'new_chat' });
+    clearVisitorProfileForNewChat();
     state.conversation_id = 0;
     state.conversationClosed = false;
     state.surveyConversationId = 0;
@@ -498,8 +517,10 @@
         .typing span:last-child{display:inline-flex;gap:4px;align-items:center}
         .typing span:last-child:after{content:'•••';letter-spacing:2px;animation:nivoPulse 1s infinite}
         .composer{padding:11px;border-top:1px solid #e5e7eb;display:flex;gap:8px;background:#fff}
-        .send{width:44px;min-width:44px;border:0;border-radius:11px;background:${widget.accent_color};color:#fff;cursor:pointer}
-        .send:disabled{opacity:.55;cursor:not-allowed}
+        .send{width:52px;min-width:52px;height:42px;min-height:42px;border:0;border-radius:12px;background:${widget.accent_color};color:#fff;cursor:pointer;display:grid;place-items:center;font-size:18px;line-height:1;box-shadow:0 7px 18px #0f766e24;transition:transform .16s ease,box-shadow .16s ease,filter .16s ease}
+        .send:hover{transform:translateY(-1px);box-shadow:0 10px 22px #0f766e30;filter:brightness(.97)}
+        .send:active{transform:translateY(0)}
+        .send:disabled{opacity:.55;cursor:not-allowed;transform:none;box-shadow:none}
         .msgs-wrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;background:#f8fafc}
         .msgs-wrap .msgs{flex:1;min-height:0;overflow-y:auto}
         .history-nav{position:relative;z-index:2;flex:0 0 auto;display:flex;align-items:center;justify-content:flex-end;gap:7px;padding:8px 10px;background:linear-gradient(180deg,#ffffff,#f8fcfb);border-bottom:1px solid #dfeae7;box-shadow:0 5px 16px #0f172a0a}
@@ -864,6 +885,7 @@
       if (button) button.disabled = true;
       try {
         await call({ action: 'new_chat' });
+        clearVisitorProfileForNewChat();
         state.conversation_id = 0;
         state.conversationClosed = false;
         state.surveyConversationId = 0;

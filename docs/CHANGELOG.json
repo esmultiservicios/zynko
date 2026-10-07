@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.31.133",
+    "date": "2026-10-07",
+    "title": "Sesión limpia de visitante y envío premium en NIVO Web Chat",
+    "changes": [
+      "Limpia nombre y correo al iniciar una nueva conversación después de un cierre completo o encuesta.",
+      "Mantiene identidad y sesión durante recargas mientras la conversación siga activa.",
+      "Sincroniza el reset de perfil entre backend y localStorage para evitar reutilizar nombres anteriores.",
+      "Ajusta el botón Enviar para igualar la altura del input y darle una presencia visual más premium.",
+      "No requiere actualización de base de datos."
+    ]
+  },
+  {
     "version": "2.31.132",
     "date": "2026-10-07",
     "title": "Espaciado premium en documentación pública",

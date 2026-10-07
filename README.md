@@ -1,3 +1,11 @@
+# ZYNKO v2.31.133
+
+- Reinicia de forma limpia el nombre y correo del visitante únicamente cuando una conversación ya finalizada pasa a un chat nuevo.
+- Conserva la identidad y la conversación al recargar mientras el chat siga activo.
+- Sincroniza el reset de perfil entre backend y Web Chat después de responder/omitir la encuesta o iniciar un chat nuevo.
+- Mejora el botón Enviar del Web Chat con altura alineada al input, mayor ancho, hover premium y mejor presencia visual.
+- No requiere cambios de base de datos.
+
 # ZYNKO v2.31.132
 
 
