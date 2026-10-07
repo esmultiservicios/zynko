@@ -1,3 +1,15 @@
+## V2.31.114 · Estado WebSocket sincronizado
+
+Dashboard, Configuración y el indicador global de canales reflejan el mismo estado WebSocket confirmado. Después de iniciar, detener o reiniciar, ZYNKO actualiza el estado visible y recalcula Salud integral automáticamente.
+
+## V2.31.113 · WebSocket verificable + deploy limpio + salud comprensible
+
+- Estado WebSocket real: proceso + puerto + endpoint público, sin falsos mensajes de éxito.
+- Inicio/Reinicio desde panel con comprobación posterior independiente.
+- Glosario en Salud para WebSocket, servicio/daemon, PID y proxy `/ws`.
+- `.gitignore` protege el repositorio de `.env`, PID, logs y archivos runtime que pueden bloquear cPanel Deploy.
+- NIVO Web Chat evita caché obsoleta del widget y la vista previa del administrador puede expandirse/restaurarse.
+
 ## V2.31.112 · Consolidación operativa, encuestas y documentación versionada
 
 - Salud WebSocket más precisa y control desde panel con múltiples métodos permitidos por el hosting.

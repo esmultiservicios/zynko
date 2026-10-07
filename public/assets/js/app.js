@@ -830,12 +830,64 @@ document.addEventListener('change',e=>{
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>syncSwitchVisualState());
 else syncSwitchVisualState();
 
-// ZYNKO V2.31.112 · Centro de servicios WebSocket: iniciar, detener, reiniciar y auditar.
+// ZYNKO V2.31.114 · Centro de servicios WebSocket sincronizado con Dashboard, Salud y estado global.
 (()=>{
   const buttons=[...document.querySelectorAll('.websocket-control,.service-control')];if(!buttons.length)return;
-  const labels={start:{title:'Iniciar WebSocket',confirm:'Iniciar',busy:'Iniciando…',text:'Inicia el servicio de tiempo real. No modifica la base de datos ni el .env.',impact:'No debería haber interrupción si ya estaba detenido.'},stop:{title:'Detener WebSocket',confirm:'Detener',busy:'Deteniendo…',text:'Detendrá el tiempo real hasta que vuelvas a iniciar el servicio.',impact:'Mientras esté detenido, ZYNKO usará reconciliación HTTP como respaldo.'},restart:{title:'Reiniciar WebSocket',confirm:'Reiniciar',busy:'Reiniciando…',text:'Reinicia únicamente el daemon de tiempo real. No modifica la base de datos ni el .env.',impact:'La interrupción esperada es de aproximadamente 1–3 segundos.'}};
-  const setState=state=>{document.querySelectorAll('[data-service-state]').forEach(el=>{el.textContent=state==='running'?'Ejecutándose':state==='stopped'?'Detenido':'Ejecutando acción…';el.classList.remove('running','stopped','working');el.classList.add(state==='running'?'running':state==='stopped'?'stopped':'working')});document.querySelectorAll('.service-state-icon').forEach(el=>{el.classList.toggle('is-running',state==='running');el.classList.toggle('is-stopped',state==='stopped')});};
-  const run=async(operation,button)=>{const meta=labels[operation];if(!meta)return;if(button?.dataset?.hostingLimited==='1'){await Swal.fire({title:'Control limitado por el hosting',html:'<p>El servidor bloquea desde PHP los métodos para crear o detener procesos.</p><p><b>Tu flujo normal de Update/Deploy en cPanel sí reinicia WebSocket automáticamente</b> mediante <code>.cpanel.yml</code>. Salud del sistema seguirá avisándote si el daemon queda detenido.</p>',icon:'info',confirmButtonText:'Entendido',allowOutsideClick:false});return;}const ask=await Swal.fire({title:meta.title,html:`<p>${meta.text}</p><small>${meta.impact}</small>`,icon:operation==='stop'?'warning':'question',showCancelButton:true,confirmButtonText:meta.confirm,cancelButtonText:'Cancelar',allowOutsideClick:false,allowEscapeKey:true});if(!ask.isConfirmed)return;const originals=new Map(buttons.map(b=>[b,b.innerHTML]));buttons.forEach(b=>b.disabled=true);button.innerHTML=`<i class="fa-solid fa-spinner fa-spin"></i> ${meta.busy}`;setState('working');const started=performance.now();try{const fd=new FormData();fd.append('action','websocket_control');fd.append('operation',operation);const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudo ejecutar la acción.');setState(j.state||'running');const duration=Number(j.duration||((performance.now()-started)/1000)).toFixed(2);showNotify('success','WebSocket',`${j.message} Duración: ${duration} s.`);if(operation==='restart'||operation==='start')document.querySelector('.service-recommendation')?.remove();}catch(e){showNotify('error','WebSocket',e.message||'No fue posible ejecutar la acción.');setState('stopped')}finally{buttons.forEach(b=>{b.disabled=false;b.innerHTML=originals.get(b)||b.innerHTML})}};
+  const labels={
+    start:{title:'Iniciar WebSocket',confirm:'Iniciar',busy:'Iniciando…',text:'Inicia el servicio que mantiene la mensajería en tiempo real entre Widget, Bandeja y NIVO.',impact:'No modifica la base de datos ni el .env. Si el hosting finaliza procesos iniciados desde PHP, ZYNKO lo detectará y no mostrará un falso éxito.'},
+    stop:{title:'Detener WebSocket',confirm:'Detener',busy:'Deteniendo…',text:'Detendrá temporalmente el tiempo real.',impact:'Mientras esté detenido, ZYNKO conserva la base de datos y puede usar reconciliación HTTP como respaldo.'},
+    restart:{title:'Reiniciar WebSocket',confirm:'Reiniciar',busy:'Reiniciando…',text:'Detiene y vuelve a iniciar únicamente el servicio WebSocket.',impact:'No modifica BD ni .env. La interrupción normal es de aproximadamente 1–3 segundos.'}
+  };
+  const setState=state=>{
+    const label=state==='running'?'Ejecutándose':state==='stopped'?'Detenido':state==='broken'?'Requiere atención':'Ejecutando acción…';
+    document.querySelectorAll('[data-service-state]').forEach(el=>{el.textContent=label;el.classList.remove('running','stopped','working','broken');el.classList.add(state==='running'?'running':state==='stopped'?'stopped':state==='broken'?'broken':'working')});
+    document.querySelectorAll('.service-state-icon').forEach(el=>{el.classList.toggle('is-running',state==='running');el.classList.toggle('is-stopped',state==='stopped'||state==='broken')});
+    // Una sola fuente visual de verdad: al confirmar el servicio, el indicador global
+    // Canales x/x cambia inmediatamente entre Tiempo real y Auto en cualquier módulo.
+    if(['running','stopped','broken'].includes(state)){
+      document.dispatchEvent(new CustomEvent('zynko:realtime-status',{detail:{connected:state==='running',source:'service-control'}}));
+    }
+  };
+  const call=async(operation)=>{
+    const fd=new FormData();fd.append('action','websocket_control');fd.append('operation',operation);
+    const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd,cache:'no-store'});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.message||'No se pudo ejecutar la acción.');
+    return j;
+  };
+  const verify=async(expected)=>{
+    await new Promise(resolve=>setTimeout(resolve,1400));
+    const j=await call('status');
+    const actual=j.state||'stopped';
+    setState(actual);
+    if(expected==='running'&&actual!=='running')throw new Error('El comando se ejecutó, pero el servicio no permaneció escuchando en el puerto configurado. Salud del sistema mostrará el punto exacto que requiere atención.');
+    if(expected==='stopped'&&actual!=='stopped')throw new Error('Se solicitó detener el servicio, pero una comprobación posterior indica que todavía está activo.');
+    return j;
+  };
+  const run=async(operation,button)=>{
+    const meta=labels[operation];if(!meta)return;
+    if(button?.dataset?.hostingLimited==='1'){await Swal.fire({title:'Control limitado por el hosting',html:'<p>Este servidor no permite administrar procesos persistentes desde PHP.</p><p><b>Update/Deploy de cPanel puede reiniciar WebSocket mediante <code>.cpanel.yml</code></b>. Salud del sistema te indicará si está operativo.</p>',icon:'info',confirmButtonText:'Entendido',allowOutsideClick:false});return;}
+    const ask=await Swal.fire({title:meta.title,html:`<p>${meta.text}</p><small>${meta.impact}</small>`,icon:operation==='stop'?'warning':'question',showCancelButton:true,confirmButtonText:meta.confirm,cancelButtonText:'Cancelar',allowOutsideClick:false,allowEscapeKey:true});
+    if(!ask.isConfirmed)return;
+    const originals=new Map(buttons.map(b=>[b,b.innerHTML]));buttons.forEach(b=>b.disabled=true);button.innerHTML=`<i class="fa-solid fa-spinner fa-spin"></i> ${meta.busy}`;setState('working');
+    const started=performance.now();
+    try{
+      const j=await call(operation);
+      const expected=operation==='stop'?'stopped':'running';
+      const verified=await verify(expected);
+      const duration=Number(j.duration||((performance.now()-started)/1000)).toFixed(2);
+      showNotify('success','WebSocket',`${j.message} Estado verificado: ${verified.state==='running'?'ejecutándose':'detenido'}. Duración: ${duration} s.`);
+      if(verified.state==='running')document.querySelector('.service-recommendation')?.remove();
+      document.querySelectorAll('[data-health-ws-summary]').forEach(el=>{el.textContent=verified.state==='running'?'Ejecutándose':'Detenido'});
+      // Dashboard y Configuración deben mostrar exactamente el mismo estado.
+      // Recargamos una sola vez después de la confirmación para recalcular Salud completa,
+      // reinicio recomendado, endpoint público, PID y el estado del canal en el encabezado.
+      setTimeout(()=>location.reload(),900);
+    }catch(e){
+      setState('broken');
+      showNotify('error','WebSocket',e.message||'No fue posible completar y verificar la acción.');
+    }finally{buttons.forEach(b=>{b.disabled=false;b.innerHTML=originals.get(b)||b.innerHTML})}
+  };
   buttons.forEach(b=>b.addEventListener('click',()=>run(b.dataset.operation,b)));
 })();
 
@@ -850,4 +902,22 @@ document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   const picker=document.querySelector('#emojiPicker');
   if(picker&&!picker.hidden){picker.hidden=true;e.stopPropagation();}
+});
+
+// ZYNKO V2.31.113 · Vista previa NIVO expandible igual que el widget publicado.
+document.addEventListener('click',e=>{
+  const btn=e.target.closest('.preview-head-actions button[aria-label="Expandir"],.preview-head-actions button[aria-label="Restaurar"]');
+  if(!btn)return;
+  const stage=btn.closest('.preview-stage');if(!stage)return;
+  const expanded=stage.classList.toggle('is-expanded');
+  btn.setAttribute('aria-label',expanded?'Restaurar':'Expandir');
+  btn.title=expanded?'Restaurar vista previa':'Expandir vista previa';
+  const icon=btn.querySelector('i');if(icon){icon.classList.toggle('fa-expand',!expanded);icon.classList.toggle('fa-compress',expanded)}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const stage=document.querySelector('.preview-stage.is-expanded');if(!stage)return;
+  stage.classList.remove('is-expanded');
+  const btn=stage.querySelector('.preview-head-actions button[aria-label="Restaurar"]');
+  if(btn){btn.setAttribute('aria-label','Expandir');btn.title='Expandir vista previa';const icon=btn.querySelector('i');if(icon){icon.classList.add('fa-expand');icon.classList.remove('fa-compress')}}
 });

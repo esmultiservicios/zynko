@@ -37,3 +37,12 @@ RewriteRule ^ index.php [L,QSA]
 <IfModule mod_autoindex.c>
 Options -Indexes
 </IfModule>
+
+# ZYNKO Web Chat: evitar que sitios externos conserven una versión vieja del widget.
+<IfModule mod_headers.c>
+  <FilesMatch "^nivo-widget\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

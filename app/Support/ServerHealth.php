@@ -59,11 +59,11 @@ final class ZynkoServerHealth
         $wsHostStatus = $wsHost === 'localhost' ? 'warning' : 'ok';
         $wsHostDetail = $wsHost === 'localhost'
             ? 'Evita localhost en producción: puede resolver a IPv6 (::1) mientras Apache usa 127.0.0.1.'
-            : 'Host interno explícito para el daemon WebSocket.';
+            :  'Dirección interna usada por el servicio WebSocket. El servicio es el proceso que mantiene abierta la comunicación en tiempo real.';
         $add($items,'ws_host','WS_HOST',$wsHostStatus,$wsHost,$wsHostDetail,'Tiempo real');
 
         $tcp = $this->tcp($wsHost,$wsPort,0.7);
-        $add($items,'ws_internal','WebSocket interno',$tcp?'ok':'error',$wsHost.':'.$wsPort,$tcp?'El puerto interno acepta conexiones TCP.':'El daemon no responde en el host/puerto configurado.','Tiempo real');
+        $add($items,'ws_internal','WebSocket interno',$tcp?'ok':'error',$wsHost.':'.$wsPort,$tcp?'El puerto interno acepta conexiones TCP.': 'El servicio WebSocket no está aceptando conexiones en esta dirección y puerto.','Tiempo real');
 
         $pidFile = $this->root.'/storage/websocket.pid';
         $pid = is_file($pidFile) ? trim((string)@file_get_contents($pidFile)) : '';
@@ -76,15 +76,15 @@ final class ZynkoServerHealth
         // Si el puerto interno responde, consideramos el runtime activo y dejamos el PID como dato informativo.
         $pidOk = $pidConfirmed || $tcp;
         $pidDetail = $pidConfirmed
-            ? 'PID confirmado para websocket/server.php.'
-            : ($tcp ? 'El puerto interno responde. El hosting no permitió confirmar el PID desde PHP, pero el daemon está accesible.' : 'No se pudo confirmar el proceso y el puerto interno tampoco responde.');
+            ?  'Proceso confirmado. PID es el identificador numérico que el servidor asigna al servicio WebSocket.'
+            : ($tcp ?  'El puerto interno responde. El hosting no permitió comprobar el identificador del proceso desde PHP, pero el servicio está accesible.' :  'No se pudo confirmar el proceso y el puerto interno tampoco responde.');
         $add($items,'ws_pid','Proceso WebSocket',$pidOk?'ok':'warning',$pid ?: 'Sin PID',$pidDetail,'Tiempo real');
 
         $disabledFns=array_filter(array_map('trim',explode(',',strtolower((string)ini_get('disable_functions')))));
         $controlFns=['exec','proc_open','shell_exec','system','passthru','popen'];
         $availableControl=array_values(array_filter($controlFns,static fn(string $fn): bool => function_exists($fn) && !in_array($fn,$disabledFns,true)));
         $controlOk=!empty($availableControl);
-        $add($items,'ws_runtime_control','Control desde panel',$controlOk?'ok':'warning',$controlOk?implode(', ',$availableControl):'Bloqueado por hosting',$controlOk?'El panel dispone de al menos un método permitido para iniciar/detener/reiniciar el daemon.':'El hosting bloquea la creación/gestión de procesos desde PHP. El deploy Git/cPanel puede seguir reiniciando WebSocket automáticamente, pero los botones del panel no pueden saltarse esta política.','Tiempo real');
+        $add($items,'ws_runtime_control','Control desde panel',$controlOk?'ok':'warning',$controlOk?implode(', ',$availableControl):'Bloqueado por hosting',$controlOk? 'El panel dispone de al menos un método permitido por el hosting para iniciar, detener o reiniciar el servicio WebSocket.': 'El hosting bloquea la administración de procesos desde PHP. El Update/Deploy de Git/cPanel puede seguir reiniciando WebSocket automáticamente, pero el panel no puede saltarse esa política.','Tiempo real');
 
         $marker = $this->root.'/storage/websocket.restart.marker';
         $markerTime = is_file($marker) ? (int)@filemtime($marker) : 0;
@@ -92,7 +92,7 @@ final class ZynkoServerHealth
         $latestChange = 0;
         foreach ($watched as $watchedFile) { if (is_file($watchedFile)) $latestChange=max($latestChange,(int)@filemtime($watchedFile)); }
         $restartRecommended = !$tcp || $markerTime===0 || $latestChange>$markerTime;
-        $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartRecommended?'Hay cambios operativos posteriores al último arranque o no existe constancia del reinicio. Reinicia WebSocket desde el Dashboard y vuelve a comprobar.':'El daemon fue reiniciado después de los últimos cambios operativos detectados.','Tiempo real');
+        $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartRecommended?'Hay cambios operativos posteriores al último arranque o no existe constancia del reinicio. Reinicia WebSocket desde el Dashboard y vuelve a comprobar.': 'El servicio WebSocket fue reiniciado después de los últimos cambios operativos detectados.','Tiempo real');
 
         $publicUrl = trim((string)($this->env['WS_PUBLIC_URL'] ?? ''));
         if ($publicUrl === '') {
@@ -106,6 +106,19 @@ final class ZynkoServerHealth
         $publicStatus = $publicCheck['ok'] ? 'ok' : 'error';
         $add($items,'ws_public','WebSocket público',$publicStatus,$publicUrl,$publicCheck['detail'],'Tiempo real');
 
+        $wsRunning = $tcp && $publicCheck['ok'];
+        $add(
+            $items,
+            'ws_state',
+            'Estado WebSocket',
+            $wsRunning ? 'ok' : 'error',
+            $wsRunning ? 'Ejecutándose' : 'Detenido / no disponible',
+            $wsRunning
+                ? 'La comunicación en tiempo real está disponible tanto internamente como desde la URL pública.'
+                : 'El tiempo real no está completamente operativo. Revisa WebSocket interno, proceso y WebSocket público en esta misma sección.',
+            'Tiempo real'
+        );
+
         $proxyHost='';$proxyPort=0;$htaccess=$this->root.'/.htaccess';
         if(is_file($htaccess)){
             $raw=(string)@file_get_contents($htaccess);
@@ -113,7 +126,7 @@ final class ZynkoServerHealth
         }
         $proxyCompatible = $proxyHost!=='' && $proxyPort>0 && $proxyHost===$wsHost && $proxyPort===$wsPort;
         $proxyValue=$proxyHost!==''?('Apache → '.$proxyHost.':'.$proxyPort):'Regla /ws no detectada';
-        $add($items,'ws_proxy_alignment','Alineación proxy/daemon',$proxyCompatible?'ok':'error',$proxyValue,$proxyCompatible?'La regla /ws de .htaccess y el daemon usan exactamente el mismo host y puerto.':'El proxy /ws y WS_HOST/WS_PORT no coinciden. El navegador puede fallar aunque el daemon esté activo.','Tiempo real');
+        $add($items,'ws_proxy_alignment', 'Ruta Apache / servicio',$proxyCompatible?'ok':'error',$proxyValue,$proxyCompatible? 'La ruta pública /ws de Apache y el servicio WebSocket usan exactamente la misma dirección y puerto.': 'La ruta /ws de Apache y WS_HOST/WS_PORT no coinciden. El navegador puede fallar aunque el servicio esté activo.','Tiempo real');
 
         $storage = $this->root.'/storage';
         $storageOk = is_dir($storage) && is_writable($storage);

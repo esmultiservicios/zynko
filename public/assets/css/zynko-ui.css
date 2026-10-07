@@ -5532,3 +5532,15 @@ body:has(.inbox-premium-toolbar) .inbox-layout.chat-expanded>.chat{grid-column:1
  .docs-admin-grid{grid-template-columns:1fr}.docs-version-panel .head-actions{width:100%!important;min-width:0!important}
  .public-doc-version{align-items:stretch;flex-direction:column}.public-doc-version select{min-width:0;width:100%}
 }
+
+/* ZYNKO V2.31.113 · Salud comprensible y estado WebSocket verificado */
+.server-health-glossary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+.server-health-glossary>div{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface2)}
+.server-health-glossary>div>i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;background:#e7f8f4;color:#0c8b74;flex:0 0 auto}
+.server-health-glossary span{display:grid;gap:3px}.server-health-glossary b{font-size:12px;color:var(--text)}.server-health-glossary small{font-size:11px;line-height:1.45;color:var(--muted)}
+.server-health-live-state{display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0}.server-health-live-state>small{max-width:620px;text-align:right;color:var(--muted)}
+.service-state.broken{background:#fff3e7!important;color:#a85a00!important;border-color:#f2d3a5!important}
+.preview-stage.is-expanded{position:fixed!important;inset:16px!important;z-index:2147483000!important;background:#eef3f6!important;min-height:0!important;height:auto!important;width:auto!important;padding:24px!important;border-radius:18px!important;box-shadow:0 30px 80px rgba(15,23,42,.24)!important}
+.preview-stage.is-expanded .preview-chat{width:min(100%,760px)!important;max-height:calc(100vh - 80px)!important}
+.preview-stage.is-expanded .preview-body{min-height:320px!important}
+@media(max-width:760px){.server-health-glossary{grid-template-columns:1fr}.server-health-live-state{align-items:flex-start;flex-direction:column}.server-health-live-state>small{text-align:left}.preview-stage.is-expanded{inset:6px!important;padding:8px!important}.preview-stage.is-expanded .preview-chat{width:100%!important;max-height:calc(100vh - 28px)!important}}

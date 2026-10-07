@@ -1,5 +1,29 @@
 [
   {
+    "version": "2.31.114",
+    "date": "2026-10-06",
+    "title": "Estado WebSocket sincronizado en toda la administración",
+    "changes": [
+      "Sincroniza el indicador Canales x/x con el estado WebSocket confirmado después de iniciar, detener o reiniciar.",
+      "Dashboard y Configuración comparten la misma fuente visual de estado del servicio.",
+      "Recarga Salud integral después de una operación confirmada para reflejar PID, puerto, WSS público y reinicio recomendado.",
+      "Mantiene verificación real posterior a la acción y evita falsos estados de éxito."
+    ]
+  },
+  {
+    "version": "2.31.113",
+    "date": "2026-10-06",
+    "title": "WebSocket verificable, deploy limpio y salud comprensible",
+    "changes": [
+      "El control WebSocket valida proceso y puerto antes de declarar éxito y vuelve a comprobar el estado en una petición separada.",
+      "El servicio usa setsid/nohup cuando está disponible para sobrevivir al cierre de la solicitud web.",
+      "Salud muestra un estado explícito Ejecutándose/Detenido y explica WebSocket, servicio/daemon, PID y proxy /ws en lenguaje claro.",
+      "Se agrega .gitignore para excluir PID, marcadores, logs, .env y otros archivos runtime que bloqueaban Deploy HEAD en cPanel.",
+      "NIVO Web Chat desactiva caché persistente del script para que sitios externos reciban controles y correcciones actuales.",
+      "La vista previa administrativa de NIVO puede expandirse y restaurarse como el widget publicado."
+    ]
+  },
+  {
     "version": "2.31.112",
     "date": "2026-10-06",
     "title": "Operación, documentación y experiencia consolidada",

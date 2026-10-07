@@ -122,3 +122,15 @@ ZYNKO normaliza `WS_HOST=localhost` a `127.0.0.1` al iniciar `websocket/server.p
 - Salud del servidor valida WS_HOST/WS_PORT, TCP interno, PID, proxy /ws, endpoint WSS público y si el hosting permite control de procesos desde PHP.
 - Los controles del panel prueban métodos permitidos (`exec`, `proc_open`, `shell_exec`, `system`, `passthru`, `popen`) sin desactivar políticas del hosting.
 - Si todos están bloqueados, el panel lo explica y el flujo normal **Update/Deploy de cPanel** continúa reiniciando el daemon mediante `.cpanel.yml`.
+
+## V2.31.113 · comprobación real y operación desde panel
+
+ZYNKO ya no considera el WebSocket “iniciado” solo porque exista un PID. El estado operativo exige que el proceso corresponda a `websocket/server.php` y que `WS_HOST:WS_PORT` esté aceptando conexiones. Después de iniciar o reiniciar desde el panel, una segunda petición comprueba que el servicio siguió vivo al terminar la solicitud anterior.
+
+En hosting compatible se usa `setsid` junto con `nohup` para desacoplar el servicio del proceso web. Si el hosting aun así elimina procesos persistentes iniciados desde PHP, el panel lo mostrará como fallo real y el mecanismo recomendado seguirá siendo el Update/Deploy de cPanel, que ejecuta `.cpanel.yml`.
+
+Los archivos de runtime (`storage/websocket.pid`, `storage/websocket.restart.marker`, logs, caché y `.env`) están excluidos en `.gitignore` para no bloquear el despliegue por cambios que no pertenecen al código fuente.
+
+## V2.31.114 · estado visual sincronizado
+
+Los controles de Dashboard y Configuración ejecutan el mismo flujo de servicio. Una operación no cambia a verde por el simple clic: primero se verifica el estado real. Cuando queda activo, el indicador superior `Canales x/x · Tiempo real` se actualiza inmediatamente y luego Salud integral se recalcula en una recarga controlada. Al detenerse o fallar, el indicador vuelve a modo `Auto`/atención.

@@ -276,7 +276,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.112';
+$releaseVersion='2.31.114';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -761,8 +761,12 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    }
    $elapsed=round(microtime(true)-$started,2);$text=(string)$result['output'];$code=(int)$result['code'];
    $running=str_contains($text,'RUNNING');
+   $broken=str_contains($text,'BROKEN');
    if($op==='status' && $code===3)jsonOut(true,'WebSocket detenido.',['state'=>'stopped','duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']]);
+   if($op==='status' && ($code===4 || $broken))jsonOut(true,'WebSocket con proceso incompleto: existe un proceso, pero el puerto de tiempo real no está respondiendo.',['state'=>'broken','duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']]);
    if($code!==0)throw new RuntimeException('No fue posible ejecutar la acción WebSocket: '.($text?:'sin detalle del sistema').'. Método: '.$result['backend'].'.');
+   // Nunca declaramos éxito solo porque el comando devolvió RUNNING: el script ya valida PID + puerto.
+   // El navegador hará una segunda comprobación en una petición separada para detectar procesos que el hosting mate al terminar la solicitud.
    $state=$running?'running':'stopped';
    try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'websocket.'.$op,json_encode(['state'=>$state,'duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
    $label=['start'=>'iniciado','stop'=>'detenido','restart'=>'reiniciado','status'=>'consultado'][$op];

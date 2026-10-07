@@ -19,3 +19,12 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [L,QSA]
 </IfModule>
+
+# ZYNKO Web Chat: siempre valida la versión más reciente en sitios autorizados.
+<IfModule mod_headers.c>
+  <FilesMatch "^nivo-widget\.js$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

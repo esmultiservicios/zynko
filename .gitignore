@@ -1,31 +1,32 @@
-# Secretos / entorno de producción
+# ZYNKO · archivos locales / runtime que nunca deben entrar al repositorio
 .env
 .env.*
 !.env.example
 
-# Datos/runtime que ZYNKO modifica en producción
-storage/installed.lock
+# Runtime generado por WebSocket y aplicación
+storage/websocket.pid
+storage/websocket.restart.marker
+storage/websocket.state.json
 storage/logs/*
 !storage/logs/.gitkeep
 storage/cache/*
 !storage/cache/.gitkeep
 storage/env-backups/*
 !storage/env-backups/.gitkeep
-public/uploads/
+storage/sessions/*
+!storage/sessions/.gitkeep
 
-# Archivos creados por cPanel / hosting
-.well-known/
+# Archivos generados por hosting / PHP
 .user.ini
 php.ini
 error_log
 *.log
-.cpanel/
-cpanel-logs/
-*.pid
-*.sock
 
-# Sistema / editores
+# Uploads persistentes del servidor
+public/uploads/*
+
+# Sistema / editor
 .DS_Store
 Thumbs.db
-.vscode/
 .idea/
+.vscode/
