@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.31.128",
+    "date": "2026-10-07",
+    "title": "NIVO contextual, adjuntos y Bandeja estabilizada",
+    "changes": [
+      "Mejora respuestas directas y contexto para IZZY, CAMI y ZYNKO.",
+      "Evita handoff falso por mencionar persona/humano/agente en preguntas informativas.",
+      "Agrega hasta 5 adjuntos en NIVO Web Chat con selección, drag & drop y pegar.",
+      "Muestra adjuntos en Bandeja con modal para imágenes.",
+      "Restaura Más opciones de Cliente 360° y ordena acciones de modales en footer.",
+      "Agrega cierre al Resumen rápido, corrige hover Inicio/Último y separa categorías del emoji picker."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.127",
     "date": "2026-10-07",
     "title": "Showcase público actualizado y administrable por Owner",

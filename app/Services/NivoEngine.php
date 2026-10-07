@@ -33,6 +33,57 @@ final class NivoEngine
         return trim($n);
     }
 
+
+    /** Respuestas directas para intenciones comerciales/operativas frecuentes. */
+    private static function businessIntentReply(string $message,string $companyName): ?array
+    {
+        if(self::norm($companyName)!=='es multiservicios')return null;
+        $n=self::intentNorm($message);
+
+        $mentionsAll=str_contains($n,'izzy')&&str_contains($n,'cami')&&str_contains($n,'zynko');
+        if($mentionsAll&&(preg_match('/\b(diferencia|compar|distint|cada uno|entre)\b/u',$n)||str_contains($n,'pero corto'))){
+            return ['reply'=>'IZZY es para gestión empresarial, facturación, inventario, POS y restaurantes; CAMI está orientado a clínicas y centros médicos; ZYNKO centraliza conversaciones de varios canales con NIVO IA y atención humana.','source'=>'platform:intent:compare-solutions','confidence'=>'high','sources'=>['IZZY','CAMI','ZYNKO']];
+        }
+
+        if((preg_match('/\b(tienda|negocio|comercio|empresa)\b/u',$n)&&preg_match('/\b(factur|inventario|pos|vender|ventas)\w*/u',$n))){
+            return ['reply'=>'Para una tienda que necesita facturar, la opción indicada es IZZY. Te ayuda con facturación, ventas/POS, inventario y gestión administrativa desde un solo sistema.','source'=>'platform:intent:store-izzy','confidence'=>'high','sources'=>['IZZY']];
+        }
+
+        if(preg_match('/\b(clinica|consultorio|centro medico|medico|paciente)\b/u',$n)){
+            return ['reply'=>'Para una clínica o centro médico, la opción indicada es CAMI. Está orientado a gestión de pacientes, procesos clínicos, farmacia y facturación.','source'=>'platform:intent:clinic-cami','confidence'=>'high','sources'=>['CAMI']];
+        }
+
+        if((str_contains($n,'zynko')||preg_match('/\b(ese|esa|esto)\b/u',$n))&&preg_match('/\b(para que me sirve|para que sirve|sirve exactamente|que hace exactamente|me interesa)\b/u',$n)){
+            return ['reply'=>'ZYNKO te sirve para atender conversaciones de distintos canales desde una sola Bandeja, usar NIVO IA para responder automáticamente, transferir a agentes humanos, dar seguimiento a clientes y conectar integraciones.','source'=>'platform:intent:zynko-purpose','confidence'=>'high','sources'=>['ZYNKO']];
+        }
+
+        if(preg_match('/\b(varios|multiples|diferentes)\s+canales\b/u',$n)&&preg_match('/\b(un solo lugar|misma bandeja|centraliz|atender)\w*/u',$n)){
+            return ['reply'=>'Sí. ZYNKO está diseñado precisamente para centralizar la atención de varios canales en una sola Bandeja, manteniendo el historial de cada conversación y permitiendo que NIVO IA o un agente humano continúen la atención.','source'=>'platform:intent:omnichannel','confidence'=>'high','sources'=>['ZYNKO']];
+        }
+
+        if(str_contains($n,'nivo')&&preg_match('/\b(responder solo|responde solo|siempre necesito una persona|necesito una persona|persona siempre|automaticamente|automatica)\b/u',$n)){
+            return ['reply'=>'NIVO puede responder automáticamente usando las reglas y el conocimiento aprobado. No necesitas una persona en cada conversación; la atención humana entra cuando el cliente la solicita, una regla lo requiere o NIVO no debe continuar por seguridad o falta de información confiable.','source'=>'platform:intent:nivo-autonomy','confidence'=>'high','sources'=>['NIVO IA']];
+        }
+
+        if(str_contains($n,'nivo')&&preg_match('/\b(no sabe|no conoce|no puede responder|fuera de su conocimiento)\b/u',$n)){
+            return ['reply'=>'Si NIVO no tiene una respuesta confiable, no debería inventarla. Debe indicarlo claramente, intentar orientar con el conocimiento aprobado y, cuando corresponda, ofrecer o realizar la transferencia a atención humana.','source'=>'platform:intent:nivo-unknown','confidence'=>'high','sources'=>['NIVO IA']];
+        }
+
+        return null;
+    }
+
+    /** Evita transferencias por mencionar palabras como “persona” dentro de una pregunta informativa. */
+    private static function explicitHandoffRequested(string $message,array $keywords): bool
+    {
+        $n=self::intentNorm($message);
+        if(preg_match('/\b(quiero|necesito|deseo|puedes|podrias|quiero que|necesito que)\s+(hablar|comunicarme|contactar|pasar|transferir|conectar)\w*\s+(con\s+)?(una\s+)?(persona|humano|agente|asesor|representante)\b/u',$n))return true;
+        if(preg_match('/\b(pasame|transfiereme|conectame|comunícame|comunicarme)\s+(con\s+)?(una\s+)?(persona|humano|agente|asesor|representante)\b/u',$n))return true;
+        if(preg_match('/\b(hablar con un humano|hablar con una persona|hablar con un agente|atencion humana|asesor humano)\b/u',$n))return true;
+        // Si el mensaje es muy corto y consiste prácticamente en la palabra de handoff, también cuenta.
+        foreach($keywords as $kw){if($kw!==''&&preg_match('/^(quiero\s+)?'.preg_quote($kw,'/').'$/u',$n))return true;}
+        return false;
+    }
+
     private static function coreIntentReply(PDO $pdo,int $tenantId,string $message,string $companyName,bool $typoTolerance=true): ?array
     {
         $n=$typoTolerance?self::intentNorm($message):self::norm($message);
@@ -477,6 +528,11 @@ final class NivoEngine
             if($genericFollowUp&&$contextTopic!==''&&!str_contains($effectiveNorm,$contextTopic))$effectiveNorm=trim($effectiveNorm.' '.$contextTopic);
             $intentMessage=$message;
             if($contextTopic!==''&&!preg_match('/\b(izzy|cami|zynko|nivo)\b/u',$norm)&&preg_match('/\b(funcion|restaurante|inventario|facturacion|pos|sirve|maneja|beneficio)\b/u',$norm))$intentMessage.=' '.$contextTopic;
+            $businessIntent=self::businessIntentReply($intentMessage,$companyName);
+            if($businessIntent){
+                $result['sources']=$businessIntent['sources']??[];
+                return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$businessIntent['reply'],(string)$businessIntent['source'],(string)$businessIntent['confidence'],false,$displayName,$english);
+            }
             $coreIntent=self::coreIntentReply($pdo,$tenantId,$intentMessage,$companyName,!array_key_exists('typo_tolerance',$policy)||!empty($policy['typo_tolerance']));
             if($coreIntent){
                 $result['sources']=$coreIntent['sources']??[];
@@ -519,11 +575,11 @@ final class NivoEngine
             }
 
             $handoffWords=array_values(array_filter(array_map([self::class,'norm'],explode(',',(string)($settings['handoff_keywords']??'agente, asesor, persona, humano, representante')))));
-            foreach($handoffWords as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false){
+            if(self::explicitHandoffRequested($message,$handoffWords)){
                 $hours=json_decode($bot['business_hours_json']??'{}',true)?:[];$inHours=self::inBusinessHours($hours);
                 $reply=$english?'Of course. I’ll hand this conversation over to a person from '.$companyName.'.':($inHours?'Claro. Te transfiero con una persona de '.$companyName.' para que continúe contigo.':($hours['outside_message']??'En este momento estamos fuera del horario de atención. Dejé tu conversación pendiente para que una persona continúe contigo.'));
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'handoff','high',true,$displayName,$english);
-            }}
+            }
 
             $mentionsWebChat=str_contains($effectiveNorm,'nivo web chat')||str_contains($effectiveNorm,'web chat');
             $mentionsNivoAi=str_contains($effectiveNorm,'nivo ia')||str_contains($effectiveNorm,'nivo ai');

@@ -55,7 +55,8 @@
     realtimeFallbackBusy: false,
     inactivityNudged: false,
     inactivityClosing: false,
-    expanded: false
+    expanded: false,
+    attachments: []
   };
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, character => ({
@@ -102,6 +103,28 @@
       throw new Error(json.message || `Error HTTP ${response.status}`);
     }
 
+    return json.data;
+  };
+
+  const callMultipart = async (data, files = []) => {
+    const form = new FormData();
+    const payload = {
+      key,
+      visitor_token: state.visitor_token,
+      conversation_id: state.conversation_id || 0,
+      client_hour: new Date().getHours(),
+      client_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || '',
+      ...data
+    };
+    Object.entries(payload).forEach(([field,value]) => {
+      if(value !== undefined && value !== null) form.append(field,String(value));
+    });
+    files.forEach(file => form.append('attachments[]',file,file.name));
+    const response = await fetch(api,{method:'POST',body:form,credentials:'omit'});
+    const raw = await response.text();
+    let json;
+    try{json=JSON.parse(raw)}catch(_){throw new Error('ZYNKO no devolvió una respuesta válida del Web Chat.');}
+    if(!response.ok||!json.ok)throw new Error(json.message||`Error HTTP ${response.status}`);
     return json.data;
   };
 
@@ -444,6 +467,18 @@
         .profile{padding:12px 14px 9px;border-top:1px solid #e5e7eb;display:grid;gap:8px;background:#fff}
         .profile[hidden]{display:none!important}
         .profile input,.composer input{width:100%;border:1px solid #d5dee5;border-radius:11px;padding:10px 11px;outline:none;background:#fff;color:#172033}
+        .composer{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto!important;gap:8px!important;align-items:end!important;padding:10px 12px!important;position:relative!important}
+        .attach{width:42px;height:42px;border:1px solid #cfe0e6;border-radius:11px;background:#f5faf9;color:#0f766e;display:grid;place-items:center;cursor:pointer;font-size:18px}
+        .attach:hover{background:#e8f7f3}
+        .attachment-tray{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:7px;padding:2px 0 1px}
+        .attachment-tray[hidden]{display:none!important}
+        .attachment-chip{display:grid;grid-template-columns:34px minmax(0,1fr) 24px;align-items:center;gap:7px;max-width:210px;padding:6px 7px;border:1px solid #dce8eb;border-radius:11px;background:#fff}
+        .attachment-chip img{width:34px;height:34px;border-radius:8px;object-fit:cover;background:#eef4f6}
+        .attachment-chip .file-icon{width:34px;height:34px;border-radius:8px;display:grid;place-items:center;background:#eef8f5;color:#0f766e;font-weight:900}
+        .attachment-chip span{min-width:0;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#42576a}
+        .attachment-chip button{border:0;background:transparent;color:#7a8a99;cursor:pointer;font-size:15px;padding:0}
+        .message-media{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.message-media a,.message-media button{border:0;background:transparent;padding:0;cursor:pointer;text-decoration:none}.message-media img{width:92px;height:72px;object-fit:cover;border-radius:10px;border:1px solid #d8e3e7}.message-file{display:inline-flex!important;align-items:center;gap:6px;padding:7px 9px!important;border:1px solid #d8e3e7!important;border-radius:10px!important;background:#f8fbfc!important;color:#244156!important;font-size:9px!important;font-weight:800}
+        .media-lightbox{position:fixed;inset:0;z-index:2147483647;background:#0f172acc;display:grid;place-items:center;padding:20px}.media-lightbox[hidden]{display:none!important}.media-lightbox img{max-width:min(92vw,980px);max-height:86vh;border-radius:14px;box-shadow:0 30px 80px #0008}.media-lightbox button{position:absolute;right:20px;top:20px;width:42px;height:42px;border:0;border-radius:12px;background:#0b2b40;color:#fff;font-size:22px;cursor:pointer}
         .profile input:focus,.composer input:focus{border-color:${widget.accent_color};box-shadow:0 0 0 3px #0f766e16}
         .profile-actions{display:flex;justify-content:flex-end;gap:8px}
         .profile-save,.profile-cancel{border:0;border-radius:10px;padding:8px 10px;font-size:11px;font-weight:800;cursor:pointer}
@@ -566,9 +601,13 @@
           <div class="session-actions new-chat-wrap" ${state.conversationClosed ? '' : 'hidden'}><button type="button" class="new-chat"><span class="new-chat-icon">＋</span><span class="new-chat-copy"><b>Iniciar nuevo chat</b><small>Comienza una conversación nueva desde cero</small></span><span class="new-chat-arrow">›</span></button></div>
           <form class="composer${state.conversationClosed ? ' is-closed' : ''}">
             <input class="website-hp" name="website" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important">
+            <input class="file-input" type="file" multiple hidden accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,audio/*,video/mp4">
+            <div class="attachment-tray" hidden></div>
+            <button class="attach" type="button" aria-label="Adjuntar archivos" title="Adjuntar archivos">＋</button>
             <input class="text" autocomplete="off" placeholder="Escribe un mensaje…">
             <button class="send" aria-label="Enviar">➤</button>
           </form>
+          <div class="media-lightbox" hidden><button type="button" aria-label="Cerrar">×</button><img src="" alt="Vista ampliada"></div>
           ${experience.show_branding === false
             ? ''
             : `<div class="brand"><img src="${esc(mascotUrl)}" alt=""><span>${esc(widget.brand_footer || 'NIVO Web Chat · Tecnología ZYNKO by ES MULTISERVICIOS')}</span></div>`}
@@ -586,6 +625,42 @@
     const launch = shadow.querySelector('.launch');
     const badge = shadow.querySelector('.badge');
     state.shadow = shadow;
+    const fileInput=shadow.querySelector('.file-input');
+    const attachButton=shadow.querySelector('.attach');
+    const attachmentTray=shadow.querySelector('.attachment-tray');
+    const mediaLightbox=shadow.querySelector('.media-lightbox');
+    const renderAttachmentTray=()=>{
+      if(!attachmentTray)return;
+      attachmentTray.innerHTML='';
+      state.attachments.forEach((file,index)=>{
+        const chip=document.createElement('div');chip.className='attachment-chip';
+        const isImage=String(file.type||'').startsWith('image/');
+        const preview=isImage?`<img src="${URL.createObjectURL(file)}" alt="">`:`<span class="file-icon">↗</span>`;
+        chip.innerHTML=`${preview}<span title="${esc(file.name)}">${esc(file.name)}</span><button type="button" data-remove-file="${index}" aria-label="Quitar">×</button>`;
+        attachmentTray.appendChild(chip);
+      });
+      attachmentTray.hidden=!state.attachments.length;
+    };
+    const addFiles=files=>{
+      const incoming=[...files].filter(Boolean);
+      for(const file of incoming){
+        if(state.attachments.length>=5)break;
+        if(file.size>10*1024*1024){showLocal(`${file.name}: máximo 10 MB.`);continue;}
+        state.attachments.push(file);
+      }
+      renderAttachmentTray();
+    };
+    attachButton?.addEventListener('click',()=>fileInput?.click());
+    fileInput?.addEventListener('change',()=>{addFiles(fileInput.files||[]);fileInput.value='';});
+    attachmentTray?.addEventListener('click',e=>{const btn=e.target.closest('[data-remove-file]');if(!btn)return;state.attachments.splice(Number(btn.dataset.removeFile),1);renderAttachmentTray();});
+    shadow.addEventListener('paste',e=>{const files=[...(e.clipboardData?.files||[])];if(files.length){e.preventDefault();addFiles(files);}});
+    const composer=shadow.querySelector('.composer');
+    composer?.addEventListener('dragover',e=>{e.preventDefault();composer.classList.add('dragging')});
+    composer?.addEventListener('dragleave',()=>composer.classList.remove('dragging'));
+    composer?.addEventListener('drop',e=>{e.preventDefault();composer.classList.remove('dragging');addFiles(e.dataTransfer?.files||[]);});
+    mediaLightbox?.querySelector('button')?.addEventListener('click',()=>mediaLightbox.hidden=true);
+    mediaLightbox?.addEventListener('click',e=>{if(e.target===mediaLightbox)mediaLightbox.hidden=true});
+    shadow.addEventListener('click',e=>{const preview=e.target.closest('[data-media-preview]');if(preview&&mediaLightbox){mediaLightbox.querySelector('img').src=preview.dataset.mediaPreview;mediaLightbox.hidden=false;}});
     try{state.expanded=localStorage.getItem(`${storagePrefix}.expanded`)==='1'}catch(_){}
     box.classList.toggle('expanded',state.expanded);
     const expandButton=shadow.querySelector('.expand');if(expandButton){expandButton.textContent=state.expanded?'↙':'⛶';expandButton.title=state.expanded?'Restaurar tamaño':'Expandir a pantalla completa';expandButton.setAttribute('aria-label',expandButton.title)}
@@ -833,7 +908,7 @@
 
       const input = shadow.querySelector('.text');
       const body = input.value.trim();
-      if (!body) {
+      if (!body && !state.attachments.length) {
         return;
       }
 
@@ -873,7 +948,7 @@
       }
 
       state.historyMode = 'end';
-      const optimisticMessage = add(shadow, body, 'out', state.profile.name || 'Tú');
+      const optimisticMessage = add(shadow, body || (state.attachments.length ? 'Adjunto enviado' : ''), 'out', state.profile.name || 'Tú');
       optimisticMessage?.classList.add('pending-send');
       input.value = '';
       if(experience.draft_persistence!==false){try{localStorage.removeItem(`${storagePrefix}.draft`)}catch(_){}}
@@ -882,7 +957,7 @@
       const typing = experience.typing_indicator === false ? null : addTyping(shadow);
 
       try {
-        const result = await call({
+        const sendPayload={
           action: 'send',
           body,
           name: state.profile.name,
@@ -890,9 +965,12 @@
           privacy_accepted: !widget.privacy_enabled || Boolean(privacyOk?.checked),
           website: shadow.querySelector('.website-hp')?.value || '',
           client_elapsed_ms: Math.max(0, Date.now() - state.bootAt)
-        });
+        };
+        const filesToSend=[...state.attachments];
+        const result = filesToSend.length ? await callMultipart(sendPayload,filesToSend) : await call(sendPayload);
 
         optimisticMessage?.classList.remove('pending-send');
+        state.attachments=[];renderAttachmentTray();
         state.conversation_id = result.conversation_id;
         state.handoffActive = Boolean(result.handoff || result.conversation_pending || result.human_assigned) || state.handoffActive;
         state.humanAssigned = Boolean(result.human_assigned) || state.humanAssigned;
@@ -1100,14 +1178,19 @@
     setPresence('Listo para ayudarte');
   }
 
-  function add(shadow, body, direction, who, autoScroll = true) {
+  function add(shadow, body, direction, who, autoScroll = true, media = []) {
     const message = document.createElement('div');
     const stamp = state.widget?.experience?.show_timestamps
       ? `<span class="stamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`
       : '';
+    const rows=Array.isArray(media)?media:[];
+    const mediaHtml=rows.length?`<div class="message-media">${rows.map(item=>{
+      const url=new URL(String(item.url||''),api).href;const mime=String(item.mime||'');const name=esc(item.name||'Archivo');
+      return mime.startsWith('image/')?`<button type="button" data-media-preview="${esc(url)}" title="Ver imagen"><img src="${esc(url)}" alt="${name}"></button>`:`<a class="message-file" href="${esc(url)}" target="_blank" rel="noopener" download><span>📎</span>${name}</a>`;
+    }).join('')}</div>`:'';
 
     message.className = `m ${direction}`;
-    message.innerHTML = `<div class="who">${esc(who)}</div>${esc(body)}${stamp}`;
+    message.innerHTML = `<div class="who">${esc(who)}</div>${body?esc(body):''}${mediaHtml}${stamp}`;
     const box = shadow.querySelector('.msgs');
     box.appendChild(message);
     if (autoScroll) {
@@ -1213,7 +1296,8 @@
           message.body || '',
           message.direction === 'in' ? 'out' : 'in',
           message.sender_type === 'bot' ? 'NIVO' : (message.direction === 'in' ? (state.profile.name || 'Tú') : 'Agente'),
-          false
+          false,
+          (()=>{try{return Array.isArray(message.media_json)?message.media_json:JSON.parse(message.media_json||'[]')}catch(_){return []}})()
         );
       });
       requestAnimationFrame(() => {

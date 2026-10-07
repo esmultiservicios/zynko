@@ -1,3 +1,16 @@
+## V2.31.128 · NIVO contextual, adjuntos y Bandeja estabilizada
+
+- NIVO prioriza respuestas directas para IZZY, CAMI y ZYNKO, comparaciones y escenarios de negocio frecuentes.
+- La palabra “persona/humano/agente” dentro de una pregunta informativa ya no dispara una transferencia por sí sola; el handoff requiere intención explícita.
+- NIVO Web Chat permite hasta 5 adjuntos por mensaje mediante selección, arrastrar/soltar o pegar desde el portapapeles, con miniaturas para imágenes.
+- Los adjuntos quedan persistidos en la conversación y se muestran en Bandeja; las imágenes se amplían en modal y otros archivos se abren/descargan.
+- Se restauró la apertura delegada de los modales de Bandeja, incluido “Más opciones” de Cliente 360°.
+- Los botones de acción de los modales principales de Bandeja se consolidaron visualmente en el footer.
+- El Resumen rápido ahora tiene cierre explícito.
+- Inicio / Último conservan su fondo oscuro en hover.
+- El selector de emojis separa encabezado, categorías y contenido para eliminar solapamientos.
+- No requiere actualización de base de datos.
+
 ## V2.31.127 · Showcase público actualizado y administrable por Owner
 
 - Se sustituyó la galería pública por las capturas actuales entregadas para ZYNKO.

@@ -1174,8 +1174,9 @@ if ($action === 'expire') {
 
 if ($action === 'send') {
     $body = trim((string) ($input['body'] ?? ''));
-    if ($body === '') {
-        out(false, 'Escribe un mensaje.', [], 422);
+    $hasUploads = !empty($_FILES['attachments']['name']) && is_array($_FILES['attachments']['name']) && count(array_filter($_FILES['attachments']['name'],static fn($v)=>trim((string)$v)!==''))>0;
+    if ($body === '' && !$hasUploads) {
+        out(false, 'Escribe un mensaje o adjunta un archivo.', [], 422);
     }
 
     $maxMessage = max(120, min(3000, (int) ($experience['max_message_length'] ?? 1000)));
@@ -1243,6 +1244,23 @@ if ($action === 'send') {
 
     $contactDisplayName = $rawName !== '' ? $rawName : 'Visitante web';
     $cid = (int) ($v['conversation_id'] ?? 0);
+    $media = [];
+    $storeWebchatAttachments = static function(int $conversationId) use (&$media,$tid): void {
+        if(empty($_FILES['attachments']['name']) || !is_array($_FILES['attachments']['name']))return;
+        if(count($_FILES['attachments']['name'])>5)throw new RuntimeException('Puedes adjuntar un máximo de 5 archivos por mensaje.');
+        $dir=__DIR__.'/uploads/chat/'.$tid.'/'.$conversationId;
+        if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('No se pudo preparar la carpeta de adjuntos.');
+        $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif','application/pdf'=>'pdf','text/plain'=>'txt','audio/mpeg'=>'mp3','audio/ogg'=>'ogg','video/mp4'=>'mp4','application/msword'=>'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document'=>'docx','application/vnd.ms-excel'=>'xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=>'xlsx'];
+        foreach($_FILES['attachments']['name'] as $i=>$original){
+            if(trim((string)$original)==='')continue;
+            if(($_FILES['attachments']['error'][$i]??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK)throw new RuntimeException('No se pudo recibir uno de los archivos adjuntos.');
+            $size=(int)($_FILES['attachments']['size'][$i]??0);if($size<=0||$size>10*1024*1024)throw new RuntimeException('Cada adjunto debe pesar entre 1 byte y 10 MB.');
+            $tmp=(string)($_FILES['attachments']['tmp_name'][$i]??'');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp)?:'';$ext=$allowed[$mime]??null;
+            if(!$ext)throw new RuntimeException('Tipo de archivo no permitido: '.basename((string)$original));
+            $fn=bin2hex(random_bytes(12)).'.'.$ext;if(!move_uploaded_file($tmp,$dir.'/'.$fn))throw new RuntimeException('No se pudo guardar uno de los adjuntos.');
+            $media[]=['name'=>basename((string)$original),'url'=>'uploads/chat/'.$tid.'/'.$conversationId.'/'.$fn,'mime'=>$mime,'size'=>$size];
+        }
+    };
 
     if ($cid) {
         $conversationQuery = $pdo->prepare('SELECT status,archived_at,deleted_at FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
@@ -1304,10 +1322,11 @@ if ($action === 'send') {
             )->execute([$contact, $cid, $rawName, $email, $visitorId]);
 
             $greetingMessageId = $ensureInitialGreeting($cid);
+            $storeWebchatAttachments($cid);
 
             $pdo->prepare(
-                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
-            )->execute([$tid, $cid, uuid4(), $body]);
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,media_json,status,sent_at) VALUES(?,?,?,'in','contact',?,?,?,'received',NOW())"
+            )->execute([$tid, $cid, uuid4(), $media?'media':'text', $body!==''?$body:null, $media?json_encode($media,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE):null]);
             $inboundMessageId = (int) $pdo->lastInsertId();
 
             $pdo->prepare(
@@ -1364,11 +1383,12 @@ if ($action === 'send') {
     }
 
     if (!$firstMessagePersisted) {
+        $storeWebchatAttachments($cid);
         $pdo->beginTransaction();
         try {
             $pdo->prepare(
-                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'in','contact','text',?,'received',NOW())"
-            )->execute([$tid, $cid, uuid4(), $body]);
+                "INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,media_json,status,sent_at) VALUES(?,?,?,'in','contact',?,?,?,'received',NOW())"
+            )->execute([$tid, $cid, uuid4(), $media?'media':'text', $body!==''?$body:null, $media?json_encode($media,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE):null]);
             $inboundMessageId = (int) $pdo->lastInsertId();
 
             $pdo->prepare(
@@ -1408,13 +1428,14 @@ if ($action === 'send') {
                 'message',
                 $notifyTo,
                 'Nuevo mensaje · NIVO Web Chat',
-                $contactDisplayName . ' escribió: ' . mb_substr($body, 0, 260),
+                $contactDisplayName . ($body!==''?' escribió: ' . mb_substr($body, 0, 260):' envió '.count($media).' archivo(s) adjunto(s).'),
                 ['dedupe_key' => 'conversation:' . $cid, 'conversation_id' => $cid, 'channel' => 'webchat']
             );
         }
     } catch (Throwable $ignore) {
     }
 
+    $attachmentOnly = ($body==='' && !empty($media));
     $statusQuery = $pdo->prepare('SELECT status,assigned_user_id FROM conversations WHERE id=? AND tenant_id=? LIMIT 1');
     $statusQuery->execute([$cid, $tid]);
     $conversationState = $statusQuery->fetch() ?: ['status' => 'open', 'assigned_user_id' => null];
@@ -1482,7 +1503,9 @@ if ($action === 'send') {
             }
         }
     } else {
-        try {
+        if($attachmentOnly){
+            $engine=['enabled'=>true,'reply'=>'Recibí tus archivos adjuntos y quedaron guardados en esta conversación para que puedan revisarse desde la Bandeja. No voy a afirmar que interpreto su contenido automáticamente.','handoff'=>false,'source'=>'webchat:attachments','sources'=>[],'confidence'=>'high','reason'=>'attachments_received'];
+        } else try {
             $automation = AutomationEngine::evaluate($pdo, $tid, $cid, 'webchat', $body);
             $engine = ($automation && (!empty($automation['stop']) || !empty($automation['reply']))) ? $automation : NivoEngine::evaluate(
                 $pdo,

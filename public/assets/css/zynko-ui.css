@@ -5830,3 +5830,63 @@ html.theme-dark .flyout a:hover{background:#162434!important}
 
 /* ZYNKO V2.31.127 · administración Owner del showcase público */
 .public-showcase-welcome{align-items:center}.public-showcase-admin{display:grid;gap:16px}.public-showcase-owner-note{display:grid;grid-template-columns:42px minmax(0,1fr);gap:12px;align-items:center;padding:13px 14px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));border-radius:14px;background:color-mix(in srgb,var(--accent) 5%,var(--surface));}.public-showcase-owner-note>i{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent)}.public-showcase-owner-note b{display:block;font-size:12px}.public-showcase-owner-note span{display:block;margin-top:3px;color:var(--muted);font-size:11px;line-height:1.45}.public-showcase-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.public-showcase-admin-card{min-width:0;border:1px solid var(--line);border-radius:18px;background:var(--surface);box-shadow:0 12px 28px rgba(15,23,42,.05);overflow:hidden}.public-showcase-form{display:grid;gap:13px;padding:14px}.public-showcase-preview{position:relative;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--surface2);aspect-ratio:16/9}.public-showcase-preview img{width:100%;height:100%;object-fit:cover;display:block}.public-showcase-status{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:0 9px;border-radius:999px;font-size:9px;font-weight:900;box-shadow:0 6px 18px rgba(15,23,42,.12)}.public-showcase-status.default{background:#fff;color:#526579}.public-showcase-status.custom{background:#dff7ef;color:#087963}.public-showcase-fields{display:grid;grid-template-columns:minmax(0,.55fr) minmax(0,1fr);gap:10px}.public-showcase-fields .full{grid-column:1/-1}.public-showcase-dropzone{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:11px;min-height:76px;padding:11px;border:1.5px dashed #b9d6d2;border-radius:14px;background:#f7fbfa;cursor:pointer;outline:none;transition:.16s ease}.public-showcase-dropzone:hover,.public-showcase-dropzone:focus,.public-showcase-dropzone.is-drag{border-color:var(--accent);background:#eefaf7;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 10%,transparent)}.dropzone-icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#e1f5f0;color:#0b8c78;font-size:16px}.public-showcase-dropzone b{display:block;font-size:11px}.public-showcase-dropzone small{display:block;margin-top:3px;color:var(--muted);font-size:9px}.public-showcase-file-preview{display:grid;grid-template-columns:78px minmax(0,1fr) 32px;align-items:center;gap:10px;padding:9px;border:1px solid #cde5df;border-radius:12px;background:#f5fbf9}.public-showcase-file-preview img{width:78px;height:48px;object-fit:cover;border-radius:8px}.public-showcase-file-preview b{display:block;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.public-showcase-file-preview small{display:block;margin-top:3px;color:var(--muted);font-size:9px}.public-showcase-file-preview button{width:30px;height:30px;border:0;border-radius:9px;background:#fff;color:#64748b;cursor:pointer}.public-showcase-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap}.public-showcase-actions button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:980px){.public-showcase-admin-grid{grid-template-columns:1fr}}@media(max-width:620px){.public-showcase-form{padding:11px}.public-showcase-fields{grid-template-columns:1fr}.public-showcase-fields .full{grid-column:auto}.public-showcase-dropzone{grid-template-columns:38px minmax(0,1fr)}.public-showcase-dropzone .public-showcase-select{grid-column:1/-1;width:100%}.public-showcase-actions{display:grid;grid-template-columns:1fr}.public-showcase-actions button{width:100%}}
+
+/* ZYNKO V2.31.128 · Bandeja: modales, navegación, resumen y emojis */
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump,
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump:hover,
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump:focus,
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump:focus-visible{
+  background:#0d263a!important;color:#fff!important;border-color:#0d263a!important;filter:none!important;box-shadow:none!important;
+}
+body:has(.inbox-premium-toolbar) .chat-actions .history-jump:hover{background:#123249!important;transform:translateY(-1px)!important}
+
+body:has(.inbox-premium-toolbar) .nivo-summary{position:relative!important;padding-right:50px!important}
+body:has(.inbox-premium-toolbar) .nivo-summary-close{
+  position:absolute!important;right:12px!important;top:12px!important;width:34px!important;height:34px!important;min-width:34px!important;padding:0!important;border:1px solid #cfe0e6!important;border-radius:10px!important;background:#fff!important;color:#17384e!important;display:grid!important;place-items:center!important;cursor:pointer!important
+}
+body:has(.inbox-premium-toolbar) .nivo-summary-close:hover{background:#eef8f5!important;color:#0f766e!important;border-color:#b8ddd4!important}
+
+#client360DetailsModal .client360-details-modal,
+#quickReplyModal .quick-reply-modal,
+#conversationActionsModal .conversation-actions-modal,
+#messageMediaModal .message-media-modal-card{
+  display:flex!important;flex-direction:column!important;overflow:hidden!important;max-height:min(88dvh,820px)!important
+}
+#client360DetailsModal .client360-details-body,
+#quickReplyModal .quick-reply-modal-body,
+#conversationActionsModal .conversation-action-grid,
+#messageMediaModal .message-media-modal-body{
+  flex:1 1 auto!important;min-height:0!important;overflow-y:auto!important
+}
+#client360DetailsModal .modal-actions,
+#quickReplyModal .quick-reply-modal-footer,
+#conversationActionsModal .modal-actions,
+#messageMediaModal .modal-actions{
+  flex:0 0 auto!important;margin:0!important;padding:14px 18px!important;border-top:1px solid var(--line)!important;background:var(--surface,#fff)!important;box-shadow:0 -8px 22px rgba(15,23,42,.035)!important
+}
+#client360DetailsModal .client360-modal-footer{flex-wrap:wrap!important}
+#quickReplyModal .quick-reply-modal-footer [hidden]{display:none!important}
+
+.message-image-preview{border:0!important;background:transparent!important;padding:0!important;cursor:zoom-in!important;border-radius:11px!important;overflow:hidden!important}
+.message-image-preview img{display:block!important}
+.message-media-modal-card{width:min(980px,calc(100vw - 36px))!important}
+.message-media-modal-body{display:grid!important;place-items:center!important;padding:18px!important;background:#f3f7f8!important}
+.message-media-modal-body img{max-width:100%!important;max-height:68dvh!important;object-fit:contain!important;border-radius:12px!important;box-shadow:0 12px 32px rgba(15,23,42,.12)!important}
+
+#emojiPicker.emoji-picker-premium{
+  width:420px!important;min-width:420px!important;max-width:420px!important;
+  height:292px!important;min-height:292px!important;max-height:292px!important;
+  padding:10px!important;display:grid!important;grid-template-rows:38px 50px minmax(0,1fr)!important;row-gap:8px!important;
+}
+#emojiPicker .emoji-picker-head{height:38px!important;min-height:38px!important;margin:0!important;padding:0 0 8px!important;box-sizing:border-box!important}
+#emojiPicker .emoji-tabs{height:50px!important;min-height:50px!important;max-height:50px!important;margin:0!important;padding:6px 0 10px!important;border-bottom:1px solid var(--line)!important;gap:8px!important;box-sizing:border-box!important}
+#emojiPicker .emoji-tab{width:38px!important;height:34px!important;min-width:38px!important;min-height:34px!important;padding:0!important;margin:0!important;border:1px solid #d8e5e8!important;border-radius:10px!important;background:#f7fbfb!important;font-size:18px!important;display:grid!important;place-items:center!important}
+#emojiPicker .emoji-tab.active{background:#e6f7f2!important;border-color:#b8e1d6!important}
+#emojiPicker .emoji-groups{height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:8px 4px 4px 0!important;overflow-y:auto!important;border-top:0!important}
+#emojiPicker .emoji-group{align-content:start!important;min-height:0!important;gap:8px!important;grid-auto-rows:40px!important}
+#emojiPicker .emoji-group button{height:40px!important;min-height:40px!important;max-height:40px!important;border:1px solid #e2eaed!important;border-radius:10px!important;background:#fff!important}
+@media(max-width:760px){
+ #emojiPicker.emoji-picker-premium{left:12px!important;right:12px!important;width:auto!important;min-width:0!important;max-width:none!important;height:292px!important;min-height:292px!important;max-height:292px!important;grid-template-rows:38px 50px minmax(0,1fr)!important}
+ #client360DetailsModal .client360-modal-footer{display:grid!important;grid-template-columns:1fr 1fr!important}
+ #client360DetailsModal .client360-modal-footer>*{width:100%!important}
+}
