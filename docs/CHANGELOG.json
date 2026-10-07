@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.31.138",
+    "date": "2026-10-07",
+    "title": "Preview limpio y posición administrable de NIVO Web Chat",
+    "changes": [
+      "Ordena la cabecera de Vista previa real del visitante para evitar texto comprimido y mueve Administrar preview a una fila independiente debajo del encabezado.",
+      "Aclara que el preview limpio generado no captura ni muestra el contenido de la página que queda detrás del widget.",
+      "Agrega controles visibles para separación horizontal y vertical del widget usando offset_x y offset_y existentes.",
+      "Permite bajar NIVO acercándolo al borde inferior sin editar CSS ni código.",
+      "Mantiene la administración de captura personalizada, drag & drop, pegar y seleccionar archivo.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.137",
     "date": "2026-10-07",
     "title": "Preview limpio de NIVO con captura opcional",

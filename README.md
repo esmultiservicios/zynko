@@ -1,4 +1,4 @@
-# ZYNKO v2.31.137
+# ZYNKO v2.31.138
 
 - Reemplaza por defecto la vista previa del admin de NIVO Web Chat con la captura real suministrada del widget.
 - Agrega un botón visible **Cambiar captura** que abre un modal premium para arrastrar, pegar o seleccionar una imagen sin editar código.
