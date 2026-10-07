@@ -1,4 +1,4 @@
-# ZYNKO v2.31.133
+# ZYNKO v2.31.134
 
 - Reinicia de forma limpia el nombre y correo del visitante únicamente cuando una conversación ya finalizada pasa a un chat nuevo.
 - Conserva la identidad y la conversación al recargar mientras el chat siga activo.

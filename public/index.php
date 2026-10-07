@@ -342,7 +342,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.133';
+$releaseVersion='2.31.134';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -994,6 +994,30 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   $normalizeWebchatDomain=static function(string $domain):string{$domain=strtolower(trim($domain));$domain=preg_replace('#^https?://#','',$domain);$domain=preg_replace('#/.*$#','',$domain);return $domain;};
   $webchatDomainKey=static function(string $domain) use ($normalizeWebchatDomain):string{$domain=$normalizeWebchatDomain($domain);return preg_replace('/^www\./','',$domain);};
   $officialWebchatHost=zynkoCanonicalWebchatHost();$isOfficialWebchatInstallation=static function(array $row,int $tenantId) use ($webchatDomainKey,$officialWebchatHost):bool{return $tenantId===mainTenantId()&&empty($row['created_by'])&&$officialWebchatHost!==''&&$webchatDomainKey((string)($row['domain']??''))===$officialWebchatHost;};
+
+  if($action==='webchat_preview_save'){
+   if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('Solo un Owner o administrador puede actualizar la captura del preview.');
+   $q=$pdo->prepare('SELECT id,experience_json FROM webchat_widgets WHERE tenant_id=? ORDER BY id LIMIT 1');$q->execute([$tid]);$widget=$q->fetch();if(!$widget)throw new RuntimeException('Primero guarda la configuración base de NIVO Web Chat.');
+   if(empty($_FILES['preview_image']['tmp_name']))throw new RuntimeException('Selecciona una imagen para actualizar el preview del admin.');
+   $f=$_FILES['preview_image'];if(($f['size']??0)>12*1024*1024)throw new RuntimeException('La captura del preview admite hasta 12 MB.');
+   $mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]??null;if(!$ext)throw new RuntimeException('Formato no permitido. Usa JPG, PNG o WEBP.');
+   $experience=json_decode((string)($widget['experience_json']??'{}'),true)?:[];$old=trim((string)($experience['admin_preview_image']??''));
+   $dir=__DIR__.'/uploads/webchat-preview/'.$tid;if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('No se pudo preparar la carpeta del preview.');
+   $name='admin-preview-'.bin2hex(random_bytes(6)).'.'.$ext;if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$name))throw new RuntimeException('No se pudo guardar la captura del preview.');
+   if($old!==''){ $oldDisk=__DIR__.'/'.ltrim($old,'/'); if(is_file($oldDisk))@unlink($oldDisk); }
+   $experience['admin_preview_image']='uploads/webchat-preview/'.$tid.'/'.$name;
+   $pdo->prepare('UPDATE webchat_widgets SET experience_json=? WHERE id=? AND tenant_id=?')->execute([json_encode($experience,JSON_UNESCAPED_UNICODE),(int)$widget['id'],$tid]);
+   jsonOut(true,'La captura del preview del admin se guardó correctamente.');
+  }
+  if($action==='webchat_preview_reset'){
+   if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('Solo un Owner o administrador puede restaurar el preview.');
+   $q=$pdo->prepare('SELECT id,experience_json FROM webchat_widgets WHERE tenant_id=? ORDER BY id LIMIT 1');$q->execute([$tid]);$widget=$q->fetch();if(!$widget)throw new RuntimeException('Widget no encontrado.');
+   $experience=json_decode((string)($widget['experience_json']??'{}'),true)?:[];$old=trim((string)($experience['admin_preview_image']??''));
+   if($old!==''){ $oldDisk=__DIR__.'/'.ltrim($old,'/'); if(is_file($oldDisk))@unlink($oldDisk); }
+   unset($experience['admin_preview_image']);
+   $pdo->prepare('UPDATE webchat_widgets SET experience_json=? WHERE id=? AND tenant_id=?')->execute([json_encode($experience,JSON_UNESCAPED_UNICODE),(int)$widget['id'],$tid]);
+   jsonOut(true,'La vista previa del admin volvió al modo generado.');
+  }
   if($action==='webchat_widget_save'){
    $id=(int)($_POST['widget_id']??0);$name=trim($_POST['name']??'NIVO Web Chat');$position=$_POST['position']??'bottom-right';if(!in_array($position,['bottom-right','bottom-left','top-right','top-left'],true))$position='bottom-right';$displayMode=$_POST['display_mode']??'launcher';if(!in_array($displayMode,['launcher','open'],true))$displayMode='launcher';$color=trim($_POST['accent_color']??'#0F766E');if(!preg_match('/^#[0-9A-Fa-f]{6}$/',$color))$color='#0F766E';$multi=isset($_POST['allow_multiple_domains'])?1:0;$siteLimit=zynkoPlanLimit($planCtx,'max_webchat_sites');if($siteLimit===1)$multi=0;$enabled=isset($_POST['enabled'])?1:0;$sound=isset($_POST['sound_enabled'])?1:0;$privacy=isset($_POST['privacy_enabled'])?1:0;$required=isset($_POST['profile_required'])?1:0;$launcher=str_replace(["\r\n","\r"],"\n",trim(strip_tags((string)($_POST['launcher_label']??''))));$launcher=preg_replace('/[ \t]+/u',' ',$launcher);$launcher=preg_replace('/ *\n */u',"\n",$launcher);$launcher=preg_replace('/\n{3,}/u',"\n\n",$launcher);$launcherLines=explode("\n",$launcher);if(count($launcherLines)>2)$launcher=implode("\n",array_slice($launcherLines,0,2));$visibleLauncher=preg_replace('/(\*\*|__)/u','',$launcher);if(mb_strlen($visibleLauncher)>120)throw new RuntimeException('El texto junto al botón admite hasta 120 caracteres visibles.');$launcher=mb_substr($launcher,0,240);if(substr_count($launcher,'**')%2!==0)throw new RuntimeException('El formato de negrita del texto junto al botón está incompleto.');if(substr_count($launcher,'__')%2!==0)throw new RuntimeException('El formato de cursiva del texto junto al botón está incompleto.');if($launcher===''||mb_strtolower(trim(preg_replace('/(\*\*|__)/u','',$launcher)))==='¿necesitas ayuda?')$launcher='**NIVO Web Chat** · ¿Necesitas ayuda?';$privacyText=mb_substr(trim($_POST['privacy_text']??''),0,240);$privacyUrl=trim($_POST['privacy_url']??'');if($privacyUrl!==''&&!filter_var($privacyUrl,FILTER_VALIDATE_URL))throw new RuntimeException('La URL de privacidad no es válida.');
    $quick=array_values(array_filter(array_map('trim',preg_split('/\r?\n/',(string)($_POST['quick_replies']??'')))));

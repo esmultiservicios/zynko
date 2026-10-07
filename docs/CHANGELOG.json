@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.134",
+    "date": "2026-10-07",
+    "title": "Preview administrable en NIVO Web Chat",
+    "changes": [
+      "Permite reemplazar la vista previa del admin con una captura real del widget para mantener uniformidad visual con el chat publicado.",
+      "Agrega una zona premium para arrastrar, pegar o seleccionar la captura del preview sin editar código.",
+      "Permite restaurar el preview generado por ZYNKO cuando ya no se quiera usar una imagen personalizada.",
+      "Guarda la captura por tenant dentro del servidor y la aísla por empresa usando experience_json.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.133",
     "date": "2026-10-07",
     "title": "Sesión limpia de visitante y envío premium en NIVO Web Chat",
