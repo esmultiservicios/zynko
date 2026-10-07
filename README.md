@@ -1,3 +1,32 @@
+## V2.31.124 · Navegación funcional y fidelidad visual de NIVO
+
+- Los submenús de Usuarios apuntan a secciones reales: Directorio y Roles/Equipos.
+- Roles y equipos agrupa usuarios por responsabilidad y permite filtrar el directorio con un clic.
+- El acceso “Sin asignar” de Bandeja usa el filtro real `assignment=unassigned`.
+- Se elimina el acceso duplicado/no distintivo de Usuarios por empresa del flyout de Empresas.
+- La vista previa administrativa de NIVO fuerza Expandir y Cerrar en la misma línea, igual al widget publicado.
+- Restablecer se ajusta ópticamente sin modificar tamaño, altura ni comportamiento de los Select2.
+
+## V2.31.123 · Restablecer alineado sin tocar Select2
+
+- Corrige estructuralmente la alineación del botón Restablecer en la Bandeja.
+- Conserva intactos los tamaños, anchos, tipografía y comportamiento de todos los Select2.
+- El contenedor de Restablecer replica la misma fila de etiqueta (17 px + 4 px de separación) que los filtros, por lo que el botón queda en la misma línea visual que los selectores.
+- En tablet y móvil se elimina el espaciador y Restablecer conserva ancho completo.
+
+## V2.31.122 · Restablecer alineado sin tocar los filtros
+
+- Revierte la regla de V2.31.121 que modificaba internamente los Select2 de la Bandeja.
+- Conserva Canal, Asignación, Prioridad, Categoría, Vista y Atención exactamente con su diseño anterior.
+- Alinea únicamente el botón Restablecer al borde inferior de los selectores.
+- Mantiene el comportamiento responsive y el scrollbar premium del menú lateral.
+
+## V2.31.121 · Alineación definitiva de filtros en Bandeja
+
+- Alinea de forma exacta el botón Restablecer con los seis selectores de la Bandeja omnicanal.
+- Unifica altura de etiqueta y control en una misma rejilla para evitar desplazamientos por Select2 o por diferencias de line-height.
+- Mantiene comportamiento responsive: en tablet/móvil el botón conserva ancho completo sin romper la distribución.
+
 ## V2.31.120 · Navegación lateral premium y compacta
 
 - Encuestas deja de ocupar una entrada principal y queda dentro de NIVO Web Chat.

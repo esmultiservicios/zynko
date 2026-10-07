@@ -1,5 +1,50 @@
 [
   {
+    "version": "2.31.124",
+    "date": "2026-10-07",
+    "title": "Navegación funcional, preview fiel y Bandeja alineada",
+    "changes": [
+      "Usuarios incorpora una sección real de Roles y equipos y cada acceso del submenú navega a un destino funcional.",
+      "Roles y equipos permite filtrar el directorio por Owner, Administrador, Supervisor o Agente con un clic.",
+      "El acceso Sin asignar de Bandeja usa assignment=unassigned y mantiene compatibilidad con enlaces antiguos.",
+      "Se elimina el acceso duplicado Usuarios por empresa del submenú de Empresas para evitar opciones sin destino diferenciado.",
+      "La vista previa administrativa de NIVO mantiene Expandir y Cerrar en una sola línea con una regla de mayor especificidad que neutraliza estilos genéricos previos.",
+      "Restablecer se eleva ópticamente 2 px en escritorio sin modificar ningún Select2."
+    ]
+  },
+  {
+    "version": "2.31.123",
+    "date": "2026-10-07",
+    "title": "Restablecer alineado sin alterar filtros",
+    "changes": [
+      "Corrige la alineación vertical de Restablecer replicando la misma fila de etiqueta que usan los filtros de Bandeja.",
+      "Mantiene Select2 completamente intacto: no cambia altura, ancho, line-height ni estilos internos.",
+      "En escritorio Restablecer comparte exactamente la misma línea visual que Canal, Asignación, Prioridad, Categoría, Vista y Atención.",
+      "En tablet y móvil el botón conserva ancho completo y elimina el espaciador de etiqueta."
+    ]
+  },
+  {
+    "version": "2.31.122",
+    "date": "2026-10-07",
+    "title": "Restablecer alineado sin alterar Select2",
+    "changes": [
+      "Revierte la regla visual de V2.31.121 que alteraba el tamaño y distribución de los Select2 de la Bandeja.",
+      "Mantiene intactos Canal, Asignación, Prioridad, Categoría, Vista y Atención.",
+      "Alinea únicamente el botón Restablecer con la base de los selectores mediante su contenedor propio.",
+      "Conserva responsive y el scrollbar premium del menú lateral."
+    ]
+  },
+  {
+    "version": "2.31.121",
+    "date": "2026-10-07",
+    "title": "Alineación definitiva de filtros en Bandeja",
+    "changes": [
+      "Alinea el botón Restablecer exactamente con Canal, Asignación, Prioridad, Categoría, Vista y Atención.",
+      "Usa la misma altura de etiqueta y control para Select2 y botón, evitando desfaces visuales por estilos heredados.",
+      "Conserva el diseño responsive y el ancho completo del botón en tablet y móvil."
+    ]
+  },
+  {
     "version": "2.31.120",
     "date": "2026-10-07",
     "title": "Navegación lateral premium y compacta",

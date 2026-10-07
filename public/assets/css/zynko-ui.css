@@ -5735,3 +5735,91 @@ html.theme-dark .flyout a:hover{background:#162434!important}
   .flyout a{grid-template-columns:38px minmax(0,1fr)!important;min-height:48px!important}
   .flyout a i{width:38px;height:38px}
 }
+
+/* ZYNKO V2.31.123 · Alineación estructural de Restablecer con filtros de Bandeja */
+.inbox-filters.inbox-filters-advanced>.inbox-reset-field{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  justify-content:flex-start!important;
+  align-self:stretch!important;
+  min-width:0!important;
+}
+.inbox-filters.inbox-filters-advanced .inbox-filter-label-spacer{
+  display:flex!important;
+  height:17px!important;
+  min-height:17px!important;
+  flex:0 0 17px!important;
+  margin:0 0 4px!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+.inbox-filters.inbox-filters-advanced .inbox-reset-field .clear-inbox-filters{
+  height:40px!important;
+  min-height:40px!important;
+  margin:0!important;
+  align-self:stretch!important;
+  justify-content:center!important;
+}
+@media(max-width:900px){
+  .inbox-filters.inbox-filters-advanced>.inbox-reset-field{width:100%!important}
+  .inbox-filters.inbox-filters-advanced .inbox-filter-label-spacer{display:none!important}
+  .inbox-filters.inbox-filters-advanced .inbox-reset-field .clear-inbox-filters{width:100%!important}
+}
+
+
+/* ZYNKO V2.31.124 · navegación funcional, preview fiel y alineación fina de Bandeja */
+.nivo-webchat-page .preview-chat-live .preview-head>.preview-head-actions{
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  align-self:flex-start!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  width:max-content!important;
+  min-width:71px!important;
+  max-width:none!important;
+}
+.nivo-webchat-page .preview-chat-live .preview-head>.preview-head-actions>button{
+  display:grid!important;
+  place-items:center!important;
+  flex:0 0 32px!important;
+  width:32px!important;
+  min-width:32px!important;
+  max-width:32px!important;
+  height:32px!important;
+  min-height:32px!important;
+  margin:0!important;
+  padding:0!important;
+}
+@media(max-width:640px){
+  .nivo-webchat-page .preview-chat-live .preview-head>.preview-head-actions{gap:6px!important;min-width:70px!important}
+}
+
+/* Restablecer: conservar intactos todos los Select2 y corregir solo la posición óptica del botón. */
+@media(min-width:901px){
+  .inbox-filters.inbox-filters-advanced>.inbox-reset-field .clear-inbox-filters{
+    position:relative!important;
+    top:-2px!important;
+    height:40px!important;
+    min-height:40px!important;
+    padding-top:0!important;
+    padding-bottom:0!important;
+  }
+}
+@media(max-width:900px){
+  .inbox-filters.inbox-filters-advanced>.inbox-reset-field .clear-inbox-filters{top:auto!important;position:static!important}
+}
+
+.users-team-panel{margin-top:14px!important;scroll-margin-top:88px}
+.users-directory-panel{scroll-margin-top:88px}
+.users-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.users-team-card{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:13px;align-items:center;padding:15px;border:1px solid var(--line);border-radius:15px;background:var(--surface2);min-width:0;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.users-team-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:#e5f8f3;color:#078b72;font-size:17px}
+.users-team-copy{display:grid;gap:5px;min-width:0}.users-team-copy>div:first-child{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.users-team-copy>div:first-child>span{font-size:10px;font-weight:850;color:#08705c;background:#e6f8f3;border-radius:999px;padding:3px 7px}.users-team-copy>small{font-size:11px;color:var(--muted)}
+.users-team-members{display:flex;gap:5px;flex-wrap:wrap;min-width:0}.users-team-members>span,.users-team-members>em{max-width:145px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:var(--surface);font-size:10px;font-style:normal;color:var(--muted)}.users-team-members.is-empty{font-size:10px;color:var(--muted)}
+.users-team-card>.team-role-filter{white-space:nowrap;align-self:center}
+@media(hover:hover) and (pointer:fine){.users-team-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 32%,var(--line));box-shadow:0 12px 28px rgba(15,23,42,.07)}}
+@media(max-width:900px){.users-team-grid{grid-template-columns:1fr}.users-team-card{grid-template-columns:46px minmax(0,1fr) auto}}
+@media(max-width:620px){.users-team-card{grid-template-columns:42px minmax(0,1fr)}.users-team-icon{width:42px;height:42px}.users-team-card>.team-role-filter{grid-column:1/-1;width:100%;justify-content:center}}

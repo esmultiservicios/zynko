@@ -3,6 +3,7 @@ $title='Bandeja de entrada'; require __DIR__.'/partials/top.php';
 $pdo=appDb(); $tid=(int)$_SESSION['user']['tenant_id']; $uid=(int)$_SESSION['user']['id'];
 $convs=[];$agents=[];$channels=[];$categories=[];$selected=null;$messages=[];$selectedCategories=[];$followup=null;$notes=[];$survey=null;$quickReplies=[];$nivoEnabled=false;
 $channelFilter=$_GET['channel']??'';$assignmentFilter=$_GET['assignment']??'';$priorityFilter=$_GET['priority']??'';$categoryFilter=(int)($_GET['category']??0);$stateFilter=$_GET['state']??'';$attentionFilter=$_GET['attention']??'';
+if($assignmentFilter===''&&($_GET['filter']??'')==='unassigned')$assignmentFilter='unassigned';
 $canDelete=in_array((string)($_SESSION['user']['role']??''),['owner','admin'],true);
 try{
  try{
