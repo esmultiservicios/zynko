@@ -53,3 +53,5 @@ tmp/
 cache/
 logs/
 backups/
+
+storage/public-showcase.json

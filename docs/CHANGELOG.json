@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.127",
+    "date": "2026-10-07",
+    "title": "Showcase público actualizado y administrable por Owner",
+    "changes": [
+      "Reemplaza la galería pública por 45 capturas actuales suministradas del panel ZYNKO.",
+      "Protege visualmente zonas sensibles detectadas en las capturas incluidas, incluyendo códigos extensos y datos de cuenta.",
+      "Agrega administración exclusiva para el Owner principal con arrastrar y soltar, pegar desde portapapeles o seleccionar archivo.",
+      "Permite actualizar área, título, descripción e imagen de cada vista sin editar código.",
+      "Guarda las personalizaciones del showcase como contenido persistente del servidor sin ensuciar Git.",
+      "Mantiene cursor de zoom sobre las imágenes y cursor de mano en Ver más."
+    ]
+  },
+  {
     "version": "2.31.125",
     "date": "2026-10-07",
     "title": "Espaciado premium en revisión automática",

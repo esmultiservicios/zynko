@@ -192,6 +192,66 @@ function zynkoRunServiceCommand(string $command): array {
     return ['available'=>$backend!=='','backend'=>$backend,'code'=>(int)$code,'output'=>trim($output)];
 }
 function isPlatformOwner(): bool { return isset($_SESSION['user']) && (int)$_SESSION['user']['tenant_id']===mainTenantId() && in_array($_SESSION['user']['role']??'', ['owner','admin'],true); }
+function isMainOwnerOnly(): bool { return isset($_SESSION['user']) && (int)($_SESSION['user']['tenant_id']??0)===mainTenantId() && (string)($_SESSION['user']['role']??'')==='owner'; }
+function zynkoShowcaseDefaults(): array {
+  $meta=[
+    ['Dashboard','Resumen operativo','Indicadores, actividad y accesos rápidos de ZYNKO.'],
+    ['Dashboard','Actividad y canales','Seguimiento visual de actividad y estado de canales.'],
+    ['Dashboard','Analítica pública','Visitas y comportamiento del sitio público desde el panel.'],
+    ['Bandeja','Atención omnicanal','Conversaciones, mensajes y contexto del cliente en una sola vista.'],
+    ['Canales','Catálogo de canales','Canales disponibles y estado de conexión dentro de ZYNKO.'],
+    ['Canales','Conectores disponibles','Configuración ordenada de conectores y servicios externos.'],
+    ['NIVO Web Chat','Configuración del widget','Personalización, instalación y vista previa del canal web.'],
+    ['NIVO Web Chat','Experiencia publicada','Configuración de experiencia y presentación del widget.'],
+    ['NIVO Web Chat','Sitios autorizados','Administración de dominios y sitios autorizados para NIVO.'],
+    ['NIVO Web Chat','Opciones del widget','Preferencias operativas y visuales del canal web.'],
+    ['NIVO Web Chat','Políticas de atención','Reglas de experiencia, privacidad y comportamiento del widget.'],
+    ['NIVO Web Chat','Instalaciones autorizadas','Control de instalaciones y dominios vinculados.'],
+    ['NIVO Web Chat','Código de instalación','Código administrable para publicar NIVO Web Chat.'],
+    ['NIVO Web Chat','Sitios y claves','Gestión segura de sitios, códigos y autorizaciones.'],
+    ['Usuarios','Directorio','Usuarios, roles, estado y accesos del equipo.'],
+    ['Usuarios','Roles y equipos','Organización de usuarios por responsabilidad y perfil.'],
+    ['Empresas','Directorio de empresas','Administración centralizada de empresas dentro de ZYNKO.'],
+    ['NIVO IA','Configuración general','Comportamiento y reglas principales del asistente NIVO.'],
+    ['NIVO IA','Conocimiento','Fuentes y conocimiento que utiliza NIVO para responder.'],
+    ['NIVO IA','Aprendizaje supervisado','Revisión y aprobación del aprendizaje de NIVO.'],
+    ['NIVO IA','Políticas omnicanal','Reglas de NIVO para distintos canales y escenarios.'],
+    ['NIVO IA','Transferencia humana','Escalamiento controlado de conversaciones hacia agentes.'],
+    ['Automatizaciones','Flujos automáticos','Reglas y acciones automatizadas para la operación.'],
+    ['Automatizaciones','Configuración de flujo','Diseño y mantenimiento de automatizaciones.'],
+    ['Integraciones','API e integraciones','Conexión de ZYNKO con sistemas y servicios externos.'],
+    ['Integraciones','Webhooks','Administración de eventos y endpoints externos.'],
+    ['Integraciones','Claves API','Credenciales administrables con protección de información sensible.'],
+    ['Suscripción','Planes y límites','Planes, beneficios, límites y disponibilidad comercial.'],
+    ['Correo','Proveedor de correo','Configuración de SMTP y Microsoft Graph.'],
+    ['Correo','Notificaciones','Reglas de envío y pruebas de correo.'],
+    ['Configuración','Empresa y marca','Identidad, marca y preferencias generales de la plataforma.'],
+    ['Configuración','Sitio público','Redes sociales, WhatsApp y configuración pública.'],
+    ['Configuración','SEO y posicionamiento','Metadatos, URL canónica, robots y sitemap.'],
+    ['Configuración','Salud del sistema','Diagnóstico del entorno y servicios de ZYNKO.'],
+    ['Configuración','Tiempo real','Estado del servicio WebSocket y comunicación en tiempo real.'],
+    ['Configuración','Servidor','Parámetros técnicos administrables del entorno.'],
+    ['Configuración','Seguridad','Controles y verificaciones de seguridad del sistema.'],
+    ['Configuración','Preferencias','Ajustes de experiencia y comportamiento del panel.'],
+    ['Inicio guiado','Puesta en marcha','Pasos de configuración para iniciar correctamente con ZYNKO.'],
+    ['Documentación','Versiones y cambios','Documentación técnica y registro de versiones de ZYNKO.'],
+    ['Documentación','API pública','Referencia para integrar sistemas externos con ZYNKO.'],
+    ['Documentación','Guías operativas','Información práctica para configurar y operar la plataforma.'],
+    ['NIVO Web Chat','Vista móvil','Experiencia responsive de NIVO Web Chat en dispositivos móviles.'],
+    ['Logs','Logs y diagnóstico','Eventos administrativos y técnicos centralizados para observabilidad.'],
+    ['Encuestas','Encuestas y satisfacción','Calificación, utilidad de NIVO y resultado de la atención.']
+  ];
+  $out=[]; foreach($meta as $i=>$m){$n=$i+1;$out[]=['key'=>'shot-'.str_pad((string)$n,2,'0',STR_PAD_LEFT),'src'=>'assets/img/showcase/gallery/shot-'.str_pad((string)$n,2,'0',STR_PAD_LEFT).'.jpg','section'=>$m[0],'title'=>$m[1],'caption'=>$m[2]];} return $out;
+}
+function zynkoLoadPublicShowcase(): array {
+  global $root; $items=zynkoShowcaseDefaults();$path=$root.'/storage/public-showcase.json';$saved=[];
+  if(is_file($path)){$raw=@file_get_contents($path);$tmp=json_decode((string)$raw,true);if(is_array($tmp))$saved=$tmp;}
+  foreach($items as &$item){$k=$item['key'];if(isset($saved[$k])&&is_array($saved[$k])){$o=$saved[$k];foreach(['src','section','title','caption'] as $f){if(isset($o[$f])&&is_string($o[$f])&&trim($o[$f])!=='')$item[$f]=trim($o[$f]);}}} unset($item); return $items;
+}
+function zynkoSavePublicShowcaseOverrides(array $data): void {
+  global $root;$path=$root.'/storage/public-showcase.json';$json=json_encode($data,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);if($json===false||@file_put_contents($path,$json,LOCK_EX)===false)throw new RuntimeException('No se pudo guardar la configuración del showcase. Verifica permisos de storage.');
+}
+
 function zynkoIsImpersonating(): bool { return !empty($_SESSION['zynko_platform_context']['user']) && is_array($_SESSION['zynko_platform_context']['user']); }
 function zynkoPlatformAudit(PDO $pdo,string $action,?int $tenantId=null,?int $userId=null,array $details=[]): void { try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,target_user_id,action,details_json,ip_address,created_at) VALUES(?,?,?,?,?,?,NOW())')->execute([(int)($_SESSION['zynko_platform_context']['user']['id']??$_SESSION['user']['id']??0),$tenantId,$userId,$action,json_encode($details,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),mb_substr((string)($_SERVER['REMOTE_ADDR']??''),0,64)]);}catch(Throwable $e){} }
 function zynkoUniqueTenantSlug(PDO $pdo,string $name): string { $v=iconv('UTF-8','ASCII//TRANSLIT//IGNORE',$name)?:$name;$base=strtolower($v);$base=trim((string)preg_replace('/[^a-z0-9]+/','-',$base),'-');if($base==='')$base='empresa';$base=mb_substr($base,0,95);$slug=$base;$q=$pdo->prepare('SELECT 1 FROM tenants WHERE slug=? LIMIT 1');for($i=0;$i<20;$i++){ $q->execute([$slug]);if(!$q->fetchColumn())return $slug;$slug=$base.'-'.substr(bin2hex(random_bytes(3)),0,6);}return $base.'-'.time(); }
@@ -282,7 +342,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.125';
+$releaseVersion='2.31.127';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -791,6 +851,18 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'env.updated',json_encode(['keys'=>$changed],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
     jsonOut(true,'Configuración del servidor actualizada de forma segura. Respaldo del .env creado automáticamente.',['changed'=>$changed,'reload_recommended'=>true]);
   }
+  if($action==='public_showcase_save'){
+    if(!isMainOwnerOnly())throw new RuntimeException('Solo el Owner principal puede administrar las imágenes del sitio público.');
+    $key=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($_POST['key']??'')));$defaults=zynkoShowcaseDefaults();$valid=[];foreach($defaults as $d)$valid[$d['key']]=$d;if(!isset($valid[$key]))throw new RuntimeException('Vista del showcase no válida.');
+    $path=$root.'/storage/public-showcase.json';$saved=[];if(is_file($path)){$tmp=json_decode((string)@file_get_contents($path),true);if(is_array($tmp))$saved=$tmp;}
+    $section=mb_substr(trim((string)($_POST['section']??$valid[$key]['section'])),0,80);$title=mb_substr(trim((string)($_POST['title']??$valid[$key]['title'])),0,120);$caption=mb_substr(trim((string)($_POST['caption']??$valid[$key]['caption'])),0,280);if($section===''||$title===''||$caption==='')throw new RuntimeException('Sección, título y descripción son obligatorios.');
+    $saved[$key]=array_merge($saved[$key]??[],['section'=>$section,'title'=>$title,'caption'=>$caption]);
+    if(!empty($_FILES['image']['tmp_name'])){$f=$_FILES['image'];if(($f['error']??UPLOAD_ERR_OK)!==UPLOAD_ERR_OK)throw new RuntimeException('No se pudo recibir la imagen.');if(($f['size']??0)>12*1024*1024)throw new RuntimeException('La imagen no puede superar 12 MB.');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]??null;if(!$ext)throw new RuntimeException('Usa JPG, PNG o WEBP.');$info=@getimagesize($f['tmp_name']);if(!$info||$info[0]<480||$info[1]<280)throw new RuntimeException('Usa una captura de al menos 480 × 280 px.');$dir=__DIR__.'/uploads/showcase';if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('No se pudo crear la carpeta de imágenes.');foreach(glob($dir.'/'.$key.'-*')?:[] as $old)@unlink($old);$fn=$key.'-'.date('YmdHis').'-'.bin2hex(random_bytes(3)).'.'.$ext;if(!move_uploaded_file($f['tmp_name'],$dir.'/'.$fn))throw new RuntimeException('No se pudo guardar la imagen.');$saved[$key]['src']='uploads/showcase/'.$fn;}
+    zynkoSavePublicShowcaseOverrides($saved);jsonOut(true,'Vista pública actualizada correctamente.',['key'=>$key,'src'=>$saved[$key]['src']??$valid[$key]['src']]);
+  }
+  if($action==='public_showcase_reset'){
+    if(!isMainOwnerOnly())throw new RuntimeException('Solo el Owner principal puede administrar las imágenes del sitio público.');$key=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($_POST['key']??'')));$path=$root.'/storage/public-showcase.json';$saved=[];if(is_file($path)){$tmp=json_decode((string)@file_get_contents($path),true);if(is_array($tmp))$saved=$tmp;}unset($saved[$key]);zynkoSavePublicShowcaseOverrides($saved);jsonOut(true,'Vista restaurada a la imagen incluida en ZYNKO.');
+  }
   if($action==='public_site_save'){
     if(!isPlatformOwner())throw new RuntimeException('Solo la empresa principal puede administrar el sitio público y las redes sociales.');
     $parentName=mb_substr(trim((string)($_POST['public_parent_name']??'ES MULTISERVICIOS')),0,100);$parentUrl=trim((string)($_POST['public_parent_url']??''));
@@ -1245,4 +1317,4 @@ if($_SERVER['REQUEST_METHOD']==='POST' && ($_POST['action']??'')==='email_save' 
   try{$pdo=appDb();$tid=(int)$_SESSION['user']['tenant_id'];$pc=zynkoPlanContext($pdo,$tid,isPlatformOwner());if(!zynkoPlanAllowsModule($pc,'email'))throw new RuntimeException('La configuración de correo requiere un plan superior.');$method=strtoupper(trim($_POST['method']??'SMTP'));if(!in_array($method,['SMTP','GRAPH'],true))throw new RuntimeException('Método inválido.');$sender=$method==='GRAPH'?trim($_POST['graph_user']??''):trim($_POST['sender']??'');if(!filter_var($sender,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo emisor inválido.');$e=envConfig($root.'/.env');$hex=$e['APP_KEY']??'';if(!preg_match('/^[a-f0-9]{64}$/i',$hex))throw new RuntimeException('APP_KEY inválida.');$enc=function($plain)use($hex){if($plain==='')return null;$key=hex2bin($hex);$iv=random_bytes(12);$tag='';$c=openssl_encrypt($plain,'aes-256-gcm',$key,OPENSSL_RAW_DATA,$iv,$tag);if($c===false)throw new RuntimeException('No se pudo cifrar la credencial.');return 'enc:v1:'.base64_encode($iv.$tag.$c);};$type=(int)$pdo->query("SELECT correo_tipo_id FROM correo_tipo WHERE codigo='email_tests' LIMIT 1")->fetchColumn();if(!$type)throw new RuntimeException('Falta el catálogo de correo.');$old=$pdo->prepare('SELECT * FROM correo WHERE tenant_id=? AND is_default=1 ORDER BY correo_id DESC LIMIT 1');$old->execute([$tid]);$old=$old->fetch()?:[];$smtpPass=$_POST['smtp_password']??'';$clientSecret=$_POST['client_secret']??'';$password=$smtpPass!==''?$enc($smtpPass):($old['password']??null);$clientCipher=$clientSecret!==''?$enc($clientSecret):($old['client_secret']??null);$inboundMethod=strtoupper((string)($old['inbound_method']??'NONE'));if(!in_array($inboundMethod,['NONE','IMAP','GRAPH'],true))$inboundMethod='NONE';$imapCipher=$old['imap_password']??null;$imapSecure=strtolower((string)($old['imap_secure']??'ssl'));if(!in_array($imapSecure,['ssl','tls','none'],true))$imapSecure='ssl';$inboundEnabled=(int)($old['inbound_enabled']??0);$pdo->prepare('UPDATE correo SET is_default=0 WHERE tenant_id=?')->execute([$tid]);$sql="INSERT INTO correo(tenant_id,correo_tipo_id,nombre,metodo_envio,server,correo,destinatario,copia,password,port,smtp_secure,tenant_graph_id,client_id,client_secret,graph_user,save_to_sent_items,inbound_method,imap_host,imap_port,imap_secure,imap_username,imap_password,imap_folder,inbound_enabled,estado,is_default) VALUES(?,?,'Principal',?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,1,1)";$pdo->prepare($sql)->execute([$tid,$type,$method,trim($_POST['server']??''),$sender,trim($_POST['recipient']??''),trim($_POST['bcc']??''),$password,(int)($_POST['port']??587),strtolower($_POST['smtp_secure']??'tls'),trim($_POST['graph_tenant']??''),trim($_POST['client_id']??''),$clientCipher,trim($_POST['graph_user']??''),isset($_POST['save_to_sent'])?1:0,$inboundMethod,trim((string)($old['imap_host']??'')),max(1,(int)($old['imap_port']??993)),$imapSecure,trim((string)($old['imap_username']??'')),$imapCipher,trim((string)($old['imap_folder']??'INBOX'))?:'INBOX',$inboundEnabled]);$pdo->prepare("INSERT INTO notification_preferences(tenant_id,correo_tipo_id,email_enabled,in_app_enabled) SELECT ?,correo_tipo_id,1,1 FROM correo_tipo WHERE activo=1 ON DUPLICATE KEY UPDATE email_enabled=VALUES(email_enabled),in_app_enabled=VALUES(in_app_enabled)")->execute([$tid]);$emailSettingsMessage='Configuración de correo guardada correctamente.';}catch(Throwable $e){$emailSettingsError=$e->getMessage();}
 }
 if($page==='logout'){zynkoClearAuthentication(true);header('Location: ?page=login');exit;}
-$allowed=['home','login','register','verify-email','forgot-password','reset-password','dashboard','inbox','channels','webchat','users','companies','chatbot','automations','integrations','billing','email','settings','onboarding','surveys','documentation','logs'];if(!in_array($page,$allowed,true))$page='dashboard';$publicPages=['home','login','register','verify-email','forgot-password','reset-password'];if(!in_array($page,$publicPages,true)&&!isset($_SESSION['user'])){header('Location: ?page=login');exit;}if(in_array($page,$publicPages,true)&&isset($_SESSION['user'])&&$page!=='home'){header('Location: ?page=dashboard');exit;}if($page==='companies'&&!isPlatformOwner()){header('Location: ?page=dashboard');exit;}if(isset($_SESSION['user'])&&!isPlatformOwner()){$pagePlan=zynkoPlanContext(appDb(),(int)$_SESSION['user']['tenant_id'],false);if(!zynkoPlanAllowsPage($pagePlan,$page)){$lockedPage=$page;require $root.'/app/Views/upgrade.php';exit;}}require $root.'/app/Views/'.$page.'.php';
+$allowed=['home','login','register','verify-email','forgot-password','reset-password','dashboard','inbox','channels','webchat','users','companies','chatbot','automations','integrations','billing','email','settings','onboarding','surveys','documentation','logs','public-showcase'];if(!in_array($page,$allowed,true))$page='dashboard';$publicPages=['home','login','register','verify-email','forgot-password','reset-password'];if(!in_array($page,$publicPages,true)&&!isset($_SESSION['user'])){header('Location: ?page=login');exit;}if(in_array($page,$publicPages,true)&&isset($_SESSION['user'])&&$page!=='home'){header('Location: ?page=dashboard');exit;}if($page==='companies'&&!isPlatformOwner()){header('Location: ?page=dashboard');exit;}if($page==='public-showcase'&&!isMainOwnerOnly()){header('Location: ?page=dashboard');exit;}if(isset($_SESSION['user'])&&!isPlatformOwner()){$pagePlan=zynkoPlanContext(appDb(),(int)$_SESSION['user']['tenant_id'],false);if(!zynkoPlanAllowsPage($pagePlan,$page)){$lockedPage=$page;require $root.'/app/Views/upgrade.php';exit;}}require $root.'/app/Views/'.$page.'.php';

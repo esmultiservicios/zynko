@@ -1,3 +1,12 @@
+## V2.31.127 · Showcase público actualizado y administrable por Owner
+
+- Se sustituyó la galería pública por las capturas actuales entregadas para ZYNKO.
+- Las capturas incluidas pasan por una limpieza visual conservadora para ocultar códigos extensos y zonas de cuenta que no deben publicarse.
+- El Owner principal dispone de **Configuración → Sitio público · imágenes** para administrar la galería sin editar código.
+- Cada tarjeta permite arrastrar y soltar, pegar desde el portapapeles o seleccionar JPG/PNG/WEBP, además de editar área, título y descripción.
+- Las imágenes personalizadas se almacenan en `public/uploads/showcase/` y su configuración en `storage/public-showcase.json`; ambos son runtime y no ensucian Git.
+- No requiere actualización de base de datos.
+
 ## V2.31.125 · Espaciado premium en revisión automática
 - Se rediseñó únicamente la tarjeta “Revisión automática recomendada cada 5 minutos” de Configuración.
 - El icono, título y texto ahora respetan márgenes internos, separación y alineación consistentes.
