@@ -1,5 +1,36 @@
 [
   {
+    "version": "2.31.116",
+    "date": "2026-10-06",
+    "title": "Consistencia WebSocket, KPIs, encuestas y vista previa NIVO",
+    "changes": [
+      "Los controles WebSocket son inteligentes: Iniciar solo está disponible detenido; Detener y Reiniciar solo cuando el servicio está activo.",
+      "Dashboard y Configuración usan la misma explicación para Reinicio recomendado y aclaran que corresponde al mismo servicio WebSocket.",
+      "La vista previa administrativa de NIVO Web Chat replica la disposición vertical de Expandir y Cerrar del widget publicado.",
+      "Integraciones recupera KPIs premium de cuatro tarjetas y Automatizaciones incorpora movimiento coherente en sus tarjetas principales.",
+      "Bandeja alinea Restablecer con los selectores en escritorio y conserva adaptación responsive.",
+      "El gráfico de visitas aprovecha mayor altura visual para quedar equilibrado con el detalle de 30 días.",
+      "Encuestas aparece como módulo visible en la navegación administrativa además del acceso rápido y NIVO IA.",
+      "Correo explica que la vinculación omnicanal entrante permanece bloqueada hasta disponer de IMAP o webhook/suscripción de Microsoft Graph.",
+      "Se amplía .gitignore con temporales, caches, backups y runtime genérico para proteger Git/cPanel."
+    ]
+  },
+  {
+    "version": "2.31.115",
+    "date": "2026-10-06",
+    "title": "Monitoreo preventivo, alertas y runtime limpio",
+    "changes": [
+      "Monitorea WebSocket, base de datos, API, NIVO Web Chat, NIVO IA y canales externos desde una sola fuente operativa.",
+      "Envía correo únicamente cuando cambia el estado de un servicio e incluye un resumen de qué está activo, degradado, caído o inactivo.",
+      "Incluye autorrecuperación de WebSocket y un monitor CLI preparado para ejecutarse cada 5 minutos desde Cron Jobs de cPanel.",
+      "Corrige la detección de WebSocket en hosting compartido: el puerto real es fuente de verdad aunque el PID no sea visible.",
+      "Evita reinicios duplicados y errores Address already in use cuando existe un WebSocket activo con proceso oculto por el hosting.",
+      "Amplía .gitignore para archivos runtime, locks, PID, marcadores, temporales, caché, sesiones y logs generados por servidor.",
+      "Agrega panel administrativo de monitoreo, revisión manual, historial de cambios y configuración de correo/autorrecuperación.",
+      "El deploy de cPanel ejecuta reinicio seguro y una revisión de salud posterior sin convertir archivos operativos en cambios de Git."
+    ]
+  },
+  {
     "version": "2.31.114",
     "date": "2026-10-06",
     "title": "Estado WebSocket sincronizado en toda la administración",

@@ -20,3 +20,8 @@ El Dashboard incorpora accesos rápidos configurables y un centro de servicios p
 - **WebSocket interno**: conexión local entre Apache/ZYNKO y el servicio en `WS_HOST:WS_PORT`.
 - **WebSocket público**: endpoint `wss://.../ws` que utiliza el navegador.
 - **Proxy `/ws`**: regla de Apache que une el endpoint público con el servicio interno.
+
+
+## V2.31.115 · Monitor preventivo
+
+El administrador principal dispone de monitoreo de WebSocket, DB, API, NIVO Web Chat, NIVO IA y canales. Los correos se envían por transición de estado, no por cada comprobación. Para continuidad fuera de las visitas web, se recomienda ejecutar `bin/service-monitor.php` cada 5 minutos mediante Cron Jobs de cPanel.

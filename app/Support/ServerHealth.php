@@ -92,7 +92,12 @@ final class ZynkoServerHealth
         $latestChange = 0;
         foreach ($watched as $watchedFile) { if (is_file($watchedFile)) $latestChange=max($latestChange,(int)@filemtime($watchedFile)); }
         $restartRecommended = !$tcp || $markerTime===0 || $latestChange>$markerTime;
-        $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartRecommended?'Hay cambios operativos posteriores al último arranque o no existe constancia del reinicio. Reinicia WebSocket desde el Dashboard y vuelve a comprobar.': 'El servicio WebSocket fue reiniciado después de los últimos cambios operativos detectados.','Tiempo real');
+        $restartDetail = $restartRecommended
+            ? ($tcp
+                ? 'El tiempo real está activo, pero ZYNKO detectó cambios posteriores al último arranque o no tiene constancia de un reinicio posterior. Usa el botón “Reiniciar WebSocket” de esta misma sección una sola vez; no hay otro servicio que reiniciar. La interrupción normal es de 1–3 segundos.'
+                : 'El servicio WebSocket no está respondiendo. Usa “Iniciar” si está detenido. Si logra quedar activo, vuelve a comprobar; si además existen cambios pendientes, ZYNKO indicará si conviene reiniciarlo una vez.')
+            : 'No necesitas reiniciar: el servicio está operativo y el último arranque es posterior a los cambios operativos detectados.';
+        $add($items,'ws_restart_recommended','Reinicio recomendado',$restartRecommended?'warning':'ok',$restartRecommended?'Sí':'No',$restartDetail,'Tiempo real');
 
         $publicUrl = trim((string)($this->env['WS_PUBLIC_URL'] ?? ''));
         if ($publicUrl === '') {

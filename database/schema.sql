@@ -144,6 +144,29 @@ CREATE TABLE notification_log (
   INDEX idx_notification_log (tenant_id,status,created_at)
 );
 
+
+CREATE TABLE IF NOT EXISTS service_monitor_state (
+  service_key VARCHAR(120) NOT NULL PRIMARY KEY,
+  service_name VARCHAR(190) NOT NULL,
+  current_status ENUM('up','degraded','down','inactive') NOT NULL DEFAULT 'inactive',
+  detail VARCHAR(1000) NULL,
+  last_checked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_notified_at DATETIME NULL,
+  INDEX idx_service_monitor_status (current_status,last_checked_at)
+);
+
+CREATE TABLE IF NOT EXISTS service_monitor_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  service_key VARCHAR(120) NOT NULL,
+  service_name VARCHAR(190) NOT NULL,
+  old_status ENUM('up','degraded','down','inactive') NOT NULL,
+  new_status ENUM('up','degraded','down','inactive') NOT NULL,
+  detail VARCHAR(1000) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_service_monitor_events (service_key,created_at)
+);
+
 CREATE TABLE user_navigation_preferences (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   tenant_id BIGINT UNSIGNED NOT NULL,
@@ -439,7 +462,7 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_calls (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.114');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.116');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),
@@ -448,6 +471,10 @@ INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_twitter',''),
 ('seo_google_verification',''),
 ('seo_bing_verification',''),
+('monitor_enabled','1'),
+('monitor_email',''),
+('monitor_auto_recover_ws','1'),
+('monitor_notify_recovery','1'),
 ('public_parent_name','ES MULTISERVICIOS'),
 ('public_parent_url','https://esmultiservicios.com/'),
 ('public_social_facebook_url','https://www.facebook.com/esmultiserv'),

@@ -1,3 +1,23 @@
+## V2.31.116 · Consistencia operativa y UI administrativa
+
+- WebSocket usa controles inteligentes: Iniciar solo cuando está detenido; Detener/Reiniciar solo cuando está activo.
+- Dashboard y Configuración explican con el mismo detalle qué significa “Reinicio recomendado”.
+- Vista previa administrativa de NIVO replica la disposición vertical Expandir/Cerrar del widget publicado.
+- KPIs de Integraciones recuperan diseño premium y movimiento; tarjetas de Automatizaciones también tienen microinteracción.
+- Filtros de Bandeja alinean Restablecer con todos los selectores.
+- Analítica pública amplía el gráfico para aprovechar la altura del panel lateral.
+- Encuestas aparece como módulo visible en el menú administrativo.
+- Correo explica que “Permitir vincular” requiere recepción entrante real (IMAP o Graph webhook/subscription).
+- .gitignore se amplía para runtime genérico y archivos temporales del hosting/editor.
+
+## V2.31.115 · Monitoreo preventivo y continuidad operativa
+
+- Alertas por correo ante caídas/recuperaciones de WebSocket, API, NIVO Web Chat, NIVO IA, BD y canales.
+- Autorrecuperación WebSocket y monitor CLI para Cron Jobs.
+- Estado por puerto real cuando el hosting oculta PID/procesos.
+- `.gitignore` reforzado contra locks, PID, marcadores, logs, caché, sesiones y temporales runtime.
+- Panel administrativo para revisar estados e historial sin entrar al servidor.
+
 ## V2.31.114 · Estado WebSocket sincronizado
 
 Dashboard, Configuración y el indicador global de canales reflejan el mismo estado WebSocket confirmado. Después de iniciar, detener o reiniciar, ZYNKO actualiza el estado visible y recalcula Salud integral automáticamente.

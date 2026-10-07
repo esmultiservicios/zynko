@@ -1,7 +1,7 @@
 <?php
 $title='Documentación'; require __DIR__.'/partials/top.php';
 $changes=[];try{$changes=json_decode((string)file_get_contents($root.'/docs/CHANGELOG.json'),true)?:[];}catch(Throwable $e){}
-$current=$changes[0]??['version'=>'2.31.114','title'=>'Versión actual','date'=>'','changes'=>[]];
+$current=$changes[0]??['version'=>'2.31.115','title'=>'Versión actual','date'=>'','changes'=>[]];
 ?>
 <section class="welcome"><div><small>DOCUMENTACIÓN VIVA</small><h1>Documentación e historial</h1><p>Consulta el estado funcional de API, NIVO, Web Chat, canales y cambios por versión.</p></div><a class="secondary-action" href="?page=home#documentacion" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square"></i> Ver documentación pública</a></section>
 <section class="panel docs-version-panel">

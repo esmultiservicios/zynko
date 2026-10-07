@@ -58,9 +58,9 @@ port_open(){
 }
 
 healthy(){
-    local p
-    p="$(find_pid 2>/dev/null || true)"
-    [ -n "$p" ] && port_open
+    # En hosting compartido el proceso puede no ser visible mediante ps/pgrep.
+    # El puerto real es la fuente de verdad operacional.
+    port_open
 }
 
 stop_one(){
@@ -101,9 +101,13 @@ launch_ws(){
 start_ws(){
     local existing
     existing="$(find_pid 2>/dev/null || true)"
-    if [ -n "$existing" ] && port_open; then
+    if port_open; then
         touch "$MARKER"
-        echo "RUNNING pid=$existing host=$WS_HOST port=$WS_PORT"
+        if [ -n "$existing" ]; then
+            echo "RUNNING pid=$existing host=$WS_HOST port=$WS_PORT"
+        else
+            echo "RUNNING pid=unavailable host=$WS_HOST port=$WS_PORT note=port-confirmed"
+        fi
         return 0
     fi
 
@@ -138,8 +142,12 @@ start_ws(){
 case "$ACTION" in
   status)
     p="$(find_pid 2>/dev/null || true)"
-    if [ -n "$p" ] && port_open; then
-        echo "RUNNING pid=$p host=$WS_HOST port=$WS_PORT"
+    if port_open; then
+        if [ -n "$p" ]; then
+            echo "RUNNING pid=$p host=$WS_HOST port=$WS_PORT"
+        else
+            echo "RUNNING pid=unavailable host=$WS_HOST port=$WS_PORT note=port-confirmed"
+        fi
         exit 0
     fi
     if [ -n "$p" ]; then
@@ -157,6 +165,14 @@ case "$ACTION" in
     echo "STOPPED host=$WS_HOST port=$WS_PORT"
     ;;
   restart)
+    p="$(find_pid 2>/dev/null || true)"
+    if [ -z "$p" ] && port_open; then
+        # El hosting oculta el PID, pero el servicio está confirmado por puerto.
+        # No lanzamos un segundo daemon ni provocamos "Address already in use".
+        touch "$MARKER"
+        echo "RUNNING pid=unavailable host=$WS_HOST port=$WS_PORT note=restart-skipped-existing-service"
+        exit 0
+    fi
     stop_ws
     start_ws
     ;;

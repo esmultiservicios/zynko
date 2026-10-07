@@ -1216,3 +1216,43 @@ ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
 SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.114' AS version_objetivo;
 
 -- ZYNKO V2.31.114 · Sin cambios estructurales de BD; sincronización operativa WebSocket/UI.
+
+-- ============================================================
+-- ZYNKO V2.31.115 · Monitoreo operativo, alertas y autorrecuperación
+-- Seguro para ejecutar más de una vez.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `service_monitor_state` (
+  `service_key` VARCHAR(120) NOT NULL,
+  `service_name` VARCHAR(190) NOT NULL,
+  `current_status` ENUM('up','degraded','down','inactive') NOT NULL DEFAULT 'inactive',
+  `detail` VARCHAR(1000) NULL,
+  `last_checked_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_changed_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_notified_at` DATETIME NULL,
+  PRIMARY KEY (`service_key`),
+  KEY `idx_service_monitor_status` (`current_status`,`last_checked_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `service_monitor_events` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `service_key` VARCHAR(120) NOT NULL,
+  `service_name` VARCHAR(190) NOT NULL,
+  `old_status` ENUM('up','degraded','down','inactive') NOT NULL,
+  `new_status` ENUM('up','degraded','down','inactive') NOT NULL,
+  `detail` VARCHAR(1000) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_service_monitor_events` (`service_key`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES
+('monitor_enabled','1'),
+('monitor_email',''),
+('monitor_auto_recover_ws','1'),
+('monitor_notify_recovery','1')
+ON DUPLICATE KEY UPDATE `setting_value`=`setting_value`;
+
+INSERT INTO `system_settings` (`setting_key`,`setting_value`) VALUES ('app_version','2.31.116')
+ON DUPLICATE KEY UPDATE `setting_value`=VALUES(`setting_value`);
+
+SELECT 'ZYNKO_DB_UPDATE_OK' AS estado, DATABASE() AS base_datos, '2.31.116' AS version_objetivo;

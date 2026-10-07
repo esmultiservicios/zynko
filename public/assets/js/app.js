@@ -78,7 +78,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  const providerMode=$('#channelProviderMode');const syncProviderFields=()=>{if(!providerMode)return;const mode=providerMode.value;document.querySelectorAll('[name=bridge_url],[name=session_id]').forEach(el=>el.closest('.field')?.classList.toggle('provider-field-hidden',mode!=='qr_bridge'));};providerMode?.addEventListener('change',syncProviderFields);syncProviderFields();
  $$('.channel-validate').forEach(b=>b.addEventListener('click',async()=>{const fd=new FormData();fd.append('action','channel_validate');fd.append('id',b.dataset.id);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Canal conectado':'Validación fallida',j.message);if(j.ok)setTimeout(()=>location.reload(),500)}));
  $$('.channel-qr').forEach(b=>b.addEventListener('click',async()=>{const fd=new FormData();fd.append('action','channel_qr_start');fd.append('id',b.dataset.id);const j=await post(fd);if(!j.ok){showNotify('error','WhatsApp QR',j.message);return;}if(j.data?.connected){showNotify('success','WhatsApp QR','La sesión ya está conectada.');setTimeout(()=>location.reload(),500);return;}if(j.data?.qr){await Swal.fire({title:'Vincular WhatsApp por QR',html:'<p>Escanea este código desde Dispositivos vinculados en WhatsApp.</p><img src="'+j.data.qr+'" alt="QR de WhatsApp" style="max-width:290px;width:100%;border-radius:16px">',icon:'info',confirmButtonText:'Cerrar',allowOutsideClick:false});}else showNotify('info','WhatsApp QR','La sesión se inició; vuelve a consultar el QR en unos segundos.');}));
- bindAjax('#userForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#userEditForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#avatarForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#settingsForm',(j,f)=>{const t=f.querySelector('[name=theme]')?.value||'system';applyZynkoTheme(t);setTimeout(()=>location.reload(),700)}); bindAjax('#seoForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#publicSiteForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#envAdminForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#apiPolicyForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#botForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#openAiProviderForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#tenantAiForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#assignForm',()=>document.querySelector('#assignModal')?.classList.remove('open'));
+ bindAjax('#userForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#userEditForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#avatarForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#settingsForm',(j,f)=>{const t=f.querySelector('[name=theme]')?.value||'system';applyZynkoTheme(t);setTimeout(()=>location.reload(),700)}); bindAjax('#seoForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#publicSiteForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#envAdminForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#serviceMonitorForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#apiPolicyForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#botForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#openAiProviderForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#tenantAiForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#assignForm',()=>document.querySelector('#assignModal')?.classList.remove('open'));
  // search + records-per-page behavior
  const refreshRecordList=(panel)=>{
    const q=(panel.querySelector('.list-search')?.value||'').trim().toLowerCase();
@@ -838,10 +838,25 @@ else syncSwitchVisualState();
     stop:{title:'Detener WebSocket',confirm:'Detener',busy:'Deteniendo…',text:'Detendrá temporalmente el tiempo real.',impact:'Mientras esté detenido, ZYNKO conserva la base de datos y puede usar reconciliación HTTP como respaldo.'},
     restart:{title:'Reiniciar WebSocket',confirm:'Reiniciar',busy:'Reiniciando…',text:'Detiene y vuelve a iniciar únicamente el servicio WebSocket.',impact:'No modifica BD ni .env. La interrupción normal es de aproximadamente 1–3 segundos.'}
   };
+  let currentState=document.querySelector('[data-ws-initial-state]')?.dataset.wsInitialState||'stopped';
+  const syncControls=state=>{
+    currentState=state;
+    buttons.forEach(b=>{
+      const op=b.dataset.operation;
+      const limited=b.dataset.hostingLimited==='1';
+      if(limited){b.disabled=false;return;}
+      if(state==='working'){b.disabled=true;return;}
+      if(state==='running')b.disabled=op==='start';
+      else if(state==='stopped')b.disabled=op!=='start';
+      else if(state==='broken')b.disabled=op==='stop';
+      else b.disabled=false;
+    });
+  };
   const setState=state=>{
     const label=state==='running'?'Ejecutándose':state==='stopped'?'Detenido':state==='broken'?'Requiere atención':'Ejecutando acción…';
     document.querySelectorAll('[data-service-state]').forEach(el=>{el.textContent=label;el.classList.remove('running','stopped','working','broken');el.classList.add(state==='running'?'running':state==='stopped'?'stopped':state==='broken'?'broken':'working')});
     document.querySelectorAll('.service-state-icon').forEach(el=>{el.classList.toggle('is-running',state==='running');el.classList.toggle('is-stopped',state==='stopped'||state==='broken')});
+    syncControls(state);
     // Una sola fuente visual de verdad: al confirmar el servicio, el indicador global
     // Canales x/x cambia inmediatamente entre Tiempo real y Auto en cualquier módulo.
     if(['running','stopped','broken'].includes(state)){
@@ -886,9 +901,10 @@ else syncSwitchVisualState();
     }catch(e){
       setState('broken');
       showNotify('error','WebSocket',e.message||'No fue posible completar y verificar la acción.');
-    }finally{buttons.forEach(b=>{b.disabled=false;b.innerHTML=originals.get(b)||b.innerHTML})}
+    }finally{buttons.forEach(b=>{b.innerHTML=originals.get(b)||b.innerHTML});syncControls(currentState)}
   };
-  buttons.forEach(b=>b.addEventListener('click',()=>run(b.dataset.operation,b)));
+  syncControls(currentState);
+  buttons.forEach(b=>b.addEventListener('click',()=>{if(!b.disabled)run(b.dataset.operation,b)}));
 })();
 
 // ZYNKO V2.31.112 · UX estable del selector de emojis.
@@ -921,3 +937,5 @@ document.addEventListener('keydown',e=>{
   const btn=stage.querySelector('.preview-head-actions button[aria-label="Restaurar"]');
   if(btn){btn.setAttribute('aria-label','Expandir');btn.title='Expandir vista previa';const icon=btn.querySelector('i');if(icon){icon.classList.add('fa-expand');icon.classList.remove('fa-compress')}}
 });
+
+document.addEventListener('DOMContentLoaded',()=>{document.getElementById('runServiceMonitor')?.addEventListener('click',async e=>{const b=e.currentTarget,old=b.innerHTML;b.disabled=true;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Revisando…';try{const fd=new FormData();fd.append('action','service_monitor_run');const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Monitoreo completado':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),550)}catch(x){showNotify('error','Error',x.message)}finally{b.disabled=false;b.innerHTML=old}})});

@@ -5,6 +5,7 @@
 
 # Runtime generado por WebSocket y aplicación
 storage/websocket.pid
+storage/websocket-autostart.lock
 storage/websocket.restart.marker
 storage/websocket.state.json
 storage/logs/*
@@ -30,3 +31,25 @@ public/uploads/*
 Thumbs.db
 .idea/
 .vscode/
+
+storage/*.lock
+storage/*.pid
+storage/*.marker
+storage/tmp/*
+storage/monitor/*
+temp/
+*.tmp
+
+# Runtime genérico adicional
+storage/backups/*
+*.cache
+*.swp
+*.swo
+*.bak
+*.old
+*.orig
+*~
+tmp/
+cache/
+logs/
+backups/
