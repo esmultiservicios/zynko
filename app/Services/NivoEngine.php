@@ -431,10 +431,8 @@ final class NivoEngine
                 return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,'platform:nivo-combined','high',false,$displayName,$english);
             }
 
-            $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
-            foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
-
-            // Orquestador conversacional general: memoria + RAG semántico + razonamiento por tenant.
+            // En modo híbrido el orquestador conversacional es la ruta primaria: debe entender el turno
+            // completo antes de aplicar reglas por palabras. Las reglas quedan como fallback controlado.
             if(($bot['mode']??'hybrid')==='hybrid')try{
                 $brain=(new NivoConversationIntelligence($pdo,dirname(__DIR__,2)))->turn($tenantId,$conversationId,$channelType,$message,$contactName,$companyName);
                 if($brain&&trim((string)($brain['reply']??''))!==''){
@@ -444,6 +442,9 @@ final class NivoEngine
                     return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$brain['reply'],(string)($brain['_source']??'nivo:conversation-orchestrator'),$confidence,$handoff,$displayName,$english);
                 }
             }catch(Throwable $ignore){}
+
+            $rq=$pdo->prepare('SELECT name,keywords,response FROM nivo_rules WHERE tenant_id=? AND active=1 ORDER BY priority,id');$rq->execute([$tenantId]);
+            foreach($rq->fetchAll() as $r){foreach(array_filter(array_map([self::class,'norm'],explode(',',(string)$r['keywords']))) as $kw){if($kw!==''&&mb_strpos($effectiveNorm,$kw)!==false)return self::finish($pdo,$tenantId,$conversationId,$policy,$result,(string)$r['response'],'rule:'.($r['name']??''),'high',false,$displayName,$english);}}
 
             $entityReply = self::entityIntentReply($pdo, $tenantId, $effectiveNorm, $companyName, $settings);
             if ($entityReply !== null) {
@@ -485,10 +486,13 @@ final class NivoEngine
                         }
                         $sources[]=$label;
                     }
-                    $reply=implode("
-
-",$chunks?:[self::relevantExcerpt((string)$best['content'],$words,$limit)]);
-                    $tone=$settings['tone']??'professional';if($tone==='friendly')$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';
+                    // Fallback local seguro: nunca volcar varios fragmentos o slogans concatenados al cliente.
+                    $reply=self::relevantExcerpt((string)$best['content'],$words,min($limit,620));
+                    $parts=preg_split('/(?:\r?\n){2,}|(?<=[.!?])\s+(?=[A-ZÁÉÍÓÚÑ¿])/u',trim($reply))?:[];$clean=[];$seen=[];
+                    foreach($parts as $part){$part=trim(preg_replace('/\s+/u',' ',$part)??$part);if($part===''||mb_strlen($part)<18)continue;$key=self::norm($part);if(isset($seen[$key]))continue;$seen[$key]=1;$clean[]=$part;if(count($clean)>=2)break;}
+                    if($clean)$reply=implode(' ',$clean);
+                    if(!$english&&preg_match('/\b(the|and|we can|solutions developed|business)\b/i',$reply)){$reply='Encontré información relacionada, pero prefiero no mezclar fragmentos en otro idioma. ¿Puedes decirme qué aspecto específico necesitas conocer?';}
+                    $tone=$settings['tone']??'professional';if($tone==='friendly'&&$reply!==''&&!str_starts_with(self::norm($reply),'con gusto'))$reply='Con gusto. '.$reply;elseif($tone==='concise'&&mb_strlen($reply)>420)$reply=mb_substr($reply,0,420).'…';
                     $result['sources']=$sources;
                     $source='knowledge:'.implode(' | ',array_slice($sources,0,3));
                     return self::finish($pdo,$tenantId,$conversationId,$policy,$result,$reply,$source,$score>=9?'high':'medium',false,$displayName,$english);

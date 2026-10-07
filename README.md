@@ -1,3 +1,19 @@
+# ZYNKO v2.31.132
+
+
+## ZYNKO v2.31.132 · Espaciado premium en documentación pública
+
+- Corrige el ritmo vertical entre la tarjeta de documentación versionada y la tarjeta de URL base publicada.
+- Mantiene Select2 local en el selector de versiones y conserva el rediseño premium de v2.31.131.
+- Añade separación responsive para evitar bloques pegados en escritorio, tablet y móvil.
+- Conserva íntegramente las mejoras conversacionales de NIVO incluidas en v2.31.131.
+- No requiere cambios adicionales de base de datos sobre v2.31.130.
+
+- Documentación versionada premium con Select2 local.
+- NIVO híbrido prioriza el orquestador conversacional, memoria y RAG antes de reglas rígidas.
+- Evita respuestas mezcladas ES/EN y volcados repetitivos de conocimiento.
+- No requiere UPDATE adicional sobre la base ya actualizada a v2.31.130.
+
 ## V2.31.130 · NIVO conversacional multiempresa, memoria y RAG semántico
 
 - Sustituye el flujo comercial hardcodeado por un orquestador conversacional general y multiempresa.

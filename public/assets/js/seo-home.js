@@ -111,10 +111,16 @@
     let turnstileWidgetId=null,turnstileReadyPromise=null,pendingTurnstileResolve=null,pendingTurnstileReject=null;
 
     if(window.jQuery&&jQuery.fn&&jQuery.fn.select2){
-      jQuery(contactForm).find('.contact-select2').each(function(){
+      jQuery('.contact-select2').each(function(){
         const $el=jQuery(this);
         if($el.hasClass('select2-hidden-accessible'))return;
-        $el.select2({width:'100%',minimumResultsForSearch:0,placeholder:$el.data('placeholder')||'Selecciona una opción',dropdownCssClass:'zynko-contact-select2-dropdown'});
+        const isDocs=$el.hasClass('public-doc-select2');
+        $el.select2({
+          width:'100%',
+          minimumResultsForSearch:isDocs?0:0,
+          placeholder:$el.data('placeholder')||'Selecciona una opción',
+          dropdownCssClass:'zynko-contact-select2-dropdown'+(isDocs?' zynko-docs-select2-dropdown':'')
+        });
       });
     }
     document.documentElement.classList.remove('select2-preload');

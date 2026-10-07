@@ -156,6 +156,11 @@ final class NivoConversationIntelligence
 
     public function turn(int $tenantId,int $conversationId,string $channelType,string $message,string $contactName,string $companyName): ?array
     {
-        $memory=$this->memory($tenantId,$conversationId);$search=trim(($memory['summary']??'').' '.$message);$knowledge=$this->retrieve($tenantId,$search,6);$provider=new OpenAIProviderService($this->pdo,$this->root);$turn=$provider->conversationTurn($tenantId,$conversationId,$channelType,$message,$contactName,$companyName,$memory,$this->recentContext($tenantId,$conversationId),$knowledge);if(!$turn)return null;$this->saveTurn($tenantId,$conversationId,$message,$turn);return $turn;
+        $memory=$this->memory($tenantId,$conversationId);
+        $entities=(array)($memory['entities']??[]);$requirements=(array)($memory['requirements']??[]);$commercial=(array)($memory['commercial_state']??[]);
+        $focus=[];foreach(['product_interest','business_type','city'] as $k)if(!empty($commercial[$k]??$entities[$k]??null))$focus[]=(string)($commercial[$k]??$entities[$k]);
+        foreach($requirements as $k=>$v){if(is_scalar($v)&&$v!==''&&$v!==false)$focus[]=(string)$k.' '.(string)$v;elseif(is_array($v))$focus[]=implode(' ',array_map('strval',array_filter($v,'is_scalar')));}
+        $search=trim($message.' '.implode(' ',array_slice($focus,0,12)));
+        $knowledge=$this->retrieve($tenantId,$search,8);$provider=new OpenAIProviderService($this->pdo,$this->root);$turn=$provider->conversationTurn($tenantId,$conversationId,$channelType,$message,$contactName,$companyName,$memory,$this->recentContext($tenantId,$conversationId),$knowledge);if(!$turn)return null;$this->saveTurn($tenantId,$conversationId,$message,$turn);return $turn;
     }
 }

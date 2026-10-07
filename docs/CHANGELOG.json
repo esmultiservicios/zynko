@@ -1,5 +1,31 @@
 [
   {
+    "version": "2.31.132",
+    "date": "2026-10-07",
+    "title": "Espaciado premium en documentación pública",
+    "changes": [
+      "Corrige la separación vertical entre Documentación versionada y URL base publicada para evitar tarjetas pegadas.",
+      "Mantiene el selector de versiones con Select2 local, búsqueda y estilo premium.",
+      "Ajusta el ritmo visual de la sección de documentación en escritorio, tablet y móvil.",
+      "Conserva sin cambios funcionales las mejoras conversacionales de NIVO incluidas en v2.31.131."
+    ],
+    "database_update": false
+  },
+  {
+    "version": "2.31.131",
+    "date": "2026-10-07",
+    "title": "Documentación premium y NIVO conversacional priorizado",
+    "changes": [
+      "Rediseña la documentación versionada del sitio público con una tarjeta premium, jerarquía visual y notas ordenadas.",
+      "Inicializa Select2 también fuera del formulario de contacto para que el selector de versiones use el componente local aprobado.",
+      "Prioriza el orquestador conversacional de NIVO antes de reglas por palabras cuando el modo es híbrido.",
+      "Permite al tenant principal sin fila previa de IA usar el orquestador cuando OpenAI global está habilitado, sin reactivar tenants explícitamente deshabilitados.",
+      "Refuerza el prompt para responder en un solo idioma, sintetizar conocimiento y no concatenar slogans o fragmentos recuperados.",
+      "Enfoca la recuperación RAG en el mensaje actual y los hechos estructurados relevantes, evitando contaminar la búsqueda con todo el resumen.",
+      "Hace que el fallback local entregue una respuesta limpia basada en la mejor evidencia en lugar de volcar múltiples fragmentos repetidos."
+    ]
+  },
+  {
     "version": "2.31.130",
     "date": "2026-10-07",
     "title": "NIVO conversacional multiempresa con memoria y RAG semántico",
