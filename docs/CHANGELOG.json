@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.31.125",
+    "date": "2026-10-07",
+    "title": "Espaciado premium en revisión automática",
+    "changes": [
+      "Rediseña la tarjeta de recomendación automática en Configuración con márgenes internos y separación consistente.",
+      "Alinea icono, título, texto y comando cron sin depender de estilos genéricos de campos.",
+      "Mantiene comportamiento responsive sin cambios de base de datos."
+    ]
+  },
+  {
     "version": "2.31.124",
     "date": "2026-10-07",
     "title": "Navegación funcional, preview fiel y Bandeja alineada",

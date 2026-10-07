@@ -1,3 +1,10 @@
+## V2.31.125 · Espaciado premium en revisión automática
+- Se rediseñó únicamente la tarjeta “Revisión automática recomendada cada 5 minutos” de Configuración.
+- El icono, título y texto ahora respetan márgenes internos, separación y alineación consistentes.
+- Se eliminó la dependencia de estilos genéricos de `.field` para evitar que el contenido quede pegado o salte de línea de forma incorrecta.
+- Se mantiene responsive en escritorio, tablet y móvil.
+- No requiere cambios de base de datos.
+
 ## V2.31.124 · Navegación funcional y fidelidad visual de NIVO
 
 - Los submenús de Usuarios apuntan a secciones reales: Directorio y Roles/Equipos.
