@@ -865,7 +865,8 @@
       const button = shadow.querySelector('.survey-submit');
       if (button) button.disabled = true;
       try {
-        await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, resolved: state.surveyResolved, nivo_helpful: state.surveyNivoHelpful, comment: shadow.querySelector('.survey-comment')?.value || '' });
+        const surveyResult = await call({ action: 'survey', conversation_id: state.surveyConversationId || state.conversation_id, rating: state.selectedRating, resolved: state.surveyResolved, nivo_helpful: state.surveyNivoHelpful, comment: shadow.querySelector('.survey-comment')?.value || '' });
+        if (surveyResult?.profile_reset) clearVisitorProfileForNewChat();
         setPresence('Opinión registrada · preparando chat nuevo…', true);
         setTimeout(()=>resetAfterSurvey().catch(error=>window.ZYNKO_DEBUG===true&&console.warn('NIVO Web Chat:',error.message)),500);
       } catch (error) {
@@ -876,7 +877,7 @@
     });
     shadow.querySelector('.survey-skip')?.addEventListener('click', async () => {
       const button=shadow.querySelector('.survey-skip');if(button)button.disabled=true;
-      try{await call({action:'survey_skip',conversation_id:state.surveyConversationId||state.conversation_id});await resetAfterSurvey();}
+      try{const skipResult=await call({action:'survey_skip',conversation_id:state.surveyConversationId||state.conversation_id});if(skipResult?.profile_reset)clearVisitorProfileForNewChat();await resetAfterSurvey();}
       catch(error){add(shadow,error.message,'in','Sistema');}
       finally{if(button)button.disabled=false;}
     });

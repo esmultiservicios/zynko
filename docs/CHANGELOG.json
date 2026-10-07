@@ -1,5 +1,32 @@
 [
   {
+    "version": "2.31.136",
+    "date": "2026-10-07",
+    "title": "Administrador de captura NIVO premium y responsive",
+    "changes": [
+      "Rediseña el administrador de captura del preview para evitar texto apretado, botones amontonados y saltos incómodos.",
+      "Mantiene la acción Cambiar captura junto a la cabecera del preview y lleva toda la edición a un modal amplio y ordenado.",
+      "Centra la zona de arrastrar, pegar o seleccionar con jerarquía visual clara y mejor espacio interno.",
+      "Ordena la vista del archivo actual y mueve todas las acciones al footer del modal.",
+      "Ajusta escritorio, tablet y móvil sin scroll horizontal ni elementos comprimidos.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
+    "version": "2.31.135",
+    "date": "2026-10-07",
+    "title": "Preview real administrable e identidad limpia del visitante",
+    "changes": [
+      "Reemplaza por defecto el preview generado del admin con la captura real suministrada de NIVO Web Chat.",
+      "Agrega un botón visible Cambiar captura que abre un modal premium con arrastrar y soltar, copiar/pegar y seleccionar archivo.",
+      "Mantiene la captura personalizada al guardar otras opciones de NIVO Web Chat para que no se pierda experience_json.",
+      "Refuerza el cierre de encuesta y omisión para limpiar nombre, correo y conversation_id también en servidor, incluso si el reset del navegador falla.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.134",
     "date": "2026-10-07",
     "title": "Preview administrable en NIVO Web Chat",

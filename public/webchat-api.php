@@ -1027,7 +1027,8 @@ if ($action === 'survey') {
     }
     $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,resolved,nivo_helpful,comment,requested_at,responded_at) VALUES(?,?,?,?,?,?,?,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=VALUES(rating),resolved=VALUES(resolved),nivo_helpful=VALUES(nivo_helpful),comment=VALUES(comment),responded_at=NOW()")
         ->execute([$tid, $cid, (int) $v['id'], $rating, $resolved, $nivoHelpful, $comment ?: null]);
-    out(true, 'Gracias por tu opinión.', ['conversation_id'=>$cid,'rating'=>$rating]);
+    $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,name=NULL,email=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'],$tid]);
+    out(true, 'Gracias por tu opinión.', ['conversation_id'=>$cid,'rating'=>$rating,'profile_reset'=>true]);
 }
 
 if ($action === 'survey_skip') {
@@ -1037,7 +1038,8 @@ if ($action === 'survey_skip') {
     if (!$q->fetchColumn()) out(false, 'No fue posible validar esta encuesta.', [], 403);
     $pdo->prepare("INSERT INTO conversation_surveys(tenant_id,conversation_id,visitor_id,rating,resolved,nivo_helpful,comment,requested_at,responded_at) VALUES(?,?,?,NULL,NULL,NULL,NULL,NOW(),NOW()) ON DUPLICATE KEY UPDATE visitor_id=VALUES(visitor_id),rating=NULL,resolved=NULL,nivo_helpful=NULL,comment=NULL,responded_at=NOW()")
         ->execute([$tid,$cid,(int)$v['id']]);
-    out(true,'Encuesta omitida.',['conversation_id'=>$cid]);
+    $pdo->prepare('UPDATE webchat_visitors SET conversation_id=NULL,name=NULL,email=NULL,last_seen_at=NOW() WHERE id=? AND tenant_id=?')->execute([$v['id'],$tid]);
+    out(true,'Encuesta omitida.',['conversation_id'=>$cid,'profile_reset'=>true]);
 }
 
 if ($action === 'new_chat') {

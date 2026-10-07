@@ -342,7 +342,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.134';
+$releaseVersion='2.31.136';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -1069,6 +1069,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     'offline_send_guard'=>isset($_POST['offline_send_guard']),
     'retry_failed_message'=>isset($_POST['retry_failed_message'])
    ];
+   if($id){try{$ep=$pdo->prepare('SELECT experience_json FROM webchat_widgets WHERE id=? AND tenant_id=? LIMIT 1');$ep->execute([$id,$tid]);$previousExperience=json_decode((string)($ep->fetchColumn()?:'{}'),true)?:[];if(!empty($previousExperience['admin_preview_image']))$experience['admin_preview_image']=$previousExperience['admin_preview_image'];}catch(Throwable $ignorePreview){}}
    $channel=$pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type='webchat' ORDER BY id LIMIT 1");$channel->execute([$tid]);$channelId=(int)$channel->fetchColumn();if(!$channelId){$pdo->prepare("INSERT INTO channels(tenant_id,uuid,type,name,display_address,status,settings_json) VALUES(?,?, 'webchat',?,'NIVO Web Chat','connected','{}')")->execute([$tid,uuid4(),$name]);$channelId=(int)$pdo->lastInsertId();}
    $vals=[$channelId,$name,$enabled,$position,$displayMode,max(0,min(200,(int)($_POST['offset_x']??24))),max(0,min(200,(int)($_POST['offset_y']??24))),$color,$launcher,$sound,trim($_POST['welcome_title']??'¡Hola! Soy NIVO'),trim($_POST['assistant_subtitle']??''),trim($_POST['welcome_message']??'¿En qué puedo ayudarte hoy?'),isset($_POST['ask_name'])?1:0,isset($_POST['ask_email'])?1:0,$required,$privacy,$privacyText,$privacyUrl,$multi,json_encode($experience,JSON_UNESCAPED_UNICODE)];
    if($id){$sql="UPDATE webchat_widgets SET channel_id=?,name=?,enabled=?,position=?,display_mode=?,offset_x=?,offset_y=?,accent_color=?,launcher_label=?,sound_enabled=?,welcome_title=?,assistant_subtitle=?,welcome_message=?,ask_name=?,ask_email=?,profile_required=?,privacy_enabled=?,privacy_text=?,privacy_url=?,allow_multiple_domains=?,experience_json=? WHERE id=? AND tenant_id=?";$pdo->prepare($sql)->execute([...$vals,$id,$tid]);}

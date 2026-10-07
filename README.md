@@ -1,9 +1,11 @@
-# ZYNKO v2.31.134
+# ZYNKO v2.31.136
 
-- Reinicia de forma limpia el nombre y correo del visitante únicamente cuando una conversación ya finalizada pasa a un chat nuevo.
-- Conserva la identidad y la conversación al recargar mientras el chat siga activo.
-- Sincroniza el reset de perfil entre backend y Web Chat después de responder/omitir la encuesta o iniciar un chat nuevo.
-- Mejora el botón Enviar del Web Chat con altura alineada al input, mayor ancho, hover premium y mejor presencia visual.
+- Reemplaza por defecto la vista previa del admin de NIVO Web Chat con la captura real suministrada del widget.
+- Agrega un botón visible **Cambiar captura** que abre un modal premium para arrastrar, pegar o seleccionar una imagen sin editar código.
+- Conserva la captura personalizada aunque se guarden otras opciones de NIVO Web Chat.
+- Refuerza el reset del visitante al responder u omitir la encuesta: limpia nombre, correo y vínculo de conversación tanto en servidor como en el navegador.
+- Mantiene nombre, correo y conversación durante una recarga mientras el chat siga activo.
+- Conserva el botón Enviar premium y todos los cambios acumulados de versiones anteriores.
 - No requiere cambios de base de datos.
 
 # ZYNKO v2.31.132
