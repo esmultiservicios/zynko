@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.31.119",
+    "date": "2026-10-06",
+    "title": "Turnstile canónico, encabezados alineados y gráficas con valores visibles",
+    "changes": [
+      "La nota 'Cambio seguro' y tarjetas equivalentes alinean el icono al lado izquierdo del texto con separación y proporción consistente.",
+      "Cloudflare Turnstile deja de pedir hostname opcional en la interfaz y fija el sitio protegido a https://zynkocloud.app/.",
+      "El guardado del sitio público normaliza el hostname de Turnstile a zynkocloud.app para evitar valores antiguos o inconsistentes.",
+      "Las gráficas del dashboard muestran el valor visible en cada barra para una lectura más profesional."
+    ]
+  },
+  {
     "version": "2.31.117",
     "date": "2026-10-06",
     "title": "Observabilidad, correo entrante y experiencia NIVO",

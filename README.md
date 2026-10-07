@@ -1,3 +1,10 @@
+## V2.31.119 · Turnstile canónico y gráficas más claras
+
+- La nota “Cambio seguro” y avisos similares mantienen el icono alineado a la izquierda del texto con mejor proporción visual.
+- Cloudflare Turnstile deja de pedir un hostname opcional y fija como dominio protegido `https://zynkocloud.app/`.
+- El servidor guarda y valida `zynkocloud.app` como hostname canónico para Turnstile.
+- Los gráficos muestran el valor visible en cada barra para una lectura más profesional.
+
 ## V2.31.117 · Consistencia operativa y UI administrativa
 
 - WebSocket usa controles inteligentes: Iniciar solo cuando está detenido; Detener/Reiniciar solo cuando está activo.
