@@ -115,7 +115,7 @@ body.lightbox-open{overflow:hidden}
   overflow:hidden;
   border-radius:18px;
   aspect-ratio:16/10;
-  cursor:pointer;
+  cursor:zoom-in;
   background:#edf4f7;
 }
 .showcase-media img{
@@ -128,7 +128,8 @@ body.lightbox-open{overflow:hidden}
   display:inline-flex;align-items:center;gap:8px;
   padding:10px 13px;border-radius:999px;
   background:rgba(8,38,59,.82);color:#fff;font-size:12px;font-weight:800;
-  box-shadow:0 10px 24px rgba(8,38,59,.28)
+  box-shadow:0 10px 24px rgba(8,38,59,.28);
+  cursor:pointer;
 }
 .showcase-copy span{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:900;letter-spacing:.14em;color:#0b8c78;text-transform:uppercase}
 .showcase-copy h3{margin:8px 0 8px;font-size:1.15rem;letter-spacing:-.02em;color:#08263b}
