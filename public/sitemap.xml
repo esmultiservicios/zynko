@@ -1,7 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
- ZYNKO sitemap.xml - archivo físico de respaldo/documentación.
- En Apache, /.htaccess sirve dinámicamente public/sitemap.php para insertar el dominio configurado.
+ ZYNKO sitemap.xml - fallback físico válido para producción.
+ Si Apache aplica /.htaccess, /sitemap.xml puede resolverse dinámicamente con public/sitemap.php.
+ Si el servidor entrega este archivo físico directamente, Google recibe igualmente una URL indexable válida.
  La portada pública es actualmente la única URL indexable del sistema.
 -->
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://zynkocloud.app/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>

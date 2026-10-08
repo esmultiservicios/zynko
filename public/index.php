@@ -342,7 +342,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.139';
+$releaseVersion='2.31.141';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -841,6 +841,15 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $state=$running?'running':'stopped';
    try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'websocket.'.$op,json_encode(['state'=>$state,'duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']],JSON_UNESCAPED_UNICODE),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
    $label=['start'=>'iniciado','stop'=>'detenido','restart'=>'reiniciado','status'=>'consultado'][$op];
+   // Toda transición manual debe quedar registrada y notificada por correo igual
+   // que una transición automática. No autorrecuperamos aquí para respetar un STOP
+   // solicitado expresamente por el administrador.
+   if($op!=='status'){
+      try{
+         $monitor=new ZynkoServiceMonitor($pdo,$root,envConfig($root.'/.env'),mainTenantId());
+         $monitor->run(true,false);
+      }catch(Throwable $monitorError){}
+   }
    jsonOut(true,'WebSocket '.$label.'.',['state'=>$state,'duration'=>$elapsed,'output'=>$text,'backend'=>$result['backend']]);
   }
   if($action==='system_version_save' ){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');$v=trim($_POST['version']??'');if(!preg_match('/^\d+\.\d+\.\d+$/',$v))throw new RuntimeException('Usa el formato 2.23.1.');$pdo->prepare("INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES('app_version',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)")->execute([$v,(int)$_SESSION['user']['id']]);jsonOut(true,'Versión actualizada a '.$v.'.');}

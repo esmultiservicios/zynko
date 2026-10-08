@@ -1,5 +1,5 @@
 # ZYNKO robots.txt
-# Archivo físico de respaldo. En Apache, /.htaccess sirve la versión dinámica de public/robots.php.
+# Fallback físico válido para producción. En Apache, /.htaccess puede servir la versión dinámica de public/robots.php.
 User-agent: *
 Allow: /
 Disallow: /app/
@@ -28,4 +28,5 @@ Disallow: /*?page=email
 Disallow: /*?page=settings
 Disallow: /*?page=onboarding
 
-# La URL absoluta del sitemap la genera public/robots.php usando SEO > URL pública o APP_URL.
+# Fallback absoluto para producción; public/robots.php puede generarlo dinámicamente cuando el rewrite está activo.
+Sitemap: https://zynkocloud.app/sitemap.xml

@@ -6,6 +6,7 @@ PID_FILE="$ROOT/storage/websocket.pid"
 LOG_DIR="$ROOT/storage/logs"
 LOG_FILE="$LOG_DIR/websocket.log"
 MARKER="$ROOT/storage/websocket.restart.marker"
+MANUAL_STOP_MARKER="$ROOT/storage/websocket.manual-stop"
 SERVER="$ROOT/websocket/server.php"
 ENV_FILE="$ROOT/.env"
 ACTION="${1:-status}"
@@ -89,10 +90,11 @@ launch_ws(){
     php_bin="$(command -v php || true)"
     [ -n "$php_bin" ] || { echo "ERROR PHP CLI no disponible" >&2; return 1; }
 
-    # setsid separates the daemon from the web/CLI process group when available.
-    # This avoids the child process dying when the request that started it ends.
+    # Separamos el daemon por completo del request PHP/CLI. `setsid -f` fuerza
+    # un nuevo proceso/sesión y evita que algunos hostings lo terminen al cerrar
+    # la petición web que pulsó “Iniciar”.
     if command -v setsid >/dev/null 2>&1; then
-        nohup setsid "$php_bin" "$SERVER" >> "$LOG_FILE" 2>&1 < /dev/null &
+        nohup setsid -f "$php_bin" "$SERVER" >> "$LOG_FILE" 2>&1 < /dev/null &
     else
         nohup "$php_bin" "$SERVER" >> "$LOG_FILE" 2>&1 < /dev/null &
     fi
@@ -120,7 +122,7 @@ start_ws(){
     launch_ws || return 1
 
     local p=""
-    for _ in 1 2 3 4 5 6 7 8 9 10; do
+    for _ in $(seq 1 30); do
         sleep 0.3
         p="$(find_pid 2>/dev/null || true)"
         if [ -n "$p" ] && port_open; then
@@ -158,13 +160,16 @@ case "$ACTION" in
     exit 3
     ;;
   start)
+    rm -f "$MANUAL_STOP_MARKER"
     start_ws
     ;;
   stop)
     stop_ws
-    echo "STOPPED host=$WS_HOST port=$WS_PORT"
+    touch "$MANUAL_STOP_MARKER"
+    echo "STOPPED host=$WS_HOST port=$WS_PORT note=manual-stop"
     ;;
   restart)
+    rm -f "$MANUAL_STOP_MARKER"
     p="$(find_pid 2>/dev/null || true)"
     if [ -z "$p" ] && port_open; then
         # El hosting oculta el PID, pero el servicio está confirmado por puerto.

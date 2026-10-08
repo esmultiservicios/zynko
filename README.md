@@ -1,11 +1,10 @@
-# ZYNKO v2.31.139
+# ZYNKO v2.31.141
 
-- Reemplaza por defecto la vista previa del admin de NIVO Web Chat con la captura real suministrada del widget.
-- Agrega un botón visible **Cambiar captura** que abre un modal premium para arrastrar, pegar o seleccionar una imagen sin editar código.
-- Conserva la captura personalizada aunque se guarden otras opciones de NIVO Web Chat.
-- Refuerza el reset del visitante al responder u omitir la encuesta: limpia nombre, correo y vínculo de conversación tanto en servidor como en el navegador.
-- Mantiene nombre, correo y conversación durante una recarga mientras el chat siga activo.
-- Conserva el botón Enviar premium y todos los cambios acumulados de versiones anteriores.
+- Refuerza la persistencia del WebSocket con arranque desacoplado y verificación extendida.
+- Instala automáticamente un monitor cada minuto en cPanel para detectar caídas, autorrecuperar WebSocket y enviar alertas por transición de estado.
+- Registra y notifica también los cambios manuales de estado ejecutados desde el panel; un Detener manual se respeta y no es revertido por la autorrecuperación.
+- El monitor conserva la caída original aunque logre recuperar WebSocket en la misma ejecución, por lo que el administrador recibe el incidente y su recuperación.
+- Evita el falso error visual que podía aparecer si el puerto tardaba unos segundos adicionales en quedar confirmado.
 - No requiere cambios de base de datos.
 
 # ZYNKO v2.31.132

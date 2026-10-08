@@ -58,31 +58,74 @@ final class ZynkoServiceMonitor
         $services = $this->probeServices();
         $changes = [];
 
-        if ($allowRecovery && ($settings['monitor_auto_recover_ws'] ?? '1') === '1') {
-            foreach ($services as $svc) {
-                if ($svc['key'] === 'websocket' && $svc['status'] === 'down') {
-                    $recovery = $this->recoverWebSocket();
-                    if ($recovery['attempted']) {
-                        usleep(450000);
-                        $services = $this->probeServices();
-                    }
-                    break;
-                }
-            }
-        }
-
+        // Primero persistimos el estado REAL observado. Esto es importante porque, si
+        // WebSocket cayó y la autorrecuperación funciona en la misma ejecución, el
+        // administrador debe enterarse tanto de la caída como de la recuperación.
         foreach ($services as $service) {
             $previous = $this->previousState($service['key']);
             $this->saveState($service, $previous);
             if ($previous !== null && $previous !== $service['status']) {
-                $changes[] = [
+                $change = [
                     'key' => $service['key'],
                     'name' => $service['name'],
                     'old' => $previous,
                     'new' => $service['status'],
                     'detail' => $service['detail'],
                 ];
+                $changes[] = $change;
                 $this->logEvent($service, $previous);
+            }
+        }
+
+        // Autorrecuperación: si WebSocket está caído, intenta levantarlo y espera
+        // hasta 10 segundos. Luego vuelve a sondear TODOS los servicios para dejar
+        // persistido el estado final y registrar la transición DOWN -> UP.
+        $manualStop = is_file($this->root . '/storage/websocket.manual-stop');
+        if ($allowRecovery && !$manualStop && ($settings['monitor_auto_recover_ws'] ?? '1') === '1') {
+            $wsDown = false;
+            foreach ($services as $svc) {
+                if ($svc['key'] === 'websocket' && $svc['status'] === 'down') {
+                    $wsDown = true;
+                    break;
+                }
+            }
+
+            if ($wsDown) {
+                $recovery = $this->recoverWebSocket();
+                if ($recovery['attempted']) {
+                    $deadline = microtime(true) + 10.0;
+                    do {
+                        usleep(500000);
+                        $after = $this->probeServices();
+                        $wsUp = false;
+                        foreach ($after as $svc) {
+                            if ($svc['key'] === 'websocket' && $svc['status'] === 'up') {
+                                $wsUp = true;
+                                break;
+                            }
+                        }
+                        if ($wsUp || microtime(true) >= $deadline) {
+                            $services = $after;
+                            break;
+                        }
+                    } while (true);
+
+                    foreach ($services as $service) {
+                        $previous = $this->previousState($service['key']);
+                        $this->saveState($service, $previous);
+                        if ($previous !== null && $previous !== $service['status']) {
+                            $change = [
+                                'key' => $service['key'],
+                                'name' => $service['name'],
+                                'old' => $previous,
+                                'new' => $service['status'],
+                                'detail' => $service['detail'],
+                            ];
+                            $changes[] = $change;
+                            $this->logEvent($service, $previous);
+                        }
+                    }
+                }
             }
         }
 
@@ -232,8 +275,18 @@ final class ZynkoServiceMonitor
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return;
 
         $hasFailure = false;
-        foreach ($changes as $c) if (in_array($c['new'], ['down','degraded'], true)) $hasFailure = true;
-        $title = $hasFailure ? 'Alerta de servicio: ZYNKO requiere atención' : 'Servicio recuperado: ZYNKO volvió a estado operativo';
+        $hasRecovery = false;
+        foreach ($changes as $c) {
+            if (in_array($c['new'], ['down','degraded'], true)) $hasFailure = true;
+            if ($c['new'] === 'up' && in_array($c['old'], ['down','degraded'], true)) $hasRecovery = true;
+        }
+        if ($hasFailure && $hasRecovery) {
+            $title = 'Incidente recuperado: ZYNKO detectó y restauró un servicio';
+        } elseif ($hasFailure) {
+            $title = 'Alerta de servicio: ZYNKO requiere atención';
+        } else {
+            $title = 'Servicio recuperado: ZYNKO volvió a estado operativo';
+        }
         $lines = [];
         $lines[] = 'Cambios detectados:';
         foreach ($changes as $c) $lines[] = '• ' . $c['name'] . ': ' . strtoupper($c['old']) . ' → ' . strtoupper($c['new']) . '. ' . $c['detail'];

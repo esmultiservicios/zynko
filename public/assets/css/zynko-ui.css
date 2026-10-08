@@ -6097,7 +6097,7 @@ body:has(.inbox-premium-toolbar) .message-sender{font-weight:900!important;lette
 }
 
 
-/* ZYNKO V2.31.139 · preview real limpio, sin modos confusos */
+/* ZYNKO V2.31.140 · preview real limpio, sin modos confusos */
 #webchatPreviewModal .webchat-preview-mode-card{display:none!important}
 .nivo-webchat-page .preview-stage.has-uploaded-preview{min-height:0!important;height:auto!important;padding:14px!important;background:#eef3f6!important;display:flex!important;align-items:center!important;justify-content:center!important}
 .nivo-webchat-page .preview-shot-card{width:min(100%,423px)!important;max-width:423px!important;padding:0!important;border:0!important;border-radius:18px!important;background:transparent!important;box-shadow:none!important;overflow:hidden!important}

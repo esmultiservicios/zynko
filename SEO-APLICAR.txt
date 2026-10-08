@@ -27,7 +27,7 @@ COMPORTAMIENTO
 - La portada pública / es indexable.
 - Login, registro, recuperación, verificación y dashboard permanecen noindex/nofollow.
 - robots.txt bloquea rutas internas y anuncia sitemap.xml.
-- sitemap.xml publica únicamente páginas públicas que realmente deben indexarse.
+- sitemap.xml publica únicamente páginas públicas que realmente deben indexarse. El archivo físico debe permanecer válido como fallback aunque el rewrite dinámico no se ejecute.
 - canonical, Open Graph, Twitter Card y JSON-LD usan la configuración SEO.
 - Si SEO > URL pública está vacía, se usa APP_URL del .env.
 

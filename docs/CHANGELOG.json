@@ -1,5 +1,33 @@
 [
   {
+    "version": "2.31.141",
+    "date": "2026-10-07",
+    "title": "WebSocket persistente, autorrecuperación y alertas de estado",
+    "changes": [
+      "Refuerza el desacople del proceso WebSocket y amplía la espera de arranque para evitar falsos negativos.",
+      "Instala automáticamente un monitor por cron cada minuto en cPanel para revisar servicios y autorrecuperar WebSocket.",
+      "Registra la caída antes de autorrecuperar para que el correo informe tanto el incidente como la recuperación.",
+      "Procesa también las transiciones manuales del WebSocket para enviar correo cuando cambia de estado desde el panel.",
+      "Respeta un Detener manual mediante una marca de intención para que la autorrecuperación no contradiga al administrador.",
+      "La interfaz verifica varias veces el puerto antes de mostrar error, evitando el mensaje de fallo cuando el servicio termina quedando activo.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
+    "version": "2.31.140",
+    "date": "2026-10-07",
+    "title": "Sitemap físico válido para Google Search Console",
+    "changes": [
+      "Convierte sitemap.xml de raíz y public/sitemap.xml en fallbacks físicos válidos con la portada pública de ZYNKO.",
+      "Evita que Google reciba un urlset vacío cuando el servidor entrega el archivo físico en lugar de ejecutar public/sitemap.php.",
+      "Añade la URL absoluta del sitemap a los robots.txt físicos para que sigan siendo completos aun si el rewrite dinámico no se aplica.",
+      "Mantiene public/sitemap.php, public/robots.php y las reglas .htaccess como generación dinámica cuando Apache sí procesa el rewrite.",
+      "No requiere actualización de base de datos."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.139",
     "date": "2026-10-07",
     "title": "Preview limpio real y administración simplificada",

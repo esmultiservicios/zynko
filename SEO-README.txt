@@ -2,8 +2,8 @@ ZYNKO - SEO TECNICO V2.28.1
 
 IMPLEMENTADO
 - /robots.txt físico visible en la raíz y copia en /public.
-- /sitemap.xml físico visible en la raíz y copia en /public.
-- En Apache, ambos endpoints son servidos dinámicamente por robots.php y sitemap.php para usar el dominio configurado.
+- /sitemap.xml físico visible en la raíz y copia en /public, ambos con un fallback válido para producción.
+- En Apache, los endpoints pueden servirse dinámicamente por robots.php y sitemap.php para usar el dominio configurado; si el rewrite no se aplica, los archivos físicos siguen siendo válidos para buscadores.
 - Administrador SEO en Dashboard > Configuración > SEO y posicionamiento.
 - URL pública/canonical administrable con fallback a APP_URL.
 - Meta title/description, robots, canonical, Open Graph, Twitter Card y JSON-LD.

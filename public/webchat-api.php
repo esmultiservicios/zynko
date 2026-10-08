@@ -10,6 +10,7 @@ function nivoWsTcpAlive(string $host,int $port,float $timeout=0.25):bool{
     if(!is_resource($fp))return false;@fclose($fp);return true;
 }
 function nivoEnsureWebSocketRuntime(string $root,array $env):bool{
+    if(is_file($root.'/storage/websocket.manual-stop'))return false;
     $host=trim((string)($env['WS_HOST']??'127.0.0.1'))?:'127.0.0.1';
     if(strtolower($host)==='localhost')$host='127.0.0.1';
     $port=(int)($env['WS_PORT']??8080);

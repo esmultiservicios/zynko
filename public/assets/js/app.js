@@ -881,13 +881,21 @@ else syncSwitchVisualState();
     return j;
   };
   const verify=async(expected)=>{
-    await new Promise(resolve=>setTimeout(resolve,1400));
-    const j=await call('status');
-    const actual=j.state||'stopped';
-    setState(actual);
-    if(expected==='running'&&actual!=='running')throw new Error('El comando se ejecutó, pero el servicio no permaneció escuchando en el puerto configurado. Salud del sistema mostrará el punto exacto que requiere atención.');
-    if(expected==='stopped'&&actual!=='stopped')throw new Error('Se solicitó detener el servicio, pero una comprobación posterior indica que todavía está activo.');
-    return j;
+    // Algunos hostings tardan unos segundos en liberar/abrir el puerto después de
+    // crear el daemon. Una única comprobación a los 1.4 s producía falsos errores
+    // aunque el WebSocket terminara quedando operativo.
+    let last=null;
+    const attempts=expected==='running'?8:5;
+    for(let i=0;i<attempts;i++){
+      await new Promise(resolve=>setTimeout(resolve,i===0?1500:1300));
+      last=await call('status');
+      const actual=last.state||'stopped';
+      setState(actual);
+      if(actual===expected)return last;
+    }
+    const actual=last?.state||'stopped';
+    if(expected==='running')throw new Error('El servicio no confirmó el puerto de tiempo real después de varios intentos. Revisa Salud del sistema y storage/logs/websocket.log.');
+    throw new Error('Se solicitó detener el servicio, pero varias comprobaciones posteriores indican que todavía está activo.');
   };
   const run=async(operation,button)=>{
     const meta=labels[operation];if(!meta)return;
