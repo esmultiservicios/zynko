@@ -76,10 +76,47 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  const openModal=id=>{const m=document.getElementById(id);if(m){m.classList.add('open');m.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');setTimeout(()=>window.ZynkoFocusFirst?.(m,{onlyIfIdle:false,preventScroll:true}),80)}}; const closeModal=m=>{const shell=m.closest('.modal-shell');shell?.classList.remove('open');if(!document.querySelector('.modal-shell.open'))document.body.classList.remove('modal-open')};
  $$('[data-open]').forEach(b=>b.addEventListener('click',()=>openModal(b.dataset.open)));$$('.modal-close').forEach(b=>b.addEventListener('click',()=>closeModal(b)));$$('.modal-shell').forEach(m=>m.addEventListener('click',e=>{if(e.target===m){} }));
  const channelNames={whatsapp:'WhatsApp Business',messenger:'Messenger',instagram:'Instagram Messaging',telegram:'Telegram'};
- const openChannelConfig=type=>{if(!channelNames[type])return;$('#channelType').value=type;$('#channelModalTitle').textContent='Configurar '+channelNames[type];const pm=$('#channelProviderMode');if(pm){pm.value=type==='whatsapp'?'meta_cloud':type;pm.dispatchEvent(new Event('change',{bubbles:true}));}document.getElementById('channelCatalogModal')?.classList.remove('open');openModal('channelModal')};
+ const channelForm=$('#channelForm');
+ const resetChannelSecrets=()=>{
+   channelForm?.querySelectorAll('[data-channel-secret]').forEach(btn=>{
+     const input=document.getElementById(btn.dataset.channelSecret);if(input)input.type='password';
+     btn.setAttribute('aria-pressed','false');btn.setAttribute('aria-label','Mostrar token');btn.title='Mostrar token';
+     btn.innerHTML='<i class="fa-solid fa-eye" aria-hidden="true"></i>';
+   });
+ };
+ const openChannelConfig=(type,config=null)=>{
+   if(!channelNames[type]||!channelForm)return;
+   channelForm.reset();resetChannelSecrets();
+   $('#channelType').value=type;$('#channelModalTitle').textContent='Configurar '+channelNames[type];
+   const pm=$('#channelProviderMode');if(pm)pm.value=type==='whatsapp'?'meta_cloud':type;
+   if(config)Object.entries(config).forEach(([k,v])=>{const el=channelForm.elements.namedItem(k);if(el&&k!=='token'&&k!=='action'&&k!=='type')el.value=v??'';});
+   const access=$('#channelAccessToken'),help=$('#channelAccessTokenHelp'),stored=!!config?.has_access_token;
+   if(access){access.value='';access.placeholder=stored?'••••••••••••••••••••':'Se guardará cifrado';}
+   if(help)help.textContent=stored?'Token guardado y cifrado. Déjalo vacío para conservarlo o ingresa uno nuevo para reemplazarlo.':'Ingresa el token de acceso del proveedor. Se guardará cifrado.';
+   const wh=$('#providerWebhookPreview'),copy=$('#copyProviderWebhook');
+   if(wh)wh.value=config?.uuid?location.origin+location.pathname.replace(/\/[^/]*$/,'/')+'provider-webhook.php?channel='+encodeURIComponent(config.uuid):'Se generará al guardar el canal';
+   if(copy)copy.disabled=!config?.uuid;
+   pm?.dispatchEvent(new Event('change',{bubbles:true}));
+   document.getElementById('channelCatalogModal')?.classList.remove('open');openModal('channelModal');
+ };
+ const readChannelConfig=btn=>{try{return btn?.dataset.config?JSON.parse(btn.dataset.config):null}catch(e){return null}};
  $('#openChannelCatalog')?.addEventListener('click',()=>openModal('channelCatalogModal'));
- $$('.channel-config,.channel-add').forEach(b=>b.addEventListener('click',()=>{openChannelConfig(b.dataset.channel);if(b.dataset.config){try{const c=JSON.parse(b.dataset.config),f=$('#channelForm');Object.entries(c).forEach(([k,v])=>{const el=f?.querySelector('[name="'+k+'"]');if(el&&k!=='token')el.value=v??'';});const pm=$('#channelProviderMode');pm?.dispatchEvent(new Event('change',{bubbles:true}));const wh=$('#providerWebhookPreview');if(wh&&c.uuid)wh.value=location.origin+location.pathname.replace(/\/[^/]*$/,'/')+'provider-webhook.php?channel='+c.uuid;}catch(e){}}}));
- $$('.channel-catalog-item[data-channel]').forEach(b=>b.addEventListener('click',()=>openChannelConfig(b.dataset.channel)));
+ $$('.channel-config,.channel-add').forEach(b=>b.addEventListener('click',()=>openChannelConfig(b.dataset.channel,readChannelConfig(b))));
+ $$('.channel-catalog-item[data-channel]').forEach(b=>b.addEventListener('click',()=>{
+   const existing=$$('.channel-config').find(el=>el.dataset.channel===b.dataset.channel);
+   openChannelConfig(b.dataset.channel,readChannelConfig(existing));
+ }));
+ channelForm?.querySelectorAll('[data-channel-secret]').forEach(btn=>btn.addEventListener('click',()=>{
+   const input=document.getElementById(btn.dataset.channelSecret);if(!input)return;
+   const show=input.type==='password';input.type=show?'text':'password';
+   const label=show?'Ocultar token':'Mostrar token';btn.setAttribute('aria-pressed',String(show));btn.setAttribute('aria-label',label);btn.title=label;
+   btn.innerHTML='<i class="fa-solid '+(show?'fa-eye-slash':'fa-eye')+'" aria-hidden="true"></i>';
+ }));
+ $('#copyProviderWebhook')?.addEventListener('click',async()=>{
+   const btn=$('#copyProviderWebhook'),wh=$('#providerWebhookPreview');if(!btn||btn.disabled||!wh?.value)return;
+   await window.ZynkoCopyNotify(wh.value,'Webhook copiado al portapapeles.');
+ });
+ const channelModal=$('#channelModal');if(channelModal){new MutationObserver(()=>{if(!channelModal.classList.contains('open'))resetChannelSecrets();}).observe(channelModal,{attributes:true,attributeFilter:['class']});}
  bindAjax('#channelForm',()=>setTimeout(()=>location.reload(),700));
  const providerMode=$('#channelProviderMode');const syncProviderFields=()=>{if(!providerMode)return;const mode=providerMode.value;document.querySelectorAll('[name=bridge_url],[name=session_id]').forEach(el=>el.closest('.field')?.classList.toggle('provider-field-hidden',mode!=='qr_bridge'));};providerMode?.addEventListener('change',syncProviderFields);syncProviderFields();
  $$('.channel-validate').forEach(b=>b.addEventListener('click',async()=>{const fd=new FormData();fd.append('action','channel_validate');fd.append('id',b.dataset.id);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Canal conectado':'Validación fallida',j.message);if(j.ok)setTimeout(()=>location.reload(),500)}));
@@ -407,9 +444,46 @@ document.querySelectorAll('.user-view-sessions').forEach(btn=>btn.addEventListen
 document.addEventListener('click',async e=>{const b=e.target.closest('.session-revoke-one');if(!b)return;const go=async()=>{const fd=new FormData();fd.append('action','user_session_revoke');fd.append('session_id',b.dataset.session);fd.append('user_id',b.dataset.user);try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd}),j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Sesión cerrada':'Error',j.message);if(j.ok){b.closest('.session-item')?.remove();const remain=document.querySelectorAll('#sessionsList .session-item').length;if(!remain){document.querySelector('#sessionsList').innerHTML=sessionsEmpty('La última sesión activa fue revocada.');const all=document.querySelector('#sessionsModal .session-revoke-all-modal');if(all)all.hidden=true}}}catch(err){showNotify('error','Error',err.message)}};if(window.Swal)Swal.fire({title:'Cerrar esta sesión',text:'Solo este acceso será revocado.',icon:'warning',showCancelButton:true,confirmButtonText:'Cerrar sesión',cancelButtonText:'Cancelar'}).then(r=>r.isConfirmed&&go());else go()});
 document.addEventListener('click',e=>{const b=e.target.closest('.session-revoke-all-modal');if(!b)return;const uid=b.dataset.user;if(!uid)return;const go=async()=>{const fd=new FormData();fd.append('action','user_revoke_sessions');fd.append('user_id',uid);try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd}),j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudieron cerrar las sesiones.');showNotify('success','Sesiones cerradas',j.message);document.querySelector('#sessionsList').innerHTML=sessionsEmpty('Todos los accesos de este usuario fueron revocados.');b.hidden=true;}catch(err){showNotify('error','Error',err.message)}};if(window.Swal)Swal.fire({title:'Cerrar todas las sesiones',text:'Se revocarán todos los accesos activos de este usuario.',icon:'warning',showCancelButton:true,confirmButtonText:'Cerrar todas',cancelButtonText:'Cancelar'}).then(r=>r.isConfirmed&&go());else go()});
 document.querySelector('.dashboard-customize')?.addEventListener('click',()=>document.querySelector('#dashboardModal')?.classList.add('open'));document.querySelector('#dashboardPrefs')?.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(e.currentTarget);fd.append('action','dashboard_preferences_save');try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd}),j=await r.json();if(!j.ok)throw new Error(j.message);showNotify('success','Dashboard actualizado',j.message);setTimeout(()=>location.reload(),400)}catch(err){showNotify('error','Error',err.message)}});
-function initLegalRichEditor(){const form=document.querySelector('#legalTermsForm'),editor=document.querySelector('#legalRichEditor'),source=document.querySelector('#legalHtmlSource'),hidden=document.querySelector('#legalTermsContentInput'),shell=document.querySelector('.legal-rich-editor-shell'),counter=document.querySelector('#legalEditorCounter');if(!form||!editor||!source||!hidden||!shell)return;const updateCounter=()=>{const text=(shell.classList.contains('source-mode')?source.value:editor.innerText||'').trim();if(counter)counter.textContent=new Intl.NumberFormat('es-HN').format(text.length)+' caracteres'};const syncToSource=()=>{source.value=editor.innerHTML.trim();updateCounter()};const syncToEditor=()=>{editor.innerHTML=source.value.trim();updateCounter()};document.querySelectorAll('[data-editor-cmd]').forEach(btn=>btn.addEventListener('click',()=>{editor.focus();document.execCommand(btn.dataset.editorCmd,false,null);syncToSource()}));document.querySelector('[data-editor-block]')?.addEventListener('change',e=>{editor.focus();document.execCommand('formatBlock',false,e.target.value);syncToSource()});document.querySelectorAll('[data-editor-align]').forEach(btn=>btn.addEventListener('click',()=>{editor.focus();const map={left:'justifyLeft',center:'justifyCenter',right:'justifyRight',justify:'justifyFull'};document.execCommand(map[btn.dataset.editorAlign]||'justifyLeft',false,null);syncToSource()}));document.querySelector('[data-editor-link]')?.addEventListener('click',()=>{editor.focus();const url=prompt('Pega el enlace completo (https://...)');if(url&&/^(https?:\/\/|mailto:|tel:|\/)/i.test(url)){document.execCommand('createLink',false,url);syncToSource()}else if(url){showNotify('warning','Enlace no válido','Usa una dirección https://, mailto:, tel: o una ruta interna.')}});document.querySelector('[data-editor-source]')?.addEventListener('click',e=>{const entering=!shell.classList.contains('source-mode');if(entering){syncToSource();shell.classList.add('source-mode');source.focus()}else{syncToEditor();shell.classList.remove('source-mode');editor.focus()}e.currentTarget.classList.toggle('active',entering)});editor.addEventListener('input',syncToSource);source.addEventListener('input',updateCounter);form.addEventListener('submit',()=>{if(shell.classList.contains('source-mode'))syncToEditor();hidden.value=editor.innerHTML.trim()},{capture:true});syncToSource()}
+function initLegalRichEditor(){const form=document.querySelector('#legalTermsForm'),editor=document.querySelector('#legalRichEditor'),source=document.querySelector('#legalHtmlSource'),hidden=document.querySelector('#legalTermsContentInput'),shell=document.querySelector('.legal-rich-editor-shell'),counter=document.querySelector('#legalEditorCounter');if(!form||!editor||!source||!hidden||!shell)return;const updateCounter=()=>{const text=(shell.classList.contains('source-mode')?source.value:editor.innerText||'').trim();if(counter)counter.textContent=new Intl.NumberFormat('es-HN').format(text.length)+' caracteres'};const syncToSource=()=>{source.value=editor.innerHTML.trim();updateCounter()};const syncToEditor=()=>{editor.innerHTML=source.value.trim();updateCounter()};document.querySelectorAll('[data-editor-cmd]').forEach(btn=>btn.addEventListener('click',()=>{editor.focus();document.execCommand(btn.dataset.editorCmd,false,null);syncToSource()}));document.querySelector('[data-editor-block]')?.addEventListener('change',e=>{editor.focus();document.execCommand('formatBlock',false,e.target.value);syncToSource()});document.querySelectorAll('[data-editor-align]').forEach(btn=>btn.addEventListener('click',()=>{editor.focus();const map={left:'justifyLeft',center:'justifyCenter',right:'justifyRight',justify:'justifyFull'};document.execCommand(map[btn.dataset.editorAlign]||'justifyLeft',false,null);syncToSource()}));document.querySelector('[data-editor-link]')?.addEventListener('click',()=>{editor.focus();const url=prompt('Pega el enlace completo (https://...)');if(url&&/^(https?:\/\/|mailto:|tel:|\/)/i.test(url)){document.execCommand('createLink',false,url);syncToSource()}else if(url){showNotify('warning','Enlace no válido','Usa una dirección https://, mailto:, tel: o una ruta interna.')}});document.querySelector('[data-editor-source]')?.addEventListener('click',e=>{const entering=!shell.classList.contains('source-mode');if(entering){syncToSource();shell.classList.add('source-mode');source.focus()}else{syncToEditor();shell.classList.remove('source-mode');editor.focus()}e.currentTarget.classList.toggle('active',entering)});editor.addEventListener('input',syncToSource);source.addEventListener('input',updateCounter);form.addEventListener('submit',()=>{if(shell.classList.contains('source-mode'))syncToEditor();hidden.value=editor.innerHTML.trim()},{capture:true});
+    const dataNode=document.getElementById('legalDocumentsData');
+    let documents={};
+    try{documents=JSON.parse(dataNode?.textContent||'{}')}catch(error){console.error('ZYNKO: documentos legales',error)}
+    const applyDocument=key=>{
+        const doc=documents[key];
+        if(!doc)return false;
+        form.elements.document_key.value=key;
+        form.elements.document_version.value=String(doc.version);
+        form.elements.title.value=doc.title;
+        document.getElementById('legalAdminTitle').textContent='Administrar '+doc.label;
+        document.getElementById('legalEditorVersion').textContent=doc.version||'Sin publicar';
+        document.getElementById('legalEditorPublished').textContent=doc.published;
+        shell.classList.remove('source-mode');
+        form.querySelector('[data-editor-source]')?.classList.remove('active');
+        // El servidor entrega HTML ya saneado con el mismo editor existente.
+        editor.innerHTML=doc.html;
+        source.value=doc.html;
+        hidden.value=doc.html;
+        updateCounter();
+        return true;
+    };
+    // Captura antes del data-open que ya existe para que el modal reciba el documento correcto.
+    document.querySelectorAll('[data-legal-key]').forEach(button=>button.addEventListener('click',event=>{
+        if(!applyDocument(button.dataset.legalKey)){
+            event.preventDefault();event.stopImmediatePropagation();
+            showNotify('error','Documentos legales','No se pudo cargar el documento. Actualiza el dashboard.');
+        }
+    },true));
+    document.querySelectorAll('[data-legal-copy]').forEach(button=>{
+        button.dataset.copyText=new URL(button.dataset.legalCopy,location.href).href;
+        button.dataset.copyMessage='URL pública copiada al portapapeles.';
+    });
+    document.querySelectorAll('[data-legal-public-path]').forEach(link=>{
+        link.textContent=link.href;
+    });
+    syncToSource();
+}
 initLegalRichEditor();
-document.querySelector('#legalTermsForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,btn=form.querySelector('button[type=submit]'),old=btn?.innerHTML;if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Publicando…'}try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)}),j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudieron publicar los términos.');showNotify('success','Términos publicados',j.message);setTimeout(()=>location.reload(),500)}catch(err){showNotify('error','No se pudo publicar',err.message)}finally{if(btn){btn.disabled=false;btn.innerHTML=old||'<i class="fa-solid fa-cloud-arrow-up"></i> Publicar nueva versión'}}});})();
+document.querySelector('#legalTermsForm')?.addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget,btn=form.querySelector('button[type=submit]'),old=btn?.innerHTML;if(btn){btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Publicando…'}try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)}),j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudo publicar el documento.');showNotify('success','Documento publicado',j.message);setTimeout(()=>location.reload(),500)}catch(err){showNotify('error','No se pudo publicar',err.message)}finally{if(btn){btn.disabled=false;btn.innerHTML=old||'<i class="fa-solid fa-cloud-arrow-up"></i> Publicar nueva versión'}}});})();
 
 // V2.22.0 · modal icons + platform version
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.modal-head>div:first-child').forEach(h=>{if(h.querySelector('.modal-title-icon'))return;h.classList.add('modal-title-with-icon');const icon=document.createElement('span');icon.className='modal-title-icon';icon.innerHTML='<i class="fa-solid fa-layer-group"></i>';h.prepend(icon)});document.getElementById('systemVersionForm')?.addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget,b=f.querySelector('button[type=submit]'),old=b.innerHTML;b.disabled=true;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Guardando…';try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(f)}),j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Versión actualizada':'Error',j.message);if(j.ok)setTimeout(()=>location.reload(),450)}catch(x){showNotify('error','Error',x.message)}finally{b.disabled=false;b.innerHTML=old}})});

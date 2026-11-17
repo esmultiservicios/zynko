@@ -6105,3 +6105,58 @@ body:has(.inbox-premium-toolbar) .message-sender{font-weight:900!important;lette
 #webchatPreviewModal .webchat-preview-file-preview{grid-template-columns:96px minmax(0,1fr)!important}
 #webchatPreviewModal .webchat-preview-file-preview img{width:96px!important;height:128px!important;object-fit:cover!important}
 @media(max-width:760px){.nivo-webchat-page .preview-stage.has-uploaded-preview{padding:10px!important}.nivo-webchat-page .preview-shot-card{width:100%!important}.nivo-webchat-page .preview-shot-card img{width:100%!important}.webchat-preview-modal .modal-actions{display:grid!important;grid-template-columns:1fr!important}.webchat-preview-modal .modal-actions>*{width:100%!important}}
+
+
+/* Documentos legales y acciones de Canales: extensiones de componentes existentes. */
+.legal-admin-document-list{display:grid;gap:0}
+.legal-admin-document-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 18px;padding:16px 0;border-bottom:1px solid var(--line,#dce7ee)}
+.legal-admin-document-row:last-child{border-bottom:0;padding-bottom:0}
+.legal-admin-document-row .legal-version-badge{justify-self:end}
+.legal-admin-document-row .legal-admin-copy small{flex-wrap:wrap}
+.legal-admin-public-path{display:block;margin-top:6px;color:#087866;font-size:12px;overflow-wrap:anywhere;text-decoration:none}
+.legal-admin-public-path:hover{text-decoration:underline}
+.legal-admin-document-actions{grid-column:1/-1;display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap}
+.legal-admin-document-actions .secondary-action,.legal-admin-document-actions .primary{min-height:38px!important;text-decoration:none!important;white-space:nowrap}
+#legalTermsAdminModal .legal-rich-editor:empty:before{content:'Escribe aquí el contenido del documento…'}
+.channel-tile-actions .channel-action-wrap{width:100%;min-width:0}
+.channel-tile-actions .channel-action-wrap .company-action-toggle{width:100%!important;min-width:0!important;max-width:none!important;min-height:42px!important}
+.channel-action-menu.company-action-menu button.channel-config>i{background:#e8f1ff!important;color:#2563eb!important}
+.channel-action-menu.company-action-menu button.channel-validate>i{background:#e6f7ee!important;color:#16803d!important}
+.channel-action-menu.company-action-menu button.channel-qr>i{background:#f1eaff!important;color:#7c3aed!important}
+@media(max-width:760px){
+  .legal-admin-document-row{grid-template-columns:minmax(0,1fr);gap:10px}
+  .legal-admin-document-row .legal-version-badge{justify-self:start;margin-left:56px}
+  .legal-admin-document-actions{justify-content:flex-start}
+  .legal-admin-document-actions>*{flex:1 1 auto}
+}
+
+/* Canales: credenciales protegidas y webhook copiable, sin alterar otros formularios. */
+#channelModal .channel-credential-group {
+  display:flex;
+  align-items:stretch;
+  width:100%;
+  min-width:0;
+  gap:0;
+}
+#channelModal .channel-credential-group input {
+  flex:1 1 0;
+  min-width:0;
+  width:100%;
+  border-top-right-radius:0!important;
+  border-bottom-right-radius:0!important;
+}
+#channelModal .channel-credential-button {
+  flex:0 0 46px;
+  width:46px;
+  min-width:46px;
+  padding:0!important;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border-top-left-radius:0!important;
+  border-bottom-left-radius:0!important;
+  margin:0!important;
+}
+#channelModal .channel-credential-button:disabled {opacity:.5;cursor:not-allowed;}
+#channelModal #providerWebhookPreview {cursor:text;}
+#channelModal #channelAccessToken::placeholder {letter-spacing:.08em;}
