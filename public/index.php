@@ -823,7 +823,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    zynkoPlanRequireModule($planCtx,'chatbot');
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$svc=new OpenAIProviderService($pdo,$root);$svc->saveTenant($tid,$_POST,(int)$_SESSION['user']['id'],$planCtx);jsonOut(true,'Preferencias de NIVO IA externa actualizadas.');
   }
-  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save','websocket_restart','websocket_control','service_monitor_save','service_monitor_run'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_learning_approve','knowledge_learning_answer','knowledge_learning_reject','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save'],'automations'=>['automation_flow_save','automation_flow_status','automation_flow_delete','social_rule_save','social_rule_status','social_rule_delete','campaign_save','campaign_prepare','campaign_dispatch','campaign_delete','ai_call_profile_save','ai_call_profile_status','ai_call_profile_delete']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
+  $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save','env_full_save','websocket_restart','websocket_control','service_monitor_save','service_monitor_run'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_learning_approve','knowledge_learning_answer','knowledge_learning_reject','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save'],'automations'=>['automation_flow_save','automation_flow_status','automation_flow_delete','social_rule_save','social_rule_status','social_rule_delete','campaign_save','campaign_prepare','campaign_dispatch','campaign_delete','ai_call_profile_save','ai_call_profile_status','ai_call_profile_delete']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
   $operationalActions=[
    'channels'=>['channel_save','channel_validate','channel_qr_start','channel_templates_list','channel_template_create','channel_template_update','channel_template_delete','channel_qr_pair','channel_qr_unlink','channel_x_start','channel_metrics','channel_cloud_register','channel_disconnect'],
    'webchat'=>['webchat_widget_save','webchat_installation_add','webchat_installation_update','webchat_installation_toggle','webchat_installation_delete'],
@@ -876,14 +876,23 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   }
   if($action==='system_version_save' ){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');$v=trim($_POST['version']??'');if(!preg_match('/^\d+\.\d+\.\d+$/',$v))throw new RuntimeException('Usa el formato 2.23.1.');$pdo->prepare("INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES('app_version',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)")->execute([$v,(int)$_SESSION['user']['id']]);jsonOut(true,'Versión actualizada a '.$v.'.');}
   if($action==='meta_platform_save'){
-    if(!isMainOwnerOnly()||empty($_SESSION['meta_platform_csrf'])||!hash_equals((string)$_SESSION['meta_platform_csrf'],(string)($_POST['csrf']??'')))throw new RuntimeException('No autorizado.');
+    if(!isMainOwnerOnly()||zynkoIsImpersonating()||empty($_SESSION['meta_platform_csrf'])||!hash_equals((string)$_SESSION['meta_platform_csrf'],(string)($_POST['csrf']??'')))throw new RuntimeException('No autorizado.');
     $manager=new ZynkoEnvManager($root);$payload=[];foreach(ZynkoEnvManager::platformChannelKeys() as $key=>$meta)if(isset($_POST['env_'.$key]))$payload[$key]=(string)$_POST['env_'.$key];
     $changed=$manager->save($payload,true);try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([(int)$_SESSION['user']['id'],$tid,'channel.platform.updated',json_encode(['keys'=>$changed]),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignore){}
     jsonOut(true,$changed?'Configuración de canales guardada.':'Sin cambios.',['changed'=>$changed]);
   }
+  if($action==='env_full_save'){
+    if(!isMainOwnerOnly()||zynkoIsImpersonating())throw new RuntimeException('Solo el Owner principal puede administrar el .env.');
+    assertAuthCsrf();$uid=(int)$_SESSION['user']['id'];$q=$pdo->prepare("SELECT password_hash FROM users WHERE id=? AND status='active' LIMIT 1");$q->execute([$uid]);$hash=(string)($q->fetchColumn()?:'');
+    if($hash===''||!password_verify((string)($_POST['owner_password']??''),$hash))throw new RuntimeException('Contraseña de autorización incorrecta.');
+    $key=(string)($_POST['env_key']??'');$new=$key==='__new__';if($new)$key=trim((string)($_POST['env_new_key']??''));
+    $changed=(new ZynkoEnvManager($root))->saveKey($key,(string)($_POST['env_full_value']??''),$new,($_POST['allow_empty']??'')==='1');
+    if($changed){try{$pdo->prepare('INSERT INTO platform_admin_audit(admin_user_id,tenant_id,action,details_json,ip_address) VALUES(?,?,?,?,?)')->execute([$uid,$tid,'env.updated',json_encode(['keys'=>$changed]),$_SERVER['REMOTE_ADDR']??null]);}catch(Throwable $ignored){}}
+    jsonOut(true,$changed?'Variable guardada. Respaldo del .env creado.':'Sin cambios.',['changed'=>$changed,'reload_recommended'=>true]);
+  }
   if($action==='env_save'){
-    if(!isPlatformOwner())throw new RuntimeException('Solo el administrador principal puede modificar la configuración del servidor.');
-    $manager=new ZynkoEnvManager($root);$payload=[];
+    if(!isMainOwnerOnly()||zynkoIsImpersonating())throw new RuntimeException('Solo el Owner principal puede modificar la configuración del servidor.');
+    assertAuthCsrf();$manager=new ZynkoEnvManager($root);$payload=[];
     foreach(ZynkoEnvManager::editableKeys() as $key=>$meta){$field='env_'.$key;if(array_key_exists($field,$_POST))$payload[$key]=(string)$_POST[$field];}
     $changed=$manager->save($payload);
     if(!$changed)jsonOut(true,'No había cambios pendientes en el archivo .env.');
@@ -951,9 +960,9 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   if($action==='theme_preference'){$theme=in_array($_POST['theme']??'system',['system','light','dark'],true)?$_POST['theme']:'system';$pdo->prepare("INSERT INTO user_preferences(user_id,theme) VALUES(?,?) ON DUPLICATE KEY UPDATE theme=VALUES(theme)")->execute([(int)$_SESSION['user']['id'],$theme]);jsonOut(true,'Tema guardado.',['theme'=>$theme]);}
   if($action==='ui_preference'){
     $key=trim((string)($_POST['key']??''));$value=(string)($_POST['value']??'');
-    $allowed=['sidebar.hidden','sidebar.collapsed','directory.users','directory.companies','directory.billing'];
+    $allowed=['sidebar.hidden','sidebar.collapsed','directory.users','directory.companies','directory.billing','inbox.enter'];
     if(!in_array($key,$allowed,true))throw new RuntimeException('Preferencia de interfaz no permitida.');
-    if(mb_strlen($value)>40)throw new RuntimeException('Valor de preferencia inválido.');
+    if(mb_strlen($value)>40||($key==='inbox.enter'&&!in_array($value,['send','newline'],true)))throw new RuntimeException('Valor de preferencia inválido.');
     $uid=(int)$_SESSION['user']['id'];$q=$pdo->prepare('SELECT ui_preferences_json FROM user_preferences WHERE user_id=?');$q->execute([$uid]);$prefs=json_decode((string)($q->fetchColumn()?:''),true);if(!is_array($prefs))$prefs=[];$prefs[$key]=$value;
     $json=json_encode($prefs,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);$pdo->prepare('INSERT INTO user_preferences(user_id,ui_preferences_json) VALUES(?,?) ON DUPLICATE KEY UPDATE ui_preferences_json=VALUES(ui_preferences_json)')->execute([$uid,$json]);
     jsonOut(true,'Preferencia guardada.',['key'=>$key,'value'=>$value]);

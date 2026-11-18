@@ -130,6 +130,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  };
  const readChannelConfig=btn=>{try{return btn?.dataset.config?JSON.parse(btn.dataset.config):null}catch(e){return null}};
  $('#openChannelCatalog')?.addEventListener('click',()=>openModal('channelCatalogModal'));
+ $$('.channel-new-qr').forEach(b=>b.addEventListener('click',()=>{openChannelConfig('whatsapp',{provider_mode:'qr_bridge',name:zynkoUiLang('WhatsApp QR','WhatsApp QR')});}));
  $$('.channel-config,.channel-add').forEach(b=>b.addEventListener('click',()=>b.dataset.channel==='x'?connectX():openChannelConfig(b.dataset.channel,readChannelConfig(b))));
  $$('.channel-catalog-item[data-channel]').forEach(b=>b.addEventListener('click',()=>{
    if(b.dataset.channel==='x')connectX();else openChannelConfig(b.dataset.channel,null);
@@ -146,7 +147,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  });
  const channelModal=$('#channelModal');if(channelModal){new MutationObserver(()=>{if(!channelModal.classList.contains('open'))resetChannelSecrets();}).observe(channelModal,{attributes:true,attributeFilter:['class']});}
  bindAjax('#channelForm',()=>setTimeout(()=>location.reload(),700));
- const providerMode=$('#channelProviderMode');const syncProviderFields=()=>{if(!providerMode)return;const mode=providerMode.value;document.querySelectorAll('[name=bridge_url],[name=session_id]').forEach(el=>el.closest('.field')?.classList.toggle('provider-field-hidden',mode!=='qr_bridge'));};providerMode?.addEventListener('change',syncProviderFields);syncProviderFields();
+ const providerMode=$('#channelProviderMode');const syncProviderFields=()=>{if(!providerMode||!channelForm)return;const mode=providerMode.value,qr=mode==='qr_bridge';channelForm.querySelectorAll('[name=bridge_url],[name=session_id]').forEach(el=>{el.closest('.field')?.classList.toggle('provider-field-hidden',!qr);el.readOnly=true;});channelForm.querySelectorAll('[name=external_account_id],[name=external_phone_id],[name=meta_app_id],[name=business_id],[name=meta_app_secret],[name=token],[name=verify_token]').forEach(el=>{el.closest('.field')?.classList.toggle('provider-field-hidden',qr);});};providerMode?.addEventListener('change',syncProviderFields);syncProviderFields();
  $$('.channel-validate').forEach(b=>b.addEventListener('click',async()=>{const fd=new FormData();fd.append('action','channel_validate');fd.append('channel_csrf',channelCSRF());fd.append('id',b.dataset.id);const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Canal conectado':'Validación fallida',j.message);if(j.ok)setTimeout(()=>location.reload(),500)}));
  const channelAction=async(action,id,extra={})=>{const fd=new FormData();fd.append('action',action);fd.append('channel_csrf',channelCSRF());fd.append('id',id);Object.entries(extra).forEach(([k,v])=>fd.append(k,v));return post(fd);};
  $$('.channel-disconnect').forEach(b=>b.addEventListener('click',async()=>{const a=await Swal.fire({title:'Desconectar canal',text:'Se conservarán credenciales e historial. Se detendrá la atención desde ZYNKO.',icon:'warning',showCancelButton:true});if(!a.isConfirmed)return;const j=await channelAction('channel_disconnect',b.dataset.id);showNotify(j.ok?'success':'error','Canal',j.message);if(j.ok)location.reload();}));
@@ -163,7 +164,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
    const poll=async()=>{if(closed||busy)return;busy=true;try{const fd=new FormData();fd.append('action','channel_qr_start');fd.append('channel_csrf',channelCSRF());fd.append('id',b.dataset.id);const j=await post(fd);if(closed)return;if(!j.ok){closed=true;Swal.close();showNotify('error','WhatsApp QR',j.message);return;}if(j.data?.connected){closed=true;Swal.close();showNotify('success','WhatsApp QR',zynkoUiLang('Sesión conectada.','Session connected.'));location.reload();return;}const img=document.getElementById('zynkoQrImage');const msg=document.getElementById('zynkoQrMessage');if(img&&typeof j.data?.qr==='string'&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(j.data.qr)){img.src=j.data.qr;img.hidden=false;if(msg)msg.textContent=zynkoUiLang('Escanee desde Dispositivos vinculados.','Scan from Linked devices.');}else if(img){img.hidden=true;img.removeAttribute('src');}}catch(e){if(!closed){closed=true;Swal.close();showNotify('error','WhatsApp QR',zynkoUiLang('No se pudo consultar la sesión.','Could not query the session.'));}}finally{busy=false;}};
    try{await Swal.fire({title:zynkoUiLang('Vincular WhatsApp por QR','Link WhatsApp via QR'),html:'<p id="zynkoQrMessage"></p><img id="zynkoQrImage" hidden alt="QR WhatsApp" style="max-width:290px;width:100%;border-radius:16px">',icon:'info',confirmButtonText:zynkoUiLang('Cerrar','Close'),allowOutsideClick:false,timer:180000,didOpen:()=>{const msg=document.getElementById('zynkoQrMessage');if(msg)msg.textContent=zynkoUiLang('Generando QR…','Generating QR…');poll();timer=setInterval(poll,2500);},willClose:()=>{closed=true;clearInterval(timer);}});}finally{closed=true;clearInterval(timer);b.disabled=false;}
  }));
- bindAjax('#userForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#userEditForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#avatarForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#settingsForm',(j,f)=>{const t=f.querySelector('[name=theme]')?.value||'system';applyZynkoTheme(t);setTimeout(()=>location.reload(),700)}); bindAjax('#seoForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#publicSiteForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#metaPlatformForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#envAdminForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#serviceMonitorForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#apiPolicyForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#botForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#openAiProviderForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#tenantAiForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#assignForm',()=>document.querySelector('#assignModal')?.classList.remove('open'));
+ bindAjax('#userForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#userEditForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#avatarForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#settingsForm',(j,f)=>{const t=f.querySelector('[name=theme]')?.value||'system';applyZynkoTheme(t);setTimeout(()=>location.reload(),700)}); bindAjax('#seoForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#publicSiteForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#metaPlatformForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#envAdminForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#envFullForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#serviceMonitorForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#apiPolicyForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#botForm',()=>setTimeout(()=>location.reload(),700)); bindAjax('#openAiProviderForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#tenantAiForm',()=>setTimeout(()=>location.reload(),550)); bindAjax('#assignForm',()=>document.querySelector('#assignModal')?.classList.remove('open'));
  // search + records-per-page behavior
  const refreshRecordList=(panel)=>{
    const q=(panel.querySelector('.list-search')?.value||'').trim().toLowerCase();
@@ -353,7 +354,13 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
 })();
 
 // Bandeja: expandir/restaurar conversación sin perder el estado actual.
-(()=>{const btn=document.getElementById('chatExpandBtn'),layout=document.querySelector('.inbox-layout');if(!btn||!layout)return;const key='zynko.inbox.chatExpanded';const sync=()=>{const on=layout.classList.contains('chat-expanded');btn.innerHTML=on?'<i class="fa-solid fa-compress"></i> Restaurar':'<i class="fa-solid fa-expand"></i> Expandir';btn.title=on?'Restaurar vista completa':'Expandir conversación'};if(localStorage.getItem(key)==='1')layout.classList.add('chat-expanded');sync();btn.addEventListener('click',()=>{layout.classList.toggle('chat-expanded');localStorage.setItem(key,layout.classList.contains('chat-expanded')?'1':'0');sync();requestAnimationFrame(()=>{const box=document.getElementById('messages');if(box)box.scrollTop=box.scrollHeight})});})();
+(()=>{
+ const layout=()=>document.querySelector('.inbox-layout');if(!layout())return;
+ const key='zynko.inbox.chatExpanded';let expanded=false;try{expanded=localStorage.getItem(key)==='1'}catch(_){}
+ const sync=()=>{const l=layout(),b=document.getElementById('chatExpandBtn');if(!l)return;l.classList.toggle('chat-expanded',expanded);if(b){b.innerHTML=expanded?'<i class="fa-solid fa-compress"></i> '+zynkoUiLang('Restaurar','Restore'):'<i class="fa-solid fa-expand"></i> '+zynkoUiLang('Expandir','Expand');b.setAttribute('aria-expanded',String(expanded));b.title=expanded?zynkoUiLang('Restaurar vista completa','Restore full view'):zynkoUiLang('Expandir conversación','Expand conversation');}};
+ document.addEventListener('click',e=>{if(!e.target.closest('#chatExpandBtn'))return;e.preventDefault();expanded=!expanded;try{localStorage.setItem(key,expanded?'1':'0')}catch(_){}sync()});
+ document.addEventListener('zynko:inbox-conversation-changed',sync);sync();
+})();
 
 // ZYNKO Inbox CRM + realtime event stream. WebSocket is the primary transport.
 (()=>{
@@ -396,7 +403,7 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
  const draw=()=>{if(!results)return;const q=(input?.value||'').trim().toLowerCase();filtered=items.filter(x=>(x[0]+' '+x[1]+' '+x[4]).toLowerCase().includes(q));active=Math.min(active,Math.max(0,filtered.length-1));results.innerHTML=filtered.length?filtered.map((x,i)=>`<button type="button" class="command-item ${i===active?'active':''}" data-url="${x[2]}"><i class="fa-solid ${x[3]}"></i><div><b>${x[0]}</b><small>${x[1]}</small></div><span>${x[4]}</span></button>`).join(''):'<div class="command-empty"><i class="fa-solid fa-magnifying-glass"></i><p>No encontramos una acción con ese nombre.</p></div>';results.querySelectorAll('.command-item').forEach(b=>b.onclick=()=>location.href=b.dataset.url);};
  document.getElementById('globalSearch')?.addEventListener('click',()=>setTimeout(()=>{input?.focus();draw()},20)); input?.addEventListener('input',()=>{active=0;draw()});
  input?.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();active=Math.min(active+1,filtered.length-1);draw()}else if(e.key==='ArrowUp'){e.preventDefault();active=Math.max(0,active-1);draw()}else if(e.key==='Enter'&&filtered[active]){e.preventDefault();location.href=filtered[active][2]}}); draw();
- const bar=document.createElement('div');bar.id='zynkoProgress';document.body.appendChild(bar);const start=()=>{bar.classList.add('run');bar.style.width='68%'};window.addEventListener('beforeunload',start);document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a&&!a.target&&!a.hasAttribute('download')&&!a.href.startsWith('javascript:'))start()});window.addEventListener('pageshow',()=>{bar.style.width='100%';setTimeout(()=>{bar.classList.remove('run');bar.style.width='0'},180)});
+ const bar=document.createElement('div');bar.id='zynkoProgress';document.body.appendChild(bar);const start=()=>{bar.classList.add('run');bar.style.width='68%'};window.addEventListener('beforeunload',start);document.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(a&&!a.closest('.conversation[href]')&&!e.defaultPrevented&&!a.target&&!a.hasAttribute('download')&&!a.href.startsWith('javascript:'))start()});window.addEventListener('pageshow',()=>{bar.style.width='100%';setTimeout(()=>{bar.classList.remove('run');bar.style.width='0'},180)});
 })();
 
 const askDeleteAuthorization=async()=>Swal.fire({title:'Eliminar conversación',text:'Escribe tu contraseña actual para autorizar esta eliminación. El evento quedará auditado.',input:'password',inputPlaceholder:'Contraseña actual',inputAttributes:{autocomplete:'current-password',autocapitalize:'off',spellcheck:'false'},icon:'warning',showCancelButton:true,confirmButtonText:'Autorizar y eliminar',cancelButtonText:'Cancelar',confirmButtonColor:'#b42318',allowOutsideClick:false,allowEscapeKey:true,focusConfirm:false,didOpen:()=>Swal.getInput()?.focus(),inputValidator:value=>!String(value||'').trim()?'Escribe tu contraseña actual.':undefined});
@@ -434,8 +441,7 @@ const askDeleteAuthorization=async()=>Swal.fire({title:'Eliminar conversación',
    const j=await post(fd);showNotify(j.ok?'success':'error',j.ok?'Conversación eliminada':'No se pudo eliminar',j.message);if(j.ok)setTimeout(()=>location.href='?page=inbox',450);
  });
  document.getElementById('nivoSummaryBtn')?.addEventListener('click',()=>{const box=document.getElementById('nivoSummary'),msgs=[...document.querySelectorAll('#messages .message-wrap')].slice(-6).map(x=>x.innerText.trim()).filter(Boolean);if(!box)return;box.hidden=false;box.innerHTML=msgs.length?`<i class="fa-solid fa-wand-magic-sparkles"></i><div><b>Resumen rápido para transferencia</b><p>${msgs.map(x=>x.replace(/\s+/g,' ')).join(' · ').slice(0,700)}</p><small>Resumen local de los últimos mensajes; no inventa información fuera de la conversación.</small></div>`:'<div>No hay mensajes para resumir.</div>'});
- const input=document.getElementById('messageInput'),messageForm=document.getElementById('messageForm');
- input?.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();messageForm?.requestSubmit()}});
+
 })();
 
 // ZYNKO Premium: inbox filters always expose Select2 search; larger selects remain searchable automatically.
@@ -697,7 +703,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  const isInbox=()=>!!document.getElementById('inboxFilters');
  if(!isInbox())return;
  const q=(s,c=document)=>c.querySelector(s),qa=(s,c=document)=>[...c.querySelectorAll(s)];
- let navigating=false;
+ let navigating=false,navController=null,navSeq=0;
  const post=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});let j={};try{j=await r.json()}catch(_){j={ok:false,message:'El servidor devolvió una respuesta no válida.'}}return j};
  const setLoading=on=>{const layout=q('.inbox-layout');if(!layout)return;layout.classList.toggle('inbox-ajax-loading',on);layout.setAttribute('aria-busy',on?'true':'false')};
  const syncActive=id=>qa('.conversation').forEach(a=>{const active=String(a.dataset.conversationId||'')===String(id||'');a.classList.toggle('active',active);if(active){a.querySelector('.unread-badge')?.remove();a.setAttribute('aria-current','true')}else a.removeAttribute('aria-current')});
@@ -708,12 +714,13 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  // La Bandeja abre por defecto en el mensaje más reciente; luego respeta la posición manual del agente.
  scrollMessages();
  const navigate=async(url,push=true)=>{
-   if(navigating)return;
+   if(navigating&&!push)return;
+   navController?.abort();const controller=new AbortController(),seq=++navSeq;navController=controller;
    navigating=true;setLoading(true);
    try{
-     const r=await fetch(url,{headers:{'X-ZYNKO-AJAX':'1','X-ZYNKO-INBOX-NAV':'1'},credentials:'same-origin'});
+     const r=await fetch(url,{headers:{'X-ZYNKO-AJAX':'1','X-ZYNKO-INBOX-NAV':'1'},credentials:'same-origin',cache:'no-store',signal:controller.signal});
      if(!r.ok)throw new Error('No se pudo abrir la conversación.');
-     const html=await r.text(),doc=new DOMParser().parseFromString(html,'text/html');
+     const html=await r.text();if(seq!==navSeq)return;const doc=new DOMParser().parseFromString(html,'text/html');
      if(!doc.querySelector('.inbox-layout'))throw new Error('La respuesta de la bandeja no es válida.');
      replaceNode('.chat',doc);replaceNode('.info',doc);
      ['#assignModal','#conversationActionsModal','#client360DetailsModal'].forEach(sel=>{removeNode(sel);const fresh=doc.querySelector(sel);if(fresh)document.body.insertAdjacentHTML('beforeend',fresh.outerHTML)});
@@ -722,8 +729,8 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
      hydrateSelect2();scrollMessages();
      if(push)history.pushState({zynkoInbox:true,url},'',url);
      document.dispatchEvent(new CustomEvent('zynko:inbox-conversation-changed',{detail:{conversation_id:cid,url}}));
-   }catch(err){showNotify('error','No se pudo abrir el chat',err.message||'Intenta nuevamente.');}
-   finally{setLoading(false);navigating=false}
+   }catch(err){if(err.name!=='AbortError')showNotify('error','No se pudo abrir el chat',err.message||'Intenta nuevamente.');}
+   finally{if(seq===navSeq){setLoading(false);navigating=false;navController=null;}}
  };
  window.ZynkoInboxNavigate=navigate;
 
@@ -765,7 +772,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  });
 
  document.addEventListener('change',e=>{if(document.body.dataset.inboxAjaxReady!=='1')return;if(e.target.matches('#chatFile')){const box=q('#attachmentPreview');if(box)box.innerHTML=[...e.target.files].map(f=>`<span><i class="fa-solid fa-paperclip"></i>${String(f.name).replace(/[&<>"']/g,'')}</span>`).join('')}});
- document.addEventListener('keydown',e=>{if(document.body.dataset.inboxAjaxReady!=='1')return;if(e.target?.id==='messageInput'&&(e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();q('#messageForm')?.requestSubmit()}});
+
  document.addEventListener('submit',e=>{
    if(document.body.dataset.inboxAjaxReady!=='1')return;
    const form=e.target;
@@ -783,7 +790,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
    })();
  });
  window.addEventListener('popstate',e=>{if(isInbox())navigate(location.href,false)});
- document.addEventListener('zynko:inbox-list-refresh',()=>{if(!document.hidden&&document.body.dataset.inboxAjaxReady==='1')navigate(location.href,false)});
+ document.addEventListener('zynko:inbox-list-refresh',()=>{if(!document.hidden&&document.body.dataset.inboxAjaxReady==='1'&&!document.querySelector('#messageInput')?.value.trim()&&!document.querySelector('#chatFile')?.files?.length&&!document.querySelector('.modal-shell.open,.zynko-dialog-overlay.open'))navigate(location.href,false)});
 })();
 
 
@@ -1098,3 +1105,15 @@ document.addEventListener('DOMContentLoaded',()=>{document.getElementById('runSe
 
 // Additional structured outgoing messages. Existing composer and its handlers are unchanged.
 document.addEventListener('click',async e=>{const b=e.target.closest?.('.structuredMessageBtn');if(!b)return;const form=b.closest('form');if(!form)return;try{const options={location:'Ubicación (latitud y longitud)'};if(b.dataset.channel==='whatsapp'){options.buttons='Botones de respuesta (Cloud API)';options.template='Plantilla aprobada (Cloud API)';}const a=await Swal.fire({title:'Mensaje especial',input:'select',inputOptions:options,showCancelButton:true});if(!a.isConfirmed)return;const kind=a.value;const d=await Swal.fire({title:options[kind],input:'textarea',inputLabel:kind==='location'?'Latitud y longitud, separadas por coma':kind==='buttons'?'Primera línea: mensaje. Siguientes líneas: uno a tres botones.':'Primera línea: ID de plantilla. Siguientes líneas: valores de las variables en orden.',showCancelButton:true,confirmButtonText:'Enviar',inputValidator:v=>v?.trim()?undefined:'Complete los datos.'});if(!d.isConfirmed)return;let payload={kind};const lines=d.value.trim().split(/\r?\n/);if(kind==='location'){const xy=d.value.split(',');if(xy.length!==2||xy.some(x=>!x.trim()))throw new Error('Ingrese latitud y longitud.');payload.latitude=Number(xy[0]);payload.longitude=Number(xy[1]);if(!Number.isFinite(payload.latitude)||!Number.isFinite(payload.longitude))throw new Error('Coordenadas inválidas.');}else if(kind==='buttons'){payload.body=lines.shift();payload.buttons=lines;}else{payload.template_id=lines.shift().trim();payload.values=lines;}const fd=new FormData();fd.append('action','message_send');fd.append('conversation_id',form.elements.namedItem('conversation_id').value);fd.append('structured_csrf',b.dataset.csrf);fd.append('structured_json',JSON.stringify(payload));b.disabled=true;const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudo enviar.');location.reload();}catch(err){showNotify('error','Mensaje',err.message);}finally{b.disabled=false;}});
+
+// Preferencia de envío por usuario, no por empresa ni por navegador compartido.
+(()=>{
+ const mode=()=>ZynkoUiPrefs.get('inbox.enter','newline')==='send'?'send':'newline';
+ const sync=()=>{const hint=document.getElementById('composerKeyHint');if(hint)hint.innerHTML=mode()==='send'?'<kbd>Enter</kbd> '+zynkoUiLang('envía · Shift+Enter nueva línea','sends · Shift+Enter new line'):'<kbd>Ctrl</kbd> + <kbd>Enter</kbd> '+zynkoUiLang('para enviar','to send');const b=document.querySelector('.composer-enter-mode');if(b)b.setAttribute('aria-label',mode()==='send'?'Enter envía':'Enter nueva línea');};
+ document.addEventListener('click',async e=>{const b=e.target.closest('.composer-enter-mode');if(!b)return;e.preventDefault();const a=await Swal.fire({title:zynkoUiLang('Comportamiento de Enter','Enter behavior'),input:'select',inputOptions:{send:zynkoUiLang('Enter envía · Shift+Enter nueva línea','Enter sends · Shift+Enter new line'),newline:zynkoUiLang('Enter nueva línea · Ctrl+Enter envía','Enter new line · Ctrl+Enter sends')},inputValue:mode(),showCancelButton:true,confirmButtonText:zynkoUiLang('Guardar','Save')});if(!a.isConfirmed)return;const fd=new FormData();fd.append('action','ui_preference');fd.append('key','inbox.enter');fd.append('value',a.value);try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();if(!j.ok)throw new Error(j.message);window.ZYNKO_UI_PREFS['inbox.enter']=a.value;sync();}catch(err){showNotify('error','Preferencia',err.message||'No se pudo guardar.');}});
+ document.addEventListener('keydown',e=>{if(e.key!=='Enter'||e.isComposing||e.repeat||e.defaultPrevented)return;const form=e.target.closest?.('#messageForm');if(!form||(!e.target.matches('#messageInput')&&!e.target.closest('.zynko-rte-editor')))return;if(!(e.ctrlKey||e.metaKey)&&!(mode()==='send'&&!e.shiftKey&&!e.altKey))return;e.preventDefault();form.requestSubmit();});
+ document.addEventListener('zynko:inbox-conversation-changed',sync);sync();
+})();
+
+// Editor de configuración: editar una variable por operación, sin leer secretos del DOM.
+(()=>{const key=document.getElementById('envFullKey'),field=document.getElementById('envNewKeyField'),name=document.getElementById('envNewKey'),value=document.getElementById('envNewValue'),reveal=document.getElementById('envRevealValue');if(!key||!field||!name||!value)return;const sync=()=>{const adding=key.value==='__new__';field.hidden=!adding;name.disabled=!adding;name.required=adding;};key.addEventListener('change',()=>{sync();value.value='';});reveal?.addEventListener('change',()=>{value.type=reveal.checked?'text':'password'});sync();})();

@@ -24,21 +24,45 @@
     if(/entendido|aceptar/.test(t))return 'fa-solid fa-check';
     return kind==='warning'?'fa-solid fa-check':'fa-solid fa-check';
   };
+  // Compatible con las opciones utilizadas por los formularios y canales existentes.
+  let activeDialog=null;
+  window.Swal.getInput=()=>activeDialog?.input||null;
+  window.Swal.getPopup=()=>activeDialog?.overlay.querySelector('.zynko-dialog')||null;
+  window.Swal.showValidationMessage=(message)=>{if(activeDialog){activeDialog.validation.textContent=String(message||'');activeDialog.validation.hidden=!message;}};
+  window.Swal.close=()=>activeDialog?.finish('dismiss');
   window.Swal.fire=(options={})=>new Promise(resolve=>{
     if(typeof options==='string')options={title:options};
-    const confirmText=options.confirmButtonText||'Aceptar';
-    const cancelText=options.cancelButtonText||'Cancelar';
-    const confirmIcon=options.confirmButtonIcon||dialogActionIcon(confirmText,true,options.icon);
-    const cancelIcon=options.cancelButtonIcon||dialogActionIcon(cancelText,false,options.icon);
+    if(activeDialog)activeDialog.finish('dismiss');
+    const previous=document.activeElement, confirmText=options.confirmButtonText||'Aceptar', cancelText=options.cancelButtonText||'Cancelar';
     const overlay=document.createElement('div');overlay.className='zynko-dialog-overlay';
     const icon=options.icon&&icons[options.icon]?`<span class="zynko-dialog-icon ${esc(options.icon)}">${icons[options.icon]}</span>`:'';
-    overlay.innerHTML=`<div class="zynko-dialog" role="dialog" aria-modal="true" aria-labelledby="zynko-dialog-title">${icon}<h2 id="zynko-dialog-title">${esc(options.title||'Confirmación')}</h2>${options.text?`<p>${esc(options.text)}</p>`:''}<div class="zynko-dialog-actions">${options.showCancelButton?`<button type="button" class="zynko-dialog-cancel">${cancelIcon?`<i class="${esc(cancelIcon)}"></i>`:''}<span>${esc(cancelText)}</span></button>`:''}<button type="button" class="zynko-dialog-confirm">${confirmIcon?`<i class="${esc(confirmIcon)}"></i>`:''}<span>${esc(confirmText)}</span></button></div></div>`;
+    const button=(kind,title,icon)=>`<button type="button" class="zynko-dialog-${kind}"><i class="${esc(icon)}"></i><span>${esc(title)}</span></button>`;
+    overlay.innerHTML=`<div class="zynko-dialog" role="dialog" aria-modal="true" aria-labelledby="zynko-dialog-title">${icon}<h2 id="zynko-dialog-title">${esc(options.title||'Confirmación')}</h2>${options.text?`<p>${esc(options.text)}</p>`:''}<div class="zynko-dialog-content"></div><div class="zynko-dialog-validation" role="alert" hidden></div><div class="zynko-dialog-actions">${options.showCancelButton?button('cancel',cancelText,options.cancelButtonIcon||dialogActionIcon(cancelText,false)):''}${options.showDenyButton?button('deny',options.denyButtonText||'No','fa-solid fa-trash-can'):''}${options.showConfirmButton===false?'':button('confirm',confirmText,options.confirmButtonIcon||dialogActionIcon(confirmText,true,options.icon))}</div></div>`;
+    const popup=overlay.firstElementChild, content=overlay.querySelector('.zynko-dialog-content'),validation=overlay.querySelector('.zynko-dialog-validation');
+    if(options.html){if(options.html instanceof Node)content.append(options.html);else content.innerHTML=String(options.html);popup.classList.add('has-content');}
+    let input=null;
+    if(options.input){
+      const field=document.createElement('div');field.className='zynko-dialog-input-wrap field';
+      if(options.inputLabel){const label=document.createElement('label');label.textContent=options.inputLabel;field.append(label);}
+      if(options.input==='select'){input=document.createElement('select');for(const [value,label] of Object.entries(options.inputOptions||{})){const o=document.createElement('option');o.value=value;o.textContent=String(label);input.append(o);}}
+      else if(options.input==='textarea'){input=document.createElement('textarea');input.setAttribute('data-no-rte','1');input.rows=4;}
+      else{input=document.createElement('input');input.type=['text','password','email','url','tel','number','search'].includes(options.input)?options.input:'text';}
+      input.classList.add('zynko-dialog-input');input.id='zynko-dialog-input';field.querySelector('label')?.setAttribute('for',input.id);if(options.inputPlaceholder)input.placeholder=options.inputPlaceholder;
+      for(const [k,v] of Object.entries(options.inputAttributes||{})){if(/^(?:autocomplete|autocapitalize|spellcheck|maxlength|minlength|inputmode|pattern|min|max|step|required|aria-[a-z-]+)$/i.test(k))input.setAttribute(k,String(v));}
+      if(options.inputValue!==undefined)input.value=String(options.inputValue??'');field.append(input);content.append(field);
+    }
+    content.querySelectorAll('textarea').forEach(x=>x.setAttribute('data-no-rte','1'));
+    if(!content.childNodes.length)content.hidden=true;
     document.body.appendChild(overlay);document.body.classList.add('zynko-dialog-open');
-    const done=isConfirmed=>{overlay.classList.remove('open');document.body.classList.remove('zynko-dialog-open');setTimeout(()=>overlay.remove(),150);resolve({isConfirmed,isDismissed:!isConfirmed})};
-    overlay.querySelector('.zynko-dialog-confirm').onclick=()=>done(true);overlay.querySelector('.zynko-dialog-cancel')?.addEventListener('click',()=>done(false));
-    overlay.addEventListener('click',e=>{if(e.target===overlay&&options.allowOutsideClick!==false)done(false)});
-    const key=e=>{if(e.key==='Escape'&&options.allowEscapeKey!==false){document.removeEventListener('keydown',key);done(false)}};document.addEventListener('keydown',key,{once:true});
-    requestAnimationFrame(()=>{overlay.classList.add('open');overlay.querySelector('.zynko-dialog-confirm')?.focus()});
+    let settled=false,busy=false,timer=null;
+    const finish=(kind,value)=>{if(settled)return;settled=true;clearTimeout(timer);document.removeEventListener('keydown',key,true);try{options.willClose?.(popup)}catch(_){}if(activeDialog?.overlay===overlay)activeDialog=null;overlay.classList.remove('open');overlay.remove();if(!document.querySelector('.zynko-dialog-overlay'))document.body.classList.remove('zynko-dialog-open');if(previous?.isConnected&&!previous.closest('[hidden]'))try{previous.focus({preventScroll:true})}catch(_){}resolve({isConfirmed:kind==='confirm',isDenied:kind==='deny',isDismissed:kind==='dismiss',value});};
+    const confirm=async()=>{if(busy||settled)return;busy=true;const btn=overlay.querySelector('.zynko-dialog-confirm');if(btn)btn.disabled=true;validation.hidden=true;try{let value=input?input.value:undefined;if(input&&!input.checkValidity()){Swal.showValidationMessage(input.validationMessage);input.focus();return;}if(options.inputValidator){const msg=await options.inputValidator(value);if(msg){Swal.showValidationMessage(msg);input?.focus();return;}}if(options.preConfirm){const v=await options.preConfirm(value);if(v===false||!validation.hidden)return;if(v!==undefined)value=v;}finish('confirm',value);}catch(e){Swal.showValidationMessage(e?.message||'No se pudo completar.');}finally{busy=false;if(btn)btn.disabled=false;}};
+    const key=e=>{if(settled||activeDialog?.overlay!==overlay)return;if(e.key==='Escape'&&options.allowEscapeKey!==false){e.preventDefault();e.stopImmediatePropagation();finish('dismiss');return;}if(e.key==='Enter'&&!e.isComposing&&e.target===input&&input?.tagName!=='TEXTAREA'){e.preventDefault();e.stopImmediatePropagation();confirm();}if(e.key==='Tab'){const list=[...popup.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href]')].filter(x=>x.getClientRects().length&&!x.hidden);if(list.length){const first=list[0],last=list[list.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}};
+    activeDialog={overlay,input,validation,finish};
+    overlay.querySelector('.zynko-dialog-confirm')?.addEventListener('click',confirm);overlay.querySelector('.zynko-dialog-cancel')?.addEventListener('click',()=>finish('dismiss'));overlay.querySelector('.zynko-dialog-deny')?.addEventListener('click',()=>finish('deny',input?.value));
+    overlay.addEventListener('click',e=>{if(e.target===overlay&&options.allowOutsideClick!==false&&!busy)finish('dismiss')});document.addEventListener('keydown',key,true);
+    requestAnimationFrame(()=>{if(settled)return;overlay.classList.add('open');const focus=input||content.querySelector('input:not([disabled]),textarea:not([disabled]),select:not([disabled])')||(options.focusConfirm===false?overlay.querySelector('.zynko-dialog-cancel'):overlay.querySelector('.zynko-dialog-confirm'));focus?.focus();try{options.didOpen?.(popup)}catch(e){Swal.showValidationMessage(e?.message||'No se pudo abrir el formulario.');}});
+    if(Number(options.timer)>0)timer=setTimeout(()=>finish('dismiss'),Number(options.timer));
   });
   // API única para modales premium ZYNKO. Evita diálogos nativos y mantiene el mismo comportamiento visual.
   // V2.27.2 · foco inteligente global.

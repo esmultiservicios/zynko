@@ -63,16 +63,48 @@ final class ZynkoEnvManager
 
     public function save(array $input,bool $platformChannels=false): array
     {
+        return $this->locked(fn()=>$this->saveUnlocked($input,$platformChannels));
+    }
+
+    public function saveKey(string $key,string $value,bool $new=false,bool $allowEmpty=false): array
+    {
+        if(!preg_match('/^[A-Za-z_][A-Za-z0-9_]{0,127}$/D',$key))throw new RuntimeException('Nombre de variable inválido.');
+        if(strtoupper($key)==='APP_KEY')throw new RuntimeException('APP_KEY está protegida: su rotación requiere recifrar los datos fuera de este editor.');
+        if($value===''&&!$allowEmpty)throw new RuntimeException('Escribe el valor o confirma expresamente que deseas guardar un valor vacío.');
+        return $this->locked(function()use($key,$value,$new){
+            $current=$this->values();
+            if($new&&array_key_exists($key,$current))throw new RuntimeException('La variable ya existe. Selecciónala para modificarla.');
+            if(!$new&&!array_key_exists($key,$current))throw new RuntimeException('La variable ya no existe. Actualiza la página.');
+            return $this->saveUnlocked([$key=>$value],isset(self::platformChannelKeys()[$key]),true);
+        });
+    }
+
+    private function locked(callable $operation): array
+    {
+        if(!$this->exists()||is_link($this->path))throw new RuntimeException('No se puede administrar este archivo .env.');
+        if(!is_dir($this->backupDir)&&!mkdir($this->backupDir,0700,true)&&!is_dir($this->backupDir))throw new RuntimeException('No se pudo preparar la carpeta de respaldos.');
+        $lock=fopen($this->backupDir.'/.write.lock','c+b');
+        if(!$lock)throw new RuntimeException('No se pudo bloquear la configuración.');
+        @chmod($this->backupDir.'/.write.lock',0600);
+        try{if(!flock($lock,LOCK_EX))throw new RuntimeException('No se pudo bloquear la configuración.');return $operation();}
+        finally{flock($lock,LOCK_UN);fclose($lock);}
+    }
+
+    private function saveUnlocked(array $input,bool $platformChannels=false,bool $singleKey=false): array
+    {
         if(!$this->exists())throw new RuntimeException('El archivo .env no existe en la raíz de ZYNKO.');
         if(!is_readable($this->path)||!is_writable($this->path))throw new RuntimeException('El archivo .env no tiene permisos de lectura/escritura para PHP.');
         $raw=file_get_contents($this->path);if($raw===false)throw new RuntimeException('No se pudo leer el archivo .env.');
-        $current=$this->values();$changed=[];
-        foreach(($platformChannels?self::platformChannelKeys():self::editableKeys()) as $key=>$meta){
+        $current=@parse_ini_string($raw,false,INI_SCANNER_RAW);if(!is_array($current))throw new RuntimeException('El .env actual contiene sintaxis inválida. No se realizaron cambios.');$expected=$current;$changed=[];
+        $keys=$platformChannels?self::platformChannelKeys():self::editableKeys();
+        if($singleKey){foreach($input as $k=>$v)if(!isset($keys[$k]))$keys[$k]=['secret'=>true];}
+        foreach($keys as $key=>$meta){
             if(!array_key_exists($key,$input))continue;
-            $value=trim((string)$input[$key]);
-            if(!empty($meta['secret'])&&$value==='')continue;
+            $value=$singleKey?(string)$input[$key]:trim((string)$input[$key]);
+            if(strtoupper($key)==='APP_KEY'||preg_match('/[\r\n\x00]/',$value)||strlen($value)>32768)throw new RuntimeException('Variable protegida o valor no válido.');
+            if(!$singleKey&&!empty($meta['secret'])&&$value==='')continue;
             if($platformChannels){
-                if($value==='')continue;
+                if($value===''&&!$singleKey)continue;
                 if(in_array($key,['META_APP_ID','META_CONFIG_ID'],true)&&!preg_match('/^[0-9]{5,30}$/D',$value))throw new RuntimeException('Identificador de Meta inválido.');
                 if($key==='META_GRAPH_VERSION'&&!preg_match('/^v[0-9]{1,3}\.[0-9]{1,2}$/D',$value))throw new RuntimeException('Versión Graph inválida.');
                 if(in_array($key,['META_EMBEDDED_SIGNUP_ENABLED','META_COEXISTENCE_ENABLED','X_DM_ENABLED'],true))$value=in_array(strtolower($value),['1','true','yes'],true)?'1':'0';
@@ -90,18 +122,28 @@ final class ZynkoEnvManager
             if($key==='WS_PUBLIC_HOST'){$value=preg_replace('#^https?://#i','',$value);$value=preg_replace('#/.*$#','',$value);if($value!==''&&!preg_match('/^[a-z0-9.-]+(?::\d+)?$/i',$value))throw new RuntimeException('WS_PUBLIC_HOST no es válido.');}
             if($key==='WS_PUBLIC_URL'&&$value!==''){if(!preg_match('#^wss?://#i',$value))throw new RuntimeException('WS_PUBLIC_URL debe comenzar con ws:// o wss://.');$parts=parse_url($value);if(!is_array($parts)||empty($parts['host']))throw new RuntimeException('WS_PUBLIC_URL no es válida.');$value=rtrim($value,'/');}
             if(in_array($key,['DB_HOST','DB_DATABASE','DB_USERNAME'],true)&&$value==='')throw new RuntimeException($key.' no puede quedar vacío.');
-            if((string)($current[$key]??'')===$value)continue;
+            if(array_key_exists($key,$current)&&(string)$current[$key]===$value)continue;
             $raw=$this->replaceValue($raw,$key,$value);
-            $changed[]=$key;
+            $expected[$key]=$value;$changed[]=$key;
         }
         if(!$changed)return [];
-        if(!is_dir($this->backupDir)&&!mkdir($this->backupDir,0770,true)&&!is_dir($this->backupDir))throw new RuntimeException('No se pudo crear la carpeta segura de respaldos del .env.');
-        $backup=$this->backupDir.'/env-'.date('Ymd-His').'-'.bin2hex(random_bytes(3)).'.bak';
-        if(!copy($this->path,$backup))throw new RuntimeException('No se pudo crear el respaldo del .env.');
+        // Verifica que el lector real de ZYNKO recupera exactamente todos los valores.
+        $parsed=@parse_ini_string($raw,false,INI_SCANNER_RAW);
+        if(!is_array($parsed))throw new RuntimeException('El valor no es compatible con el formato .env. No se realizaron cambios.');
+        ksort($parsed);ksort($expected);
+        if($parsed!==$expected)throw new RuntimeException('El valor alteraría la interpretación de otras variables. No se realizaron cambios.');
+        if(!is_dir($this->backupDir))throw new RuntimeException('Carpeta de respaldos no disponible.');
+        $sourceStat=stat(dirname($this->path));$backupStat=stat($this->backupDir);
+        if($sourceStat===false||$backupStat===false||$sourceStat['dev']!==$backupStat['dev'])throw new RuntimeException('El respaldo debe estar en el mismo sistema de archivos.');
+        $backup=tempnam($this->backupDir,'env-'.date('Ymd-His').'-');
+        if($backup===false)throw new RuntimeException('No se pudo crear el respaldo.');
         @chmod($backup,0600);
-        $tmp=$this->path.'.tmp.'.bin2hex(random_bytes(4));
-        if(file_put_contents($tmp,$raw,LOCK_EX)===false){@unlink($tmp);throw new RuntimeException('No se pudo preparar la actualización del .env.');}
+        if(!copy($this->path,$backup)){@unlink($backup);throw new RuntimeException('No se pudo respaldar el .env.');}
+        // El temporal nunca queda expuesto en la raíz pública.
+        $tmp=tempnam($this->backupDir,'.env-tmp-');
+        if($tmp===false)throw new RuntimeException('No se pudo preparar la actualización del .env.');
         @chmod($tmp,0600);
+        if(file_put_contents($tmp,$raw,LOCK_EX)!==strlen($raw)){@unlink($tmp);throw new RuntimeException('No se pudo preparar la actualización del .env.');}
         if(!rename($tmp,$this->path)){@unlink($tmp);throw new RuntimeException('No se pudo reemplazar el archivo .env de forma segura.');}
         @chmod($this->path,0600);
         return $changed;
@@ -110,15 +152,15 @@ final class ZynkoEnvManager
     private function replaceValue(string $raw,string $key,string $value): string
     {
         $encoded=$this->encode($value);
-        $pattern='/^'.preg_quote($key,'/').'\s*=.*$/m';
+        $pattern='/^[ \t]*'.preg_quote($key,'/').'[ \t]*=[^\r\n]*/m';
         if(preg_match($pattern,$raw))return preg_replace_callback($pattern,fn()=>$key.'='.$encoded,$raw)??$raw;
-        return rtrim($raw).PHP_EOL.$key.'='.$encoded.PHP_EOL;
+        return $raw.($raw!==''&&!str_ends_with($raw,"\n")?PHP_EOL:'').$key.'='.$encoded.PHP_EOL;
     }
 
     private function encode(string $value): string
     {
         if($value==='')return '""';
         if(preg_match('/^[A-Za-z0-9_\.\-:\/]+$/',$value))return $value;
-        return '"'.str_replace(['\\','"'],['\\\\','\\"'],$value).'"';
+        return '"'.$value.'"';
     }
 }
