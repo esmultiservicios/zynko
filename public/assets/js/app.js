@@ -1,4 +1,5 @@
 const app=document.querySelector('.app');
+const zynkoUiLang=(es,en)=>document.documentElement.lang==='en'?en:es;
 // Limpia el compositor visible y su textarea solo tras confirmar el envío.
 function zynkoClearSentMessage(input, sentBody) {
   if (!input || input.value.trim() !== sentBody) return;
@@ -7,7 +8,7 @@ function zynkoClearSentMessage(input, sentBody) {
   input.value = '';
   if (editor) editor.replaceChildren();
   const count = shell?.querySelector('.zynko-rte-count');
-  if (count) count.textContent = '0 caracteres';
+  if (count) count.textContent = zynkoUiLang('0 caracteres','0 characters');
   input.dispatchEvent(new Event('input', {bubbles: true}));
   // El textarea nativo está oculto cuando se utiliza el editor enriquecido.
   const target = editor || input;
@@ -114,14 +115,14 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  const openChannelConfig=(type,config=null)=>{
    if(!channelNames[type]||!channelForm)return;
    channelForm.reset();resetChannelSecrets();
-   $('#channelType').value=type;$('#channelModalTitle').textContent='Configurar '+channelNames[type];
+   $('#channelType').value=type;$('#channelModalTitle').textContent=zynkoUiLang('Configurar ','Configure ')+channelNames[type];
    const pm=$('#channelProviderMode');if(pm)pm.value=type==='whatsapp'?'meta_cloud':type;
    if(config)Object.entries(config).forEach(([k,v])=>{const el=channelForm.elements.namedItem(k);if(el&&k!=='token'&&k!=='action'&&k!=='type')el.value=v??'';});
    const access=$('#channelAccessToken'),help=$('#channelAccessTokenHelp'),stored=!!config?.has_access_token;
-   if(access){access.value='';access.placeholder=stored?'••••••••••••••••••••':'Se guardará cifrado';}
-   if(help)help.textContent=stored?'Token guardado y cifrado. Déjalo vacío para conservarlo o ingresa uno nuevo para reemplazarlo.':'Ingresa el token de acceso del proveedor. Se guardará cifrado.';
+   if(access){access.value='';access.placeholder=stored?'••••••••••••••••••••':zynkoUiLang('Se guardará cifrado','Stored encrypted');}
+   if(help)help.textContent=stored?zynkoUiLang('Token guardado y cifrado. Déjalo vacío para conservarlo o ingresa uno nuevo para reemplazarlo.','Token saved and encrypted. Leave blank to keep it or enter a new one to replace it.'):zynkoUiLang('Ingresa el token de acceso del proveedor. Se guardará cifrado.','Enter the provider access token. It will be stored encrypted.');
    const wh=$('#providerWebhookPreview'),copy=$('#copyProviderWebhook');
-   if(wh)wh.value=config?.uuid?location.origin+location.pathname.replace(/\/[^/]*$/,'/')+'provider-webhook.php?channel='+encodeURIComponent(config.uuid):'Se generará al guardar el canal';
+   if(wh)wh.value=config?.uuid?location.origin+location.pathname.replace(/\/[^/]*$/,'/')+'provider-webhook.php?channel='+encodeURIComponent(config.uuid):zynkoUiLang('Se generará al guardar el canal','Generated when the channel is saved');
    if(copy)copy.disabled=!config?.uuid;
    pm?.dispatchEvent(new Event('change',{bubbles:true}));
    document.getElementById('channelCatalogModal')?.classList.remove('open');openModal('channelModal');
@@ -206,7 +207,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
 document.addEventListener('pointerdown',e=>{if(emojiPicker&&!emojiPicker.hidden&&!emojiPicker.contains(e.target)&&!e.target.closest?.('#emojiBtn'))emojiPicker.hidden=true},{capture:true});
  $('#attachBtn')?.addEventListener('click',()=>$('#chatFile')?.click());$('#chatFile')?.addEventListener('change',e=>{$('#attachmentPreview').innerHTML=[...e.target.files].map(f=>`<span><i class="fa-solid fa-paperclip"></i>${f.name}</span>`).join('')});
  $('#nivoAssist')?.addEventListener('click',async()=>{const i=$('#messageInput');if(!i)return;const last=[...document.querySelectorAll('#messages p:not(.me)')].pop()?.textContent?.trim()||i.value.trim();if(!last){showNotify('warning','NIVO necesita contexto','Selecciona una conversación con un mensaje del cliente.');return;}const fd=new FormData();fd.append('action','nivo_suggest');fd.append('query',last);const j=await post(fd);if(j.ok){i.value=j.data.suggestion||'';showNotify('info','Sugerencia de NIVO',(j.data.source?'Fuente: '+j.data.source+'. ':'')+'Confianza: '+(j.data.confidence||'n/a')+'. Revisa antes de enviar.');i.focus();}else showNotify('error','NIVO',j.message);});
- $('#messageForm')?.addEventListener('submit',async e=>{e.preventDefault();const i=$('#messageInput'),body=i.value.trim();if(!body&&!($('#chatFile')?.files?.length)){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return;}const fd=new FormData();fd.append('action','message_send');fd.append('conversation_id',$('#messageForm [name=conversation_id]')?.value||'');fd.append('body',body);[...($('#chatFile')?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(j.ok){zynkoClearSentMessage(i,body);$('#attachmentPreview').innerHTML='';$('#chatFile').value='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));}else showNotify('error','No se pudo enviar',j.message)});
+ $('#messageForm')?.addEventListener('submit',async e=>{e.preventDefault();const i=$('#messageInput'),body=i.value.trim();if(!body&&!($('#chatFile')?.files?.length)){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return;}const fd=new FormData();fd.append('action','message_send');fd.append('conversation_id',$('#messageForm [name=conversation_id]')?.value||'');fd.append('body',body);[...($('#chatFile')?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(j.ok){zynkoClearSentMessage(i,body);$('#attachmentPreview').innerHTML='';$('#chatFile').value='';if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));}else showNotify('error','No se pudo enviar',j.message)});
 })();
 
 
@@ -372,7 +373,7 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
 // ZYNKO Premium Experience v1: realtime indicator, command center and navigation feedback.
 (()=>{
  const pill=document.getElementById('realtimePill');
- const setRealtime=connected=>{if(!pill)return;const total=Number(pill.dataset.total||0),linked=Number(pill.dataset.connected||0),warning=Number(pill.dataset.warning||0);pill.classList.toggle('connected',!!connected&&total>0&&linked===total);pill.classList.toggle('offline',!connected||linked<total);const health=total?`Canales ${linked}/${total}`:'Sin canales';pill.querySelector('span').textContent=health+(connected?' · Tiempo real':' · Auto');pill.title=`Estado omnicanal: ${linked} de ${total} canales conectados${warning?`, ${warning} con advertencia`:''}. `+(connected?'WebSocket conectado: eventos instantáneos activos.':'WebSocket desconectado: ZYNKO intentará reconectar y resincronizar automáticamente.');};
+ const setRealtime=connected=>{if(!pill)return;const total=Number(pill.dataset.total||0),linked=Number(pill.dataset.connected||0),warning=Number(pill.dataset.warning||0);pill.classList.toggle('connected',!!connected&&total>0&&linked===total);pill.classList.toggle('offline',!connected||linked<total);const health=total?`${zynkoUiLang('Canales','Channels')} ${linked}/${total}`:zynkoUiLang('Sin canales','No channels');pill.querySelector('span').textContent=health+(connected?zynkoUiLang(' · Tiempo real',' · Real time'):' · Auto');pill.title=`Estado omnicanal: ${linked} de ${total} canales conectados${warning?`, ${warning} con advertencia`:''}. `+(connected?'WebSocket conectado: eventos instantáneos activos.':'WebSocket desconectado: ZYNKO intentará reconectar y resincronizar automáticamente.');};
  document.addEventListener('zynko:realtime-status',e=>setRealtime(!!e.detail?.connected));
  const modal=document.getElementById('searchModal'), input=document.getElementById('commandSearch'), results=document.getElementById('commandResults');
  const items=[
@@ -760,7 +761,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
    (async()=>{
      if(form.id==='messageForm'){
        const input=q('#messageInput'),body=input?.value.trim()||'',file=q('#chatFile');if(!body&&!file?.files?.length){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return}
-       const fd=new FormData(form);fd.set('body',body);[...(file?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(!j.ok){showNotify('error','No se pudo enviar',j.message);return}zynkoClearSentMessage(input,body);const quickId=q('#quickReplyId');if(quickId)quickId.value='';if(file)file.value='';const preview=q('#attachmentPreview');if(preview)preview.innerHTML='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));return;
+       const fd=new FormData(form);fd.set('body',body);[...(file?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(!j.ok){showNotify('error','No se pudo enviar',j.message);return}zynkoClearSentMessage(input,body);const quickId=q('#quickReplyId');if(quickId)quickId.value='';if(file)file.value='';const preview=q('#attachmentPreview');if(preview)preview.innerHTML='';if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));return;
      }
      const j=await post(new FormData(form));showNotify(j.ok?'success':'error',j.ok?'Listo':'Error',j.message);if(!j.ok)return;
      if(form.id==='assignForm')q('#assignModal')?.classList.remove('open');
