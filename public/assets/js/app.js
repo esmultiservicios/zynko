@@ -9,6 +9,21 @@ function zynkoClearSentMessage(input, sentBody) {
   const count = shell?.querySelector('.zynko-rte-count');
   if (count) count.textContent = '0 caracteres';
   input.dispatchEvent(new Event('input', {bubbles: true}));
+  // El textarea nativo está oculto cuando se utiliza el editor enriquecido.
+  const target = editor || input;
+  if (target.isConnected && input === document.getElementById('messageInput')) {
+    target.focus({preventScroll: true});
+    if (editor) {
+      const selection = window.getSelection();
+      if (selection) {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+    }
+  }
 }
 
 // Preferencias de interfaz por usuario: la BD es la fuente principal; localStorage queda como cache/fallback para carga inmediata.

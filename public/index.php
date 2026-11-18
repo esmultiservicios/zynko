@@ -433,7 +433,9 @@ function zynkoClearAuthentication(bool $revokeDatabaseSession=true): void {
     }catch(Throwable $e){}
   }
 
-  foreach(['zynko_remember','zynko_login_email'] as $cookieName){
+  // Recordar el correo es una preferencia, no una credencial de autenticacion.
+  // Se conserva al cerrar/vencer sesion; iniciar sin Recordarme la elimina.
+  foreach(['zynko_remember'] as $cookieName){
     if(isset($_COOKIE[$cookieName])){
       setcookie($cookieName,'',[ 'expires'=>time()-3600,'path'=>'/','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off','httponly'=>true,'samesite'=>'Lax']);
       unset($_COOKIE[$cookieName]);
