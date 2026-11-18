@@ -3,7 +3,7 @@ deployment:
   tasks:
     - export DEPLOYPATH="$HOME/public_html/zynkocloud.app/"
     - /bin/mkdir -p "$DEPLOYPATH"
-    - /usr/bin/rsync -a --delete --exclude='.git/' --exclude='.cpanel.yml' --exclude='.env' --exclude='.env.*' --exclude='.well-known/' --exclude='.user.ini' --exclude='php.ini' --exclude='error_log' --exclude='public/uploads/' --exclude='storage/installed.lock' --exclude='storage/logs/' --exclude='storage/cache/' --exclude='storage/env-backups/' ./ "$DEPLOYPATH"
+    - /usr/bin/rsync -a --delete --exclude='.git/' --exclude='.cpanel.yml' --exclude='.env' --exclude='.env.*' --exclude='.well-known/' --exclude='.user.ini' --exclude='php.ini' --exclude='error_log' --exclude='public/uploads/' --exclude='storage/installed.lock' --exclude='storage/logs/' --exclude='storage/cache/' --exclude='storage/env-backups/' --exclude='storage/channel-media/' --exclude='bridge/whatsapp-qr/sessions/' --exclude='bridge/whatsapp-qr/node_modules/' ./ "$DEPLOYPATH"
     - cd "$DEPLOYPATH" && /bin/bash bin/restart-websocket.sh || true
     - cd "$DEPLOYPATH" && /bin/bash bin/install-service-monitor-cron.sh || true
     - cd "$DEPLOYPATH" && /usr/local/bin/php bin/service-monitor.php || /usr/bin/php bin/service-monitor.php || true

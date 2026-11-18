@@ -1,30 +1,59 @@
 <?php
 declare(strict_types=1);
 $root=dirname(__DIR__);
-require_once $root.'/app/Support/Realtime.php';
-require_once $root.'/app/Services/NivoEngine.php';
-require_once $root.'/app/Services/AutomationEngine.php';
-require_once $root.'/app/Services/ChannelProviderGateway.php';
-function envv(string $p):array{$v=@parse_ini_file($p,false,INI_SCANNER_RAW);return is_array($v)?$v:[];}
-function dbh():PDO{static $p;if($p)return $p;global $root;$e=envv($root.'/.env');$p=new PDO('mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4',$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);return $p;}
-function decryptw(string $cipher):string{global $root;if($cipher===''||!str_starts_with($cipher,'enc:v1:'))return $cipher;$e=envv($root.'/.env');$hex=$e['APP_KEY']??'';if(!preg_match('/^[a-f0-9]{64}$/i',$hex))return '';$raw=base64_decode(substr($cipher,7),true);if($raw===false||strlen($raw)<29)return '';$plain=openssl_decrypt(substr($raw,28),'aes-256-gcm',hex2bin($hex),OPENSSL_RAW_DATA,substr($raw,0,12),substr($raw,12,16));return is_string($plain)?$plain:'';}
-function uuid4w():string{$d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}
-function outw(int $code,array $data):never{http_response_code($code);header('Content-Type: application/json; charset=utf-8');echo json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}
-$uuid=preg_replace('/[^a-f0-9-]/i','',(string)($_GET['channel']??''));if($uuid==='')outw(404,['ok'=>false]);$q=dbh()->prepare('SELECT * FROM channels WHERE uuid=? LIMIT 1');$q->execute([$uuid]);$channel=$q->fetch();if(!$channel)outw(404,['ok'=>false]);$settings=json_decode((string)($channel['settings_json']??''),true)?:[];
-if($_SERVER['REQUEST_METHOD']==='GET'){$verify=(string)($_GET['hub_verify_token']??'');if($verify!==''&&hash_equals((string)($settings['verify_token']??''),$verify)){header('Content-Type:text/plain');echo (string)($_GET['hub_challenge']??'');exit;}outw(403,['ok'=>false,'message'=>'Verify token inválido']);}
-$raw=file_get_contents('php://input')?:'';$payload=json_decode($raw,true);if(!is_array($payload))outw(400,['ok'=>false,'message'=>'JSON inválido']);
-$type=(string)$channel['type'];$events=[];
-if($type==='telegram'){$m=$payload['message']??$payload['edited_message']??null;if(is_array($m))$events[]=['kind'=>'message','from'=>(string)($m['chat']['id']??''),'name'=>(string)($m['from']['first_name']??''),'text'=>(string)($m['text']??''),'external'=>(string)($m['message_id']??'')];}
-elseif($type==='whatsapp'&&($settings['provider_mode']??'')==='qr_bridge'){$token=(string)($_SERVER['HTTP_X_ZYNKO_QR_TOKEN']??'');$expected=decryptw((string)($channel['token_ciphertext']??''));if($expected!==''&&!hash_equals($expected,$token))outw(403,['ok'=>false]);if(($payload['event']??'')==='message')$events[]=['kind'=>'message','from'=>preg_replace('/@.*/','',(string)($payload['from']??'')),'name'=>(string)($payload['push_name']??''),'text'=>(string)($payload['text']??''),'external'=>(string)($payload['message_id']??'')];}
-else{
- foreach(($payload['entry']??[]) as $entry){foreach(($entry['messaging']??[]) as $m){if(!empty($m['message']['text']))$events[]=['kind'=>'message','from'=>(string)($m['sender']['id']??''),'name'=>'','text'=>(string)$m['message']['text'],'external'=>(string)($m['message']['mid']??'')];}
- foreach(($entry['changes']??[]) as $c){$v=$c['value']??[];if(($c['field']??'')==='messages'){foreach(($v['messages']??[]) as $m){$events[]=['kind'=>'message','from'=>(string)($m['from']??''),'name'=>(string)($v['contacts'][0]['profile']['name']??''),'text'=>(string)($m['text']['body']??''),'external'=>(string)($m['id']??'')];}}elseif(in_array((string)($c['field']??''),['comments','feed'],true)){ $from=(string)($v['from']['id']??$v['sender_id']??'');$text=(string)($v['message']??$v['text']??'');if($from!==''&&$text!=='')$events[]=['kind'=>'comment','from'=>$from,'name'=>(string)($v['from']['username']??$v['from']['name']??''),'text'=>$text,'external'=>(string)($v['id']??'')];}}
- }}
-$pdo=dbh();$gateway=new ChannelProviderGateway($pdo,$root);foreach($events as $ev){$from=trim($ev['from']);$text=trim($ev['text']);if($from===''||$text==='')continue;$tid=(int)$channel['tenant_id'];
- if($ev['kind']==='comment'&&$type==='instagram'){$r=$pdo->prepare("SELECT * FROM social_automation_rules WHERE tenant_id=? AND channel_type='instagram' AND rule_type='comment_to_dm' AND active=1 ORDER BY id");$r->execute([$tid]);foreach($r->fetchAll() as $rule){$keys=preg_split('/[,\n]+/u',mb_strtolower((string)$rule['keywords']))?:[];$match=trim((string)$rule['keywords'])==='';foreach($keys as $k){$k=trim($k);if($k!==''&&mb_strpos(mb_strtolower($text),$k)!==false)$match=true;}if($match){$gateway->dispatch($channel,$from,(string)$rule['response_text']);break;}}continue;}
- $cq=$pdo->prepare('SELECT contact_id FROM contact_identities WHERE tenant_id=? AND channel_id=? AND external_id=? LIMIT 1');$cq->execute([$tid,(int)$channel['id'],$from]);$contact=(int)($cq->fetchColumn()?:0);if(!$contact){$pdo->prepare('INSERT INTO contacts(tenant_id,uuid,name,phone) VALUES(?,?,?,?)')->execute([$tid,uuid4w(),$ev['name']?:$from,$type==='whatsapp'?$from:null]);$contact=(int)$pdo->lastInsertId();$pdo->prepare('INSERT INTO contact_identities(tenant_id,contact_id,channel_id,external_id,profile_json) VALUES(?,?,?,?,JSON_OBJECT())')->execute([$tid,$contact,(int)$channel['id'],$from]);}
- $cq=$pdo->prepare("SELECT id FROM conversations WHERE tenant_id=? AND channel_id=? AND contact_id=? AND status IN('open','pending') ORDER BY id DESC LIMIT 1");$cq->execute([$tid,(int)$channel['id'],$contact]);$cid=(int)($cq->fetchColumn()?:0);if(!$cid){$pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,'open',NOW())")->execute([$tid,uuid4w(),(int)$channel['id'],$contact]);$cid=(int)$pdo->lastInsertId();}
- try{$pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,external_message_id,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,?, 'in','contact','text',?,'received',NOW())")->execute([$tid,$cid,uuid4w(),$ev['external']?:null,$text]);}catch(PDOException $dup){continue;}$mid=(int)$pdo->lastInsertId();$pdo->prepare('UPDATE conversations SET last_message_at=NOW(),unread_count=unread_count+1 WHERE id=?')->execute([$cid]);zynkoRealtimePublishMessage($pdo,$tid,$mid,['channel'=>$type,'sender'=>'contact']);
- $company=(string)($pdo->query('SELECT name FROM tenants WHERE id='.$tid)->fetchColumn()?:'la empresa');$auto=AutomationEngine::evaluate($pdo,$tid,$cid,$type,$text);$engine=($auto&&(!empty($auto['stop'])||!empty($auto['reply'])))?$auto:NivoEngine::evaluate($pdo,$tid,$cid,$text,$type,$ev['name']?:$from,$company);$reply=trim((string)($engine['reply']??''));if($reply!==''){$pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,'out','bot','text',?,'queued',NOW())")->execute([$tid,$cid,uuid4w(),$reply]);$outId=(int)$pdo->lastInsertId();$gateway->dispatch($channel,$from,$reply,[],$outId);zynkoRealtimePublishMessage($pdo,$tid,$outId,['channel'=>$type,'sender'=>'bot']);}
-}
-$pdo->prepare('UPDATE channels SET last_event_at=NOW() WHERE id=?')->execute([(int)$channel['id']]);outw(200,['ok'=>true,'processed'=>count($events)]);
+require_once $root.'/app/Support/ChannelSecurity.php';
+require_once $root.'/app/Support/ChannelSchema.php';
+require_once $root.'/app/Services/ChannelIngress.php';
+function webhookOut(int $code,array $data): never {http_response_code($code);header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode($data,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);exit;}
+$env=@parse_ini_file($root.'/.env',false,INI_SCANNER_RAW);$env=is_array($env)?$env:[];
+try{
+    $pdo=new PDO('mysql:host='.($env['DB_HOST']??'127.0.0.1').';port='.($env['DB_PORT']??3306).';dbname='.($env['DB_DATABASE']??'zynko').';charset=utf8mb4',$env['DB_USERNAME']??'root',$env['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>true]);
+    $uuid=(string)($_GET['channel']??'');$hint=null;
+    if($uuid!==''){if(!preg_match('/^[0-9a-f-]{36}$/iD',$uuid))webhookOut(404,['ok'=>false]);$q=$pdo->prepare('SELECT * FROM channels WHERE uuid=? LIMIT 1');$q->execute([$uuid]);$hint=$q->fetch();if(!$hint)webhookOut(404,['ok'=>false]);}
+    $method=$_SERVER['REQUEST_METHOD']??'GET';
+    if($method==='GET'){
+        $expected=$hint?(string)(ChannelSecurity::settings($hint)['verify_token']??''):(string)($env['META_WEBHOOK_VERIFY_TOKEN']??'');
+        if($expected!==''&&($_GET['hub_mode']??'subscribe')==='subscribe'&&hash_equals($expected,(string)($_GET['hub_verify_token']??''))){header('Content-Type: text/plain; charset=utf-8');echo (string)($_GET['hub_challenge']??'');exit;}
+        webhookOut(403,['ok'=>false]);
+    }
+    if($method!=='POST')webhookOut(405,['ok'=>false]);
+    $raw=file_get_contents('php://input',false,null,0,18*1024*1024+1)?:'';if(strlen($raw)>18*1024*1024)webhookOut(413,['ok'=>false]);$payload=json_decode($raw,true);if(!is_array($payload))webhookOut(400,['ok'=>false]);
+    $ingress=new ChannelIngress($pdo,$root);$processed=0;
+    if(isset($payload['session_id'],$payload['event'])&&isset($_SERVER['HTTP_X_ZYNKO_QR_TOKEN'])){
+        $session=(string)$payload['session_id'];$rows=$ingress->findQr($session);if(count($rows)!==1)webhookOut(count($rows)>1?409:404,['ok'=>false]);$ch=$rows[0];$token=ChannelSecurity::secret((string)($ch['token_ciphertext']??''),$env);
+        if($token===''||!hash_equals($token,(string)$_SERVER['HTTP_X_ZYNKO_QR_TOKEN']))webhookOut(403,['ok'=>false]);
+        ChannelSchema::ensure($pdo);
+        if($payload['event']==='status'){$ingress->recordHealth($ch,!empty($payload['connected'])?'connected':'warning',(string)($payload['phone']??''));webhookOut(200,['ok'=>true]);}
+        if($payload['event']==='message'){
+            $from=(string)($payload['from']??'');if(!preg_match('/^[0-9]+(?::[0-9]+)?@s\.whatsapp\.net$/D',$from))webhookOut(200,['ok'=>true,'processed'=>0]);$from=preg_replace('/[:@].*$/','',$from);$media=[];$m=$payload['attachment']??null;
+            if(is_array($m)&&isset($m['id'])&&preg_match('/^[a-f0-9]{64}$/D',(string)$m['id']))$media[]=['provider_id'=>(string)$m['id'],'provider_type'=>(string)($m['type']??'document'),'name'=>(string)($m['name']??'Adjunto'),'mime'=>(string)($m['mime']??'')];
+            $text=trim((string)($payload['text']??''));if($text===''&&$media)$text='['.$media[0]['provider_type'].']';
+            $processed=$ingress->handle($ch,[ChannelWebhookEvents::message($from,$text,(string)($payload['message_id']??''),(string)($payload['push_name']??''),!empty($payload['from_me']),$media,(int)($payload['timestamp']??0))]);
+        }
+        webhookOut(200,['ok'=>true,'processed'=>$processed]);
+    }
+    if($hint&&($hint['type']??'')==='telegram'){
+        $secret=(string)(ChannelSecurity::settings($hint)['telegram_webhook_secret']??ChannelSecurity::settings($hint)['verify_token']??'');
+        if($secret===''||!hash_equals($secret,(string)($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN']??'')))webhookOut(403,['ok'=>false]);
+        ChannelSchema::ensure($pdo);$m=$payload['message']??$payload['edited_message']??null;
+        if(is_array($m)){$from=(string)($m['chat']['id']??'');$text=(string)($m['text']??$m['caption']??'');$media=[];foreach(['photo','video','voice','audio','document','sticker'] as $kind){$f=$m[$kind]??null;if($kind==='photo'&&is_array($f))$f=end($f);if(is_array($f)&&!empty($f['file_id'])){$media[]=['provider_id'=>(string)$f['file_id'],'provider_type'=>$kind,'name'=>(string)($f['file_name']??$kind),'mime'=>(string)($f['mime_type']??'')];if($text==='')$text='['.$kind.']';break;}}$processed=$ingress->handle($hint,[ChannelWebhookEvents::message($from,$text,(string)($m['message_id']??''),(string)($m['from']['first_name']??''),false,$media,(int)($m['date']??0))]);}
+        webhookOut(200,['ok'=>true,'processed'=>$processed]);
+    }
+    $signature=(string)($_SERVER['HTTP_X_HUB_SIGNATURE_256']??'');$globalSigned=ChannelSecurity::verifiesMeta($raw,$signature,(string)($env['META_APP_SECRET']??''));
+    $hintSigned=$hint&&ChannelSecurity::verifiesMeta($raw,$signature,ChannelSecurity::metaSecret($hint,$env));
+    if(!$globalSigned&&!$hintSigned)webhookOut(403,['ok'=>false]);
+    ChannelSchema::ensure($pdo);
+    foreach(ChannelWebhookEvents::meta($payload) as $batch){
+        if($batch['type']==='whatsapp_template'){
+            $q=$pdo->prepare("SELECT ch.* FROM channels ch JOIN tenants t ON t.id=ch.tenant_id WHERE ch.type='whatsapp' AND (ch.external_account_id=? OR JSON_UNQUOTE(JSON_EXTRACT(ch.settings_json,'$.business_id'))=?) AND ch.status<>'disconnected' AND t.status NOT IN ('suspended','closed')");$q->execute([$batch['account'],$batch['account']]);$matches=[];foreach($q->fetchAll() as $ch){if(ChannelSecurity::mode($ch)==='qr_bridge'||!ChannelSecurity::verifiesMeta($raw,$signature,ChannelSecurity::metaSecret($ch,$env)))continue;$matches[(int)$ch['tenant_id']][]=$ch;}
+            // A WABA shared across different tenants is not assigned implicitly.
+            if(count($matches)===1)foreach(reset($matches) as $ch)foreach($batch['events'] as $event){if(!preg_match('/^[0-9]{1,30}$/D',(string)$event['external']))continue;$pdo->prepare('INSERT INTO channel_template_events(channel_id,tenant_id,provider_template_id,template_name,language,event_status) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE template_name=VALUES(template_name),language=VALUES(language),event_status=VALUES(event_status)')->execute([(int)$ch['id'],(int)$ch['tenant_id'],$event['external'],mb_substr($event['name'],0,160),mb_substr($event['language'],0,20),mb_substr($event['status'],0,40)]);$processed++;}continue;
+        }
+        $channels=$ingress->findMeta($batch['type'],$batch['asset'],$batch['account']);$authorized=[];
+        foreach($channels as $channel){if(ChannelSecurity::verifiesMeta($raw,$signature,ChannelSecurity::metaSecret($channel,$env)))$authorized[]=$channel;}
+        // Ambiguous legacy bindings are never routed to an arbitrary tenant.
+        if(count($authorized)!==1){if(count($authorized)>1)foreach($authorized as $ch)$ingress->audit($ch,'error','Activo ambiguo: webhook aislado hasta resolver conexión duplicada.');continue;}
+        $processed+=$ingress->handle($authorized[0],$batch['events']);
+    }
+    webhookOut(200,['ok'=>true,'processed'=>$processed]);
+}catch(Throwable $e){if(isset($pdo)&&$pdo->inTransaction())$pdo->rollBack();error_log('ZYNKO provider webhook processing failed ('.get_class($e).')');webhookOut(503,['ok'=>false,'message'=>'No se pudo procesar el evento.']);}

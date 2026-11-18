@@ -16,6 +16,8 @@ try {
     if ($tenantId <= 0) throw new RuntimeException('No existe empresa principal para monitoreo.');
     require_once $root . '/app/Services/ServiceMonitor.php';
     $result = (new ZynkoServiceMonitor($pdo, $root, $env, $tenantId))->run(true, true);
+    try { require_once $root.'/app/Support/ChannelSchema.php'; require_once $root.'/app/Services/ChannelProviderGateway.php'; ChannelSchema::ensure($pdo); (new ChannelProviderGateway($pdo,$root))->processQueue(5); } catch (Throwable $e) { error_log('ZYNKO channel queue monitor: '.get_class($e)); }
+    try {require_once $root.'/app/Services/ChannelMetrics.php';require_once $root.'/app/Services/ChannelXOAuth.php';ChannelMetrics::markExpired($pdo);(new ChannelXOAuth($pdo,$root))->poll(3);} catch (Throwable $e) {error_log('ZYNKO channel authorization monitor: '.get_class($e));}
     echo 'ZYNKO_MONITOR_OK ' . json_encode($result['counts'], JSON_UNESCAPED_UNICODE) . ' ' . $result['checked_at'] . PHP_EOL;
     exit(0);
 } catch (Throwable $e) {

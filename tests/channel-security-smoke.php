@@ -1,0 +1,32 @@
+<?php
+declare(strict_types=1);
+require_once __DIR__.'/../app/Support/ChannelSecurity.php';
+require_once __DIR__.'/../app/Services/ChannelWebhookEvents.php';
+function check(bool $ok,string $message):void{if(!$ok)throw new RuntimeException($message);echo "OK $message\n";}
+$raw='{"test":1}';$key='test-secret';$sig='sha256='.hash_hmac('sha256',$raw,$key);
+check(ChannelSecurity::verifiesMeta($raw,$sig,$key),'Firma válida');
+check(!ChannelSecurity::verifiesMeta($raw.' ',$sig,$key),'Rechazo de manipulación');
+check(!ChannelSecurity::verifiesMeta($raw,$sig,''),'Rechazo sin secreto');
+check(ChannelSecurity::sessionValid('tenant-5-123abc')&&!ChannelSecurity::sessionValid('../other'),'Aislamiento de rutas QR');
+check(ChannelSecurity::bridgeAllowed('http://127.0.0.1:8091',[])&&!ChannelSecurity::bridgeAllowed('http://169.254.169.254',[]),'Restricción de destinos QR');
+check(ChannelSecurity::externalKey(['id'=>1,'type'=>'telegram'],'12','999')!==ChannelSecurity::externalKey(['id'=>2,'type'=>'telegram'],'12','999'),'Identidad de mensaje por canal');
+check(ChannelSecurity::nextStatus('read','sent')==='read'&&ChannelSecurity::nextStatus('sent','delivered')==='delivered','Estados de entrega monotónicos');
+$payload=['object'=>'whatsapp_business_account','entry'=>[['id'=>'12345','changes'=>[['field'=>'messages','value'=>['metadata'=>['phone_number_id'=>'67890'],'contacts'=>[['wa_id'=>'50412345678','profile'=>['name'=>'Prueba']]],'messages'=>[['id'=>'wamid.example','from'=>'50412345678','type'=>'text','text'=>['body'=>'Hola'],'timestamp'=>'1700000000']]]]]]]];
+$batches=ChannelWebhookEvents::meta($payload);check(count($batches)===1&&$batches[0]['asset']==='67890'&&$batches[0]['account']==='12345','Enrutamiento WABA / Phone Number ID');
+require_once __DIR__.'/../app/Support/ChannelIdentity.php';
+require_once __DIR__.'/../app/Services/ChannelTemplateComponents.php';
+require_once __DIR__.'/../app/Services/ChannelStructuredMessage.php';
+$env=['APP_KEY'=>str_repeat('ab',32)];$cipher=ChannelSecurity::encrypt('example-token',$env);
+check(ChannelSecurity::secret($cipher,$env)==='example-token','Cifrado y descifrado AES-GCM');
+check(ChannelSecurity::secret($cipher,['APP_KEY'=>str_repeat('bc',32)])==='','Rechazo de clave incorrecta');
+check(ChannelIdentity::phone('+504 8913-6844')==='50489136844'&&ChannelIdentity::phone('abc')==='','Normalización internacional');
+check(ChannelSecurity::metaMediaUrl('https://scontent.fbcdn.net/a?sig=test')&&!ChannelSecurity::metaMediaUrl('https://fbcdn.net.evil.example/a')&&!ChannelSecurity::metaMediaUrl('http://fbcdn.net/a'),'Lista segura de CDN');
+check(ChannelSecurity::version([],'v27.0')==='v27.0'&&ChannelSecurity::version(['META_GRAPH_VERSION'=>'v26.0'])==='v26.0','Versión configurada y fallback de piloto');
+$c=ChannelTemplateComponents::build('Hola {{1}}',['Cliente'],'Encabezado','Gracias',[['type'=>'QUICK_REPLY','text'=>'Consultar']]);
+check(count($c)===4&&$c[1]['example']['body_text'][0][0]==='Cliente','Componentes y ejemplos de plantilla');
+check(ChannelTemplateComponents::forSend(['components'=>$c],['Ana'])[0]['parameters'][0]['text']==='Ana','Parámetros de plantilla aprobada');
+try{ChannelTemplateComponents::build('Hola {{2}}',['Cliente']);$invalid=false;}catch(InvalidArgumentException){$invalid=true;}check($invalid,'Rechazo de variables discontinuas');
+$event=ChannelWebhookEvents::whatsapp(['type'=>'interactive','id'=>'wa_test','context'=>['id'=>'wa_original'],'interactive'=>['button_reply'=>['title'=>'Consultar']]],'50400000000','');
+check($event['text']==='Consultar'&&$event['reply_to']==='wa_original','Respuesta interactiva y mensaje citado');
+$structured=ChannelStructuredMessage::build(['type'=>'whatsapp'],['kind'=>'location','latitude'=>15.5,'longitude'=>-88.0]);check($structured['longitude']===-88.0,'Ubicación saliente');
+try{ChannelStructuredMessage::build(['type'=>'whatsapp','settings_json'=>'{"provider_mode":"qr_bridge"}'],['kind'=>'buttons','body'=>'Test','buttons'=>['Sí']]);$invalid=false;}catch(InvalidArgumentException){$invalid=true;}check($invalid,'Bloqueo de botones incompatibles con QR');

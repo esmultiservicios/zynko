@@ -43,16 +43,42 @@ final class ZynkoEnvManager
         ];
     }
 
-    public function save(array $input): array
+    public static function platformChannelKeys(): array
+    {
+        return [
+          'META_APP_ID'=>['label'=>'Meta App ID','type'=>'text','secret'=>false],
+          'META_CONFIG_ID'=>['label'=>'Embedded Signup Configuration ID','type'=>'text','secret'=>false],
+          'META_APP_SECRET'=>['label'=>'Meta App Secret','type'=>'password','secret'=>true],
+          'META_WEBHOOK_VERIFY_TOKEN'=>['label'=>'Verify token general','type'=>'password','secret'=>true],
+          'META_GRAPH_VERSION'=>['label'=>'Versión Graph API','type'=>'text','secret'=>false],
+          'META_EMBEDDED_SIGNUP_ENABLED'=>['label'=>'Embedded Signup para clientes','type'=>'bool','secret'=>false],
+          'META_COEXISTENCE_ENABLED'=>['label'=>'Coexistence para clientes','type'=>'bool','secret'=>false],
+          'X_DM_ENABLED'=>['label'=>'X / Twitter · mensajes directos','type'=>'bool','secret'=>false],
+          'X_CLIENT_ID'=>['label'=>'X OAuth Client ID','type'=>'text','secret'=>false],
+          'X_CLIENT_SECRET'=>['label'=>'X OAuth Client Secret','type'=>'password','secret'=>true],
+          'ZYNKO_QR_BRIDGE_URL'=>['label'=>'URL interna del bridge QR','type'=>'text','secret'=>false],
+          'ZYNKO_QR_BRIDGE_TOKEN'=>['label'=>'Token interno del bridge QR','type'=>'password','secret'=>true],
+        ];
+    }
+
+    public function save(array $input,bool $platformChannels=false): array
     {
         if(!$this->exists())throw new RuntimeException('El archivo .env no existe en la raíz de ZYNKO.');
         if(!is_readable($this->path)||!is_writable($this->path))throw new RuntimeException('El archivo .env no tiene permisos de lectura/escritura para PHP.');
         $raw=file_get_contents($this->path);if($raw===false)throw new RuntimeException('No se pudo leer el archivo .env.');
         $current=$this->values();$changed=[];
-        foreach(self::editableKeys() as $key=>$meta){
+        foreach(($platformChannels?self::platformChannelKeys():self::editableKeys()) as $key=>$meta){
             if(!array_key_exists($key,$input))continue;
             $value=trim((string)$input[$key]);
             if(!empty($meta['secret'])&&$value==='')continue;
+            if($platformChannels){
+                if($value==='')continue;
+                if(in_array($key,['META_APP_ID','META_CONFIG_ID'],true)&&!preg_match('/^[0-9]{5,30}$/D',$value))throw new RuntimeException('Identificador de Meta inválido.');
+                if($key==='META_GRAPH_VERSION'&&!preg_match('/^v[0-9]{1,3}\.[0-9]{1,2}$/D',$value))throw new RuntimeException('Versión Graph inválida.');
+                if(in_array($key,['META_EMBEDDED_SIGNUP_ENABLED','META_COEXISTENCE_ENABLED','X_DM_ENABLED'],true))$value=in_array(strtolower($value),['1','true','yes'],true)?'1':'0';
+                if($key==='ZYNKO_QR_BRIDGE_URL'){$value=rtrim($value,'/');$url=parse_url($value);if(!is_array($url)||!isset($url['host'])||!in_array($url['scheme']??'',['http','https'],true)||isset($url['user'])||isset($url['pass'])||isset($url['query'])||isset($url['fragment']))throw new RuntimeException('URL del bridge inválida.');}
+                if(preg_match('/[\r\n\x00]/',$value)||strlen($value)>4096)throw new RuntimeException('Valor de configuración inválido.');
+            }
             if($key==='APP_URL'){$value=rtrim($value,'/');if($value!==''&&(!filter_var($value,FILTER_VALIDATE_URL)||!preg_match('#^https?://#i',$value)))throw new RuntimeException('APP_URL debe ser una URL http/https válida.');}
             if($key==='EMAIL_VALIDATION_API_URL'&&$value!==''&&(!filter_var(str_replace('{email}','test@example.com',$value),FILTER_VALIDATE_URL)||!preg_match('#^https?://#i',$value)))throw new RuntimeException('EMAIL_VALIDATION_API_URL debe ser una URL http/https válida.');
             if($key==='APP_ENV'&&!in_array($value,['production','staging','local'],true))$value='production';
@@ -85,7 +111,7 @@ final class ZynkoEnvManager
     {
         $encoded=$this->encode($value);
         $pattern='/^'.preg_quote($key,'/').'\s*=.*$/m';
-        if(preg_match($pattern,$raw))return preg_replace($pattern,$key.'='.$encoded,$raw,1)??$raw;
+        if(preg_match($pattern,$raw))return preg_replace_callback($pattern,fn()=>$key.'='.$encoded,$raw)??$raw;
         return rtrim($raw).PHP_EOL.$key.'='.$encoded.PHP_EOL;
     }
 
