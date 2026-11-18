@@ -1,4 +1,16 @@
 const app=document.querySelector('.app');
+// Limpia el compositor visible y su textarea solo tras confirmar el envío.
+function zynkoClearSentMessage(input, sentBody) {
+  if (!input || input.value.trim() !== sentBody) return;
+  const shell = input.closest('.zynko-rte-shell');
+  const editor = shell?.querySelector('.zynko-rte-editor');
+  input.value = '';
+  if (editor) editor.replaceChildren();
+  const count = shell?.querySelector('.zynko-rte-count');
+  if (count) count.textContent = '0 caracteres';
+  input.dispatchEvent(new Event('input', {bubbles: true}));
+}
+
 // Preferencias de interfaz por usuario: la BD es la fuente principal; localStorage queda como cache/fallback para carga inmediata.
 const zynkoUiPrefs=(()=>{
   const server=(window.ZYNKO_UI_PREFS&&typeof window.ZYNKO_UI_PREFS==='object')?window.ZYNKO_UI_PREFS:{};
@@ -179,7 +191,7 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
 document.addEventListener('pointerdown',e=>{if(emojiPicker&&!emojiPicker.hidden&&!emojiPicker.contains(e.target)&&!e.target.closest?.('#emojiBtn'))emojiPicker.hidden=true},{capture:true});
  $('#attachBtn')?.addEventListener('click',()=>$('#chatFile')?.click());$('#chatFile')?.addEventListener('change',e=>{$('#attachmentPreview').innerHTML=[...e.target.files].map(f=>`<span><i class="fa-solid fa-paperclip"></i>${f.name}</span>`).join('')});
  $('#nivoAssist')?.addEventListener('click',async()=>{const i=$('#messageInput');if(!i)return;const last=[...document.querySelectorAll('#messages p:not(.me)')].pop()?.textContent?.trim()||i.value.trim();if(!last){showNotify('warning','NIVO necesita contexto','Selecciona una conversación con un mensaje del cliente.');return;}const fd=new FormData();fd.append('action','nivo_suggest');fd.append('query',last);const j=await post(fd);if(j.ok){i.value=j.data.suggestion||'';showNotify('info','Sugerencia de NIVO',(j.data.source?'Fuente: '+j.data.source+'. ':'')+'Confianza: '+(j.data.confidence||'n/a')+'. Revisa antes de enviar.');i.focus();}else showNotify('error','NIVO',j.message);});
- $('#messageForm')?.addEventListener('submit',async e=>{e.preventDefault();const i=$('#messageInput'),body=i.value.trim();if(!body&&!($('#chatFile')?.files?.length)){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return;}const fd=new FormData();fd.append('action','message_send');fd.append('conversation_id',$('#messageForm [name=conversation_id]')?.value||'');fd.append('body',body);[...($('#chatFile')?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(j.ok){i.value='';$('#attachmentPreview').innerHTML='';$('#chatFile').value='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));}else showNotify('error','No se pudo enviar',j.message)});
+ $('#messageForm')?.addEventListener('submit',async e=>{e.preventDefault();const i=$('#messageInput'),body=i.value.trim();if(!body&&!($('#chatFile')?.files?.length)){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return;}const fd=new FormData();fd.append('action','message_send');fd.append('conversation_id',$('#messageForm [name=conversation_id]')?.value||'');fd.append('body',body);[...($('#chatFile')?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(j.ok){zynkoClearSentMessage(i,body);$('#attachmentPreview').innerHTML='';$('#chatFile').value='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));}else showNotify('error','No se pudo enviar',j.message)});
 })();
 
 
@@ -733,7 +745,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
    (async()=>{
      if(form.id==='messageForm'){
        const input=q('#messageInput'),body=input?.value.trim()||'',file=q('#chatFile');if(!body&&!file?.files?.length){showNotify('warning','Mensaje vacío','Escribe un mensaje o adjunta un archivo antes de enviar.');return}
-       const fd=new FormData(form);fd.set('body',body);[...(file?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(!j.ok){showNotify('error','No se pudo enviar',j.message);return}input.value='';const quickId=q('#quickReplyId');if(quickId)quickId.value='';if(file)file.value='';const preview=q('#attachmentPreview');if(preview)preview.innerHTML='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));return;
+       const fd=new FormData(form);fd.set('body',body);[...(file?.files||[])].forEach(f=>fd.append('attachments[]',f));const j=await post(fd);if(!j.ok){showNotify('error','No se pudo enviar',j.message);return}zynkoClearSentMessage(input,body);const quickId=q('#quickReplyId');if(quickId)quickId.value='';if(file)file.value='';const preview=q('#attachmentPreview');if(preview)preview.innerHTML='';showNotify('success','Mensaje listo',j.message);if(j.data?.message)document.dispatchEvent(new CustomEvent('zynko:realtime',{detail:{event:'message.created',entity_type:'message',entity_id:j.data.message.id,data:{conversation_id:j.data.message.conversation_id,message_id:j.data.message.id,message:j.data.message}}}));return;
      }
      const j=await post(new FormData(form));showNotify(j.ok?'success':'error',j.ok?'Listo':'Error',j.message);if(!j.ok)return;
      if(form.id==='assignForm')q('#assignModal')?.classList.remove('open');
