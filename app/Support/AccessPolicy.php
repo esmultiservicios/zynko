@@ -3,6 +3,23 @@ declare(strict_types=1);
 
 final class ZynkoAccessPolicy
 {
+    public static function scopeCatalog(): array
+    {
+        return [
+            'channels:read'=>['Leer canales','Identifique el ID de cada canal conectado.','fa-solid fa-satellite-dish'],
+            'whatsapp:send'=>['WhatsApp individual','Envíe texto, plantilla o adjuntos a un destinatario.','fa-brands fa-whatsapp'],
+            'whatsapp:bulk'=>['WhatsApp masivo','Envíe a varios contactos autorizados en una solicitud.','fa-solid fa-users'],
+            'whatsapp:status'=>['Estados de WhatsApp','Consulte el UUID, la entrega y el motivo de fallo.','fa-solid fa-list-check'],
+            'messages:send'=>['Mensajes generales','Conserve el endpoint individual de mensajería anterior.','fa-solid fa-paper-plane'],
+            'messages:receive'=>['Recibir mensajes','Ingrese mensajes y active el flujo de NIVO.','fa-solid fa-inbox'],
+            'nivo:context'=>['Consultar NIVO','Consulte el contexto autorizado de NIVO.','fa-solid fa-robot'],
+        ];
+    }
+    public static function normalizeScopes(array $requested): array
+    {
+        return array_values(array_intersect(array_keys(self::scopeCatalog()),array_filter($requested,'is_string')));
+    }
+
     public static function normalizeOrigin(string $value): string
     {
         $value=trim($value);

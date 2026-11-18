@@ -4,7 +4,7 @@ ZYNKO permite que IZZY, CAMI u otro sistema consuma la API sin conocer las crede
 
 ## 1. Crear una clave API
 
-En **Integraciones → Crear clave API** crea una clave diferente por sistema o ambiente. La clave completa se muestra una sola vez; ZYNKO almacena únicamente su hash.
+En **Canales → Integraciones → Crear clave API** crea una clave diferente por sistema o ambiente. La clave completa se muestra una sola vez; ZYNKO almacena únicamente su hash.
 
 Configura según el caso:
 
@@ -13,7 +13,7 @@ Configura según el caso:
 - **HTTPS obligatorio:** recomendado para producción.
 - **Rate limit:** máximo de solicitudes por minuto para esa credencial.
 - **Vencimiento:** opcional.
-- **Scopes:** `channels:read`, `messages:send`, `messages:receive`, `nivo:context`.
+- **Scopes:** `channels:read`, `messages:send`, `messages:receive`, `nivo:context`, `whatsapp:send`, `whatsapp:bulk`, `whatsapp:status`.
 
 Una política puede editarse después sin regenerar la clave. Una clave revocada deja de funcionar inmediatamente.
 
@@ -124,3 +124,32 @@ Los webhooks de Meta / WhatsApp / Messenger son comunicaciones servidor-a-servid
 ## V2.31.112
 - La documentación administrativa y pública muestra historial de versión para mantener API, NIVO y conectores sincronizados con cada release funcional.
 - Correo SMTP/Microsoft Graph configurado actualmente cubre envío y notificaciones; una bandeja entrante de correo requiere un conector IMAP/Graph webhook real y no se marca como vinculada de forma ficticia.
+
+
+## WhatsApp especializado: envío individual, masivo, adjuntos y estados (2.31.142)
+
+En **Canales → Integraciones**, seleccione un perfil o configure permisos individuales. `whatsapp:send` permite un destinatario; `whatsapp:bulk` permite una solicitud con varios; `whatsapp:status` permite consultar estados de WhatsApp de la empresa. Para ambos, seleccione WhatsApp completo. `channels:read` permite consultar canales y debe marcarse para descubrir sus ID. Los permisos anteriores se conservan hasta que el administrador los modifique desde Permisos. La API genérica individual `messages:send` permanece compatible.
+
+**POST /api.php?r=v1/whatsapp/send**
+
+```http
+Authorization: Bearer TU_CLAVE_API
+Content-Type: application/json
+Idempotency-Key: OPERACION_UNICA
+```
+
+Individual: `{"channel_id":12,"to":"50499990000","message":"Su factura está disponible"}`.
+
+Masivo: `{"channel_id":12,"to":["50499990000","50499990001"],"message":"Notificación autorizada","consent_confirmed":true}`. Máximo 100 destinatarios por solicitud; se normalizan y eliminan duplicados. Las solicitudes con múltiples destinatarios requieren el permiso masivo, incluso si hay números duplicados.
+
+Adjunto remoto (Meta Cloud / Coexistence): `{"channel_id":12,"to":"50499990000","attachments":[{"name":"Factura.pdf","mime":"application/pdf","url":"https://ejemplo.com/factura.pdf"}]}`. Meta obtiene el contenido de la URL HTTPS accesible públicamente; ZYNKO no descarga URLs arbitrarias. No incluya credenciales en URL.
+
+Adjunto Base64 (también QR): `{"channel_id":12,"to":"50499990000","attachments":[{"name":"Factura.pdf","data_base64":"BASE64_DEL_ARCHIVO"}]}`. Hasta 5 adjuntos, 10 MB por archivo decodificado y 20 MB en total. El MIME local se detecta desde los bytes.
+
+Plantilla aprobada (Meta): `{"channel_id":12,"to":"50499990000","template_id":"123456789","template_values":["Cliente","F-001"]}`. No combine este payload con `message` o `attachments`; la plantilla se valida al despachar. Se aplican políticas de Meta, consentimiento y ventana de atención de 24 horas.
+
+HTTP 202 devuelve `data.messages[]` con `to`, `message_uuid`, `conversation_id`, `message_id`, `status` (queued). En cola no significa entregado. Una misma clave Idempotency-Key con idéntico payload devuelve la respuesta original; con otro contenido, devuelve 409. El despachador existente procesa la cola.
+
+**GET /api.php?r=v1/whatsapp/status&message_uuid=UUID**: devuelve `message_uuid`, `status`, `queue_state`, `last_error`. Requiere `whatsapp:status`. Nunca consulta la información de otra empresa.
+
+401 autenticación, 403 permisos/plan, 404 canal/mensaje, 409 estado o idempotencia, 413 tamaño, 422 validación, 429 límite. Mantener la API key en el servidor. El canal debe estar conectado y el monitor de cola en funcionamiento; Cloud API de pruebas solo permite destinatarios verificados. Meta puede rechazar solicitudes fuera de la ventana o sin plantilla aprobada.

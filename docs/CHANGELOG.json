@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.31.142",
+    "date": "2026-11-18",
+    "title": "WhatsApp API, integraciones y experiencia operativa",
+    "changes": [
+      "API especializada con envío individual, masivo, adjuntos URL/Base64, plantillas y consulta de estados.",
+      "Permisos editables por clave, perfiles de WhatsApp, búsqueda de permisos y claves.",
+      "Documentación unificada de la API en sitio público, panel y documentación administrativa.",
+      "Compatibilidad de diálogos de actividad/plantillas, dimensiones estables y selectores con búsqueda.",
+      "Vinculación QR simplificada, acceso a configuración de correo y reorganización de visitas.",
+      "Cola persistente, idempotencia, aislamiento de empresa y validación del destinatario.",
+      "Sin script de migración adicional sobre el esquema de canales existente."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.141",
     "date": "2026-10-07",
     "title": "WebSocket persistente, autorrecuperación y alertas de estado",

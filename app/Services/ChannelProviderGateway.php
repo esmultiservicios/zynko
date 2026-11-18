@@ -40,9 +40,18 @@ final class ChannelProviderGateway
             $q=$this->pdo->prepare("SELECT ch.*,m.id AS local_message_id,m.body,m.media_json,m.sender_type,c.assigned_user_id,c.id AS local_conversation_id,o.attempts,ci.external_id AS destination FROM channel_outbox o JOIN messages m ON m.id=o.message_id AND m.tenant_id=o.tenant_id JOIN conversations c ON c.id=m.conversation_id AND c.tenant_id=m.tenant_id AND c.id=o.conversation_id AND c.channel_id=o.channel_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id JOIN contact_identities ci ON ci.contact_id=c.contact_id AND ci.channel_id=ch.id AND ci.tenant_id=c.tenant_id WHERE o.message_id=? AND o.tenant_id=? AND m.direction='out' AND c.deleted_at IS NULL ORDER BY ci.id LIMIT 1");$q->execute([$messageId,$tenantId]);$row=$q->fetch();if(!$row)throw new ChannelDispatchException('Mensaje o destino no disponible.');$attempts=(int)$row['attempts'];if($row['sender_type']==='bot'&&((int)$row['assigned_user_id']>0||(ChannelSecurity::settings($row)['attention_mode']??'nivo')!=='nivo'))throw new ChannelDispatchException('La conversación pasó a atención humana o externa.');
             $prior=$this->pdo->prepare('SELECT COUNT(*) FROM channel_message_receipts WHERE tenant_id=? AND message_id=?');$prior->execute([$tenantId,$messageId]);if((int)$prior->fetchColumn()>0)throw new ChannelDispatchException('Existe un envío previo; no se repetirá automáticamente.','uncertain');
             $media=json_decode((string)($row['media_json']??''),true)?:[];
-            $record=function(array $response)use($row,$messageId,$tenantId,&$accepted){$accepted++;$external=$this->providerId($response);if($external==='')throw new ChannelDispatchException('El proveedor no devolvió un identificador de mensaje.','uncertain');$this->rememberReceipt($row,$messageId,$external,(string)$row['destination']);};
+            
             $sq=$this->pdo->prepare('SELECT payload_json FROM channel_structured_outbox WHERE message_id=? AND tenant_id=? AND channel_id=?');$sq->execute([$messageId,$tenantId,(int)$row['id']]);$structured=$sq->fetchColumn();
-            if($structured!==false){$record($this->sendStructured($row,(string)$row['destination'],json_decode((string)$structured,true,32,JSON_THROW_ON_ERROR),$messageId));}
+            $payload=$structured!==false?json_decode((string)$structured,true,32,JSON_THROW_ON_ERROR):null;
+            if(isset($payload['api_destination'])){
+                $destination=ChannelIdentity::phone((string)$payload['api_destination']);
+                $check=$this->pdo->prepare('SELECT 1 FROM contact_identities ci JOIN conversations c ON c.contact_id=ci.contact_id AND c.tenant_id=ci.tenant_id AND c.channel_id=ci.channel_id WHERE c.id=? AND ci.tenant_id=? AND ci.channel_id=? AND ci.external_id=?');$check->execute([(int)$row['local_conversation_id'],$tenantId,(int)$row['id'],$destination]);
+                if($row['type']!=='whatsapp'||$destination===''||!$check->fetchColumn())throw new ChannelDispatchException('El destinatario original de la API ya no está asociado a esta conversación.');
+                $row['destination']=$destination;
+                unset($payload['api_destination']);
+            }
+            $record=function(array $response)use($row,$messageId,$tenantId,&$accepted){$accepted++;$external=$this->providerId($response);if($external==='')throw new ChannelDispatchException('El proveedor no devolvió un identificador de mensaje.','uncertain');$this->rememberReceipt($row,$messageId,$external,(string)$row['destination']);};
+            if($payload&&($payload['kind']??'')!=='api_send'){$record($this->sendStructured($row,(string)$row['destination'],$payload,$messageId));}
             else $this->sendParts($row,(string)$row['destination'],(string)($row['body']??''),$media,$record);
             $state='sent';$detail='Mensaje aceptado por el proveedor.';
         }catch(Throwable $e){$state=$e instanceof ChannelDispatchException?$e->deliveryState:'uncertain';$detail=$e instanceof ChannelDispatchException?$e->getMessage():'Resultado del proveedor no verificable.';$retry=$e instanceof ChannelDispatchException?$e->retryAfter:60;if($accepted>0){$state='partial';$detail='El proveedor aceptó parte del mensaje. No se reenviará automáticamente.';}elseif($state==='retrying'&&$attempts>=5){$state='failed';$detail='Se agotaron los reintentos de envío.';}}
@@ -117,9 +126,26 @@ final class ChannelProviderGateway
         foreach($files as $f)$emit($this->sendPart($ch,$s,$mode,$to,'',$f));
         if(!$responses)throw new ChannelDispatchException('Escribe un mensaje o adjunta un archivo.');return $responses;
     }
+    /** A remote media link is passed to Meta; ZYNKO never downloads an arbitrary URL. */
+    public static function validPublicMediaUrl(string $url): bool
+    {
+        if(strlen($url)>2048||preg_match('/[\x00-\x20\x7f]/',$url)||!filter_var($url,FILTER_VALIDATE_URL))return false;
+        $p=parse_url($url);if(!$p||strtolower($p['scheme']??'')!=='https'||isset($p['user'])||isset($p['pass'])||isset($p['fragment'])||isset($p['port'])&&(int)$p['port']!==443)return false;
+        $host=strtolower(trim((string)($p['host']??''),'[]'));
+        if(filter_var($host,FILTER_VALIDATE_IP))return (bool)filter_var($host,FILTER_VALIDATE_IP,FILTER_FLAG_NO_PRIV_RANGE|FILTER_FLAG_NO_RES_RANGE);
+        if(!str_contains($host,'.')||preg_match('/(?:^|\.)(localhost|local|internal|test|invalid|onion|home|lan)$/D',$host)||preg_match('/^[0-9.]+$/D',$host))return false;
+        return (bool)filter_var($host,FILTER_VALIDATE_DOMAIN,FILTER_FLAG_HOSTNAME);
+    }
     private function localAttachment(array $ch,array $f): array
     {
-        $url=(string)($f['url']??'');$tid=(int)$ch['tenant_id'];$base=realpath($this->root.'/public/uploads');
+        $url=(string)($f['url']??'');$tid=(int)$ch['tenant_id'];
+        if(!empty($f['remote'])){
+            if(($ch['type']??'')!=='whatsapp'||!in_array(ChannelSecurity::mode($ch),['meta_cloud','meta_coexistence'],true)||!self::validPublicMediaUrl($url))throw new ChannelDispatchException('URL de adjunto no admitida para este canal.');
+            $mime=(string)($f['mime']??'');$types=['image/jpeg'=>'image','image/png'=>'image','video/mp4'=>'video','audio/mpeg'=>'audio','audio/ogg'=>'audio','application/pdf'=>'document','application/vnd.openxmlformats-officedocument.wordprocessingml.document'=>'document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=>'document'];
+            if(!isset($types[$mime]))throw new ChannelDispatchException('Formato de adjunto no admitido.');
+            return ['remote'=>true,'url'=>$url,'mime'=>$mime,'name'=>basename((string)($f['name']??'archivo')),'type'=>$types[$mime]];
+        }
+        $base=realpath($this->root.'/public/uploads');
         if(!preg_match('#^uploads/(?:chat|quick-replies|quick_replies)/'.preg_quote((string)$tid,'#').'/[A-Za-z0-9_./-]+$#D',$url)||str_contains($url,'..')||!$base)throw new ChannelDispatchException('Adjunto fuera del espacio de la empresa.');
         $path=realpath($this->root.'/public/'.$url);if(!$path||!str_starts_with($path,$base.DIRECTORY_SEPARATOR)||!is_file($path)||filesize($path)>10*1024*1024)throw new ChannelDispatchException('Adjunto no disponible o superior a 10 MB.');
         $mime=(new finfo(FILEINFO_MIME_TYPE))->file($path)?:'application/octet-stream';$type=str_starts_with($mime,'image/')?'image':(str_starts_with($mime,'audio/')?'audio':(str_starts_with($mime,'video/')?'video':'document'));
@@ -129,7 +155,7 @@ final class ChannelProviderGateway
     {
         $type=(string)$ch['type'];$token=$this->token($ch);if($token==='')throw new ChannelDispatchException('Falta autorización del proveedor.');
         if($type==='whatsapp'&&$mode==='qr_bridge'){$base=$this->bridgeBase($ch);$payload=['to'=>$to,'text'=>$text];if($f)$payload['attachment']=['name'=>$f['name'],'mime'=>$f['mime'],'type'=>$f['type'],'data'=>base64_encode(file_get_contents($f['path']))];$r=$this->http('POST',$base.'/api/sessions/'.rawurlencode((string)$s['session_id']).'/send',$payload,$this->bridgeHeaders($ch));$this->check($ch,$r);if(empty($r['json']['ok']))throw new ChannelDispatchException('El bridge no confirmó el envío.','uncertain');return $r['json'];}
-        if($type==='whatsapp'){$phone=ChannelSecurity::asset($ch);if($phone==='')throw new ChannelDispatchException('Falta Phone Number ID.');$p=['messaging_product'=>'whatsapp','to'=>$to,'type'=>'text','text'=>['body'=>$text]];if($f){$up=$this->http('POST',$this->graph().'/'.rawurlencode($phone).'/media',['messaging_product'=>'whatsapp','file'=>new CURLFile($f['path'],$f['mime'],$f['name'])],$this->auth($token),true);$this->check($ch,$up,false);$id=$up['json']['id']??'';if($id==='')throw new ChannelDispatchException('Meta no devolvió el ID del adjunto.');$p=['messaging_product'=>'whatsapp','to'=>$to,'type'=>$f['type'],$f['type']=>['id'=>$id]];if($f['type']==='document')$p['document']['filename']=$f['name'];}$r=$this->http('POST',$this->graph().'/'.rawurlencode($phone).'/messages',$p,$this->auth($token));$this->check($ch,$r);return $r['json'];}
+        if($type==='whatsapp'){$phone=ChannelSecurity::asset($ch);if($phone==='')throw new ChannelDispatchException('Falta Phone Number ID.');$p=['messaging_product'=>'whatsapp','to'=>$to,'type'=>'text','text'=>['body'=>$text]];if($f){if(!empty($f['remote'])){$reference=['link'=>$f['url']];}else{$up=$this->http('POST',$this->graph().'/'.rawurlencode($phone).'/media',['messaging_product'=>'whatsapp','file'=>new CURLFile($f['path'],$f['mime'],$f['name'])],$this->auth($token),true);$this->check($ch,$up,false);$id=$up['json']['id']??'';if($id==='')throw new ChannelDispatchException('Meta no devolvió el ID del adjunto.');$reference=['id'=>$id];}$p=['messaging_product'=>'whatsapp','to'=>$to,'type'=>$f['type'],$f['type']=>$reference];if($f['type']==='document')$p['document']['filename']=$f['name'];}$r=$this->http('POST',$this->graph().'/'.rawurlencode($phone).'/messages',$p,$this->auth($token));$this->check($ch,$r);return $r['json'];}
         if(in_array($type,['messenger','instagram'],true)){$page=ChannelSecurity::asset($ch);if($page==='')throw new ChannelDispatchException('Falta ID de página/cuenta.');$msg=['text'=>$text];if($f){$app=rtrim((string)($this->env['APP_URL']??''),'/');if(!str_starts_with($app,'https://'))throw new ChannelDispatchException('Se necesita APP_URL HTTPS para adjuntos de Meta.');$msg=['attachment'=>['type'=>$f['type']==='document'?'file':$f['type'],'payload'=>['url'=>$app.'/'.$f['url']]]];} // URLs of existing uploaded attachments, no user arbitrary remote URLs
             $p=['recipient'=>['id'=>$to],'message'=>$msg];if($type==='messenger')$p['messaging_type']='RESPONSE';$r=$this->http('POST',$this->graph().'/'.rawurlencode($page).'/messages',$p,$this->auth($token));$this->check($ch,$r);return $r['json'];}
         if($type==='telegram'){$method='sendMessage';$p=['chat_id'=>$to,'text'=>$text];if($f){$field=['image'=>'photo','audio'=>'audio','video'=>'video','document'=>'document'][$f['type']];$method='send'.ucfirst($field);$p=['chat_id'=>$to,$field=>new CURLFile($f['path'],$f['mime'],$f['name'])];}$r=$this->http('POST','https://api.telegram.org/bot'.$token.'/'.$method,$p,[],(bool)$f);$this->check($ch,$r);if(empty($r['json']['ok']))throw new ChannelDispatchException('Telegram no confirmó el envío.');return $r['json'];}
