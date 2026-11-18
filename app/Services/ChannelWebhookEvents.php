@@ -26,7 +26,7 @@ final class ChannelWebhookEvents
                 if($field==='messages'||$field==='smb_message_echoes'){
                     $echo=$field==='smb_message_echoes';$names=[];foreach($v['contacts']??[] as $p){$names[(string)($p['wa_id']??'')]=(string)($p['profile']['name']??'');}
                     foreach(($echo?($v['message_echoes']??$v['messages']??[]):($v['messages']??[])) as $m){if(!is_array($m))continue;$from=(string)($m[$echo?'to':'from']??'');$ev=self::whatsapp($m,$from,$names[$from]??'',$echo);if($ev)$events[]=$ev;}
-                    if(!$echo)foreach($v['statuses']??[] as $st){$state=(string)($st['status']??'');if(in_array($state,['sent','delivered','read','failed'],true))$events[]=['kind'=>'status','external'=>(string)($st['id']??''),'status'=>$state,'from'=>(string)($st['recipient_id']??'')];}
+                    if(!$echo)foreach($v['statuses']??[] as $st){$state=(string)($st['status']??'');if(in_array($state,['sent','delivered','read','failed'],true))$events[]=['kind'=>'status','external'=>(string)($st['id']??''),'status'=>$state,'from'=>(string)($st['recipient_id']??''),'error_code'=>(int)($st['errors'][0]['code']??0)];}
                 }elseif($field==='history'){
                     foreach($v['history']??[] as $h){foreach($h['threads']??[] as $thread){$contact=(string)($thread['id']??'');foreach($thread['messages']??[] as $m){$echo=isset($m['to'])&&!empty($m['to']);$ev=self::whatsapp($m,$contact,'',$echo);if($ev){$ev['historical']=true;$events[]=$ev;}}}}
                 }elseif($field==='smb_app_state_sync'){

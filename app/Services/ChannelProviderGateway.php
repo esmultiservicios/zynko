@@ -66,12 +66,12 @@ final class ChannelProviderGateway
         $this->pdo->prepare("INSERT INTO channel_message_receipts(channel_id,tenant_id,provider_key,provider_id,destination,message_id) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE provider_id=VALUES(provider_id)")->execute([$cid,$tid,$key,$id,$destination,$mid]);
         $p=$this->pdo->prepare('SELECT delivery_status FROM channel_pending_status WHERE tenant_id=? AND channel_id=? AND provider_key=?');$p->execute([$tid,$cid,$key]);if($st=$p->fetchColumn())$this->applyStatus($ch,$id,(string)$st,$destination);
     }
-    public function applyStatus(array $ch,string $id,string $status,string $destination=''): void
+    public function applyStatus(array $ch,string $id,string $status,string $destination='',int $errorCode=0): void
     {
         if($id===''||!in_array($status,['sent','delivered','read','failed'],true))return;$tid=(int)$ch['tenant_id'];$cid=(int)$ch['id'];$key=$this->receiptKey($ch,$id,$destination);
         $q=$this->pdo->prepare('SELECT message_id,delivery_status FROM channel_message_receipts WHERE tenant_id=? AND channel_id=? AND provider_key=?');$q->execute([$tid,$cid,$key]);$r=$q->fetch();
         if(!$r){$p=$this->pdo->prepare('SELECT delivery_status FROM channel_pending_status WHERE tenant_id=? AND channel_id=? AND provider_key=?');$p->execute([$tid,$cid,$key]);$status=ChannelSecurity::nextStatus((string)($p->fetchColumn()?:''),$status);$this->pdo->prepare('INSERT INTO channel_pending_status(channel_id,tenant_id,provider_key,delivery_status) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE delivery_status=VALUES(delivery_status)')->execute([$cid,$tid,$key,$status]);return;}
-        $old=(string)$r['delivery_status'];$next=ChannelSecurity::nextStatus($old,$status);$this->pdo->prepare('UPDATE channel_message_receipts SET delivery_status=? WHERE tenant_id=? AND channel_id=? AND provider_key=? AND delivery_status=?')->execute([$next,$tid,$cid,$key,$old]);$this->pdo->prepare('DELETE FROM channel_pending_status WHERE tenant_id=? AND channel_id=? AND provider_key=?')->execute([$tid,$cid,$key]);$this->aggregateReceipts($tid,(int)$r['message_id']);
+        $old=(string)$r['delivery_status'];$next=ChannelSecurity::nextStatus($old,$status);$this->pdo->prepare('UPDATE channel_message_receipts SET delivery_status=? WHERE tenant_id=? AND channel_id=? AND provider_key=? AND delivery_status=?')->execute([$next,$tid,$cid,$key,$old]);$this->pdo->prepare('DELETE FROM channel_pending_status WHERE tenant_id=? AND channel_id=? AND provider_key=?')->execute([$tid,$cid,$key]);if($next==='failed'&&$errorCode>0){$detail=match($errorCode){131030=>'Destinatario no autorizado en la lista de prueba.',131047=>'Ventana de atención cerrada. Use una plantilla aprobada.',131026=>'Mensaje no entregable.',default=>'El proveedor reportó un fallo de entrega.'};$this->pdo->prepare('UPDATE channel_outbox SET last_error=? WHERE tenant_id=? AND channel_id=? AND message_id=?')->execute(['Meta '.$errorCode.': '.$detail,$tid,$cid,(int)$r['message_id']]);}$this->aggregateReceipts($tid,(int)$r['message_id']);
     }
     public function applyWatermark(array $ch,string $destination,int $watermark,string $status): void
     {
@@ -250,6 +250,9 @@ final class ChannelProviderGateway
     private function check(array $ch,array $r,bool $sending=true): void
     {
         $status=(int)$r['status'];$err=$r['json']['error']??[];$code=(int)($err['code']??$r['json']['error_code']??0);if($status>=200&&$status<300&&!isset($r['json']['error']))return;
+        if(($ch['type']??'')==='whatsapp'&&$code===131030)throw new ChannelDispatchException('Meta 131030: destinatario no autorizado en la lista de prueba.');
+        if(($ch['type']??'')==='whatsapp'&&$code===131047)throw new ChannelDispatchException('Meta 131047: ventana de atención de 24 horas cerrada. Use una plantilla aprobada.');
+        if(($ch['type']??'')==='whatsapp'&&$code===131026)throw new ChannelDispatchException('Meta 131026: mensaje no entregable. Compruebe el número y las restricciones de WhatsApp.');
         if($status===401||$code===190){$this->markWarning($ch);throw new ChannelDispatchException('Autorización del proveedor vencida o revocada. Vuelva a conectar el canal.');}
         if($status===429||in_array($code,[4,17,32,613,130429,131056],true))throw new ChannelDispatchException('Límite temporal del proveedor (HTTP '.$status.').','retrying',max(60,min(3600,(int)($r['json']['parameters']['retry_after']??60))));
         if($sending&&$status>=500)throw new ChannelDispatchException('El proveedor devolvió un error temporal; el resultado del envío es desconocido.','uncertain');

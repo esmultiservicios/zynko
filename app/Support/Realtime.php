@@ -47,10 +47,12 @@ function zynkoRealtimeMessage(PDO $pdo, int $tenantId, int $messageId): ?array
             m.body,
             m.media_json,
             m.status,
+            o.last_error AS delivery_error,
             m.sent_at,
             m.created_at
          FROM messages m
          LEFT JOIN users u ON u.id=m.sender_user_id
+         LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id
          WHERE m.tenant_id=? AND m.id=?
          LIMIT 1"
     );
