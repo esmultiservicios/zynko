@@ -935,6 +935,30 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     jsonOut(true,'Preferencia guardada.',['key'=>$key,'value'=>$value]);
   }
   if($action==='channel_catalog_save'){if(!isPlatformOwner())throw new RuntimeException('Solo el administrador principal puede administrar el catálogo de canales.');$code=preg_replace('/[^a-z0-9_-]/','',strtolower($_POST['code']??''));if($code==='')throw new RuntimeException('Canal inválido.');$visible=isset($_POST['visible'])?1:0;$linkable=isset($_POST['linkable'])?1:0;$q=$pdo->prepare('SELECT connector_ready FROM channel_connector_catalog WHERE code=?');$q->execute([$code]);$ready=$q->fetchColumn();if($ready===false)throw new RuntimeException('El canal no existe en el catálogo.');if($linkable && (int)$ready!==1)throw new RuntimeException('No puedes habilitar la vinculación hasta que el conector real de este canal esté implementado.');$pdo->prepare('UPDATE channel_connector_catalog SET visible=?,linkable=? WHERE code=?')->execute([$visible,$linkable,$code]);jsonOut(true,'Disponibilidad del canal actualizada.');}
+  // Pilot: OAuth authorization and asset verification only. Never replace a live channel.
+  if(in_array($action,['meta_signup_exchange','meta_signup_verify'],true)){
+    $reply=function(bool $ok,string $message,array $data=[]):never{header('Content-Type: application/json; charset=utf-8');header('Cache-Control: no-store');echo json_encode(['ok'=>$ok,'message'=>$message,'data'=>$data],JSON_UNESCAPED_UNICODE);exit;};
+    if(!isMainOwnerOnly()||!hash_equals((string)($_SESSION['meta_signup_csrf']??''),(string)($_POST['csrf']??''))||empty($_SESSION['meta_signup_csrf']))$reply(false,'No autorizado.');
+    $cfg=envConfig($root.'/.env');$appId='1466181682143463';$secret=trim((string)($cfg['META_APP_SECRET']??''));
+    if($secret==='')$reply(false,'Configure META_APP_SECRET en el servidor.');
+    $graph=function(string $path,array $params=[],string $token=''):array{
+      $url='https://graph.facebook.com/v27.0/'.$path.($params?'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986):'');
+      $ch=curl_init($url);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>8,CURLOPT_TIMEOUT=>20,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_HTTPHEADER=>$token!==''?['Authorization: Bearer '.$token,'Accept: application/json']:['Accept: application/json']]);$raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);$j=json_decode(is_string($raw)?$raw:'',true);if($status<200||$status>=300||!is_array($j)||isset($j['error']))throw new RuntimeException('Meta no autorizó la operación (HTTP '.$status.').');return $j;
+    };
+    try{
+      if($action==='meta_signup_exchange'){
+        unset($_SESSION['meta_signup_pilot']);$code=trim((string)($_POST['code']??''));if($code===''||strlen($code)>4096)throw new RuntimeException('Código de autorización inválido.');
+        $result=$graph('oauth/access_token',['client_id'=>$appId,'client_secret'=>$secret,'code'=>$code]);$token=(string)($result['access_token']??'');if($token==='')throw new RuntimeException('Meta no devolvió un token.');
+        $_SESSION['meta_signup_pilot']=['token'=>encryptSecret($token),'until'=>time()+300,'tenant'=>$tid,'user'=>(int)$_SESSION['user']['id']];$reply(true,'Autorización recibida.');
+      }
+      $pilot=$_SESSION['meta_signup_pilot']??[];unset($_SESSION['meta_signup_pilot']);if(($pilot['until']??0)<time()||($pilot['tenant']??0)!==$tid||($pilot['user']??0)!==(int)$_SESSION['user']['id'])throw new RuntimeException('Autorización vencida. Reinicie la prueba.');
+      $waba=(string)($_POST['waba_id']??'');$phone=(string)($_POST['phone_number_id']??'');if(!preg_match('/^[0-9]{5,30}$/D',$waba)||!preg_match('/^[0-9]{5,30}$/D',$phone))throw new RuntimeException('Meta no devolvió los identificadores requeridos.');
+      $raw=base64_decode(substr($pilot['token'],7),true);$key=hex2bin((string)$cfg['APP_KEY']);$token=openssl_decrypt(substr($raw,28),'aes-256-gcm',$key,OPENSSL_RAW_DATA,substr($raw,0,12),substr($raw,12,16));if(!$token)throw new RuntimeException('No se pudo verificar la autorización.');
+      $params=['fields'=>'id,display_phone_number,verified_name','limit'=>100,'appsecret_proof'=>hash_hmac('sha256',$token,$secret)];$found=null;$after='';for($page=0;$page<20;$page++){$r=$graph($waba.'/phone_numbers',$params+($after!==''?['after'=>$after]:[]),$token);foreach($r['data']??[] as $item){if((string)($item['id']??'')===$phone){$found=$item;break;}}if($found||empty($r['paging']['next']))break;$after=(string)($r['paging']['cursors']['after']??'');if($after==='')break;}
+      if(!$found)throw new RuntimeException('El número no pertenece a la cuenta autorizada o no es accesible.');
+      $reply(true,'Cuenta y número verificados. El canal actual no se modificó.',['waba_id'=>$waba,'phone_number_id'=>$phone,'display_phone_number'=>(string)($found['display_phone_number']??''),'verified_name'=>(string)($found['verified_name']??'')]);
+    }catch(Throwable $e){$reply(false,$e instanceof RuntimeException?$e->getMessage():'No se pudo completar la prueba de Meta.');}
+  }
   if($action==='channel_save'){
    $type=preg_replace('/[^a-z0-9_-]/','',strtolower($_POST['type']??''));if(!zynkoPlanAllowsChannel($planCtx,$type))throw new RuntimeException('Este canal no está incluido en tu plan actual.');
    $cq=$pdo->prepare('SELECT connector_ready,visible,linkable,name catalog_name FROM channel_connector_catalog WHERE code=? LIMIT 1');$cq->execute([$type]);$connector=$cq->fetch();if(!$connector||(int)$connector['connector_ready']!==1||(int)$connector['visible']!==1||(int)$connector['linkable']!==1)throw new RuntimeException('Este canal todavía no tiene un conector funcional habilitado.');
