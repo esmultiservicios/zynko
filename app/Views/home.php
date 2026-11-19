@@ -33,7 +33,7 @@ $publicPlans=[];
 try{
   $publicPlans=appDb()->query("SELECT * FROM subscription_plans WHERE active=1 ORDER BY is_default_free DESC,is_featured DESC,monthly_price ASC,name ASC,id ASC")->fetchAll();
 }catch(Throwable $e){$publicPlans=[];}
-$publicChannelRows=[];try{$publicChannelRows=appDb()->query('SELECT code,name,icon_class,visible FROM channel_connector_catalog ORDER BY sort_order,name')->fetchAll();}catch(Throwable $e){}
+$publicChannelRows=[];try{$publicChannelRows=appDb()->query('SELECT code,name,icon_class,visible,connector_ready,linkable FROM channel_connector_catalog ORDER BY sort_order,name')->fetchAll();}catch(Throwable $e){}
 $publicChannelCatalog=zynkoPlanChannelCatalog($publicChannelRows,$publicLang);
 $publicPlanOffers=[];
 foreach($publicPlans as $plan){

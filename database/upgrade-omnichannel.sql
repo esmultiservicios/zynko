@@ -93,3 +93,9 @@ CREATE TABLE IF NOT EXISTS commercial_plan_copy (
  note_es VARCHAR(1000) NOT NULL DEFAULT '', note_en VARCHAR(1000) NOT NULL DEFAULT '', translations_json JSON NULL,
  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.31.152: placeholder catalog entry, not an implemented connector.
+-- The runtime migration zynkoUpgradeCommercialCatalog152 applies the commercial revision once,
+-- including reconciliation of existing subscriptions. Keep application startup enabled after deployment.
+INSERT IGNORE INTO channel_connector_catalog(code,name,icon_class,icon_style,description,connector_ready,visible,linkable,sort_order)
+VALUES ('threads','Threads','fa-brands fa-threads','instagram','Canal previsto; requiere un conector real y autorización del proveedor.',0,1,0,80);

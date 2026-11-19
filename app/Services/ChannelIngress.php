@@ -24,7 +24,7 @@ final class ChannelIngress
     }
     public function recordHealth(array $ch,string $status,string $display=''): void
     {
-        if(!in_array($status,['connected','pending','warning','disconnected'],true))return;if($status==='connected'&&$ch['type']==='whatsapp'&&$display!==''&&!ChannelIdentity::claim($this->pdo,$ch,$display)){$this->audit($ch,'warning','Número de WhatsApp ya asociado a otra conexión.');return;}$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$this->pdo->prepare('UPDATE channels SET status=?,last_event_at=NOW() WHERE tenant_id=? AND id=?')->execute([$status,$tid,$id]);
+        if(!in_array($status,['connected','pending','warning','disconnected'],true))return;if($status==='connected'&&$ch['type']==='whatsapp'&&$display!==''&&!ChannelIdentity::claim($this->pdo,$ch,$display)){$this->audit($ch,'warning','Número de WhatsApp ya asociado a otra conexión.');return;}$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$this->pdo->prepare('UPDATE channels SET status=?,last_event_at=NOW() WHERE tenant_id=? AND id=? AND status<>\'disconnected\'')->execute([$status,$tid,$id]);
         
         if(($ch['status']??'')!==$status)$this->audit($ch,'info','Estado de canal actualizado: '.$status);
     }
@@ -42,6 +42,8 @@ final class ChannelIngress
             $cid=0;$mid=0;$outId=0;$historical=!empty($ev['historical']);$echo=!empty($ev['echo']);$text=trim((string)($ev['text']??''));$name=mb_substr(trim((string)($ev['name']??''))?:$from,0,120);
             $this->pdo->beginTransaction();
             try{
+                $this->pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tid]);
+                $plan=zynkoPlanContext($this->pdo,$tid,false);if(!zynkoPlanAllowsChannel($plan,$type)){$this->pdo->rollBack();continue;}
                 $lock=$this->pdo->prepare('SELECT status,settings_json FROM channels WHERE id=? AND tenant_id=? FOR UPDATE');$lock->execute([$id,$tid]);$current=$lock->fetch();if(!$current||$current['status']==='disconnected'||!empty(ChannelSecurity::settings($current)['phone_conflict'])){$this->pdo->rollBack();continue;}
                 if($kind!=='contact'){
                     if($echo&&!$historical&&!$this->gateway->isOwnEcho($ch,$external,$from)){$inflight=$this->pdo->prepare("SELECT 1 FROM channel_outbox o JOIN conversations c ON c.id=o.conversation_id AND c.tenant_id=o.tenant_id JOIN contact_identities ci ON ci.contact_id=c.contact_id AND ci.channel_id=o.channel_id AND ci.tenant_id=o.tenant_id WHERE o.tenant_id=? AND o.channel_id=? AND o.state='sending' AND o.claimed_at>DATE_SUB(NOW(),INTERVAL 2 MINUTE) AND ci.external_id=? LIMIT 1");$inflight->execute([$tid,$id,$from]);if($inflight->fetchColumn())throw new RuntimeException('Eco pendiente de confirmación del envío.');}
@@ -55,7 +57,7 @@ final class ChannelIngress
                 if($text===''){$this->pdo->commit();continue;}
                 $q=$this->pdo->prepare("SELECT id,assigned_user_id FROM conversations WHERE tenant_id=? AND channel_id=? AND contact_id=? AND deleted_at IS NULL AND (status IN ('open','pending') OR ?=1) ORDER BY id DESC LIMIT 1");$q->execute([$tid,$id,$contact,$historical?1:0]);$conv=$q->fetch();$cid=(int)($conv['id']??0);
                 $stamp=(int)($ev['timestamp']??0);$sentAt=$stamp>0&&$stamp<=time()+300?date('Y-m-d H:i:s',$stamp):date('Y-m-d H:i:s');
-                if(!$cid){$this->pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,?,?)")->execute([$tid,self::uuid(),$id,$contact,$historical?'resolved':'open',$sentAt]);$cid=(int)$this->pdo->lastInsertId();}
+                if(!$cid){zynkoPlanRequireChatCapacity($this->pdo,$tid,$plan,$type);$this->pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,?,?)")->execute([$tid,self::uuid(),$id,$contact,$historical?'resolved':'open',$sentAt]);$cid=(int)$this->pdo->lastInsertId();}
                 $media=$ev['media']??[];if(in_array($type,['messenger','instagram'],true)){
                     $env=@parse_ini_file($this->root.'/.env',false,INI_SCANNER_RAW)?:[];
                     foreach($media as $i=>&$f){$url=(string)($f['source_url']??'');unset($f['source_url']);if(!ChannelSecurity::metaMediaUrl($url))continue;$key=hash('sha256',$external.'|'.$i);$cipher=ChannelSecurity::encrypt($url,$env);$this->pdo->prepare('INSERT IGNORE INTO channel_media_assets(channel_id,tenant_id,asset_key,source_ciphertext) VALUES(?,?,?,?)')->execute([$id,$tid,$key,$cipher]);$f['provider_id']=$key;}unset($f);

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__.'/../Support/Plan.php';
 final class InboundEmailService {
     public function __construct(private PDO $pdo, private string $root) {}
 
@@ -14,6 +15,7 @@ final class InboundEmailService {
     }
 
     public function test(array $cfg): array {
+        if(!zynkoPlanAllowsChannel(zynkoPlanContext($this->pdo,$tenantId),'email'))return ['ok'=>true,'processed'=>0,'message'=>'Recepción no incluida en la suscripción.'];
         $mode=strtoupper((string)($cfg['inbound_method']??'NONE'));
         if($mode==='NONE')return ['ok'=>false,'message'=>'Selecciona IMAP o Microsoft Graph para la recepción entrante.'];
         if($mode==='IMAP')return $this->testImap($cfg);
@@ -49,16 +51,21 @@ final class InboundEmailService {
     public function pollTenant(int $tenantId): array {
         $q=$this->pdo->prepare('SELECT * FROM correo WHERE tenant_id=? AND is_default=1 AND inbound_enabled=1 ORDER BY correo_id DESC LIMIT 1');$q->execute([$tenantId]);$cfg=$q->fetch();
         if(!$cfg)return ['ok'=>true,'processed'=>0,'message'=>'Recepción no habilitada.'];
+        if(!zynkoPlanAllowsChannel(zynkoPlanContext($this->pdo,$tenantId),'email'))return ['ok'=>true,'processed'=>0,'message'=>'Recepción no incluida en la suscripción.'];
         $mode=strtoupper((string)($cfg['inbound_method']??'NONE'));
         return $mode==='IMAP'?$this->pollImap($tenantId,$cfg):($mode==='GRAPH'?$this->pollGraph($tenantId,$cfg):['ok'=>true,'processed'=>0,'message'=>'Recepción desactivada.']);
     }
 
     private function uuid4(): string {$d=random_bytes(16);$d[6]=chr((ord($d[6])&0x0f)|0x40);$d[8]=chr((ord($d[8])&0x3f)|0x80);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}
     private function emailChannel(int $tenantId,string $display): int {
+        $this->pdo->beginTransaction();try{
+        $this->pdo->prepare("SELECT id FROM tenants WHERE id=? FOR UPDATE")->execute([$tenantId]);
         $q=$this->pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type='email' ORDER BY id LIMIT 1");$q->execute([$tenantId]);$id=(int)$q->fetchColumn();
+        zynkoPlanRequireConnection($this->pdo,$tenantId,zynkoPlanContext($this->pdo,$tenantId),'email',$id);
         if(!$id){$this->pdo->prepare("INSERT INTO channels(tenant_id,uuid,type,name,display_address,status,settings_json,last_event_at) VALUES(?,?, 'email','Correo',?,'connected','{}',NOW())")->execute([$tenantId,$this->uuid4(),$display]);$id=(int)$this->pdo->lastInsertId();}
         else $this->pdo->prepare("UPDATE channels SET status='connected',display_address=COALESCE(NULLIF(?,''),display_address),last_event_at=NOW() WHERE id=?")->execute([$display,$id]);
-        return $id;
+        $this->pdo->commit();return $id;
+        }catch(Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
     }
     private function ingest(int $tenantId,int $channelId,string $externalId,string $email,string $name,string $subject,string $body,string $sentAt): bool {
         $externalId=mb_substr(trim($externalId),0,190);if($externalId==='')$externalId='email:'.sha1($email.'|'.$subject.'|'.$sentAt.'|'.$body);
@@ -66,7 +73,7 @@ final class InboundEmailService {
         $q=$this->pdo->prepare('SELECT id FROM contacts WHERE tenant_id=? AND email=? ORDER BY id LIMIT 1');$q->execute([$tenantId,$email]);$contactId=(int)$q->fetchColumn();
         if(!$contactId){$this->pdo->prepare('INSERT INTO contacts(tenant_id,uuid,name,email) VALUES(?,?,?,?)')->execute([$tenantId,$this->uuid4(),$name?:$email,$email]);$contactId=(int)$this->pdo->lastInsertId();}
         $q=$this->pdo->prepare("SELECT id FROM conversations WHERE tenant_id=? AND channel_id=? AND contact_id=? AND status IN ('open','pending') AND archived_at IS NULL AND deleted_at IS NULL ORDER BY id DESC LIMIT 1");$q->execute([$tenantId,$channelId,$contactId]);$convId=(int)$q->fetchColumn();
-        if(!$convId){$this->pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,priority,unread_count,last_message_at) VALUES(?,?,?,?,'open','normal',0,?)")->execute([$tenantId,$this->uuid4(),$channelId,$contactId,$sentAt]);$convId=(int)$this->pdo->lastInsertId();}
+        if(!$convId){try{$convId=zynkoPlanCreateChat($this->pdo,$tenantId,$channelId,$contactId,'email',$this->uuid4());}catch(OverflowException $e){return false;}}
         $message=trim(($subject!==''?'Asunto: '.$subject."\n\n":'').$body);if($message==='')$message='[Correo sin contenido de texto]';
         $this->pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,external_message_id,direction,sender_type,type,body,status,sent_at) VALUES(?,?,?,?, 'in','contact','text',?,'received',?)")->execute([$tenantId,$convId,$this->uuid4(),$externalId,mb_substr($message,0,50000),$sentAt]);
         $this->pdo->prepare('UPDATE conversations SET unread_count=unread_count+1,last_message_at=?,status=IF(status="closed","open",status) WHERE id=?')->execute([$sentAt,$convId]);
@@ -76,7 +83,7 @@ final class InboundEmailService {
         $test=$this->testImap($cfg);if(!$test['ok'])return ['ok'=>false,'processed'=>0,'message'=>$test['message']];
         $host=trim((string)$cfg['imap_host']);$port=(int)$cfg['imap_port'];$security=strtolower((string)$cfg['imap_secure']);$folder=trim((string)$cfg['imap_folder'])?:'INBOX';$flags=$security==='ssl'?'/imap/ssl':($security==='tls'?'/imap/tls':'/imap/notls');$mailbox='{'.$host.':'.$port.$flags.'}'.$folder;$stream=@imap_open($mailbox,trim((string)$cfg['imap_username']),$this->decrypt($cfg['imap_password']??null),0,1,['DISABLE_AUTHENTICATOR'=>'GSSAPI']);if(!$stream)return ['ok'=>false,'processed'=>0,'message'=>'No se pudo abrir IMAP.'];
         $ids=imap_search($stream,'UNSEEN')?:[];$ids=array_slice(array_reverse($ids),0,25);$channel=$this->emailChannel($tenantId,(string)($cfg['correo']??$cfg['imap_username']??''));$processed=0;
-        foreach(array_reverse($ids) as $n){$h=imap_headerinfo($stream,$n);$from=$h->from[0]??null;$email=$from?trim(($from->mailbox??'').'@'.($from->host??'')):'';if(!filter_var($email,FILTER_VALIDATE_EMAIL))continue;$name=isset($from->personal)?imap_utf8((string)$from->personal):$email;$subject=isset($h->subject)?imap_utf8((string)$h->subject):'';$msgid=trim((string)($h->message_id??('imap:'.$tenantId.':'.$n)));$body=imap_fetchbody($stream,$n,'1.1');if(trim((string)$body)==='')$body=imap_fetchbody($stream,$n,'1');if(trim((string)$body)==='')$body=imap_body($stream,$n);$enc=(int)($h->encoding??0);if($enc===3)$body=base64_decode((string)$body)?:$body;elseif($enc===4)$body=quoted_printable_decode((string)$body);$body=trim(strip_tags((string)$body));$sent=date('Y-m-d H:i:s',(int)($h->udate??time()));if($this->ingest($tenantId,$channel,$msgid,$email,$name,$subject,$body,$sent)){$processed++;imap_setflag_full($stream,(string)$n,'\\Seen');}}
+        foreach(array_reverse($ids) as $n){$h=imap_headerinfo($stream,$n);$from=$h->from[0]??null;$email=$from?trim(($from->mailbox??'').'@'.($from->host??'')):'';if(!filter_var($email,FILTER_VALIDATE_EMAIL))continue;$name=isset($from->personal)?imap_utf8((string)$from->personal):$email;$subject=isset($h->subject)?imap_utf8((string)$h->subject):'';$msgid=trim((string)($h->message_id??('imap:'.$tenantId.':'.$n)));$body=imap_fetchbody($stream,$n,'1.1',FT_PEEK);if(trim((string)$body)==='')$body=imap_fetchbody($stream,$n,'1',FT_PEEK);if(trim((string)$body)==='')$body=imap_body($stream,$n,FT_PEEK);$enc=(int)($h->encoding??0);if($enc===3)$body=base64_decode((string)$body)?:$body;elseif($enc===4)$body=quoted_printable_decode((string)$body);$body=trim(strip_tags((string)$body));$sent=date('Y-m-d H:i:s',(int)($h->udate??time()));if($this->ingest($tenantId,$channel,$msgid,$email,$name,$subject,$body,$sent)){$processed++;imap_setflag_full($stream,(string)$n,'\\Seen');}}
         imap_close($stream);return ['ok'=>true,'processed'=>$processed,'message'=>'IMAP procesó '.$processed.' correo(s) nuevo(s).'];
     }
     private function graphToken(array $cfg): string {

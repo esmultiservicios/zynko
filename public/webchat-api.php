@@ -1314,6 +1314,8 @@ if ($action === 'send') {
 
         $pdo->beginTransaction();
         try {
+            $pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tid]);
+            zynkoPlanRequireChatCapacity($pdo,$tid,zynkoPlanContext($pdo,$tid,false),'webchat');
             $pdo->prepare('INSERT INTO contacts(tenant_id,uuid,name,email) VALUES(?,?,?,?)')
                 ->execute([$tid, uuid4(), $contactDisplayName, $email ?: null]);
             $contact = (int) $pdo->lastInsertId();
@@ -1376,6 +1378,7 @@ if ($action === 'send') {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
             }
+            if($creationError instanceof OverflowException)out(false,$creationError->getMessage(),[],429);
             throw $creationError;
         }
     } else {

@@ -17,3 +17,10 @@ Canales → Seguimiento de solicitudes de empresas. Filtrar, asignar responsable
 
 ## Comprobaciones de despliegue
 Validar primero en una base de datos de prueba: registro y verificación por correo, documentos versionados, solicitud y aprobación de plan, clientes con y sin permisos, aislamiento entre empresas, solicitudes de activación, avisos de seguimiento y regresión del flujo de Meta. No habilitar comercialmente Meta hasta que sus permisos y pruebas reales estén confirmados. La versión en inglés de los nuevos contenidos comerciales se incluye; revisar traducciones heredadas y textos legales oficiales antes de publicación definitiva.
+
+
+## Catálogo comercial 2.31.152
+
+Starter: 1 conexión externa WhatsApp; Pro: hasta 2 tipos distintos entre WhatsApp, Messenger e Instagram; Business: hasta 10 cuentas externas de los tipos autorizados. Web Chat se mide por sitios, no consume cupo externo. Las cuentas pendientes y con advertencia ocupan cupo, las desconectadas no. Los canales elegibles pero no publicados se muestran como Próximamente; el Owner administra su publicación desde Canales → Administrar catálogo. Threads no tiene conector implementado. La autorización de Meta y la validación de cada cuenta siguen siendo obligatorias cuando corresponda.
+
+La actualización automática 2.31.152 ajusta los planes predeterminados una vez y conserva el historial y las credenciales; las conexiones que excedan los nuevos límites quedan desconectadas. Hacer respaldo antes de desplegar. No importar schema.sql sobre producción.

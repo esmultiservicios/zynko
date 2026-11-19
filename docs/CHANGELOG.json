@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.31.152",
+    "date": "2026-11-19",
+    "title": "Canales elegibles, disponibilidad comercial y límites",
+    "changes": [
+      "Pro permite elegir hasta dos tipos externos diferentes entre WhatsApp, Messenger e Instagram.",
+      "Disponibilidad comercial independiente del catálogo del plan; Threads previsto, sin conector simulado.",
+      "Validación de capacidad de conexiones y chats nuevos desde los puntos de entrada existentes."
+    ]
+  },
+  {
     "version": "2.31.151",
     "date": "2026-11-19",
     "title": "Fase 2: experiencia comercial y activación asistida",

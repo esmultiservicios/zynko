@@ -168,6 +168,42 @@ function zynkoUpgradeCommercialCatalog146(PDO $pdo): void {
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
+/** One-time commercial channel revision. Catalog publication is independent of plan inclusion. */
+function zynkoUpgradeCommercialCatalog152(PDO $pdo): void {
+    $pdo->beginTransaction();
+    try {
+        $mark=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_catalog_2_31_152','1')");
+        $mark->execute();
+        if(!$mark->rowCount()){ $pdo->commit(); return; }
+        // These connectors exist, but have not been commercially released. Do not disconnect active accounts.
+        $pdo->exec("UPDATE channel_connector_catalog SET connector_ready=1,linkable=0 WHERE code IN ('messenger','instagram','telegram','email')");
+        $pdo->exec("UPDATE channel_connector_catalog SET visible=1,connector_ready=0,linkable=0 WHERE code='threads'");
+        $q=$pdo->query("SELECT * FROM subscription_plans WHERE code IN ('starter','pro','business') ORDER BY id FOR UPDATE");
+        $save=$pdo->prepare('UPDATE subscription_plans SET max_channels=?,allowed_channels_json=?,external_ai_channels_json=?,features_json=? WHERE id=?');
+        foreach($q->fetchAll(PDO::FETCH_ASSOC) as $p){
+            $code=(string)$p['code'];
+            $channels=match($code){'starter'=>['webchat','whatsapp'],'pro'=>['webchat','whatsapp','messenger','instagram'],default=>['webchat','whatsapp','messenger','instagram','telegram','email','threads','x']};
+            if($code==='business')$channels=array_values(array_unique(array_merge($channels,zynkoDecodeList($p['allowed_channels_json']??null))));
+            $max=match($code){'starter'=>2,'pro'=>3,default=>11};
+            $ai=array_values(array_intersect(zynkoDecodeList($p['external_ai_channels_json']??null),array_merge($channels,['api'])));
+            $features=zynkoDecodeList($p['features_json']??null);
+            if($code==='pro'){
+                $features=array_values(array_filter($features,fn($v)=>!is_string($v)||!preg_match('/(?:hasta|capacidad de hasta)\s+3\s+conexiones externas/iu',$v)));
+                $features[]='Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram';
+                $features=array_values(array_unique($features));
+            }
+            $save->execute([$max,json_encode($channels),json_encode($ai),json_encode($features,JSON_UNESCAPED_UNICODE),(int)$p['id']]);
+            $p['max_channels']=$max;$p['allowed_channels_json']=json_encode($channels);
+            $tenants=$pdo->prepare('SELECT tenant_id FROM tenant_subscriptions WHERE plan_id=? ORDER BY tenant_id');$tenants->execute([(int)$p['id']]);
+            foreach($tenants->fetchAll(PDO::FETCH_COLUMN) as $tid){
+                $tid=(int)$tid;if(function_exists('mainTenantId')&&$tid===mainTenantId())continue;
+                zynkoReconcilePlanChannels($pdo,$tid,$p);
+            }
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+
 function zynkoFreePlanId(PDO $pdo): int{
     zynkoEnsurePlanSchema($pdo);
     $q=$pdo->query("SELECT id FROM subscription_plans WHERE is_default_free=1 AND active=1 ORDER BY id LIMIT 1");
@@ -185,26 +221,44 @@ function zynkoDecodeList(mixed $value): array{
 function zynkoPlanChannelCatalog(array $rows=[], string $language='es'): array {
     $en=$language==='en';
     $catalog=[
-        'webchat'=>['name'=>'NIVO Web Chat','icon'=>'fa-solid fa-message','visible'=>true],
-        'whatsapp'=>['name'=>'WhatsApp Business','icon'=>'fa-brands fa-whatsapp','visible'=>true],
-        'messenger'=>['name'=>'Messenger','icon'=>'fa-brands fa-facebook-messenger','visible'=>true],
-        'instagram'=>['name'=>'Instagram Messaging','icon'=>'fa-brands fa-instagram','visible'=>true],
-        'telegram'=>['name'=>'Telegram','icon'=>'fa-brands fa-telegram','visible'=>true],
-        'email'=>['name'=>$en?'Omnichannel email':'Correo omnicanal','icon'=>'fa-solid fa-envelope','visible'=>true],
-        'x'=>['name'=>'X / Twitter','icon'=>'fa-brands fa-x-twitter','visible'=>false],
+        'webchat'=>['name'=>'NIVO Web Chat','icon'=>'fa-solid fa-message','visible'=>true,'available'=>true],
+        'whatsapp'=>['name'=>'WhatsApp Business','icon'=>'fa-brands fa-whatsapp','visible'=>true,'available'=>false],
+        'messenger'=>['name'=>'Messenger','icon'=>'fa-brands fa-facebook-messenger','visible'=>true,'available'=>false],
+        'instagram'=>['name'=>'Instagram Messaging','icon'=>'fa-brands fa-instagram','visible'=>true,'available'=>false],
+        'telegram'=>['name'=>'Telegram','icon'=>'fa-brands fa-telegram','visible'=>true,'available'=>false],
+        'email'=>['name'=>$en?'Omnichannel email':'Correo omnicanal','icon'=>'fa-solid fa-envelope','visible'=>true,'available'=>false],
+        'threads'=>['name'=>'Threads','icon'=>'fa-brands fa-threads','visible'=>true,'available'=>false],
+        'x'=>['name'=>'X / Twitter','icon'=>'fa-brands fa-x-twitter','visible'=>false,'available'=>false],
     ];
     foreach($rows as $row){
         $code=(string)($row['code']??'');
         if(!preg_match('/^[a-z0-9_-]+$/D',$code))continue;
-        if(isset($catalog[$code])){
-            $catalog[$code]['visible']=!empty($row['visible']);
-            continue;
+        if(!isset($catalog[$code])){
+            $icon=(string)($row['icon_class']??'');
+            if(!preg_match('/^fa-(solid|regular|brands) fa-[a-z0-9-]+$/D',$icon))$icon='fa-solid fa-plug';
+            $catalog[$code]=['name'=>trim((string)($row['name']??''))?:$code,'icon'=>$icon,'visible'=>false,'available'=>false];
         }
-        $icon=(string)($row['icon_class']??'');
-        if(!preg_match('/^fa-(solid|regular|brands) fa-[a-z0-9-]+$/D',$icon))$icon='fa-solid fa-plug';
-        $catalog[$code]=['name'=>trim((string)($row['name']??''))?:$code,'icon'=>$icon,'visible'=>!empty($row['visible'])];
+        $catalog[$code]['visible']=!empty($row['visible']);
+        $catalog[$code]['available']=zynkoChannelCatalogRowAvailable($row);
     }
     return $catalog;
+}
+/** A planned connector cannot be advertised or linked merely because a plan includes it. */
+function zynkoChannelCatalogRowAvailable(array $row): bool {
+    return ($row['code']??'')==='webchat'||(!empty($row['visible'])&&!empty($row['connector_ready'])&&!empty($row['linkable']));
+}
+function zynkoChannelCatalogAvailable(PDO $pdo,string $channel): bool {
+    if($channel==='webchat')return true;
+    $q=$pdo->prepare('SELECT code,visible,connector_ready,linkable FROM channel_connector_catalog WHERE code=?');$q->execute([$channel]);
+    $row=$q->fetch(PDO::FETCH_ASSOC);return $row?zynkoChannelCatalogRowAvailable($row):false;
+}
+function zynkoPlanChannelAvailability(array $catalog,string $code,string $language='es'): string {
+    $ready=$code==='webchat'||!empty($catalog[$code]['available']);
+    return $language==='en'?($ready?'Available':'Coming soon'):($ready?'Disponible':'Próximamente');
+}
+function zynkoPlanChannelStatus(array $catalog,string $code,string $language='es'): string {
+    $ready=$code==='webchat'||!empty($catalog[$code]['available']);
+    return '<span class="plan-channel-availability '.($ready?'is-ready':'is-upcoming').'"><i class="fa-solid '.($ready?'fa-circle-check':'fa-clock').'" aria-hidden="true"></i> '.htmlspecialchars(zynkoPlanChannelAvailability($catalog,$code,$language),ENT_QUOTES,'UTF-8').'</span>';
 }
 function zynkoPlanDisplayChannels(array $plan,array $catalog): array {
     // The free plan has a server-side restriction; legacy paid plans with no
@@ -223,13 +277,27 @@ function zynkoPlanChannelIcon(array $catalog,string $code): string {
     $item=zynkoPlanChannelDisplay($catalog,$code);
     return '<span class="plan-channel-icon" data-channel="'.htmlspecialchars($code,ENT_QUOTES,'UTF-8').'"><i class="'.htmlspecialchars($item['icon'],ENT_QUOTES,'UTF-8').'" aria-hidden="true"></i></span>';
 }
-function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales incluidos'): string {
-    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</b><div class="plan-channel-items">';
+/** Capacity is an account/number limit, not a promise that every eligible connector is live. */
+function zynkoPlanChannelCapacityText(array $plan,array $catalog,string $language='es'): string {
+    $en=$language==='en';$codes=array_values(array_diff(zynkoPlanDisplayChannels($plan,$catalog),['webchat']));
+    $total=zynkoPlanExternalConnectionLimit($plan);$count=count($codes);$available=count(array_filter($codes,fn($code)=>!empty($catalog[$code]['available'])));$now=$en?" $available of $count currently available.":" $available de $count disponibles actualmente.";
+    if($total===0||$count===0)return $en?'No external channels. NIVO Web Chat included.':'Sin canales externos. NIVO Web Chat incluido.';
+    if(zynkoPlanDistinctExternalTypes($plan)&&$total!==null){
+        $choose=min($total,$count);
+        return $en?"Choose up to $choose of $count external channel types (one account per type). NIVO Web Chat included.$now":"Elige hasta $choose de $count tipos de canales externos (una cuenta por tipo). NIVO Web Chat incluido.$now";
+    }
+    if($total===null)return $en?"$count eligible external channel types; unlimited connections. NIVO Web Chat included.":"$count tipos de canales externos elegibles; conexiones ilimitadas. NIVO Web Chat incluido.";
+    return $en?"Up to $total external connections across $count eligible channel types. NIVO Web Chat included.$now":"Hasta $total conexiones externas entre $count tipos de canales elegibles. NIVO Web Chat incluido.$now";
+}
+function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales elegibles',string $language='es'): string {
+    $en=$language==='en';$esc=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
+    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity">'.$esc(zynkoPlanChannelCapacityText($plan,$catalog,$language)).'</div><div class="plan-channel-items">';
     foreach(zynkoPlanDisplayChannels($plan,$catalog) as $code){
         $item=zynkoPlanChannelDisplay($catalog,$code);
-        $html.='<span class="plan-channel-chip">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.htmlspecialchars($item['name'],ENT_QUOTES,'UTF-8').'</span></span>';
+        $html.='<span class="plan-channel-chip">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.zynkoPlanChannelStatus($catalog,$code,$language).'</span>';
     }
-    return $html.'</div></div>';
+    $html.='</div><small class="plan-channel-explanation">'.$esc($en?'Available = enabled in the catalog; authorization and validation may still be required. Coming soon = included in the plan, but new connections are not yet enabled.':'Disponible = habilitado en el catálogo; puede requerir autorización y validación. Próximamente = incluido en el plan, pero todavía no admite nuevas conexiones.').'</small>';
+    return $html.'</div>';
 }
 
 function zynkoDecodeMap(mixed $value): array{
@@ -264,7 +332,8 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
             'external_ai_included'=>(int)($p['external_ai_included']??0)===1,'external_ai_monthly_tokens'=>$p['external_ai_monthly_tokens']!==null?(int)$p['external_ai_monthly_tokens']:null,'external_ai_channels'=>$externalAiChannels
         ];
     }catch(Throwable $e){
-        return ['unrestricted'=>true,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'legacy','plan_name'=>'Sin plan','subscription_status'=>'active','max_users'=>null,'max_channels'=>null,'max_webchat_sites'=>null,'max_daily_chats'=>null,'max_monthly_chats'=>null,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>true,'external_ai_monthly_tokens'=>null,'external_ai_channels'=>[]];
+        error_log('ZYNKO plan lookup failed: '.get_class($e));
+        return ['unrestricted'=>false,'has_plan'=>false,'plan_id'=>0,'plan_code'=>'unknown','plan_name'=>'No disponible','subscription_status'=>'unknown','active'=>false,'allowed_channels'=>[],'modules'=>[],'is_free'=>false,'external_ai_included'=>false,'external_ai_channels'=>[]];
     }
 }
 
@@ -299,14 +368,64 @@ function zynkoPlanLimit(array $ctx,string $key): ?int{
 
 
 function zynkoPlanExternalConnectionLimit(array $ctx): ?int{
+    if(!empty($ctx['unrestricted']))return null;
+    if(!empty($ctx['is_free'])||!empty($ctx['is_default_free'])||($ctx['plan_code']??$ctx['code']??'')==='free')return 0;
     $total=zynkoPlanLimit($ctx,'max_channels');
-    if($total===null)return null;
-    // NIVO Web Chat ocupa el canal base del tenant; el resto son conexiones externas.
-    return max(0,$total-1);
+    return $total===null?null:max(0,$total-1);
 }
-
+function zynkoPlanDistinctExternalTypes(array $ctx): bool {
+    return empty($ctx['unrestricted'])&&($ctx['plan_code']??$ctx['code']??'')==='pro';
+}
 function zynkoPlanExternalConnectionUsage(PDO $pdo,int $tenantId): int{
-    try{$q=$pdo->prepare("SELECT COUNT(*) FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected'");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
+    $q=$pdo->prepare("SELECT COUNT(*) FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected'");$q->execute([$tenantId]);return (int)$q->fetchColumn();
+}
+/** Pure admission decision; pending and warning accounts occupy slots, disconnected accounts do not. */
+function zynkoPlanConnectionDenial(array $ctx,string $type,array $connections,int $existingId=0,bool $catalogAvailable=true): ?string {
+    if(!zynkoPlanAllowsChannel($ctx,$type))return 'Este canal no está incluido en tu plan actual.';
+    if($type==='webchat')return null;
+    if(!$catalogAvailable)return 'Este canal está previsto en el catálogo, pero todavía no está habilitado para nuevas conexiones.';
+    $active=array_values(array_filter($connections,fn($r)=>($r['type']??'')!=='webchat'&&($r['status']??'')!=='disconnected'&&(int)($r['id']??0)!==$existingId));
+    $limit=zynkoPlanExternalConnectionLimit($ctx);
+    if($limit!==null&&count($active)>=$limit)return 'Alcanzaste el límite de '.$limit.' conexiones externas de tu plan. Desconecta una conexión para liberar un cupo.';
+    if(zynkoPlanDistinctExternalTypes($ctx))foreach($active as $r)if(($r['type']??'')===$type)return 'El plan Pro permite una cuenta por tipo de canal. Elige otro canal o cambia a Business.';
+    return null;
+}
+/** Call under the tenant row lock for admission; an existing enabled connection can still be maintained. */
+function zynkoPlanRequireConnection(PDO $pdo,int $tenantId,array $ctx,string $type,int $existingId=0): void {
+    if(!zynkoPlanAllowsChannel($ctx,$type))throw new RuntimeException('Este canal no está incluido en tu plan actual.');
+    if($type==='webchat')return;
+    $q=$pdo->prepare("SELECT id,type,status FROM channels WHERE tenant_id=? AND type<>'webchat' ORDER BY id");$q->execute([$tenantId]);$rows=$q->fetchAll(PDO::FETCH_ASSOC);
+    foreach($rows as $row)if((int)$row['id']===$existingId&&$row['type']===$type&&$row['status']!=='disconnected')return;
+    $error=zynkoPlanConnectionDenial($ctx,$type,$rows,$existingId,zynkoChannelCatalogAvailable($pdo,$type));
+    if($error!==null)throw new RuntimeException($error);
+}
+/** A reconnect must claim a slot before a remote validation can change status. */
+function zynkoPlanReserveReconnect(PDO $pdo,int $tenantId,array $ctx,array $channel): void {
+    if(($channel['status']??'')!=='disconnected')return;
+    $pdo->beginTransaction();
+    try{
+        $pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tenantId]);
+        $current=zynkoPlanContext($pdo,$tenantId,!empty($ctx['unrestricted'])&&($ctx['plan_code']??'')==='platform');
+        zynkoPlanRequireConnection($pdo,$tenantId,$current,(string)$channel['type'],(int)$channel['id']);
+        $pdo->prepare("UPDATE channels SET status='pending' WHERE tenant_id=? AND id=? AND status='disconnected'")->execute([$tenantId,(int)$channel['id']]);
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+/** Deterministic reconciliation without deleting history or credentials. Connected accounts precede pending ones. */
+function zynkoPlanExcessChannels(array $plan,array $rows): array {
+    $allowed=zynkoDecodeList($plan['allowed_channels_json']??null);$limit=zynkoPlanExternalConnectionLimit($plan);$seen=[];$keep=0;$excess=[];
+    foreach($rows as $r){$type=(string)$r['type'];if($type==='webchat'||$r['status']==='disconnected')continue;
+        if(($allowed&&!in_array($type,$allowed,true))||($limit!==null&&$keep>=$limit)||(zynkoPlanDistinctExternalTypes($plan)&&isset($seen[$type]))){$excess[]=(int)$r['id'];continue;}
+        $keep++;$seen[$type]=true;
+    }return $excess;
+}
+function zynkoReconcilePlanChannels(PDO $pdo,int $tenantId,array $plan): void {
+     $own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();try{
+    $pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tenantId]);
+    $q=$pdo->prepare("SELECT id,type,status FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected' ORDER BY FIELD(status,'connected','warning','pending'),id");$q->execute([$tenantId]);
+    $rows=$q->fetchAll(PDO::FETCH_ASSOC);$disconnect=$pdo->prepare("UPDATE channels SET status='disconnected' WHERE id=? AND tenant_id=?");
+    foreach(zynkoPlanExcessChannels($plan,$rows) as $id)$disconnect->execute([$id,$tenantId]);
+    if($own)$pdo->commit();}catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
 function zynkoPlanRequireModule(array $ctx,string $module): void{
@@ -318,11 +437,29 @@ function zynkoPlanRequireModule(array $ctx,string $module): void{
 }
 
 function zynkoPlanDailyChatUsage(PDO $pdo,int $tenantId): int{
-    try{$q=$pdo->prepare("SELECT COUNT(*) FROM conversations c JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.tenant_id=? AND ch.type='webchat' AND DATE(c.created_at)=CURDATE()");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
+    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=CURDATE() AND created_at<DATE_ADD(CURDATE(),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
 }
 
 function zynkoPlanMonthlyChatUsage(PDO $pdo,int $tenantId): int{
-    try{$q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND created_at<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();}catch(Throwable $e){return 0;}
+    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND created_at<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
+}
+
+function zynkoPlanRequireChatCapacity(PDO $pdo,int $tenantId,array $ctx,string $type): void {
+    if(!zynkoPlanAllowsChannel($ctx,$type))throw new RuntimeException('Canal no permitido por la suscripción.');
+    if(!empty($ctx['unrestricted']))return;
+    $daily=zynkoPlanLimit($ctx,'max_daily_chats');$monthly=zynkoPlanLimit($ctx,'max_monthly_chats');
+    if($daily!==null&&zynkoPlanDailyChatUsage($pdo,$tenantId)>=$daily)throw new OverflowException('Límite de '.$daily.' chats nuevos por día alcanzado.');
+    if($monthly!==null&&zynkoPlanMonthlyChatUsage($pdo,$tenantId)>=$monthly)throw new OverflowException('Límite de '.$monthly.' chats nuevos por mes alcanzado.');
+}
+/** For legacy API callers without a transaction, serialize the admission and insert atomically. */
+function zynkoPlanCreateChat(PDO $pdo,int $tenantId,int $channelId,int $contactId,string $type,string $uuid,bool $platformOwner=false): int {
+    $own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();
+    try{
+        $pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tenantId]);
+        zynkoPlanRequireChatCapacity($pdo,$tenantId,zynkoPlanContext($pdo,$tenantId,$platformOwner),$type);
+        $pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,'open',NOW())")->execute([$tenantId,$uuid,$channelId,$contactId]);$id=(int)$pdo->lastInsertId();
+        if($own)$pdo->commit();return $id;
+    }catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
 function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
@@ -343,18 +480,7 @@ function zynkoApplyPlanEntitlements(PDO $pdo,int $tenantId,int $planId): void{
         $q=$pdo->prepare($sql);$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
         foreach(array_slice($ids,$maxSites) as $id)$pdo->prepare('UPDATE webchat_installations SET enabled=0 WHERE id=? AND tenant_id=?')->execute([$id,$tenantId]);
     }
-    // Al bajar de plan, las conexiones externas que ya no estén permitidas quedan desconectadas.
-    if($channels){
-        $placeholders=implode(',',array_fill(0,count($channels),'?'));
-        $args=array_merge([$tenantId],$channels);
-        $pdo->prepare("UPDATE channels SET status='disconnected' WHERE tenant_id=? AND type<>'webchat' AND type NOT IN ($placeholders)")->execute($args);
-    }
-    $maxChannels=$p['max_channels']!==null?(int)$p['max_channels']:0;
-    if($maxChannels>0){
-        $externalLimit=max(0,$maxChannels-1);
-        $q=$pdo->prepare("SELECT id FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected' ORDER BY id");$q->execute([$tenantId]);$ids=array_map('intval',$q->fetchAll(PDO::FETCH_COLUMN));
-        foreach(array_slice($ids,$externalLimit) as $id)$pdo->prepare("UPDATE channels SET status='disconnected' WHERE id=? AND tenant_id=?")->execute([$id,$tenantId]);
-    }
+    zynkoReconcilePlanChannels($pdo,$tenantId,$p);
     $mods=zynkoDecodeMap($p['module_access_json']??null);
     if(empty($mods['api'])){
         $pdo->prepare('UPDATE api_keys SET revoked_at=COALESCE(revoked_at,NOW()) WHERE tenant_id=?')->execute([$tenantId]);
