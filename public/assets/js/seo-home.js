@@ -62,7 +62,7 @@
   const openMobileMenu=()=>{if(!menuToggle||!mobileMenu)return;header?.classList.add('menu-open');mobileMenu.hidden=false;menuToggle.setAttribute('aria-expanded','true');menuToggle.setAttribute('aria-label','Cerrar menú');menuToggle.innerHTML='<i class="fa-solid fa-xmark"></i>';};
   menuToggle?.addEventListener('click',()=>menuToggle.getAttribute('aria-expanded')==='true'?closeMobileMenu():openMobileMenu());
   mobileMenu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMobileMenu));
-  addEventListener('resize',()=>{if(innerWidth>1060)closeMobileMenu()},{passive:true});
+  addEventListener('resize',()=>{if(innerWidth>1200)closeMobileMenu()},{passive:true});
 
   const reveal=[...document.querySelectorAll('[data-reveal]')];
   if(reduced||!('IntersectionObserver' in window)) reveal.forEach(el=>el.classList.add('is-visible'));
@@ -73,6 +73,26 @@
     reveal.forEach(el=>io.observe(el));
   }
 
+  // Keep documentation compact; expand units without changing ids or copy handlers.
+  const docSection=document.getElementById('documentacion');
+  const docActions=document.getElementById('publicDocActions');
+  if(docSection&&docActions){
+    const wrap=docSection.querySelector(':scope > .wrap');
+    const units=[];const groups=[];
+    const add=el=>{el.dataset.docUnit='';units.push(el);};
+    const group=el=>{el.dataset.docGroup='';groups.push(el);};
+    for(const el of wrap.children){
+      if(el===docActions||el.classList.contains('section-head'))continue;
+      if(el.classList.contains('docs-code-columns')){group(el);for(const card of el.querySelectorAll('.docs-code-card'))add(card);}
+      else if(el.classList.contains('wa-api-guide')){group(el);for(const item of el.children){if(item.classList.contains('wa-api-examples')){group(item);for(const card of item.children)add(card);}else add(item);}}
+      else add(el);
+    }
+    let visible=4;const isEn=document.documentElement.lang==='en';
+    const more=docActions.querySelector('[data-doc-more]'),all=docActions.querySelector('[data-doc-all]'),less=docActions.querySelector('[data-doc-less]');
+    const render=()=>{units.forEach((el,i)=>{el.hidden=i>=visible;if(!el.hidden)el.classList.add('is-visible');});groups.forEach(el=>{el.hidden=!Array.from(el.querySelectorAll('[data-doc-unit]')).some(unit=>!unit.hidden);});more.hidden=all.hidden=visible>=units.length;less.hidden=visible<=4;docActions.querySelector('[data-doc-count]').textContent=(isEn?'Showing ':'Mostrando ')+Math.min(visible,units.length)+(isEn?' of ':' de ')+units.length;docActions.hidden=units.length<=4;};
+    more.addEventListener('click',()=>{visible=Math.min(visible+4,units.length);render();});all.addEventListener('click',()=>{visible=units.length;render();});less.addEventListener('click',()=>{visible=4;render();docSection.scrollIntoView({block:'start'});});
+    const revealHash=()=>{if(location.hash==='#api-whatsapp'){visible=units.length;render();requestAnimationFrame(()=>document.getElementById('api-whatsapp')?.scrollIntoView());}};render();revealHash();window.addEventListener('hashchange',revealHash);
+  }
   // Progressive gallery: reveal four cards at a time without rebuilding the lightbox.
   const showcase=document.getElementById('showcase');
   if(showcase){
@@ -275,3 +295,7 @@
   }
 
 })();
+
+// Close only the language disclosure, not other menus or dialogs.
+document.addEventListener('click',event=>{document.querySelectorAll('.lang-menu[open]').forEach(menu=>{if(!menu.contains(event.target))menu.open=false;});});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.querySelectorAll('.lang-menu[open]').forEach(menu=>{menu.open=false;menu.querySelector('summary')?.focus();});}});

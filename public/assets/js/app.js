@@ -1136,3 +1136,7 @@ document.addEventListener('click',async e=>{const b=e.target.closest?.('.structu
 
 // Editor de configuración: editar una variable por operación, sin leer secretos del DOM.
 (()=>{const key=document.getElementById('envFullKey'),field=document.getElementById('envNewKeyField'),name=document.getElementById('envNewKey'),value=document.getElementById('envNewValue'),reveal=document.getElementById('envRevealValue');if(!key||!field||!name||!value)return;const sync=()=>{const adding=key.value==='__new__';field.hidden=!adding;name.disabled=!adding;name.required=adding;};const changed=()=>{sync();value.value='';};key.addEventListener('change',changed);if(window.jQuery&&jQuery.fn.select2){const el=jQuery(key);if(el.hasClass('select2-hidden-accessible'))el.select2('destroy');el.select2({width:'100%',minimumResultsForSearch:0});el.on('change.zynkoEnv',changed);}reveal?.addEventListener('change',()=>{value.type=reveal.checked?'text':'password'});sync();})();
+
+// Close only the language disclosure, not other menus or dialogs.
+document.addEventListener('click',event=>{document.querySelectorAll('.lang-menu[open]').forEach(menu=>{if(!menu.contains(event.target))menu.open=false;});});
+document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.querySelectorAll('.lang-menu[open]').forEach(menu=>{menu.open=false;menu.querySelector('summary')?.focus();});}});

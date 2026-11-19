@@ -109,7 +109,7 @@ function zynkoUpgradeCommercialCatalog144(PDO $pdo): void {
         if(!$claim->rowCount()){ $pdo->commit(); return; }
         $catalog=[
             'starter'=>[['webchat','whatsapp'],0,null,[],['NIVO Web Chat incluido','2 sitios autorizados para NIVO Web Chat','1 conexión externa: WhatsApp Business','500 chats nuevos por mes','API para conectar sitios y sistemas externos','Bandeja omnicanal y contactos','Usuarios de ZYNKO ilimitados']],
-            'pro'=>[['webchat','whatsapp','messenger','instagram','telegram'],1,250000,['webchat','whatsapp','messenger','instagram','telegram','api'],['NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 3 conexiones externas según canales habilitados','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados']],
+            'pro'=>[['webchat','whatsapp','messenger','instagram'],1,250000,['webchat','whatsapp','messenger','instagram','api'],['NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 3 conexiones externas según canales habilitados','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados']],
             'business'=>[['webchat','whatsapp','messenger','instagram','telegram','email'],1,1000000,['webchat','whatsapp','messenger','instagram','telegram','email','api'],['NIVO Web Chat incluido','10 sitios autorizados para NIVO Web Chat','Hasta 10 conexiones externas según canales habilitados','10,000 chats nuevos por mes','API completa con mayor capacidad','NIVO IA y automatizaciones avanzadas','Reportes avanzados y auditoría completa','Soporte prioritario','Usuarios de ZYNKO ilimitados']]
         ];
         $get=$pdo->prepare('SELECT id,module_access_json FROM subscription_plans WHERE code=? LIMIT 1');
@@ -143,6 +143,26 @@ function zynkoUpgradePaidWhatsApp145(PDO $pdo): void {
             if($channels!==$newChannels||$newLimit!==$limit){
                 $change->execute([$channels!==$newChannels?json_encode($newChannels,JSON_UNESCAPED_SLASHES):$plan['allowed_channels_json'],$newLimit,(int)$plan['id']]);
             }
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+
+/** Apply the revised commercial Pro catalog only once; preserve pricing and other custom options. */
+function zynkoUpgradeCommercialCatalog146(PDO $pdo): void {
+    $pdo->beginTransaction();
+    try {
+        $claim=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_catalog_2_31_146','1')");
+        $claim->execute();
+        if(!$claim->rowCount()){ $pdo->commit(); return; }
+        $get=$pdo->prepare("SELECT id,allowed_channels_json,external_ai_channels_json FROM subscription_plans WHERE code='pro' FOR UPDATE");$get->execute();
+        $set=$pdo->prepare('UPDATE subscription_plans SET allowed_channels_json=?,external_ai_channels_json=? WHERE id=?');
+        foreach($get->fetchAll() as $row){
+            $channels=zynkoDecodeList($row['allowed_channels_json']);
+            if(!$channels)$channels=['webchat','whatsapp','messenger','instagram'];
+            $channels=array_values(array_unique(array_merge(array_diff($channels,['telegram','email']),['webchat','whatsapp'])));
+            $aiChannels=array_values(array_diff(zynkoDecodeList($row['external_ai_channels_json']),['telegram','email']));
+            $set->execute([json_encode($channels),json_encode($aiChannels),(int)$row['id']]);
         }
         $pdo->commit();
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}

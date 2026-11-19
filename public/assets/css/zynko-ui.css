@@ -6228,7 +6228,7 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 @media(max-width:640px){.zynko-workspace .zynko-workspace-head,.zynko-dialog.zynko-workspace .zynko-dialog-content,.zynko-dialog.zynko-workspace .zynko-dialog-actions{padding:12px!important}#integrationModal .modal-card.api-integration-modal{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important}}
 
 /* Workspace filters flow with content; technical values remain plain text. */
-.zynko-dialog.zynko-close-only .zynko-dialog-confirm{background:#10283a!important;border-color:#10283a!important;color:#fff!important}.zynko-dialog.zynko-close-only .zynko-dialog-confirm:hover{background:#17384e!important}.zynko-workspace .zynko-insight{gap:16px}.zynko-workspace .template-preview{overflow:hidden!important;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;white-space:pre-wrap}.zynko-workspace .template-choice{align-content:start}.zynko-workspace .template-choice-head{min-width:0;overflow-wrap:anywhere}.zynko-dialog-overlay[aria-hidden="true"]{pointer-events:none}.header-language{display:flex;gap:4px;align-items:center;white-space:nowrap}.header-language a{padding:6px 8px;border-radius:8px;text-decoration:none;color:var(--text);font-weight:700}.header-language a[aria-current="true"]{background:var(--surface2);color:#0d9488}
+.zynko-dialog.zynko-close-only .zynko-dialog-confirm{background:#10283a!important;border-color:#10283a!important;color:#fff!important}.zynko-dialog.zynko-close-only .zynko-dialog-confirm:hover{background:#17384e!important}.zynko-workspace .zynko-insight{gap:16px}.zynko-workspace .template-preview{overflow:hidden!important;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:5;white-space:pre-wrap}.zynko-workspace .template-choice{align-content:start}.zynko-workspace .template-choice-head{min-width:0;overflow-wrap:anywhere}.zynko-dialog-overlay[aria-hidden="true"]{pointer-events:none}
 
 /* Email provider visibility and clean routing cards */
 #mailProviderForm [hidden],.inbound-mail-panel [hidden]{display:none!important}
@@ -6294,3 +6294,12 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 .billing-plan-directory.view-detail .plan-features .plan-channel-icon{align-items:center!important;justify-content:center!important}
 .billing-plan-directory.view-detail .plan-features .plan-channel-icon>i{margin:0!important}
 @media(min-width:1351px){.billing-plan-directory.view-detail .plan-card{grid-template-columns:minmax(0,.95fr) minmax(0,1.15fr) minmax(0,1.5fr) 180px!important}}
+
+/* Language menu: native accessible disclosure, no extra grid item. */
+.lang-menu{position:relative;flex:0 0 auto;min-width:0;align-self:center;display:block;z-index:5}
+.lang-menu summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;white-space:nowrap;min-height:40px;padding:0 10px;border:1px solid var(--line,#dbe6eb);border-radius:10px;background:var(--surface2,#f4f8f9);color:var(--text,var(--navy,#10283a));font-size:12px;font-weight:800;text-decoration:none!important}
+.lang-menu summary::-webkit-details-marker{display:none}.lang-menu summary>i:last-child{font-size:9px}.lang-menu summary:focus-visible,.lang-menu a:focus-visible{outline:2px solid #0e9d86;outline-offset:2px}
+.lang-menu .lang-options{position:absolute;top:calc(100% + 8px);right:0;min-width:154px;display:grid;gap:4px;padding:6px;border:1px solid var(--line,#dbe6eb);border-radius:12px;background:var(--surface,#fff);box-shadow:0 12px 30px rgba(8,38,59,.13);z-index:150}
+.lang-menu:not([open]) .lang-options{display:none}.lang-menu .lang-options a{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text,var(--navy,#10283a));font-size:13px;padding:10px;border-radius:8px;text-decoration:none!important;font-weight:650;white-space:nowrap}.lang-menu .lang-options a:hover,.lang-menu .lang-options a[aria-current=true]{background:var(--surface2,#e8f5f1);color:#087c6c;text-decoration:none!important}
+
+.wa-api-admin pre,.api-doc-card pre{white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:normal!important;max-height:none!important;min-height:0!important;overflow:auto!important}.wa-api-admin pre code,.api-doc-card pre code{white-space:inherit!important;overflow-wrap:inherit!important}

@@ -169,3 +169,13 @@ En Correo y notificaciones, Microsoft Graph permite guardar remitentes por prop�
 ## Actualización 2.31.145 — API v1
 
 Esta versión conserva los endpoints, permisos, claves y formatos de la API REST v1. Los cambios se concentran en el catálogo de planes, la galería pública, el historial de visitas y la coherencia de los scripts de base de datos.
+
+## Actualización 2.31.146 — API REST v1
+
+La API conserva sus endpoints y permisos. Los ejemplos se muestran en formato compacto, con ajuste visual de línea. En Bash/POSIX `\` inmediatamente seguido de un salto de línea es una continuación válida; si se coloca todo en una sola línea debe eliminarse, no dejar `\ -H`. Ejemplo:
+
+```sh
+curl "https://zynkocloud.app/api.php?r=v1/channels" -H "Authorization: Bearer TU_CLAVE_API"
+```
+
+Las solicitudes deben salir de un servidor seguro y las claves no deben publicarse en el navegador. En el sitio público la documentación se expande en bloques y conserva los botones de copia.

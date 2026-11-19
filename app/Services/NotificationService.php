@@ -61,14 +61,30 @@ final class NotificationService
 
         $config = $query->fetch() ?: null;
         if (!$config || strtoupper((string)$config['metodo_envio']) !== 'GRAPH') return $config;
+        // Graph credentials identify the application; only a saved purpose mailbox may send.
+        // Primary is reserved for configuration; a general test uses the notifications route.
+        $explicitPurposeTest = $test && $purpose !== 'primary';
+        if ($purpose === 'primary') $purpose = 'notifications';
+        $platformId=(int)($this->pdo->query("SELECT id FROM tenants WHERE LOWER(REPLACE(TRIM(name),' ','')) IN ('esmultiservicios','esmultsiervicios') OR LOWER(slug) LIKE 'es-multiservicios%' OR LOWER(slug) LIKE 'es-multsiervicios%' ORDER BY id ASC LIMIT 1")->fetchColumn()?:0);
+        if (!$platformId) $platformId=(int)$this->pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn();
         try {
+            if ($tenantId!==$platformId && !$explicitPurposeTest) {
+                $hasRoutes=$this->pdo->prepare('SELECT COUNT(*) FROM mail_sender_routes WHERE tenant_id=?');
+                $hasRoutes->execute([$tenantId]);
+                if (!(int)$hasRoutes->fetchColumn()) return $config;
+            }
             $route = $this->pdo->prepare('SELECT mailbox FROM mail_sender_routes WHERE tenant_id=? AND purpose=?'.($test?'':' AND verified_at IS NOT NULL'));
             $route->execute([$tenantId,$purpose]);
             $mailbox = trim((string)($route->fetchColumn() ?: ''));
-            if (filter_var($mailbox,FILTER_VALIDATE_EMAIL)) $config['graph_user'] = $mailbox;
+            if (!filter_var($mailbox,FILTER_VALIDATE_EMAIL)) {
+                $config['graph_user']='';
+                $config['_sender_route_error']='Remitente Graph no guardado o no validado: '.$purpose.'. Configure y pruebe este buzón en Remitentes por propósito.';
+            } else { $config['graph_user']=$mailbox; $config['_sender_purpose']=$purpose; }
         } catch (PDOException $e) {
-            // Older installations without the new table continue using the saved primary mailbox.
             if ($e->getCode() !== '42S02') throw $e;
+            if($tenantId!==$platformId && !$explicitPurposeTest) return $config;
+            $config['graph_user']='';
+            $config['_sender_route_error']='Falta la tabla de remitentes Graph. Aplique la actualización de ZYNKO.';
         }
         return $config;
     }
@@ -164,7 +180,7 @@ final class NotificationService
             }
         }
 
-        $config = $this->cfg($tenantId);
+        $config = $this->cfg($tenantId,$event==='login'?'noreply':'notifications');
         if (!$config) {
             return [
                 'success' => false,
@@ -467,7 +483,7 @@ final class NotificationService
         array $meta = []
     ): array {
         $event = (string)($meta['event'] ?? '');
-        $purpose = str_starts_with($event,'subscription_') || str_starts_with($event,'plan_request_') ? 'billing' : (str_starts_with($event,'public_contact_') ? 'support' : 'notifications');
+        $purpose = str_starts_with($event,'subscription_') || str_starts_with($event,'plan_') ? 'billing' : (str_starts_with($event,'public_contact_') ? 'support' : ($event==='user_lifecycle'?'noreply':'notifications'));
         $config = $this->cfg($platformTenantId,$purpose);
         if (!$config) {
             return [
@@ -744,6 +760,7 @@ final class NotificationService
     {
         if (!in_array($purpose,['primary','notifications','noreply','billing','support'],true)) throw new InvalidArgumentException('Remitente inválido.');
         $config = $this->cfg($tenantId,$purpose,true);
+        if ($purpose==='primary' && !empty($config['_sender_purpose'])) $purpose=$config['_sender_purpose'];
         if (!$config) {
             return [
                 'success' => false,
@@ -768,7 +785,7 @@ final class NotificationService
                 : '',
             'app_url' => $base . '/',
         ];
-        $subject = 'ZYNKO · Prueba de correo';
+        $subject = 'ZYNKO · Prueba de correo'.($purpose!=='primary'?' · '.$purpose:'');
         if($purpose!=='primary' && strtoupper((string)$config['metodo_envio'])!=='GRAPH')return ['success'=>false,'message'=>'Active Microsoft Graph para probar remitentes.'];
         $html = EmailTemplates::test($settings);
         $result = $this->deliver($config, $to, $subject, $html);
@@ -791,6 +808,7 @@ final class NotificationService
 
     private function deliver(array $config, string|array $to, string $subject, string $html): array
     {
+        if (!empty($config['_sender_route_error'])) return ['success'=>false,'message'=>$config['_sender_route_error'],'sent_recipients'=>[],'rejected_recipients'=>[]];
         $validated = $this->emailValidator->validateRecipients($to);
         $validRecipients = $validated['valid'];
         $rejectedRecipients = $validated['rejected'];
@@ -809,6 +827,7 @@ final class NotificationService
             ? $this->graph($config, $validRecipients, $subject, $html)
             : $this->smtp($config, $validRecipients, $subject, $html);
 
+        $result['sender'] = strtoupper((string)($config['metodo_envio']??''))==='GRAPH'?(string)($config['graph_user']??''):(string)($config['correo']??'');
         $result['rejected_recipients'] = array_merge(
             $rejectedRecipients,
             $result['rejected_recipients'] ?? []
@@ -1107,6 +1126,7 @@ final class NotificationService
 
     private function deliveryMeta(array $meta, array $result): array
     {
+        $meta['sender'] = $result['sender'] ?? '';
         $meta['email_delivery'] = [
             'sent_recipients' => $result['sent_recipients'] ?? [],
             'rejected_recipients' => $result['rejected_recipients'] ?? [],

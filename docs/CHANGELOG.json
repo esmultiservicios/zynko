@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.31.146",
+    "date": "2026-11-18",
+    "title": "Idiomas, documentación compacta y remitentes Graph exclusivos",
+    "changes": [
+      "Selector desplegable ES/EN y restauración del encabezado del sitio público.",
+      "Comparativa de planes con etiqueta dinámica y aviso destacado de cargos externos.",
+      "Pro conserva WhatsApp, Messenger e Instagram; Telegram y correo quedan reservados a Business.",
+      "Remitentes Graph por propósito sin sustitución silenciosa del buzón principal.",
+      "Documentación pública progresiva y comandos cURL sin continuaciones de línea.",
+      "API REST v1 conserva sus endpoints y permisos."
+    ]
+  },
+  {
     "version": "2.31.145",
     "date": "2026-11-18",
     "title": "Planes con canales visibles, historial de visitas y galería progresiva",

@@ -341,7 +341,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.145';
+$releaseVersion='2.31.146';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -349,6 +349,7 @@ try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'registration_source'")->fet
 $pdo->exec("CREATE TABLE IF NOT EXISTS system_settings(setting_key VARCHAR(80) PRIMARY KEY,setting_value VARCHAR(255) NOT NULL,updated_by BIGINT UNSIGNED NULL,updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
 zynkoUpgradeCommercialCatalog144($pdo);
 zynkoUpgradePaidWhatsApp145($pdo);
+zynkoUpgradeCommercialCatalog146($pdo);
 $pdo->exec("CREATE TABLE IF NOT EXISTS mail_sender_routes (tenant_id BIGINT UNSIGNED NOT NULL, purpose VARCHAR(24) NOT NULL, mailbox VARCHAR(190) NOT NULL, verified_at DATETIME NULL, PRIMARY KEY(tenant_id,purpose)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 $pdo->exec("CREATE TABLE IF NOT EXISTS service_monitor_state(service_key VARCHAR(120) NOT NULL PRIMARY KEY,service_name VARCHAR(190) NOT NULL,current_status ENUM('up','degraded','down','inactive') NOT NULL DEFAULT 'inactive',detail VARCHAR(1000) NULL,last_checked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,last_changed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,last_notified_at DATETIME NULL,INDEX idx_service_monitor_status(current_status,last_checked_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 $pdo->exec("CREATE TABLE IF NOT EXISTS service_monitor_events(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,service_key VARCHAR(120) NOT NULL,service_name VARCHAR(190) NOT NULL,old_status ENUM('up','degraded','down','inactive') NOT NULL,new_status ENUM('up','degraded','down','inactive') NOT NULL,detail VARCHAR(1000) NULL,created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,INDEX idx_service_monitor_events(service_key,created_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
