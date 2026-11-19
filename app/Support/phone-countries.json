@@ -1,0 +1,1232 @@
+{
+  "AF": {
+    "dial": "93",
+    "es": "Afganistán",
+    "en": "Afghanistan"
+  },
+  "AL": {
+    "dial": "355",
+    "es": "Albania",
+    "en": "Albania"
+  },
+  "DZ": {
+    "dial": "213",
+    "es": "Argelia",
+    "en": "Algeria"
+  },
+  "AS": {
+    "dial": "1684",
+    "es": "Samoa Americana",
+    "en": "American Samoa"
+  },
+  "AD": {
+    "dial": "376",
+    "es": "Andorra",
+    "en": "Andorra"
+  },
+  "AO": {
+    "dial": "244",
+    "es": "Angola",
+    "en": "Angola"
+  },
+  "AI": {
+    "dial": "1264",
+    "es": "Anguila",
+    "en": "Anguilla"
+  },
+  "AG": {
+    "dial": "1268",
+    "es": "Antigua y Barbuda",
+    "en": "Antigua & Barbuda"
+  },
+  "AR": {
+    "dial": "54",
+    "es": "Argentina",
+    "en": "Argentina"
+  },
+  "AM": {
+    "dial": "374",
+    "es": "Armenia",
+    "en": "Armenia"
+  },
+  "AW": {
+    "dial": "297",
+    "es": "Aruba",
+    "en": "Aruba"
+  },
+  "AU": {
+    "dial": "61",
+    "es": "Australia",
+    "en": "Australia"
+  },
+  "AT": {
+    "dial": "43",
+    "es": "Austria",
+    "en": "Austria"
+  },
+  "AZ": {
+    "dial": "994",
+    "es": "Azerbaiyán",
+    "en": "Azerbaijan"
+  },
+  "BS": {
+    "dial": "1242",
+    "es": "Bahamas",
+    "en": "Bahamas"
+  },
+  "BH": {
+    "dial": "973",
+    "es": "Baréin",
+    "en": "Bahrain"
+  },
+  "BD": {
+    "dial": "880",
+    "es": "Bangladés",
+    "en": "Bangladesh"
+  },
+  "BB": {
+    "dial": "1246",
+    "es": "Barbados",
+    "en": "Barbados"
+  },
+  "BY": {
+    "dial": "375",
+    "es": "Bielorrusia",
+    "en": "Belarus"
+  },
+  "BE": {
+    "dial": "32",
+    "es": "Bélgica",
+    "en": "Belgium"
+  },
+  "BZ": {
+    "dial": "501",
+    "es": "Belice",
+    "en": "Belize"
+  },
+  "BJ": {
+    "dial": "229",
+    "es": "Benín",
+    "en": "Benin"
+  },
+  "BM": {
+    "dial": "1441",
+    "es": "Bermudas",
+    "en": "Bermuda"
+  },
+  "BT": {
+    "dial": "975",
+    "es": "Bután",
+    "en": "Bhutan"
+  },
+  "BO": {
+    "dial": "591",
+    "es": "Bolivia",
+    "en": "Bolivia"
+  },
+  "BQ": {
+    "dial": "599",
+    "es": "Caribe neerlandés",
+    "en": "Caribbean Netherlands"
+  },
+  "BA": {
+    "dial": "387",
+    "es": "Bosnia y Herzegovina",
+    "en": "Bosnia & Herzegovina"
+  },
+  "BW": {
+    "dial": "267",
+    "es": "Botsuana",
+    "en": "Botswana"
+  },
+  "BR": {
+    "dial": "55",
+    "es": "Brasil",
+    "en": "Brazil"
+  },
+  "IO": {
+    "dial": "246",
+    "es": "Territorio Británico del Océano Índico",
+    "en": "British Indian Ocean Territory"
+  },
+  "BN": {
+    "dial": "673",
+    "es": "Brunéi",
+    "en": "Brunei"
+  },
+  "BG": {
+    "dial": "359",
+    "es": "Bulgaria",
+    "en": "Bulgaria"
+  },
+  "BF": {
+    "dial": "226",
+    "es": "Burkina Faso",
+    "en": "Burkina Faso"
+  },
+  "BI": {
+    "dial": "257",
+    "es": "Burundi",
+    "en": "Burundi"
+  },
+  "KH": {
+    "dial": "855",
+    "es": "Camboya",
+    "en": "Cambodia"
+  },
+  "CM": {
+    "dial": "237",
+    "es": "Camerún",
+    "en": "Cameroon"
+  },
+  "CA": {
+    "dial": "1",
+    "es": "Canadá",
+    "en": "Canada"
+  },
+  "CV": {
+    "dial": "238",
+    "es": "Cabo Verde",
+    "en": "Cape Verde"
+  },
+  "KY": {
+    "dial": "1345",
+    "es": "Islas Caimán",
+    "en": "Cayman Islands"
+  },
+  "CF": {
+    "dial": "236",
+    "es": "República Centroafricana",
+    "en": "Central African Republic"
+  },
+  "TD": {
+    "dial": "235",
+    "es": "Chad",
+    "en": "Chad"
+  },
+  "CL": {
+    "dial": "56",
+    "es": "Chile",
+    "en": "Chile"
+  },
+  "CN": {
+    "dial": "86",
+    "es": "China",
+    "en": "China"
+  },
+  "CX": {
+    "dial": "61",
+    "es": "Isla de Navidad",
+    "en": "Christmas Island"
+  },
+  "CC": {
+    "dial": "61",
+    "es": "Islas Cocos",
+    "en": "Cocos (Keeling) Islands"
+  },
+  "CO": {
+    "dial": "57",
+    "es": "Colombia",
+    "en": "Colombia"
+  },
+  "KM": {
+    "dial": "269",
+    "es": "Comoras",
+    "en": "Comoros"
+  },
+  "CG": {
+    "dial": "242",
+    "es": "Congo",
+    "en": "Congo - Brazzaville"
+  },
+  "CD": {
+    "dial": "243",
+    "es": "República Democrática del Congo",
+    "en": "Congo - Kinshasa"
+  },
+  "CK": {
+    "dial": "682",
+    "es": "Islas Cook",
+    "en": "Cook Islands"
+  },
+  "CR": {
+    "dial": "506",
+    "es": "Costa Rica",
+    "en": "Costa Rica"
+  },
+  "CI": {
+    "dial": "225",
+    "es": "Côte d’Ivoire",
+    "en": "Côte d’Ivoire"
+  },
+  "HR": {
+    "dial": "385",
+    "es": "Croacia",
+    "en": "Croatia"
+  },
+  "CU": {
+    "dial": "53",
+    "es": "Cuba",
+    "en": "Cuba"
+  },
+  "CW": {
+    "dial": "599",
+    "es": "Curazao",
+    "en": "Curaçao"
+  },
+  "CY": {
+    "dial": "357",
+    "es": "Chipre",
+    "en": "Cyprus"
+  },
+  "CZ": {
+    "dial": "420",
+    "es": "Chequia",
+    "en": "Czechia"
+  },
+  "DK": {
+    "dial": "45",
+    "es": "Dinamarca",
+    "en": "Denmark"
+  },
+  "DJ": {
+    "dial": "253",
+    "es": "Yibuti",
+    "en": "Djibouti"
+  },
+  "DM": {
+    "dial": "1767",
+    "es": "Dominica",
+    "en": "Dominica"
+  },
+  "DO": {
+    "dial": "1",
+    "es": "República Dominicana",
+    "en": "Dominican Republic"
+  },
+  "EC": {
+    "dial": "593",
+    "es": "Ecuador",
+    "en": "Ecuador"
+  },
+  "EG": {
+    "dial": "20",
+    "es": "Egipto",
+    "en": "Egypt"
+  },
+  "SV": {
+    "dial": "503",
+    "es": "El Salvador",
+    "en": "El Salvador"
+  },
+  "GQ": {
+    "dial": "240",
+    "es": "Guinea Ecuatorial",
+    "en": "Equatorial Guinea"
+  },
+  "ER": {
+    "dial": "291",
+    "es": "Eritrea",
+    "en": "Eritrea"
+  },
+  "EE": {
+    "dial": "372",
+    "es": "Estonia",
+    "en": "Estonia"
+  },
+  "SZ": {
+    "dial": "268",
+    "es": "Esuatini",
+    "en": "Eswatini"
+  },
+  "ET": {
+    "dial": "251",
+    "es": "Etiopía",
+    "en": "Ethiopia"
+  },
+  "FK": {
+    "dial": "500",
+    "es": "Islas Malvinas",
+    "en": "Falkland Islands"
+  },
+  "FO": {
+    "dial": "298",
+    "es": "Islas Feroe",
+    "en": "Faroe Islands"
+  },
+  "FJ": {
+    "dial": "679",
+    "es": "Fiyi",
+    "en": "Fiji"
+  },
+  "FI": {
+    "dial": "358",
+    "es": "Finlandia",
+    "en": "Finland"
+  },
+  "FR": {
+    "dial": "33",
+    "es": "Francia",
+    "en": "France"
+  },
+  "GF": {
+    "dial": "594",
+    "es": "Guayana Francesa",
+    "en": "French Guiana"
+  },
+  "PF": {
+    "dial": "689",
+    "es": "Polinesia Francesa",
+    "en": "French Polynesia"
+  },
+  "GA": {
+    "dial": "241",
+    "es": "Gabón",
+    "en": "Gabon"
+  },
+  "GM": {
+    "dial": "220",
+    "es": "Gambia",
+    "en": "Gambia"
+  },
+  "GE": {
+    "dial": "995",
+    "es": "Georgia",
+    "en": "Georgia"
+  },
+  "DE": {
+    "dial": "49",
+    "es": "Alemania",
+    "en": "Germany"
+  },
+  "GH": {
+    "dial": "233",
+    "es": "Ghana",
+    "en": "Ghana"
+  },
+  "GI": {
+    "dial": "350",
+    "es": "Gibraltar",
+    "en": "Gibraltar"
+  },
+  "GR": {
+    "dial": "30",
+    "es": "Grecia",
+    "en": "Greece"
+  },
+  "GL": {
+    "dial": "299",
+    "es": "Groenlandia",
+    "en": "Greenland"
+  },
+  "GD": {
+    "dial": "1473",
+    "es": "Granada",
+    "en": "Grenada"
+  },
+  "GP": {
+    "dial": "590",
+    "es": "Guadalupe",
+    "en": "Guadeloupe"
+  },
+  "GU": {
+    "dial": "1671",
+    "es": "Guam",
+    "en": "Guam"
+  },
+  "GT": {
+    "dial": "502",
+    "es": "Guatemala",
+    "en": "Guatemala"
+  },
+  "GG": {
+    "dial": "44",
+    "es": "Guernesey",
+    "en": "Guernsey"
+  },
+  "GN": {
+    "dial": "224",
+    "es": "Guinea",
+    "en": "Guinea"
+  },
+  "GW": {
+    "dial": "245",
+    "es": "Guinea-Bisáu",
+    "en": "Guinea-Bissau"
+  },
+  "GY": {
+    "dial": "592",
+    "es": "Guyana",
+    "en": "Guyana"
+  },
+  "HT": {
+    "dial": "509",
+    "es": "Haití",
+    "en": "Haiti"
+  },
+  "HN": {
+    "dial": "504",
+    "es": "Honduras",
+    "en": "Honduras"
+  },
+  "HK": {
+    "dial": "852",
+    "es": "RAE de Hong Kong (China)",
+    "en": "Hong Kong SAR China"
+  },
+  "HU": {
+    "dial": "36",
+    "es": "Hungría",
+    "en": "Hungary"
+  },
+  "IS": {
+    "dial": "354",
+    "es": "Islandia",
+    "en": "Iceland"
+  },
+  "IN": {
+    "dial": "91",
+    "es": "India",
+    "en": "India"
+  },
+  "ID": {
+    "dial": "62",
+    "es": "Indonesia",
+    "en": "Indonesia"
+  },
+  "IR": {
+    "dial": "98",
+    "es": "Irán",
+    "en": "Iran"
+  },
+  "IQ": {
+    "dial": "964",
+    "es": "Irak",
+    "en": "Iraq"
+  },
+  "IE": {
+    "dial": "353",
+    "es": "Irlanda",
+    "en": "Ireland"
+  },
+  "IM": {
+    "dial": "44",
+    "es": "Isla de Man",
+    "en": "Isle of Man"
+  },
+  "IL": {
+    "dial": "972",
+    "es": "Israel",
+    "en": "Israel"
+  },
+  "IT": {
+    "dial": "39",
+    "es": "Italia",
+    "en": "Italy"
+  },
+  "JM": {
+    "dial": "1",
+    "es": "Jamaica",
+    "en": "Jamaica"
+  },
+  "JP": {
+    "dial": "81",
+    "es": "Japón",
+    "en": "Japan"
+  },
+  "JE": {
+    "dial": "44",
+    "es": "Jersey",
+    "en": "Jersey"
+  },
+  "JO": {
+    "dial": "962",
+    "es": "Jordania",
+    "en": "Jordan"
+  },
+  "KZ": {
+    "dial": "7",
+    "es": "Kazajistán",
+    "en": "Kazakhstan"
+  },
+  "KE": {
+    "dial": "254",
+    "es": "Kenia",
+    "en": "Kenya"
+  },
+  "KI": {
+    "dial": "686",
+    "es": "Kiribati",
+    "en": "Kiribati"
+  },
+  "KP": {
+    "dial": "850",
+    "es": "Corea del Norte",
+    "en": "North Korea"
+  },
+  "KR": {
+    "dial": "82",
+    "es": "Corea del Sur",
+    "en": "South Korea"
+  },
+  "XK": {
+    "dial": "383",
+    "es": "Kosovo",
+    "en": "Kosovo"
+  },
+  "KW": {
+    "dial": "965",
+    "es": "Kuwait",
+    "en": "Kuwait"
+  },
+  "KG": {
+    "dial": "996",
+    "es": "Kirguistán",
+    "en": "Kyrgyzstan"
+  },
+  "LA": {
+    "dial": "856",
+    "es": "Laos",
+    "en": "Laos"
+  },
+  "LV": {
+    "dial": "371",
+    "es": "Letonia",
+    "en": "Latvia"
+  },
+  "LB": {
+    "dial": "961",
+    "es": "Líbano",
+    "en": "Lebanon"
+  },
+  "LS": {
+    "dial": "266",
+    "es": "Lesoto",
+    "en": "Lesotho"
+  },
+  "LR": {
+    "dial": "231",
+    "es": "Liberia",
+    "en": "Liberia"
+  },
+  "LY": {
+    "dial": "218",
+    "es": "Libia",
+    "en": "Libya"
+  },
+  "LI": {
+    "dial": "423",
+    "es": "Liechtenstein",
+    "en": "Liechtenstein"
+  },
+  "LT": {
+    "dial": "370",
+    "es": "Lituania",
+    "en": "Lithuania"
+  },
+  "LU": {
+    "dial": "352",
+    "es": "Luxemburgo",
+    "en": "Luxembourg"
+  },
+  "MO": {
+    "dial": "853",
+    "es": "RAE de Macao (China)",
+    "en": "Macao SAR China"
+  },
+  "MG": {
+    "dial": "261",
+    "es": "Madagascar",
+    "en": "Madagascar"
+  },
+  "MW": {
+    "dial": "265",
+    "es": "Malaui",
+    "en": "Malawi"
+  },
+  "MY": {
+    "dial": "60",
+    "es": "Malasia",
+    "en": "Malaysia"
+  },
+  "MV": {
+    "dial": "960",
+    "es": "Maldivas",
+    "en": "Maldives"
+  },
+  "ML": {
+    "dial": "223",
+    "es": "Mali",
+    "en": "Mali"
+  },
+  "MT": {
+    "dial": "356",
+    "es": "Malta",
+    "en": "Malta"
+  },
+  "MH": {
+    "dial": "692",
+    "es": "Islas Marshall",
+    "en": "Marshall Islands"
+  },
+  "MQ": {
+    "dial": "596",
+    "es": "Martinica",
+    "en": "Martinique"
+  },
+  "MR": {
+    "dial": "222",
+    "es": "Mauritania",
+    "en": "Mauritania"
+  },
+  "MU": {
+    "dial": "230",
+    "es": "Mauricio",
+    "en": "Mauritius"
+  },
+  "YT": {
+    "dial": "262",
+    "es": "Mayotte",
+    "en": "Mayotte"
+  },
+  "MX": {
+    "dial": "52",
+    "es": "México",
+    "en": "Mexico"
+  },
+  "FM": {
+    "dial": "691",
+    "es": "Micronesia",
+    "en": "Micronesia"
+  },
+  "MD": {
+    "dial": "373",
+    "es": "Moldavia",
+    "en": "Moldova"
+  },
+  "MC": {
+    "dial": "377",
+    "es": "Mónaco",
+    "en": "Monaco"
+  },
+  "MN": {
+    "dial": "976",
+    "es": "Mongolia",
+    "en": "Mongolia"
+  },
+  "ME": {
+    "dial": "382",
+    "es": "Montenegro",
+    "en": "Montenegro"
+  },
+  "MS": {
+    "dial": "1664",
+    "es": "Montserrat",
+    "en": "Montserrat"
+  },
+  "MA": {
+    "dial": "212",
+    "es": "Marruecos",
+    "en": "Morocco"
+  },
+  "MZ": {
+    "dial": "258",
+    "es": "Mozambique",
+    "en": "Mozambique"
+  },
+  "MM": {
+    "dial": "95",
+    "es": "Myanmar (Birmania)",
+    "en": "Myanmar (Burma)"
+  },
+  "NA": {
+    "dial": "264",
+    "es": "Namibia",
+    "en": "Namibia"
+  },
+  "NR": {
+    "dial": "674",
+    "es": "Nauru",
+    "en": "Nauru"
+  },
+  "NP": {
+    "dial": "977",
+    "es": "Nepal",
+    "en": "Nepal"
+  },
+  "NL": {
+    "dial": "31",
+    "es": "Países Bajos",
+    "en": "Netherlands"
+  },
+  "NC": {
+    "dial": "687",
+    "es": "Nueva Caledonia",
+    "en": "New Caledonia"
+  },
+  "NZ": {
+    "dial": "64",
+    "es": "Nueva Zelanda",
+    "en": "New Zealand"
+  },
+  "NI": {
+    "dial": "505",
+    "es": "Nicaragua",
+    "en": "Nicaragua"
+  },
+  "NE": {
+    "dial": "227",
+    "es": "Níger",
+    "en": "Niger"
+  },
+  "NG": {
+    "dial": "234",
+    "es": "Nigeria",
+    "en": "Nigeria"
+  },
+  "NU": {
+    "dial": "683",
+    "es": "Niue",
+    "en": "Niue"
+  },
+  "NF": {
+    "dial": "672",
+    "es": "Isla Norfolk",
+    "en": "Norfolk Island"
+  },
+  "MP": {
+    "dial": "1670",
+    "es": "Islas Marianas del Norte",
+    "en": "Northern Mariana Islands"
+  },
+  "NO": {
+    "dial": "47",
+    "es": "Noruega",
+    "en": "Norway"
+  },
+  "OM": {
+    "dial": "968",
+    "es": "Omán",
+    "en": "Oman"
+  },
+  "PK": {
+    "dial": "92",
+    "es": "Pakistán",
+    "en": "Pakistan"
+  },
+  "PW": {
+    "dial": "680",
+    "es": "Palaos",
+    "en": "Palau"
+  },
+  "PS": {
+    "dial": "970",
+    "es": "Territorios Palestinos",
+    "en": "Palestinian Territories"
+  },
+  "PA": {
+    "dial": "507",
+    "es": "Panamá",
+    "en": "Panama"
+  },
+  "PG": {
+    "dial": "675",
+    "es": "Papúa Nueva Guinea",
+    "en": "Papua New Guinea"
+  },
+  "PY": {
+    "dial": "595",
+    "es": "Paraguay",
+    "en": "Paraguay"
+  },
+  "PE": {
+    "dial": "51",
+    "es": "Perú",
+    "en": "Peru"
+  },
+  "PH": {
+    "dial": "63",
+    "es": "Filipinas",
+    "en": "Philippines"
+  },
+  "PN": {
+    "dial": "64",
+    "es": "Islas Pitcairn",
+    "en": "Pitcairn Islands"
+  },
+  "PL": {
+    "dial": "48",
+    "es": "Polonia",
+    "en": "Poland"
+  },
+  "PT": {
+    "dial": "351",
+    "es": "Portugal",
+    "en": "Portugal"
+  },
+  "PR": {
+    "dial": "1",
+    "es": "Puerto Rico",
+    "en": "Puerto Rico"
+  },
+  "QA": {
+    "dial": "974",
+    "es": "Catar",
+    "en": "Qatar"
+  },
+  "RE": {
+    "dial": "262",
+    "es": "Reunión",
+    "en": "Réunion"
+  },
+  "RO": {
+    "dial": "40",
+    "es": "Rumanía",
+    "en": "Romania"
+  },
+  "RU": {
+    "dial": "7",
+    "es": "Rusia",
+    "en": "Russia"
+  },
+  "RW": {
+    "dial": "250",
+    "es": "Ruanda",
+    "en": "Rwanda"
+  },
+  "BL": {
+    "dial": "590",
+    "es": "San Bartolomé",
+    "en": "St. Barthélemy"
+  },
+  "KN": {
+    "dial": "1869",
+    "es": "San Cristóbal y Nieves",
+    "en": "St. Kitts & Nevis"
+  },
+  "LC": {
+    "dial": "1758",
+    "es": "Santa Lucía",
+    "en": "St. Lucia"
+  },
+  "MF": {
+    "dial": "590",
+    "es": "San Martín",
+    "en": "St. Martin"
+  },
+  "PM": {
+    "dial": "508",
+    "es": "San Pedro y Miquelón",
+    "en": "St. Pierre & Miquelon"
+  },
+  "VC": {
+    "dial": "1784",
+    "es": "San Vicente y las Granadinas",
+    "en": "St. Vincent & Grenadines"
+  },
+  "WS": {
+    "dial": "685",
+    "es": "Samoa",
+    "en": "Samoa"
+  },
+  "SM": {
+    "dial": "378",
+    "es": "San Marino",
+    "en": "San Marino"
+  },
+  "ST": {
+    "dial": "239",
+    "es": "Santo Tomé y Príncipe",
+    "en": "São Tomé & Príncipe"
+  },
+  "SA": {
+    "dial": "966",
+    "es": "Arabia Saudí",
+    "en": "Saudi Arabia"
+  },
+  "SN": {
+    "dial": "221",
+    "es": "Senegal",
+    "en": "Senegal"
+  },
+  "RS": {
+    "dial": "381",
+    "es": "Serbia",
+    "en": "Serbia"
+  },
+  "SC": {
+    "dial": "248",
+    "es": "Seychelles",
+    "en": "Seychelles"
+  },
+  "SL": {
+    "dial": "232",
+    "es": "Sierra Leona",
+    "en": "Sierra Leone"
+  },
+  "SG": {
+    "dial": "65",
+    "es": "Singapur",
+    "en": "Singapore"
+  },
+  "SX": {
+    "dial": "1721",
+    "es": "Sint Maarten",
+    "en": "Sint Maarten"
+  },
+  "SK": {
+    "dial": "421",
+    "es": "Eslovaquia",
+    "en": "Slovakia"
+  },
+  "SI": {
+    "dial": "386",
+    "es": "Eslovenia",
+    "en": "Slovenia"
+  },
+  "SB": {
+    "dial": "677",
+    "es": "Islas Salomón",
+    "en": "Solomon Islands"
+  },
+  "SO": {
+    "dial": "252",
+    "es": "Somalia",
+    "en": "Somalia"
+  },
+  "ZA": {
+    "dial": "27",
+    "es": "Sudáfrica",
+    "en": "South Africa"
+  },
+  "SS": {
+    "dial": "211",
+    "es": "Sudán del Sur",
+    "en": "South Sudan"
+  },
+  "ES": {
+    "dial": "34",
+    "es": "España",
+    "en": "Spain"
+  },
+  "LK": {
+    "dial": "94",
+    "es": "Sri Lanka",
+    "en": "Sri Lanka"
+  },
+  "SH": {
+    "dial": "290",
+    "es": "Santa Elena",
+    "en": "St. Helena"
+  },
+  "SD": {
+    "dial": "249",
+    "es": "Sudán",
+    "en": "Sudan"
+  },
+  "SR": {
+    "dial": "597",
+    "es": "Surinam",
+    "en": "Suriname"
+  },
+  "SJ": {
+    "dial": "47",
+    "es": "Svalbard y Jan Mayen",
+    "en": "Svalbard & Jan Mayen"
+  },
+  "SE": {
+    "dial": "46",
+    "es": "Suecia",
+    "en": "Sweden"
+  },
+  "CH": {
+    "dial": "41",
+    "es": "Suiza",
+    "en": "Switzerland"
+  },
+  "SY": {
+    "dial": "963",
+    "es": "Siria",
+    "en": "Syria"
+  },
+  "TW": {
+    "dial": "886",
+    "es": "Taiwán",
+    "en": "Taiwan"
+  },
+  "TJ": {
+    "dial": "992",
+    "es": "Tayikistán",
+    "en": "Tajikistan"
+  },
+  "TZ": {
+    "dial": "255",
+    "es": "Tanzania",
+    "en": "Tanzania"
+  },
+  "TH": {
+    "dial": "66",
+    "es": "Tailandia",
+    "en": "Thailand"
+  },
+  "TL": {
+    "dial": "670",
+    "es": "Timor-Leste",
+    "en": "Timor-Leste"
+  },
+  "TG": {
+    "dial": "228",
+    "es": "Togo",
+    "en": "Togo"
+  },
+  "TK": {
+    "dial": "690",
+    "es": "Tokelau",
+    "en": "Tokelau"
+  },
+  "TO": {
+    "dial": "676",
+    "es": "Tonga",
+    "en": "Tonga"
+  },
+  "TT": {
+    "dial": "1868",
+    "es": "Trinidad y Tobago",
+    "en": "Trinidad & Tobago"
+  },
+  "TN": {
+    "dial": "216",
+    "es": "Túnez",
+    "en": "Tunisia"
+  },
+  "TR": {
+    "dial": "90",
+    "es": "Turquía",
+    "en": "Türkiye"
+  },
+  "TM": {
+    "dial": "993",
+    "es": "Turkmenistán",
+    "en": "Turkmenistan"
+  },
+  "TC": {
+    "dial": "1649",
+    "es": "Islas Turcas y Caicos",
+    "en": "Turks & Caicos Islands"
+  },
+  "TV": {
+    "dial": "688",
+    "es": "Tuvalu",
+    "en": "Tuvalu"
+  },
+  "UG": {
+    "dial": "256",
+    "es": "Uganda",
+    "en": "Uganda"
+  },
+  "UA": {
+    "dial": "380",
+    "es": "Ucrania",
+    "en": "Ukraine"
+  },
+  "AE": {
+    "dial": "971",
+    "es": "Emiratos Árabes Unidos",
+    "en": "United Arab Emirates"
+  },
+  "GB": {
+    "dial": "44",
+    "es": "Reino Unido",
+    "en": "United Kingdom"
+  },
+  "US": {
+    "dial": "1",
+    "es": "Estados Unidos",
+    "en": "United States"
+  },
+  "UY": {
+    "dial": "598",
+    "es": "Uruguay",
+    "en": "Uruguay"
+  },
+  "UZ": {
+    "dial": "998",
+    "es": "Uzbekistán",
+    "en": "Uzbekistan"
+  },
+  "VU": {
+    "dial": "678",
+    "es": "Vanuatu",
+    "en": "Vanuatu"
+  },
+  "VA": {
+    "dial": "39",
+    "es": "Ciudad del Vaticano",
+    "en": "Vatican City"
+  },
+  "VE": {
+    "dial": "58",
+    "es": "Venezuela",
+    "en": "Venezuela"
+  },
+  "VN": {
+    "dial": "84",
+    "es": "Vietnam",
+    "en": "Vietnam"
+  },
+  "VG": {
+    "dial": "1284",
+    "es": "Islas Vírgenes Británicas",
+    "en": "British Virgin Islands"
+  },
+  "VI": {
+    "dial": "1340",
+    "es": "Islas Vírgenes de EE. UU.",
+    "en": "U.S. Virgin Islands"
+  },
+  "WF": {
+    "dial": "681",
+    "es": "Wallis y Futuna",
+    "en": "Wallis & Futuna"
+  },
+  "EH": {
+    "dial": "212",
+    "es": "Sáhara Occidental",
+    "en": "Western Sahara"
+  },
+  "YE": {
+    "dial": "967",
+    "es": "Yemen",
+    "en": "Yemen"
+  },
+  "ZM": {
+    "dial": "260",
+    "es": "Zambia",
+    "en": "Zambia"
+  },
+  "ZW": {
+    "dial": "263",
+    "es": "Zimbabue",
+    "en": "Zimbabwe"
+  },
+  "AX": {
+    "dial": "358",
+    "es": "Islas Aland",
+    "en": "Åland Islands"
+  },
+  "AC": {
+    "dial": "247",
+    "es": "Isla de la Ascensión",
+    "en": "Ascension Island"
+  },
+  "TA": {
+    "dial": "290",
+    "es": "Tristán de Acuña",
+    "en": "Tristan da Cunha"
+  },
+  "MK": {
+    "dial": "389",
+    "es": "Macedonia del Norte",
+    "en": "North Macedonia"
+  }
+}

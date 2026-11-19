@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.31.153",
+    "date": "2026-11-19",
+    "title": "Inbox: contactos, envíos sin agenda y multimedia",
+    "changes": [
+      "Selector de país, contactos opcionales e identidad de destinatario por canal.",
+      "Vista de imágenes y PDF, búsqueda local del historial y acciones de copia.",
+      "Validación de formularios, aislamiento de contactos y adjuntos y escape HTML.",
+      "Threads permanece en el catálogo como próximo lanzamiento; no se simula conexión."
+    ]
+  },
+  {
     "version": "2.31.152",
     "date": "2026-11-19",
     "title": "Canales elegibles, disponibilidad comercial y límites",

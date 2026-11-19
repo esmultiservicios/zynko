@@ -7,7 +7,9 @@ if(!$catalog)$catalog=[
  'whatsapp'=>['WhatsApp Business','fa-brands fa-whatsapp','whatsapp','Mensajes, multimedia, documentos y atención en tiempo real.',false,true,false],
  'messenger'=>['Messenger','fa-brands fa-facebook-messenger','messenger','Conversaciones de páginas de Facebook conectadas a la empresa.',false,true,false],
  'instagram'=>['Instagram Messaging','fa-brands fa-instagram','instagram','Mensajes de Instagram mediante la autorización oficial de Meta.',false,false,false],
+ 'threads'=>['Threads','fa-brands fa-threads','instagram','Próximamente: mensajería pendiente de conector y autorización oficial.',false,false,false],
 ];
+if(isset($catalog['threads'])){$catalog['threads'][3]='Mensajería directa de Threads pendiente de disponibilidad técnica y autorización oficial. No se admite vinculación todavía.';$catalog['threads'][4]=false;$catalog['threads'][5]=false;$catalog['threads'][6]=false;}
 $xReady=ChannelXOAuth::ready(envConfig($root.'/.env'));
 if(isset($catalog['x'])&&!$xReady)$catalog['x'][4]=false;
 $connectionRows=array_merge(...array_values($allChannels));$externalLimit=zynkoPlanExternalConnectionLimit($zynkoPlanContext);$externalUsed=count(array_filter($connectionRows,fn($r)=>$r['type']!=='webchat'&&$r['status']!=='disconnected'));$canAdd=function($type)use($catalog,$zynkoPlanContext,$connectionRows,$canManageChannels){return $canManageChannels&&zynkoPlanConnectionDenial($zynkoPlanContext,$type,$connectionRows,0,!empty($catalog[$type][4]))===null;};

@@ -6420,3 +6420,31 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
  body.zynko-phone.page-inbox .composer [contenteditable=true]{min-height:55px!important;max-height:100px!important;overflow-y:auto!important}
  body.zynko-phone.page-inbox .composer-tip{display:none!important}
 }
+
+/* Inbox contacts and attachments: scoped to the existing Inbox UI. */
+#newConversationModal .inbox-new-conversation{display:flex;flex-direction:column;max-height:min(88dvh,780px);overflow:hidden;width:min(600px,calc(100vw - 28px))}
+#newConversationModal .inbox-new-body{padding:16px 20px;overflow-y:auto;min-height:0;flex:1 1 auto}
+#newConversationModal .modal-actions{flex:0 0 auto;justify-content:flex-end;margin:0;padding:14px 20px;border-top:1px solid var(--line)}
+#newConversationModal [hidden],.inbox-chat-tools [hidden],#messageMediaModal [hidden],.inbox-clear-files[hidden]{display:none!important}
+.inbox-phone-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}
+.inbox-phone-fields .select2-container,.inbox-new-body .select2-container{max-width:100%;min-width:0}
+.inbox-contact-status{color:var(--muted);display:block;margin-bottom:8px;overflow-wrap:anywhere}
+.inbox-copy-number{margin-top:8px;align-self:flex-start}
+body.page-inbox .inbox-chat-tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;padding:7px 12px;border-bottom:1px solid var(--line);flex:0 0 auto}
+.inbox-chat-tools .soft,.inbox-copy-message,.inbox-clear-files,.message-pdf-preview{background:#10283a!important;color:#fff!important;border-color:#10283a!important}
+.inbox-chat-search{flex:1 1 100%;display:flex;gap:8px;align-items:center;min-width:0}
+.inbox-chat-search input{flex:1 1 auto;min-width:0}.inbox-chat-search small{flex:0 0 auto}
+.inbox-search-hidden{display:none!important}
+body.page-inbox .message-delivery{margin-top:6px!important;margin-bottom:2px!important}
+body.page-inbox .inbox-message-meta{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);margin-top:5px;flex-wrap:wrap}
+body.page-inbox .message-wrap.out .inbox-message-meta{justify-content:flex-end}
+body.page-inbox .inbox-copy-message{padding:2px 6px!important;min-width:0!important;min-height:24px!important;border-radius:6px!important;font-size:10px!important}
+body.page-inbox .message-image-preview{max-width:180px!important;background:#10283a!important}
+body.page-inbox .message-media .message-image-preview img{max-width:180px!important;max-height:145px!important;width:auto;height:auto;object-fit:contain!important}
+body.page-inbox .message-pdf-preview{display:inline-flex;gap:8px;align-items:center;max-width:100%;white-space:normal;overflow-wrap:anywhere;text-align:left}
+body.page-inbox .message-pdf-preview i{color:#fca5a5;font-size:1.2rem;flex:none}
+#messageMediaModalPdf{width:100%;height:62dvh;border:0;background:#f3f7f8;border-radius:8px}
+#messageMediaModalFiles{width:100%;display:grid;gap:8px}
+#messageMediaModalFiles button,#messageMediaModalFiles a{display:block;width:100%;padding:12px!important;overflow-wrap:anywhere;text-align:left;border-radius:8px;background:#10283a!important;color:#fff!important}
+body.page-inbox .inbox-clear-files{align-self:flex-end;margin:4px 10px}
+@media(max-width:600px){body.page-inbox .inbox-chat-tools{padding:5px 8px}body.page-inbox .inbox-chat-tools .soft{font-size:.72rem;padding:5px 8px}#newConversationModal .inbox-new-body{padding:12px}#newConversationModal .modal-actions{padding:10px 12px}#messageMediaModalPdf{height:55dvh}}
