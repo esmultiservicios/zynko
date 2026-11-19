@@ -341,7 +341,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.147';
+$releaseVersion='2.31.148';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -973,11 +973,23 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true))throw new RuntimeException('No autorizado.');
     assertAuthCsrf();
     $q=$pdo->prepare("SELECT metodo_envio FROM correo WHERE tenant_id=? AND is_default=1 AND estado=1 LIMIT 1");$q->execute([$tid]);if($q->fetchColumn()!=='GRAPH')throw new RuntimeException('Active Microsoft Graph para administrar varios remitentes.');
-    $routes=[];foreach(['notifications','noreply','billing','support'] as $purpose){$address=trim((string)($_POST['mailbox'][$purpose]??''));if($address!==''&&(!filter_var($address,FILTER_VALIDATE_EMAIL)||strlen($address)>190))throw new RuntimeException('Correo inválido: '.$purpose);$routes[$purpose]=$address;}
+    $purposes=['notifications','noreply','billing','support'];
+    $only=(string)($_POST['only_purpose']??'');
+    if($only!==''&&!in_array($only,$purposes,true))throw new RuntimeException('Propósito de correo inválido.');
+    $posted=$_POST['mailbox']??null;if(!is_array($posted))throw new RuntimeException('Indique los remitentes que desea guardar.');
+    $routes=[];
+    foreach($only!==''?[$only]:$purposes as $purpose){
+      if(!array_key_exists($purpose,$posted)||!is_string($posted[$purpose]))throw new RuntimeException('Falta el campo de correo: '.$purpose);
+      $address=trim($posted[$purpose]);
+      if($address!==''&&(!filter_var($address,FILTER_VALIDATE_EMAIL)||strlen($address)>190))throw new RuntimeException('Correo inválido: '.$purpose);
+      if(isPlatformOwner()&&strcasecmp($address,'administracion@esmultiservicios.com')===0)throw new RuntimeException('Use un buzón de ZYNKO para este propósito, no el correo administrativo de ES MULTISERVICIOS.');
+      $routes[$purpose]=$address;
+    }
     $pdo->beginTransaction();try{$up=$pdo->prepare('INSERT INTO mail_sender_routes(tenant_id,purpose,mailbox) VALUES(?,?,?) ON DUPLICATE KEY UPDATE verified_at=IF(mailbox=VALUES(mailbox),verified_at,NULL),mailbox=VALUES(mailbox)');$del=$pdo->prepare('DELETE FROM mail_sender_routes WHERE tenant_id=? AND purpose=?');foreach($routes as $purpose=>$address){if($address==='')$del->execute([$tid,$purpose]);else $up->execute([$tid,$purpose,$address]);}$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
-    jsonOut(true,'Remitentes guardados. Los nuevos buzones se activarán al superar la prueba de envío.');
+    $saved=$pdo->prepare('SELECT purpose,mailbox,verified_at FROM mail_sender_routes WHERE tenant_id=?');$saved->execute([$tid]);$result=[];foreach($saved->fetchAll() as $row)$result[$row['purpose']]=['mailbox'=>$row['mailbox'],'verified_at'=>$row['verified_at']];
+    jsonOut(true,$only!==''?'Remitente guardado.':'Remitentes guardados. Los nuevos buzones se activarán al superar la prueba de envío.',['routes'=>$result]);
   }
-  if($action==='email_test'){require_once $root.'/app/Services/NotificationService.php';$to=trim((string)($_SESSION['user']['email']??''));$purpose=(string)($_POST['purpose']??'primary');if($purpose!=='primary'){if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true))throw new RuntimeException('No autorizado.');assertAuthCsrf();}$res=(new NotificationService($pdo,$root))->sendTest($tid,$to,$purpose);if(empty($res['success']))throw new RuntimeException($res['message']??'No se pudo enviar la prueba.');jsonOut(true,'Proveedor aceptó el correo de prueba para '.$to.'. Revise su bandeja de entrada.',['purpose'=>$purpose]);}
+  if($action==='email_test'){require_once $root.'/app/Services/NotificationService.php';$to=trim((string)($_SESSION['user']['email']??''));$purpose=(string)($_POST['purpose']??'primary');if($purpose!=='primary'){if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true))throw new RuntimeException('No autorizado.');assertAuthCsrf();}$res=(new NotificationService($pdo,$root))->sendTest($tid,$to,$purpose,isset($_POST['expected_mailbox'])?trim((string)$_POST['expected_mailbox']):null);if(empty($res['success']))throw new RuntimeException($res['message']??'No se pudo enviar la prueba.');jsonOut(true,'Proveedor aceptó el correo de prueba para '.$to.'. Revise su bandeja de entrada.',['purpose'=>$purpose,'mailbox'=>$res['sender_mailbox']??null,'verified'=>!empty($res['sender_verified'])]);}
   if($action==='theme_preference'){$theme=in_array($_POST['theme']??'system',['system','light','dark'],true)?$_POST['theme']:'system';$pdo->prepare("INSERT INTO user_preferences(user_id,theme) VALUES(?,?) ON DUPLICATE KEY UPDATE theme=VALUES(theme)")->execute([(int)$_SESSION['user']['id'],$theme]);jsonOut(true,'Tema guardado.',['theme'=>$theme]);}
   if($action==='ui_preference'){
     $key=trim((string)($_POST['key']??''));$value=(string)($_POST['value']??'');

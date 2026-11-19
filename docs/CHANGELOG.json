@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.31.148",
+    "date": "2026-11-18",
+    "title": "Remitentes Graph visibles y validación individual",
+    "changes": [
+      "Direcciones ZYNKO sugeridas como valores editables, diferenciadas de los registros guardados.",
+      "Guardar y probar cada remitente sin modificar otras rutas.",
+      "La prueba general Graph usa Notificaciones; no hay sustitución por el correo administrativo.",
+      "Indicadores de configuración y validación basados en registros persistentes.",
+      "Iconos y textos de avisos de correo alineados."
+    ]
+  },
+  {
     "version": "2.31.147",
     "date": "2026-11-18",
     "title": "Navegación pública y barras de desplazamiento",

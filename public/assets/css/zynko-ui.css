@@ -6232,7 +6232,7 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 
 /* Email provider visibility and clean routing cards */
 #mailProviderForm [hidden],.inbound-mail-panel [hidden]{display:none!important}
-.mail-route-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}.mail-route-card{border:1px solid var(--line,#dce5ee);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}.mail-route-card .soft{justify-self:start}.mail-route-card small{line-height:1.5}.mail-routing .security-note{margin-top:16px}@media(max-width:700px){.mail-route-grid{grid-template-columns:1fr}}
+.mail-route-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}.mail-route-card{border:1px solid var(--line,#dce5ee);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}.mail-route-card .mail-route-actions{display:flex;align-items:center;justify-content:flex-start;gap:8px;flex-wrap:wrap}.mail-route-status{display:inline-flex;align-items:center;justify-self:start;gap:6px;max-width:100%;white-space:normal}.mail-route-status>i{margin:0;line-height:1;flex-shrink:0}.mail-route-card small{line-height:1.5}.mail-routing .security-note{margin-top:16px}@media(max-width:700px){.mail-route-grid{grid-template-columns:1fr}}
 
 
 /* Plan channels: one visual vocabulary for assigned entitlements. */
@@ -6318,3 +6318,15 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
   *::-webkit-scrollbar-button{display:none;width:0;height:0}
 }
 @media(forced-colors:active){*{scrollbar-color:auto;scrollbar-width:auto}*::-webkit-scrollbar-thumb{background:ButtonText;border-color:Canvas}*::-webkit-scrollbar-track{background:Canvas}}
+
+/* ZYNKO 2.31.148 · correo: iconos centrados y texto a su lado. */
+.mail-routing .mail-info-note,.inbound-mail-panel .mail-info-note{display:grid!important;grid-template-columns:40px minmax(0,1fr);align-items:center!important;gap:14px;padding:14px 16px!important;margin:14px 0!important;border-radius:12px;min-width:0;overflow:hidden;background:color-mix(in srgb,var(--accent,#12a88a) 5%,var(--surface,#fff));border:1px solid color-mix(in srgb,var(--accent,#12a88a) 20%,var(--line,#dce6ec))!important}
+.mail-routing .mail-info-icon,.inbound-mail-panel .mail-info-icon{width:40px;height:40px;display:grid!important;place-items:center!important;align-self:center!important;flex-shrink:0;border-radius:11px;color:var(--accent2,#0d806b);background:color-mix(in srgb,var(--accent,#12a88a) 13%,var(--surface,#fff));margin:0!important;font-size:17px;line-height:1}
+.mail-info-icon>i,.mail-provider-icon>i,.premium-card-head-icon>i{margin:0!important;align-self:center;justify-self:center;line-height:1}
+.mail-info-note>div{display:grid!important;gap:4px;min-width:0;margin:0!important}
+.mail-info-note>div>b{color:var(--text,#10283a);display:block;line-height:1.35}
+.mail-info-note>div>span,.mail-info-note>div>small{display:block;color:var(--muted,#6f8293);line-height:1.55;overflow-wrap:anywhere}
+.inbound-mail-panel .graph-inbound-help[hidden]{display:none!important}
+.mail-route-actions>button{min-height:40px;max-width:100%;white-space:normal;text-align:left}
+.mail-profile-grid{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
+@media(max-width:480px){.mail-route-actions>button{flex:1 1 auto;justify-content:center}.mail-routing .mail-info-note,.inbound-mail-panel .mail-info-note{grid-template-columns:36px minmax(0,1fr);gap:10px;padding:12px!important}.mail-routing .mail-info-icon,.inbound-mail-panel .mail-info-icon{width:36px;height:36px}}

@@ -76,7 +76,10 @@ final class NotificationService
             $route = $this->pdo->prepare('SELECT mailbox FROM mail_sender_routes WHERE tenant_id=? AND purpose=?'.($test?'':' AND verified_at IS NOT NULL'));
             $route->execute([$tenantId,$purpose]);
             $mailbox = trim((string)($route->fetchColumn() ?: ''));
-            if (!filter_var($mailbox,FILTER_VALIDATE_EMAIL)) {
+            if ($tenantId===$platformId && strcasecmp($mailbox,'administracion@esmultiservicios.com')===0) {
+                $config['graph_user']='';
+                $config['_sender_route_error']='El correo administrativo de ES MULTISERVICIOS no es un remitente Graph de ZYNKO. Configure el buzón correspondiente.';
+            } elseif (!filter_var($mailbox,FILTER_VALIDATE_EMAIL)) {
                 $config['graph_user']='';
                 $config['_sender_route_error']='Remitente Graph no guardado o no validado: '.$purpose.'. Configure y pruebe este buzón en Remitentes por propósito.';
             } else { $config['graph_user']=$mailbox; $config['_sender_purpose']=$purpose; }
@@ -756,7 +759,7 @@ final class NotificationService
         );
     }
 
-    public function sendTest(int $tenantId, string $to, string $purpose = 'primary'): array
+    public function sendTest(int $tenantId, string $to, string $purpose = 'primary', ?string $expectedMailbox = null): array
     {
         if (!in_array($purpose,['primary','notifications','noreply','billing','support'],true)) throw new InvalidArgumentException('Remitente inválido.');
         $config = $this->cfg($tenantId,$purpose,true);
@@ -766,6 +769,10 @@ final class NotificationService
                 'success' => false,
                 'message' => 'Primero guarda y activa un proveedor de correo.',
             ];
+        }
+
+        if ($expectedMailbox !== null && (strtoupper((string)$config['metodo_envio'])!=='GRAPH' || strcasecmp((string)($config['graph_user']??''),$expectedMailbox)!==0)) {
+            return ['success'=>false,'message'=>'El remitente guardado cambió antes de la prueba. Guarde el buzón de nuevo.'];
         }
 
         $query = $this->pdo->prepare(
@@ -789,9 +796,14 @@ final class NotificationService
         if($purpose!=='primary' && strtoupper((string)$config['metodo_envio'])!=='GRAPH')return ['success'=>false,'message'=>'Active Microsoft Graph para probar remitentes.'];
         $html = EmailTemplates::test($settings);
         $result = $this->deliver($config, $to, $subject, $html);
+        $result['sender_mailbox']=strtoupper((string)$config['metodo_envio'])==='GRAPH'?($config['graph_user']??''):($config['correo']??'');
+        $result['sender_verified']=false;
         if (!empty($result['success']) && $purpose !== 'primary') {
             $update = $this->pdo->prepare('UPDATE mail_sender_routes SET verified_at=NOW() WHERE tenant_id=? AND purpose=? AND mailbox=?');
             $update->execute([$tenantId,$purpose,$config['graph_user']]);
+            $check=$this->pdo->prepare('SELECT COUNT(*) FROM mail_sender_routes WHERE tenant_id=? AND purpose=? AND mailbox=? AND verified_at IS NOT NULL');
+            $check->execute([$tenantId,$purpose,$config['graph_user']]);
+            $result['sender_verified']=(bool)$check->fetchColumn();
         }
 
         $this->logSimple(
