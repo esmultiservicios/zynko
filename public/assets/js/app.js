@@ -55,7 +55,7 @@ if(window.matchMedia){matchMedia('(prefers-color-scheme: dark)').addEventListene
 const sm=document.querySelector('#searchModal'); const openSearch=()=>sm?.classList.add('open'); const closeSearch=()=>sm?.classList.remove('open');
 document.querySelector('#globalSearch')?.addEventListener('click',openSearch); document.querySelector('#closeSearch')?.addEventListener('click',closeSearch);
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSearch()} if(e.key==='Escape')closeSearch()});
-const fly=document.querySelector('#flyout'); document.querySelector('aside')?.addEventListener('mouseleave',()=>setTimeout(()=>{if(!fly?.matches(':hover'))fly?.classList.remove('open')},120)); fly?.addEventListener('mouseleave',()=>fly.classList.remove('open'));
+const fly=document.querySelector('#flyout'); document.querySelector('aside')?.addEventListener('mouseleave',()=>{if(document.body.classList.contains('zynko-phone'))return;setTimeout(()=>{if(!fly?.matches(':hover'))fly?.classList.remove('open')},120)}); fly?.addEventListener('mouseleave',()=>{if(!document.body.classList.contains('zynko-phone'))fly.classList.remove('open')});
 document.querySelector('#language')?.addEventListener('change',e=>{location.href='?action=lang&lang='+encodeURIComponent(e.target.value)});
 window.ZynkoSearchSelects=(root=document)=>{if(!window.jQuery||!jQuery.fn.select2)return;jQuery(root).find('select:not(.no-select2):not(.zynko-rte-format)').each(function(){const $el=jQuery(this);if(this.closest('.zynko-rte-toolbar,.legal-editor-toolbar,.quick-rte-toolbar')||$el.hasClass('select2-hidden-accessible'))return;const parent=this.closest('.modal-shell,.zynko-dialog-overlay');$el.select2({width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,...(parent?{dropdownParent:jQuery(parent)}:{})});$el.on('select2:select.zynkoNative select2:unselect.zynkoNative',()=>this.dispatchEvent(new Event('change',{bubbles:true})));});};window.ZynkoSearchSelects();document.documentElement.classList.remove('select2-preload');if(window.jQuery&&jQuery.fn.select2){new MutationObserver(records=>{for(const rec of records){for(const node of rec.addedNodes){if(!(node instanceof Element))continue;if(node.matches('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node.parentElement);else if(node.querySelector('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node);}}}).observe(document.body,{childList:true,subtree:true});}
 document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.querySelector('input[type=file]'); if(!input)return; zone.addEventListener('click',e=>{if(e.target!==input)input.click()}); zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')}); zone.addEventListener('dragleave',()=>zone.classList.remove('drag')); zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;zone.querySelector('small').textContent=e.dataTransfer.files[0].name}}); zone.addEventListener('paste',e=>{const f=[...e.clipboardData.files];if(f.length){const dt=new DataTransfer();f.forEach(x=>dt.items.add(x));input.files=dt.files;zone.querySelector('small').textContent=f[0].name}}); input.addEventListener('change',()=>{if(input.files[0])zone.querySelector('small').textContent=input.files[0].name});});
@@ -88,10 +88,30 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
  const collapse=$('#sideCollapse'); if(zynkoUiPrefs.get('sidebar.collapsed','0')==='1')document.body.classList.add('sidebar-collapsed');collapse?.addEventListener('click',()=>{document.body.classList.toggle('sidebar-collapsed');zynkoUiPrefs.set('sidebar.collapsed',document.body.classList.contains('sidebar-collapsed')?'1':'0')});
  // real flyouts only where real options exist
  const fly=$('#flyout');
- const renderSideFlyout=(a)=>{const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length){fly?.classList.remove('open');return false;}fly.innerHTML='<small>ACCESOS</small><b>'+a.querySelector('b').textContent+'</b>'+list.map(x=>`<a href="${x[0]}"><i class="fa-solid ${x[2]}"></i><span>${x[1]}</span></a>`).join('');if(innerWidth>760){const r=a.getBoundingClientRect();fly.style.top=Math.min(r.top,innerHeight-fly.offsetHeight-20)+'px';}else fly.style.top='';fly.classList.add('open');return true;};
+ let phoneFlyAnchor=null;
+ const positionPhoneFlyout=()=>{
+   if(!fly?.classList.contains('open')||!phoneFlyAnchor||!document.body.classList.contains('zynko-phone'))return;
+   const r=phoneFlyAnchor.getBoundingClientRect(), sidebar=$('#sidebar'), bounds=sidebar.getBoundingClientRect(), nav=phoneFlyAnchor.closest('nav')?.getBoundingClientRect();
+   const vv=window.visualViewport, edge=10, gap=6, top=vv?.offsetTop||0, bottom=top+(vv?.height||innerHeight), right=(vv?.offsetLeft||0)+(vv?.width||innerWidth);
+   if(r.bottom<=Math.max(top,nav?.top??top)||r.top>=Math.min(bottom,nav?.bottom??bottom)||!app.classList.contains('menu-open')){fly.classList.remove('open');return;}
+   const left=Math.max(edge,r.left), width=Math.min(r.width,right-left-edge,bounds.right-left-edge);
+   fly.style.setProperty('--phone-fly-left',left+'px');fly.style.setProperty('--phone-fly-width',Math.max(1,width)+'px');
+   const below=Math.max(0,bottom-edge-r.bottom-gap), above=Math.max(0,r.top-top-edge-gap);
+   const desired=fly.scrollHeight+2, useBelow=desired<=below||below>=above;
+   const available=useBelow?below:above;
+   fly.style.setProperty('--phone-fly-height',Math.max(1,available)+'px');
+   const height=fly.getBoundingClientRect().height;
+   fly.style.setProperty('--phone-fly-top',Math.max(top+edge,useBelow?r.bottom+gap:r.top-gap-height)+'px');
+ };
+ const renderSideFlyout=(a)=>{const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length){fly?.classList.remove('open');return false;}const phone=document.body.classList.contains('zynko-phone');if(phone&&phoneFlyAnchor===a&&fly.classList.contains('open')){fly.classList.remove('open');return true;}fly.innerHTML='<small>ACCESOS</small><b>'+a.querySelector('b').textContent+'</b>'+list.map(x=>`<a href="${x[0]}"><i class="fa-solid ${x[2]}"></i><span>${x[1]}</span></a>`).join('');if(phone){phoneFlyAnchor=a;fly.style.top='';fly.classList.add('open');fly.scrollTop=0;positionPhoneFlyout();}else{phoneFlyAnchor=null;if(innerWidth>760){const r=a.getBoundingClientRect();fly.style.top=Math.min(r.top,innerHeight-fly.offsetHeight-20)+'px';}else fly.style.top='';fly.classList.add('open');}return true;};
+ $('#sidebar nav')?.addEventListener('scroll',positionPhoneFlyout,{passive:true});
+ window.addEventListener('resize',positionPhoneFlyout,{passive:true});
+ window.visualViewport?.addEventListener('resize',positionPhoneFlyout,{passive:true});
+ window.visualViewport?.addEventListener('scroll',positionPhoneFlyout,{passive:true});
+ document.addEventListener('click',e=>{if(document.body.classList.contains('zynko-phone')&&fly?.classList.contains('open')&&!e.target.closest('#flyout')&&!e.target.closest('aside nav a[data-menu]'))fly.classList.remove('open');});
  $$('aside nav a[data-menu]').forEach(a=>{
-   a.onmouseenter=()=>{if(innerWidth<=760||window.matchMedia?.('(hover: none)').matches)return;renderSideFlyout(a)};
-   a.addEventListener('click',e=>{const touchLike=innerWidth<=760||window.matchMedia?.('(hover: none)').matches;if(!touchLike)return;const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length)return;e.preventDefault();e.stopPropagation();renderSideFlyout(a)});
+   a.onmouseenter=()=>{if(document.body.classList.contains('zynko-phone')||innerWidth<=760||window.matchMedia?.('(hover: none)').matches)return;renderSideFlyout(a)};
+   a.addEventListener('click',e=>{const touchLike=document.body.classList.contains('zynko-phone')||innerWidth<=760||window.matchMedia?.('(hover: none)').matches;if(!touchLike)return;const list=window.ZYNKO_MENUS?.[a.dataset.menu]||[];if(!list.length)return;e.preventDefault();e.stopPropagation();renderSideFlyout(a)});
  });
  fly?.addEventListener('click',e=>{if(e.target.closest('a'))fly.classList.remove('open')});
  // deep links del menú lateral: Experiencia y otras secciones deben abrir y enfocarse realmente

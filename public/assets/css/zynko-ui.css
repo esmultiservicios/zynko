@@ -6387,7 +6387,7 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
  body.zynko-phone #sidebar{position:fixed!important;left:0!important;transform:translateX(-105%)!important;width:min(270px,85vw)!important;z-index:220!important;height:100dvh!important;transition:transform .2s ease!important}
  body.zynko-phone .app.menu-open #sidebar{transform:translateX(0)!important}
  body.zynko-phone .app.menu-open::after{content:'';position:fixed;inset:0;background:#0f172a66;z-index:200;pointer-events:none}
- body.zynko-phone .flyout.open{z-index:230!important;position:fixed!important;left:12px!important;right:12px!important;top:auto!important;bottom:12px!important;width:auto!important;max-height:65dvh!important;overflow:auto!important}
+ body.zynko-phone .flyout.open{z-index:230!important;display:grid!important;position:fixed!important;left:var(--phone-fly-left,12px)!important;right:auto!important;top:var(--phone-fly-top,12px)!important;bottom:auto!important;width:var(--phone-fly-width,230px)!important;max-height:var(--phone-fly-height,65dvh)!important;box-sizing:border-box!important;overflow:auto!important;overscroll-behavior:contain;padding:10px!important;gap:4px!important;border-radius:14px!important}
  body.zynko-phone.page-inbox .main>main{display:flex!important;flex-direction:column!important;min-height:0!important;height:auto!important;max-width:100%!important;overflow:visible!important}
  body.zynko-phone.page-inbox .inbox-premium-toolbar{padding:12px!important;margin:0 0 10px!important;min-width:0!important;width:100%!important}
  body.zynko-phone.page-inbox .phone-filter-toggle{display:flex!important;align-items:center;gap:8px;margin-top:8px;width:100%!important;justify-content:center}
