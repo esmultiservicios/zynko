@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.31.150",
+    "date": "2026-11-18",
+    "title": "Legibilidad de formato y monitor automático",
+    "changes": [
+      "Selector nativo de formato con altura, relleno y contraste legibles en los editores.",
+      "Instrucciones del cron alineadas con el instalador existente de un minuto."
+    ]
+  },
+  {
     "version": "2.31.149",
     "date": "2026-11-18",
     "title": "Restauración de editores y avisos de correo",

@@ -6333,7 +6333,7 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 
 /* Editor formatting controls stay native and compact, independently of form selects. */
 body .zynko-rte-toolbar{display:flex!important;align-items:center!important;flex-wrap:wrap!important;height:auto!important;min-height:48px!important;overflow:visible!important;gap:5px!important}
-body .zynko-rte-toolbar>select.zynko-rte-format{position:static!important;display:block!important;flex:0 0 120px!important;width:120px!important;min-width:0!important;max-width:100%!important;margin:0!important;height:34px!important;min-height:34px!important;align-self:center!important}
+body .zynko-rte-toolbar>select.zynko-rte-format{position:static!important;display:block!important;visibility:visible!important;opacity:1!important;flex:0 0 132px!important;width:132px!important;min-width:0!important;max-width:100%!important;margin:0!important;height:36px!important;min-height:36px!important;max-height:36px!important;align-self:center!important;box-sizing:border-box!important;padding:0 10px!important;font-family:inherit!important;font-size:12px!important;font-weight:500!important;line-height:normal!important;color:var(--text,#29445d)!important;background:var(--surface,#fff)!important;border:1px solid var(--line,#d5e2e6)!important;border-radius:9px!important;appearance:auto!important;text-indent:0!important;text-overflow:clip!important}
 body .zynko-rte-toolbar>button{flex:0 0 34px!important;position:static!important;margin:0!important}
 body .zynko-rte-toolbar>span{flex:0 0 1px!important}
 body .mail-routing .mail-info-note,body .inbound-mail-panel .mail-info-note{display:flex!important;align-items:center!important;gap:14px!important;border-radius:12px!important}
