@@ -1,12 +1,12 @@
 /* ZYNKO · páginas legales públicas, aisladas del panel administrativo. */
-.zynko-legal-public { background: #f4f8f9; color: var(--ink); min-height: 100vh; }
-.zynko-legal-public .legal-site-header { background: #fff; border-bottom: 1px solid var(--line); }
-.zynko-legal-public .legal-site-nav { display: flex; align-items: center; justify-content: space-between; min-height: 76px; gap: 16px; }
+.zynko-legal-public { background: #f4f8f9; color: var(--ink); min-height: 100vh; padding-top: 76px; }
+.zynko-legal-public .legal-site-header { background: #fff; border-bottom: 1px solid var(--line); position: fixed; inset: 0 0 auto; z-index: 100; box-shadow: 0 4px 18px rgba(8,38,59,.05); }
+.zynko-legal-public .legal-site-nav { display: flex; align-items: center; justify-content: space-between; height: 76px; gap: 16px; }
 .zynko-legal-public .legal-home-button { background: var(--navy); color: #fff; border: 1px solid var(--navy); font-size: 13px; }
 .zynko-legal-public .legal-home-button:hover { background: var(--navy2); color: #fff; }
 .zynko-legal-public .legal-public-layout { display: grid; grid-template-columns: 255px minmax(0, 1fr); gap: 28px; align-items: start; padding-top: 42px; padding-bottom: 54px; }
 .zynko-legal-public .legal-public-aside, .zynko-legal-public .legal-public-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 35px rgba(8, 38, 59, .05); }
-.zynko-legal-public .legal-public-aside { padding: 20px; position: sticky; top: 20px; }
+.zynko-legal-public .legal-public-aside { padding: 20px; position: sticky; top: 96px; }
 .zynko-legal-public .legal-aside-label, .zynko-legal-public .legal-kicker { display: block; color: var(--teal-dark); font-size: 11px; font-weight: 800; letter-spacing: .12em; }
 .zynko-legal-public .legal-public-links { display: grid; gap: 6px; margin: 15px 0 20px; }
 .zynko-legal-public .legal-public-links a { display: grid; grid-template-columns: 20px minmax(0, 1fr) 12px; align-items: center; gap: 9px; padding: 11px 10px; color: var(--navy); font-size: 13px; font-weight: 700; border-radius: 9px; text-decoration: none; }
@@ -45,7 +45,7 @@
     .zynko-legal-public .legal-home-button { padding: 10px 12px; min-height: 38px; }
 }
 @media print {
-    .zynko-legal-public { background: #fff; }
+    .zynko-legal-public { background: #fff; padding-top: 0; }
     .zynko-legal-public .legal-site-header, .zynko-legal-public .legal-public-aside, .zynko-legal-public .legal-site-footer { display: none; }
     .zynko-legal-public .legal-public-layout { display: block; width: 100%; padding: 0; }
     .zynko-legal-public .legal-public-card { border: 0; box-shadow: none; padding: 0; }

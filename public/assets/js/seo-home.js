@@ -62,7 +62,7 @@
   const openMobileMenu=()=>{if(!menuToggle||!mobileMenu)return;header?.classList.add('menu-open');mobileMenu.hidden=false;menuToggle.setAttribute('aria-expanded','true');menuToggle.setAttribute('aria-label','Cerrar menú');menuToggle.innerHTML='<i class="fa-solid fa-xmark"></i>';};
   menuToggle?.addEventListener('click',()=>menuToggle.getAttribute('aria-expanded')==='true'?closeMobileMenu():openMobileMenu());
   mobileMenu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMobileMenu));
-  addEventListener('resize',()=>{if(innerWidth>1200)closeMobileMenu()},{passive:true});
+  addEventListener('resize',()=>{if(menuToggle&&getComputedStyle(menuToggle).display==='none')closeMobileMenu()},{passive:true});
 
   const reveal=[...document.querySelectorAll('[data-reveal]')];
   if(reduced||!('IntersectionObserver' in window)) reveal.forEach(el=>el.classList.add('is-visible'));

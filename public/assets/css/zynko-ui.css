@@ -6303,3 +6303,18 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 .lang-menu:not([open]) .lang-options{display:none}.lang-menu .lang-options a{display:flex;align-items:center;justify-content:space-between;gap:10px;color:var(--text,var(--navy,#10283a));font-size:13px;padding:10px;border-radius:8px;text-decoration:none!important;font-weight:650;white-space:nowrap}.lang-menu .lang-options a:hover,.lang-menu .lang-options a[aria-current=true]{background:var(--surface2,#e8f5f1);color:#087c6c;text-decoration:none!important}
 
 .wa-api-admin pre,.api-doc-card pre{white-space:pre-wrap!important;overflow-wrap:anywhere!important;word-break:normal!important;max-height:none!important;min-height:0!important;overflow:auto!important}.wa-api-admin pre code,.api-doc-card pre code{white-space:inherit!important;overflow-wrap:inherit!important}
+
+/* ZYNKO · shared scrollbar palette, no custom scroll handlers. */
+:root{--zynko-scroll-thumb:#1bb89d;--zynko-scroll-hover:#0d8e79;--zynko-scroll-track:#edf5f4}
+:root.theme-dark{--zynko-scroll-thumb:#1bb89d;--zynko-scroll-hover:#55d6bf;--zynko-scroll-track:#172a34}
+*{scrollbar-width:thin;scrollbar-color:var(--zynko-scroll-thumb) var(--zynko-scroll-track)}
+@supports selector(::-webkit-scrollbar){
+  *{scrollbar-width:auto;scrollbar-color:auto}
+  *::-webkit-scrollbar{width:9px;height:9px}
+  *::-webkit-scrollbar-track{background:var(--zynko-scroll-track);border-radius:10px}
+  *::-webkit-scrollbar-thumb{background:var(--zynko-scroll-thumb);border:2px solid var(--zynko-scroll-track);border-radius:999px;min-height:24px;min-width:24px}
+  *::-webkit-scrollbar-thumb:hover{background:var(--zynko-scroll-hover)}
+  *::-webkit-scrollbar-corner{background:var(--zynko-scroll-track)}
+  *::-webkit-scrollbar-button{display:none;width:0;height:0}
+}
+@media(forced-colors:active){*{scrollbar-color:auto;scrollbar-width:auto}*::-webkit-scrollbar-thumb{background:ButtonText;border-color:Canvas}*::-webkit-scrollbar-track{background:Canvas}}
