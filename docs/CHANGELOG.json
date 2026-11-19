@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.31.143",
+    "date": "2026-11-18",
+    "title": "Uniformidad visual, Inbox y documentación API v1",
+    "changes": [
+      "Encabezados de documentación sin superposición en sitio público y administrador.",
+      "Modales de actividad y plantillas con encabezado, icono, subtítulo, cierre superior y pie alineado a la derecha.",
+      "Webhook de integración identificado y formulario compacto.",
+      "Inbox abre en el extremo inferior y conserva la navegación manual.",
+      "Etiquetas de visitas dentro de las barras en períodos diarios, semanales y mensuales.",
+      "Documentación API v1 sincronizada; endpoints y permisos existentes se conservan."
+    ],
+    "database_update": false
+  },
+  {
     "version": "2.31.142",
     "date": "2026-11-18",
     "title": "WhatsApp API, integraciones y experiencia operativa",

@@ -153,3 +153,7 @@ HTTP 202 devuelve `data.messages[]` con `to`, `message_uuid`, `conversation_id`,
 **GET /api.php?r=v1/whatsapp/status&message_uuid=UUID**: devuelve `message_uuid`, `status`, `queue_state`, `last_error`. Requiere `whatsapp:status`. Nunca consulta la información de otra empresa.
 
 401 autenticación, 403 permisos/plan, 404 canal/mensaje, 409 estado o idempotencia, 413 tamaño, 422 validación, 429 límite. Mantener la API key en el servidor. El canal debe estar conectado y el monitor de cola en funcionamiento; Cloud API de pruebas solo permite destinatarios verificados. Meta puede rechazar solicitudes fuera de la ventana o sin plantilla aprobada.
+
+## Actualización 2.31.143 — API v1
+
+Los endpoints, permisos, autenticación Bearer y contratos introducidos en 2.31.142 permanecen compatibles. En Canales → Integraciones puede crear claves API para envío y webhooks para recibir eventos de ZYNKO. Un webhook no es necesario para enviar mensajes. La documentación pública y administrativa comparte los ejemplos de WhatsApp.
