@@ -52,6 +52,28 @@ final class NotificationService
         return $plain === false ? '' : (string)$plain;
     }
 
+    private function platformTenantId(): int
+    {
+        $platformId=(int)($this->pdo->query("SELECT id FROM tenants WHERE LOWER(REPLACE(TRIM(name),' ','')) IN ('esmultiservicios','esmultsiervicios') OR LOWER(slug) LIKE 'es-multiservicios%' OR LOWER(slug) LIKE 'es-multsiervicios%' ORDER BY id ASC LIMIT 1")->fetchColumn()?:0);
+        if (!$platformId) $platformId=(int)$this->pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn();
+        return $platformId;
+    }
+
+    /** Platform account-security mail must never use a customer's unrelated mailbox. */
+    private function securityConfig(): ?array
+    {
+        $platformId = $this->platformTenantId();
+        return $platformId > 0 ? $this->cfg($platformId, 'noreply') : null;
+    }
+
+    private function unavailable(int $tenantId, string $to, string $subject, array $meta, string $message, bool $skipped = false): array
+    {
+        $result = ['success'=>false, 'message'=>$message];
+        if ($skipped) $result['skipped'] = true;
+        $this->logDirect($tenantId, $to, $subject, [], $result, $meta);
+        return $result;
+    }
+
     private function cfg(int $tenantId, string $purpose = 'notifications', bool $test = false): ?array
     {
         $query = $this->pdo->prepare(
@@ -65,8 +87,7 @@ final class NotificationService
         // Primary is reserved for configuration; a general test uses the notifications route.
         $explicitPurposeTest = $test && $purpose !== 'primary';
         if ($purpose === 'primary') $purpose = 'notifications';
-        $platformId=(int)($this->pdo->query("SELECT id FROM tenants WHERE LOWER(REPLACE(TRIM(name),' ','')) IN ('esmultiservicios','esmultsiervicios') OR LOWER(slug) LIKE 'es-multiservicios%' OR LOWER(slug) LIKE 'es-multsiervicios%' ORDER BY id ASC LIMIT 1")->fetchColumn()?:0);
-        if (!$platformId) $platformId=(int)$this->pdo->query('SELECT MIN(id) FROM tenants')->fetchColumn();
+        $platformId=$this->platformTenantId();
         try {
             if ($tenantId!==$platformId && !$explicitPurposeTest) {
                 $hasRoutes=$this->pdo->prepare('SELECT COUNT(*) FROM mail_sender_routes WHERE tenant_id=?');
@@ -151,11 +172,7 @@ final class NotificationService
         $column = $map[$event] ?? 'critical_enabled';
 
         if (empty($settings[$column])) {
-            return [
-                'success' => false,
-                'skipped' => true,
-                'message' => 'Notificación desactivada',
-            ];
+            return $this->unavailable($tenantId, $to, $subject, ['event'=>$event], 'Notificación desactivada en las preferencias de correo.', true);
         }
 
         $cooldown = max(0, (int)($settings['cooldown_minutes'] ?? 10));
@@ -183,13 +200,9 @@ final class NotificationService
             }
         }
 
-        $config = $this->cfg($tenantId,$event==='login'?'noreply':'notifications');
+        $config = $event === 'login' ? $this->securityConfig() : $this->cfg($tenantId, 'notifications');
         if (!$config) {
-            return [
-                'success' => false,
-                'skipped' => true,
-                'message' => 'Correo no configurado',
-            ];
+            return $this->unavailable($tenantId, $to, $subject, ['event'=>$event], $event === 'login' ? 'Proveedor de correo de ZYNKO no configurado para seguridad.' : 'Correo no configurado');
         }
 
         $query = $this->pdo->prepare(
@@ -214,57 +227,23 @@ final class NotificationService
                     : '',
                 'app_url' => $base . '/?page=' . ($event === 'message' || $event === 'handoff' ? 'inbox' : 'dashboard'),
             ],
-            strtoupper($event)
+            $event === 'login' ? 'SEGURIDAD' : strtoupper($event)
         );
 
         $result = $this->deliver($config, $to, $subject, $html);
-        $typeCode = $event === 'login'
-            ? 'security'
-            : ($event === 'message'
-                ? 'conversation_alerts'
-                : ($event === 'handoff' ? 'nivo_ai' : 'system_alerts'));
-        $type = $this->pdo->query(
-            "SELECT correo_tipo_id FROM correo_tipo WHERE codigo='" . $typeCode . "' LIMIT 1"
-        )->fetchColumn() ?: null;
-
-        $logMeta = $this->deliveryMeta(
-            array_merge($meta, [
-                'event' => $event,
-                'dedupe_key' => $dedupeKey,
-            ]),
-            $result
-        );
-
-        $this->pdo->prepare(
-            'INSERT INTO notification_log(
-                tenant_id,correo_tipo_id,channel,recipient,subject,status,provider,error_message,metadata_json,sent_at
-             ) VALUES(?,?,?,?,?,?,?,?,?,?)'
-        )->execute([
-            $tenantId,
-            $type,
-            'email',
-            $to,
-            $subject,
-            !empty($result['success']) ? 'sent' : 'failed',
-            $config['metodo_envio'] ?? 'SYSTEM',
-            !empty($result['success']) ? null : ($result['message'] ?? 'Error'),
-            json_encode($logMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            !empty($result['success']) ? date('Y-m-d H:i:s') : null,
-        ]);
+        $this->logDirect($tenantId, $to, $subject, $config, $result, array_merge($meta, [
+            'sender_purpose' => $event==='login'?'noreply':'notifications',
+            'event' => $event,
+            'dedupe_key' => $dedupeKey,
+        ]));
 
         return $result;
     }
 
     public function sendAccountCreated(int $tenantId, string $to): array
     {
-        $config = $this->cfg($tenantId, 'noreply');
-        if (!$config) {
-            return [
-                'success' => false,
-                'skipped' => true,
-                'message' => 'Correo no configurado',
-            ];
-        }
+        $config = $this->securityConfig();
+        if (!$config) return $this->unavailable($tenantId, $to, 'Tu cuenta de ZYNKO fue creada', ['event'=>'account_created'], 'Proveedor de correo de ZYNKO no configurado para seguridad.');
 
         $query = $this->pdo->prepare(
             'SELECT t.name,b.app_title,b.logo_path
@@ -306,12 +285,7 @@ final class NotificationService
         string $company
     ): array {
         $config = $this->cfg($platformTenantId, 'noreply');
-        if (!$config) {
-            return [
-                'success' => false,
-                'message' => 'El correo principal de ZYNKO no está configurado.',
-            ];
-        }
+        if (!$config) return $this->unavailable($platformTenantId, $to, 'ZYNKO · Código de verificación', ['event'=>'registration_verification'], 'El correo principal de ZYNKO no está configurado.');
 
         $query = $this->pdo->prepare(
             'SELECT t.name,b.app_title,b.logo_path
@@ -352,12 +326,7 @@ final class NotificationService
     public function sendFreeAccountWelcome(int $platformTenantId, string $to, array $account): array
     {
         $config = $this->cfg($platformTenantId, 'noreply');
-        if (!$config) {
-            return [
-                'success' => false,
-                'message' => 'El correo principal de ZYNKO no está configurado.',
-            ];
-        }
+        if (!$config) return $this->unavailable($platformTenantId, $to, 'Bienvenido a ZYNKO · Plan Gratis activado', ['event'=>'free_account_welcome'], 'El correo principal de ZYNKO no está configurado.');
 
         $subject = 'Bienvenido a ZYNKO · Plan Gratis activado';
         $html = EmailTemplates::freeAccountWelcome(
@@ -384,12 +353,7 @@ final class NotificationService
     public function sendNewCustomerAdmin(int $platformTenantId, string $to, array $customer): array
     {
         $config = $this->cfg($platformTenantId);
-        if (!$config) {
-            return [
-                'success' => false,
-                'message' => 'El correo principal de ZYNKO no está configurado.',
-            ];
-        }
+        if (!$config) return $this->unavailable($platformTenantId, $to, 'ZYNKO · Nuevo cliente registrado', ['event'=>'new_customer'], 'El correo principal de ZYNKO no está configurado.');
 
         $subject = 'ZYNKO · Nuevo cliente registrado · ' . ($customer['company_name'] ?? 'Nueva empresa');
         $html = EmailTemplates::newCustomerAdmin(
@@ -416,14 +380,8 @@ final class NotificationService
 
     public function sendPasswordReset(int $tenantId, string $to, string $url): array
     {
-        $config = $this->cfg($tenantId, 'noreply');
-        if (!$config) {
-            return [
-                'success' => false,
-                'skipped' => true,
-                'message' => 'Correo no configurado',
-            ];
-        }
+        $config = $this->securityConfig();
+        if (!$config) return $this->unavailable($tenantId, $to, 'ZYNKO - Restablecer contraseña', ['event'=>'password_reset'], 'Proveedor de correo de ZYNKO no configurado para seguridad.');
 
         $query = $this->pdo->prepare('SELECT name FROM tenants WHERE id=?');
         $query->execute([$tenantId]);
@@ -453,6 +411,19 @@ final class NotificationService
             ['event' => 'password_reset']
         );
 
+        return $result;
+    }
+
+    public function sendPasswordChanged(int $tenantId, string $to): array
+    {
+        $subject = 'ZYNKO · Tu contraseña fue actualizada';
+        $config = $this->securityConfig();
+        if (!$config) return $this->unavailable($tenantId, $to, $subject, ['event'=>'password_changed'], 'Proveedor de correo de ZYNKO no configurado para seguridad.');
+        $html = EmailTemplates::generic('SEGURIDAD', 'Contraseña actualizada',
+            'La contraseña de tu cuenta de ZYNKO fue modificada el '.date('d/m/Y H:i').'. Se revocaron las sesiones anteriores. Si no reconoces este cambio, contacta de inmediato con soporte.',
+            $this->platformSettings($tenantId, '/?page=login'), 'SEGURIDAD');
+        $result = $this->deliver($config, $to, $subject, $html);
+        $this->logDirect($tenantId, $to, $subject, $config, $result, ['event'=>'password_changed']);
         return $result;
     }
 
@@ -488,12 +459,7 @@ final class NotificationService
         $event = (string)($meta['event'] ?? '');
         $purpose = str_starts_with($event,'subscription_') || str_starts_with($event,'plan_') ? 'billing' : (str_starts_with($event,'public_contact_') ? 'support' : ($event==='user_lifecycle'?'noreply':'notifications'));
         $config = $this->cfg($platformTenantId,$purpose);
-        if (!$config) {
-            return [
-                'success' => false,
-                'message' => 'El correo principal de ZYNKO no está configurado.',
-            ];
-        }
+        if (!$config) return $this->unavailable($platformTenantId, $to, $subject, $meta, 'El correo principal de ZYNKO no está configurado.');
 
         $result = $this->deliver($config, $to, $subject, $html);
         $this->logDirect($platformTenantId, $to, $subject, $config, $result, $meta);
@@ -821,37 +787,40 @@ final class NotificationService
     private function deliver(array $config, string|array $to, string $subject, string $html): array
     {
         if (!empty($config['_sender_route_error'])) return ['success'=>false,'message'=>$config['_sender_route_error'],'sent_recipients'=>[],'rejected_recipients'=>[]];
-        $validated = $this->emailValidator->validateRecipients($to);
-        $validRecipients = $validated['valid'];
-        $rejectedRecipients = $validated['rejected'];
+        try {
+            $validated = $this->emailValidator->validateRecipients($to);
+            $validRecipients = $validated['valid'];
+            $rejectedRecipients = $validated['rejected'];
 
-        if ($validRecipients === []) {
-            return [
-                'success' => false,
-                'skipped' => true,
-                'message' => $this->validationFailureMessage($rejectedRecipients),
-                'sent_recipients' => [],
-                'rejected_recipients' => $rejectedRecipients,
-            ];
+            if ($validRecipients === []) {
+                return [
+                    'success' => false,
+                    'message' => $this->validationFailureMessage($rejectedRecipients),
+                    'sent_recipients' => [],
+                    'rejected_recipients' => $rejectedRecipients,
+                ];
+            }
+
+            $result = strtoupper((string)($config['metodo_envio'] ?? '')) === 'GRAPH'
+                ? $this->graph($config, $validRecipients, $subject, $html)
+                : $this->smtp($config, $validRecipients, $subject, $html);
+
+            $result['sender'] = strtoupper((string)($config['metodo_envio']??''))==='GRAPH'?(string)($config['graph_user']??''):(string)($config['correo']??'');
+            $result['rejected_recipients'] = array_merge(
+                $rejectedRecipients,
+                $result['rejected_recipients'] ?? []
+            );
+            $result['sent_recipients'] = $result['sent_recipients'] ?? [];
+            $result['partial'] = !empty($result['success']) && !empty($result['rejected_recipients']);
+
+            if (!empty($result['success']) && !empty($result['rejected_recipients'])) {
+                $result['message'] = 'Enviado a destinatarios válidos; algunos destinatarios fueron rechazados.';
+            }
+
+            return $result;
+        } catch (Throwable $e) {
+            return ['success'=>false,'message'=>'Error interno al procesar el envío de correo. Revise la configuración y el proveedor.','sent_recipients'=>[],'rejected_recipients'=>[]];
         }
-
-        $result = strtoupper((string)($config['metodo_envio'] ?? '')) === 'GRAPH'
-            ? $this->graph($config, $validRecipients, $subject, $html)
-            : $this->smtp($config, $validRecipients, $subject, $html);
-
-        $result['sender'] = strtoupper((string)($config['metodo_envio']??''))==='GRAPH'?(string)($config['graph_user']??''):(string)($config['correo']??'');
-        $result['rejected_recipients'] = array_merge(
-            $rejectedRecipients,
-            $result['rejected_recipients'] ?? []
-        );
-        $result['sent_recipients'] = $result['sent_recipients'] ?? [];
-        $result['partial'] = !empty($result['success']) && !empty($result['rejected_recipients']);
-
-        if (!empty($result['success']) && !empty($result['rejected_recipients'])) {
-            $result['message'] = 'Enviado a destinatarios válidos; algunos destinatarios fueron rechazados.';
-        }
-
-        return $result;
     }
 
     private function graph(array $config, array $recipients, string $subject, string $html): array
@@ -1138,7 +1107,7 @@ final class NotificationService
 
     private function deliveryMeta(array $meta, array $result): array
     {
-        $meta['sender'] = $result['sender'] ?? '';
+        $meta['sender'] = $result['sender'] ?? ($meta['sender'] ?? '');
         $meta['email_delivery'] = [
             'sent_recipients' => $result['sent_recipients'] ?? [],
             'rejected_recipients' => $result['rejected_recipients'] ?? [],
@@ -1161,7 +1130,9 @@ final class NotificationService
             $typeCode = match (true) {
                 str_starts_with($event, 'registration_'),
                 $event === 'user_lifecycle',
-                $event === 'password_reset' => 'security',
+                in_array($event, ['login','password_reset','password_changed','account_created'], true) => 'security',
+                $event === 'message' => 'conversation_alerts',
+                $event === 'handoff' => 'nivo_ai',
                 $event === 'email_test' => 'email_tests',
                 str_starts_with($event, 'plan_'),
                 str_starts_with($event, 'subscription_'),
@@ -1188,14 +1159,14 @@ final class NotificationService
                 'email',
                 $to,
                 $subject,
-                !empty($result['success']) ? 'sent' : 'failed',
+                !empty($result['success']) ? 'sent' : (!empty($result['skipped']) ? 'skipped' : 'failed'),
                 $config['metodo_envio'] ?? 'SYSTEM',
                 !empty($result['success']) ? null : ($result['message'] ?? 'Error'),
                 json_encode($logMeta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 !empty($result['success']) ? date('Y-m-d H:i:s') : null,
             ]);
         } catch (Throwable $e) {
-            // El registro nunca debe romper el flujo principal de correo.
+            error_log("ZYNKO: no se pudo registrar el resultado de una notificación de correo.");
         }
     }
 
@@ -1217,7 +1188,7 @@ final class NotificationService
                 'email',
                 $to,
                 $subject,
-                !empty($result['success']) ? 'sent' : 'failed',
+                !empty($result['success']) ? 'sent' : (!empty($result['skipped']) ? 'skipped' : 'failed'),
                 $config['metodo_envio'] ?? 'SYSTEM',
                 !empty($result['success']) ? null : ($result['message'] ?? 'Error'),
                 json_encode(
@@ -1227,7 +1198,7 @@ final class NotificationService
                 !empty($result['success']) ? date('Y-m-d H:i:s') : null,
             ]);
         } catch (Throwable $e) {
-            // El registro nunca debe romper el flujo principal de correo.
+            error_log("ZYNKO: no se pudo registrar el resultado de una notificación de correo.");
         }
     }
 }
