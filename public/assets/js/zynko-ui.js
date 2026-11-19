@@ -186,6 +186,41 @@
 })();
 
 
+/* Select2 de formato: aislado de los selectores de formularios y compartido por todos los editores. */
+(()=>{
+ const selector='.zynko-rte-toolbar select.zynko-rte-format,.legal-editor-toolbar select.legal-format-select,.quick-rte-toolbar select';
+ const enhance=select=>{
+  if(!window.jQuery||!jQuery.fn.select2||select.dataset.rteSelectReady==='1')return;
+  const toolbar=select.closest('.zynko-rte-toolbar,.legal-editor-toolbar,.quick-rte-toolbar');
+  const shell=toolbar?.closest('.zynko-rte-shell,.legal-rich-editor-shell');
+  const editor=shell?.querySelector('[contenteditable="true"]');
+  if(!toolbar||!editor)return;
+  const $select=jQuery(select);
+  if($select.hasClass('select2-hidden-accessible'))$select.select2('destroy');
+  select.dataset.rteSelectReady='1';
+  select.classList.add('no-select2');
+  const wrapper=document.createElement('div');wrapper.className='zynko-rte-format-control';
+  select.before(wrapper);wrapper.append(select);
+  let range=null;
+  const remember=()=>{const selection=window.getSelection();if(selection?.rangeCount){const current=selection.getRangeAt(0);if(editor.contains(current.startContainer)&&editor.contains(current.endContainer))range=current.cloneRange();}};
+  const restore=()=>{editor.focus({preventScroll:true});if(range&&editor.contains(range.startContainer)&&editor.contains(range.endContainer)){const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);}};
+  editor.addEventListener('keyup',remember);editor.addEventListener('mouseup',remember);editor.addEventListener('input',remember);editor.addEventListener('focusout',remember);
+  wrapper.addEventListener('pointerdown',remember,true);
+  const parent=toolbar.closest('.modal-shell,.zynko-dialog-overlay')||document.body;
+  $select.select2({width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,dropdownParent:jQuery(parent)});
+  const instance=$select.data('select2');
+  instance?.$dropdownContainer?.addClass('zynko-rte-format-dropdown');
+  instance?.$dropdown?.addClass('zynko-rte-format-dropdown-inner');
+  instance?.$selection?.attr('aria-label',select.getAttribute('aria-label')||'Formato');
+  $select.on('select2:opening.zynkoRte',remember);
+  $select.on('select2:select.zynkoRte',()=>{restore();select.dispatchEvent(new Event('change',{bubbles:true}));remember();});
+ };
+ const scan=root=>{if(root.matches?.(selector))enhance(root);root.querySelectorAll?.(selector).forEach(enhance);};
+ const start=()=>{scan(document);new MutationObserver(records=>records.forEach(record=>record.addedNodes.forEach(node=>{if(node.nodeType===1)scan(node);}))).observe(document.body,{childList:true,subtree:true});};
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+
+
 /* ZYNKO V2.31.67 · Cabeceras premium universales para tarjetas administrativas */
 (()=>{
   const rules=[
