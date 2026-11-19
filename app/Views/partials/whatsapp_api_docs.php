@@ -7,7 +7,7 @@ if(empty($waDocRoot)){
     if($waSite==='')$waSite=(!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off'?'https':'http').'://'.($_SERVER['HTTP_HOST']??'localhost');
     $waDocRoot=rtrim($waSite,'/').'/api.php?r=';
 }
-$waDocVersion='2.31.148';try{$waVersionQuery=appDb()->prepare("SELECT setting_value FROM system_settings WHERE setting_key='app_version' LIMIT 1");$waVersionQuery->execute();$waVersionFound=(string)$waVersionQuery->fetchColumn();if(preg_match('/^\d+\.\d+\.\d+$/',$waVersionFound)&&version_compare($waVersionFound,$waDocVersion,'>'))$waDocVersion=$waVersionFound;}catch(Throwable $waVersionError){}
+$waDocVersion='2.31.149';try{$waVersionQuery=appDb()->prepare("SELECT setting_value FROM system_settings WHERE setting_key='app_version' LIMIT 1");$waVersionQuery->execute();$waVersionFound=(string)$waVersionQuery->fetchColumn();if(preg_match('/^\d+\.\d+\.\d+$/',$waVersionFound)&&version_compare($waVersionFound,$waDocVersion,'>'))$waDocVersion=$waVersionFound;}catch(Throwable $waVersionError){}
 $waEscape=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');
 $waExample=static function(array $payload,string $requestId)use($waDocRoot):string{
     return 'curl -X POST '.escapeshellarg($waDocRoot.'v1/whatsapp/send')." -H 'Authorization: Bearer TU_CLAVE_API' -H 'Content-Type: application/json' -H 'Idempotency-Key: ".$requestId."' -d ".escapeshellarg(json_encode($payload,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE));

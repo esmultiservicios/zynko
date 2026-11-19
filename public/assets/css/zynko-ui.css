@@ -6330,3 +6330,19 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 .mail-route-actions>button{min-height:40px;max-width:100%;white-space:normal;text-align:left}
 .mail-profile-grid{grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr))}
 @media(max-width:480px){.mail-route-actions>button{flex:1 1 auto;justify-content:center}.mail-routing .mail-info-note,.inbound-mail-panel .mail-info-note{grid-template-columns:36px minmax(0,1fr);gap:10px;padding:12px!important}.mail-routing .mail-info-icon,.inbound-mail-panel .mail-info-icon{width:36px;height:36px}}
+
+/* Editor formatting controls stay native and compact, independently of form selects. */
+body .zynko-rte-toolbar{display:flex!important;align-items:center!important;flex-wrap:wrap!important;height:auto!important;min-height:48px!important;overflow:visible!important;gap:5px!important}
+body .zynko-rte-toolbar>select.zynko-rte-format{position:static!important;display:block!important;flex:0 0 120px!important;width:120px!important;min-width:0!important;max-width:100%!important;margin:0!important;height:34px!important;min-height:34px!important;align-self:center!important}
+body .zynko-rte-toolbar>button{flex:0 0 34px!important;position:static!important;margin:0!important}
+body .zynko-rte-toolbar>span{flex:0 0 1px!important}
+body .mail-routing .mail-info-note,body .inbound-mail-panel .mail-info-note{display:flex!important;align-items:center!important;gap:14px!important;border-radius:12px!important}
+body .mail-routing .mail-info-note>div,body .inbound-mail-panel .mail-info-note>div{flex:1;min-width:0}
+body .mail-routing .mail-info-icon,body .inbound-mail-panel .mail-info-icon{flex:0 0 40px!important}
+body .notification-cooldown>.hint,body .notification-actions>.hint,#mailProviderForm .hint{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;padding:0!important;min-height:0!important;height:auto!important;line-height:1.55!important}
+body .notification-cooldown>.hint::before,body .notification-cooldown>.hint::after,body .notification-actions>.hint::before,body .notification-actions>.hint::after,#mailProviderForm .hint::before,#mailProviderForm .hint::after{content:none!important}
+body .notification-actions{display:flex!important;align-items:center!important;gap:12px!important;flex-wrap:wrap!important}
+body .notification-actions>.hint{display:inline-flex!important;align-items:center!important;gap:7px!important;flex:0 1 auto!important}
+body .inbound-mail-panel .mail-inbound-status{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:10px!important;border-radius:12px!important;padding:12px!important;height:auto!important}
+body .inbound-mail-panel .mail-inbound-status>.status{display:inline-flex!important;align-items:center!important;flex:0 0 auto!important;width:auto!important;padding:5px 10px!important;border-radius:8px!important;background:var(--surface,#fff);border:1px solid var(--line,#dbe4ea)}
+body .inbound-mail-panel .mail-inbound-status>small{flex:1 1 180px;min-width:0;line-height:1.5!important}

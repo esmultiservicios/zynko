@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.31.149",
+    "date": "2026-11-18",
+    "title": "Restauración de editores y avisos de correo",
+    "changes": [
+      "Exclusión de selectores de formato de la inicialización Select2.",
+      "Barra de herramientas compacta en Inbox y configuración.",
+      "Avisos de correo y estados de recepción alineados.",
+      "Aclaración del buzón Graph de recepción."
+    ]
+  },
+  {
     "version": "2.31.148",
     "date": "2026-11-18",
     "title": "Remitentes Graph visibles y validación individual",
