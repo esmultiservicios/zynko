@@ -73,6 +73,32 @@
     reveal.forEach(el=>io.observe(el));
   }
 
+  // Progressive gallery: reveal four cards at a time without rebuilding the lightbox.
+  const showcase=document.getElementById('showcase');
+  if(showcase){
+    const cards=[...showcase.querySelectorAll('[data-showcase-card]')];
+    const more=showcase.querySelector('[data-showcase-more]');
+    const all=showcase.querySelector('[data-showcase-all]');
+    const less=showcase.querySelector('[data-showcase-less]');
+    const count=showcase.querySelector('[data-showcase-count]');
+    let visible=Math.min(4,cards.length);
+    const renderShowcase=()=>{
+      cards.forEach((card,i)=>{
+        const show=i<visible;
+        card.hidden=!show;
+        if(show) card.classList.add('is-visible');
+      });
+      if(count)count.textContent=`${visible} ${count.dataset.of||'de'} ${cards.length}`;
+      if(more)more.hidden=visible>=cards.length;
+      if(all)all.hidden=visible>=cards.length;
+      if(less)less.hidden=visible<=4;
+    };
+    more?.addEventListener('click',()=>{visible=Math.min(cards.length,visible+4);renderShowcase();});
+    all?.addEventListener('click',()=>{visible=cards.length;renderShowcase();});
+    less?.addEventListener('click',()=>{visible=Math.min(4,cards.length);renderShowcase();more?.focus({preventScroll:true});});
+    renderShowcase();
+  }
+
   const faq=[...document.querySelectorAll('.faq-grid details')];
   faq.forEach(item=>item.addEventListener('toggle',()=>{
     if(!item.open)return;faq.forEach(other=>{if(other!==item&&other.open)other.open=false});

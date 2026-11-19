@@ -6233,3 +6233,64 @@ body:has(.inbox-premium-toolbar) .message-wrap .sender-nivo{color:#087d69!import
 /* Email provider visibility and clean routing cards */
 #mailProviderForm [hidden],.inbound-mail-panel [hidden]{display:none!important}
 .mail-route-grid{grid-template-columns:repeat(2,minmax(0,1fr));margin:18px 0}.mail-route-card{border:1px solid var(--line,#dce5ee);border-radius:14px;padding:16px;display:grid;gap:12px;min-width:0}.mail-route-card .soft{justify-self:start}.mail-route-card small{line-height:1.5}.mail-routing .security-note{margin-top:16px}@media(max-width:700px){.mail-route-grid{grid-template-columns:1fr}}
+
+
+/* Plan channels: one visual vocabulary for assigned entitlements. */
+.plan-channel-list{min-width:0;display:grid;gap:8px;padding:0;align-content:start!important}
+.plan-channel-list-title{font-size:12px;font-weight:800;line-height:1.35;color:inherit}
+.plan-channel-items{display:flex;flex-wrap:wrap;gap:6px;min-width:0;align-items:center}
+.plan-channel-chip{display:inline-flex!important;align-items:center!important;gap:6px;max-width:100%;min-width:0;padding:3px 7px 3px 4px;border:1px solid var(--line,#dce7ee);border-radius:8px;background:var(--surface,#fff);font-size:11px!important;line-height:1.3!important;text-align:left}
+.plan-channel-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:25px;height:25px;flex:0 0 25px!important;border-radius:7px;background:#e8f3f1;color:#087e70!important;line-height:1!important;padding:0!important;min-width:25px!important}
+.plan-channel-icon>i{font-size:14px!important;line-height:1!important;color:inherit!important;margin:0!important}
+.plan-channel-icon[data-channel="whatsapp"]{background:#e1f7e9;color:#128642!important}
+.plan-channel-icon[data-channel="messenger"]{background:#eaf0ff;color:#1763e9!important}
+.plan-channel-icon[data-channel="instagram"]{background:#fce9f2;color:#c22672!important}
+.plan-channel-icon[data-channel="telegram"]{background:#e6f5fd;color:#087fab!important}
+.plan-channel-icon[data-channel="email"]{background:#edf0f5;color:#52677d!important}
+.plan-channel-icon[data-channel="x"]{background:#eef1f3;color:#18232c!important}
+.plan-channel-name{display:block!important;min-width:0;overflow-wrap:anywhere;line-height:1.3!important;color:inherit;font-size:inherit!important}
+
+/* Plan directory: the availability note is inside the identity column. */
+.billing-plan-directory .plan-card-head{display:flex!important;flex-direction:column!important;align-items:stretch!important;justify-content:center!important;gap:12px!important;min-width:0;box-sizing:border-box}
+.billing-plan-directory .plan-card-head .plan-card-identity{display:flex!important;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;min-width:0;width:100%}
+.billing-plan-directory .plan-card-name{display:grid;gap:5px;min-width:0;max-width:100%;flex:1 1 120px;overflow-wrap:anywhere}
+.billing-plan-directory .plan-card-name small{max-width:100%;white-space:normal;box-sizing:border-box;overflow-wrap:anywhere}
+.billing-plan-directory .plan-card-identity .plan-price{flex:0 1 auto;min-width:0;white-space:normal}
+.billing-plan-directory .plan-card-head .plan-coming-soon-note{margin:0!important;width:100%;max-width:100%;box-sizing:border-box;min-width:0;padding:12px!important}
+.billing-plan-directory .plan-card-head .plan-coming-soon-note small{display:block!important;width:auto;max-width:100%;padding:0;border-radius:0;background:transparent;margin:2px 0 0;white-space:normal;overflow-wrap:anywhere}
+.billing-plan-directory .plan-card-head .plan-coming-soon-note>div{min-width:0;overflow-wrap:anywhere}
+.billing-plan-directory.view-detail .plan-card-head{height:auto!important;align-self:stretch!important}
+.billing-plan-directory.view-detail .plan-limits{min-width:0}
+.billing-plan-directory .plan-features .plan-channel-list{grid-column:1/-1;width:100%;margin:0 0 5px}
+.billing-plan-directory .plan-features .plan-channel-chip{align-items:center!important;white-space:normal!important}
+.billing-plan-directory.view-mini .plan-features{max-height:none!important;overflow:visible!important;min-width:0}
+.billing-plan-directory .plan-card-head .plan-coming-soon-note>span{flex-shrink:0}
+.billing-plan-box .billing-option .plan-channel-icon{width:31px;height:31px;min-width:31px!important;flex-basis:31px!important}
+/* Visit history: responsive, local navigation, no horizontal overflow. */
+.analytics-history-card{min-width:0;overflow:hidden;gap:12px}
+.analytics-history-heading,.analytics-history-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-width:0}
+.analytics-history-heading>div:first-child{min-width:0;flex:1 1 260px}.analytics-history-heading small{color:var(--muted,#64748b);line-height:1.45}
+.analytics-metric-actions,.analytics-history-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;max-width:100%}
+.analytics-history-actions button,.analytics-metric-actions button{font-size:12px;min-width:0;padding:7px 10px;white-space:normal;line-height:1.3}
+.analytics-history-actions button:disabled{opacity:.5;cursor:not-allowed}
+.analytics-history-period{font-weight:750;font-size:12px;color:var(--muted,#536a7c);overflow-wrap:anywhere}
+.analytics-window-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}
+.analytics-window-summary article{display:grid;gap:3px;padding:9px 11px;border:1px solid var(--line,#dce7ee);border-radius:10px;background:var(--surface,#fff);min-width:0}
+.analytics-window-summary span{font-size:11px;color:var(--muted,#62758a);overflow-wrap:anywhere}.analytics-window-summary b{font-size:15px;color:var(--accent2,#087e70);overflow-wrap:anywhere}
+.analytics-window-chart{display:grid;grid-template-columns:repeat(var(--analytics-columns,7),minmax(0,1fr));gap:clamp(3px,1vw,10px);align-items:end;min-width:0;width:100%;max-width:100%;padding:4px 0 12px;border-bottom:1px solid var(--line,#e4ebef)}
+.analytics-window-chart[hidden],.analytics-window-bar[hidden]{display:none!important}
+.analytics-window-bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0;text-align:center}
+.analytics-window-plot{height:200px;width:100%;display:flex;flex:0 0 auto;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.analytics-window-fill{height:calc(var(--analytics-window-height,0%) * .84);flex:0 0 auto;min-height:2px;max-height:calc(100% - 26px);width:100%;max-width:82px;background:#0e9d86;border-radius:7px 7px 2px 2px;transition:height .15s ease}
+.analytics-window-bar:hover .analytics-window-fill{background:#087e70}
+.analytics-window-value{font-size:11px;font-weight:850;line-height:1.15;max-width:100%;overflow-wrap:anywhere;color:var(--accent2,#087e70);padding:2px 3px}
+.analytics-window-label{font-size:11px;line-height:1.15;max-width:100%;overflow-wrap:anywhere}.analytics-window-label small{display:block;font-size:9px;color:var(--muted,#62758a)}
+.analytics-window-complement{font-size:10px;line-height:1.2;color:var(--muted,#62758a);max-width:100%;overflow-wrap:anywhere}
+.analytics-window-empty{grid-column:1/-1;min-height:180px}.analytics-history-note{font-size:11px;color:var(--muted,#62758a);line-height:1.5;overflow-wrap:anywhere}
+@media(max-width:520px){.analytics-window-summary{grid-template-columns:1fr}.analytics-window-plot{height:160px}.analytics-window-fill{max-height:134px}.analytics-history-actions button,.analytics-metric-actions button{padding:7px 8px}.billing-plan-directory .plan-card-identity .plan-price{width:100%}}
+
+/* Prevent a wide four-column card from overflowing when the sidebar is open. */
+.billing-plan-directory.view-detail .plan-card{column-gap:0!important;row-gap:0!important}
+.billing-plan-directory.view-detail .plan-features .plan-channel-icon{align-items:center!important;justify-content:center!important}
+.billing-plan-directory.view-detail .plan-features .plan-channel-icon>i{margin:0!important}
+@media(min-width:1351px){.billing-plan-directory.view-detail .plan-card{grid-template-columns:minmax(0,.95fr) minmax(0,1.15fr) minmax(0,1.5fr) 180px!important}}

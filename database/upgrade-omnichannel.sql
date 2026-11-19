@@ -55,3 +55,7 @@ CREATE TABLE IF NOT EXISTS channel_structured_outbox (
     channel_id BIGINT UNSIGNED NOT NULL, payload_json JSON NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX(tenant_id,channel_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- Remitentes por propósito (Graph). Misma definición que schema.sql.
+CREATE TABLE IF NOT EXISTS mail_sender_routes (tenant_id BIGINT UNSIGNED NOT NULL, purpose VARCHAR(24) NOT NULL, mailbox VARCHAR(190) NOT NULL, verified_at DATETIME NULL, PRIMARY KEY(tenant_id,purpose)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

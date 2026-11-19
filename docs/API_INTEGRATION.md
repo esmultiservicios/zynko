@@ -164,3 +164,8 @@ Los endpoints y scopes de v1 se mantienen. El plan Gratis no incluye API, WhatsA
 
 ### Correo de ZYNKO
 En Correo y notificaciones, Microsoft Graph permite guardar remitentes por propósito y probar cada buzón. El envío requiere Mail.Send y permisos de acceso al buzón. Esto no modifica la API REST v1 ni habilita recepción automáticamente.
+
+
+## Actualización 2.31.145 — API v1
+
+Esta versión conserva los endpoints, permisos, claves y formatos de la API REST v1. Los cambios se concentran en el catálogo de planes, la galería pública, el historial de visitas y la coherencia de los scripts de base de datos.

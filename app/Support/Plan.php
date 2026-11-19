@@ -125,6 +125,29 @@ function zynkoUpgradeCommercialCatalog144(PDO $pdo): void {
     } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
+/** Add the baseline WhatsApp option to existing explicitly configured paid plans. */
+function zynkoUpgradePaidWhatsApp145(PDO $pdo): void {
+    $pdo->beginTransaction();
+    try {
+        $mark=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_whatsapp_2_31_145','1')");
+        $mark->execute();
+        if(!$mark->rowCount()){ $pdo->commit(); return; }
+        $rows=$pdo->query('SELECT id,allowed_channels_json,max_channels FROM subscription_plans WHERE monthly_price>0 AND is_default_free=0 FOR UPDATE')->fetchAll();
+        $change=$pdo->prepare('UPDATE subscription_plans SET allowed_channels_json=?,max_channels=? WHERE id=?');
+        foreach($rows as $plan){
+            $channels=zynkoDecodeList($plan['allowed_channels_json']??null);
+            $limit=$plan['max_channels'];
+            // NULL/empty preserves the prior legacy semantics (all channels).
+            $newChannels=$channels?array_values(array_unique(array_merge($channels,['webchat','whatsapp']))) : $channels;
+            $newLimit=$limit!==null&&(int)$limit===1?2:$limit;
+            if($channels!==$newChannels||$newLimit!==$limit){
+                $change->execute([$channels!==$newChannels?json_encode($newChannels,JSON_UNESCAPED_SLASHES):$plan['allowed_channels_json'],$newLimit,(int)$plan['id']]);
+            }
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+
 function zynkoFreePlanId(PDO $pdo): int{
     zynkoEnsurePlanSchema($pdo);
     $q=$pdo->query("SELECT id FROM subscription_plans WHERE is_default_free=1 AND active=1 ORDER BY id LIMIT 1");
@@ -136,6 +159,57 @@ function zynkoDecodeList(mixed $value): array{
     if(!is_string($value)||trim($value)==='')return [];
     $j=json_decode($value,true);
     return is_array($j)?$j:[];
+}
+
+/** Shared plan presentation for the admin directory, public cards and comparison. */
+function zynkoPlanChannelCatalog(array $rows=[], string $language='es'): array {
+    $en=$language==='en';
+    $catalog=[
+        'webchat'=>['name'=>'NIVO Web Chat','icon'=>'fa-solid fa-message','visible'=>true],
+        'whatsapp'=>['name'=>'WhatsApp Business','icon'=>'fa-brands fa-whatsapp','visible'=>true],
+        'messenger'=>['name'=>'Messenger','icon'=>'fa-brands fa-facebook-messenger','visible'=>true],
+        'instagram'=>['name'=>'Instagram Messaging','icon'=>'fa-brands fa-instagram','visible'=>true],
+        'telegram'=>['name'=>'Telegram','icon'=>'fa-brands fa-telegram','visible'=>true],
+        'email'=>['name'=>$en?'Omnichannel email':'Correo omnicanal','icon'=>'fa-solid fa-envelope','visible'=>true],
+        'x'=>['name'=>'X / Twitter','icon'=>'fa-brands fa-x-twitter','visible'=>false],
+    ];
+    foreach($rows as $row){
+        $code=(string)($row['code']??'');
+        if(!preg_match('/^[a-z0-9_-]+$/D',$code))continue;
+        if(isset($catalog[$code])){
+            $catalog[$code]['visible']=!empty($row['visible']);
+            continue;
+        }
+        $icon=(string)($row['icon_class']??'');
+        if(!preg_match('/^fa-(solid|regular|brands) fa-[a-z0-9-]+$/D',$icon))$icon='fa-solid fa-plug';
+        $catalog[$code]=['name'=>trim((string)($row['name']??''))?:$code,'icon'=>$icon,'visible'=>!empty($row['visible'])];
+    }
+    return $catalog;
+}
+function zynkoPlanDisplayChannels(array $plan,array $catalog): array {
+    // The free plan has a server-side restriction; legacy paid plans with no
+    // explicit matrix allow the visible catalog, as zynkoPlanAllowsChannel does.
+    if(!empty($plan['is_default_free'])||($plan['code']??'')==='free')return ['webchat'];
+    $codes=zynkoDecodeList($plan['allowed_channels_json']??null);
+    if(!$codes)$codes=array_keys(array_filter($catalog,fn($entry)=>!empty($entry['visible'])));
+    $codes=array_values(array_unique(array_merge(['webchat'],array_filter($codes,fn($code)=>is_string($code)&&preg_match('/^[a-z0-9_-]+$/D',$code)))));
+    $ordered=array_values(array_intersect(array_keys($catalog),$codes));
+    return array_merge($ordered,array_values(array_diff($codes,$ordered)));
+}
+function zynkoPlanChannelDisplay(array $catalog,string $code): array {
+    return $catalog[$code]??['name'=>$code,'icon'=>'fa-solid fa-plug','visible'=>false];
+}
+function zynkoPlanChannelIcon(array $catalog,string $code): string {
+    $item=zynkoPlanChannelDisplay($catalog,$code);
+    return '<span class="plan-channel-icon" data-channel="'.htmlspecialchars($code,ENT_QUOTES,'UTF-8').'"><i class="'.htmlspecialchars($item['icon'],ENT_QUOTES,'UTF-8').'" aria-hidden="true"></i></span>';
+}
+function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales incluidos'): string {
+    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').'</b><div class="plan-channel-items">';
+    foreach(zynkoPlanDisplayChannels($plan,$catalog) as $code){
+        $item=zynkoPlanChannelDisplay($catalog,$code);
+        $html.='<span class="plan-channel-chip">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.htmlspecialchars($item['name'],ENT_QUOTES,'UTF-8').'</span></span>';
+    }
+    return $html.'</div></div>';
 }
 
 function zynkoDecodeMap(mixed $value): array{

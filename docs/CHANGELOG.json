@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.31.145",
+    "date": "2026-11-18",
+    "title": "Planes con canales visibles, historial de visitas y galería progresiva",
+    "changes": [
+      "Iconos y nombres de los canales asignados a cada plan, reutilizados en detalle, miniatura, sitio público y comparativa.",
+      "WhatsApp Business como canal base de los planes de pago, sin modificar el acceso del plan Gratis.",
+      "Aviso Próximamente contenido en la columna de identidad del plan.",
+      "Historial navegable por días, semanas y meses, con visitas y visitantes únicos, sin desplazamiento horizontal.",
+      "Galería pública: cuatro capturas iniciales, ver más, ver todas y ver menos.",
+      "Esquema de instalación y actualización omnicanal sincronizados para la tabla de remitentes Graph.",
+      "Se conserva API REST v1, configuración de correo y funcionalidades existentes."
+    ]
+  },
+  {
     "version": "2.31.144",
     "date": "2026-11-18",
     "title": "Modales, catálogo comercial y remitentes de correo",
