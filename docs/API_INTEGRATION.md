@@ -157,3 +157,10 @@ HTTP 202 devuelve `data.messages[]` con `to`, `message_uuid`, `conversation_id`,
 ## Actualización 2.31.143 — API v1
 
 Los endpoints, permisos, autenticación Bearer y contratos introducidos en 2.31.142 permanecen compatibles. En Canales → Integraciones puede crear claves API para envío y webhooks para recibir eventos de ZYNKO. Un webhook no es necesario para enviar mensajes. La documentación pública y administrativa comparte los ejemplos de WhatsApp.
+
+## Actualización 2.31.144 — API v1
+
+Los endpoints y scopes de v1 se mantienen. El plan Gratis no incluye API, WhatsApp ni NIVO IA. Los planes de pago incluyen WhatsApp y API según el catálogo; la disponibilidad real de los conectores requiere autorización. La mensualidad de ZYNKO no incluye las tarifas de Meta ni otros proveedores; el cliente debe asumirlas mediante su cuenta o un mecanismo de facturación acordado.
+
+### Correo de ZYNKO
+En Correo y notificaciones, Microsoft Graph permite guardar remitentes por propósito y probar cada buzón. El envío requiere Mail.Send y permisos de acceso al buzón. Esto no modifica la API REST v1 ni habilita recepción automáticamente.

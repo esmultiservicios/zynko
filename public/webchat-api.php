@@ -862,7 +862,7 @@ if ($action === 'bootstrap') {
     try {
         $aiQuery = $pdo->prepare('SELECT enabled FROM bot_profiles WHERE tenant_id=? LIMIT 1');
         $aiQuery->execute([$tid]);
-        $aiEnabled = (int) ($aiQuery->fetchColumn() ?: 0) === 1;
+        $aiEnabled = zynkoPlanAllowsModule($planCtx,'chatbot') && (int) ($aiQuery->fetchColumn() ?: 0) === 1;
     } catch (Throwable $ignore) {
     }
 
@@ -1451,7 +1451,10 @@ if ($action === 'send') {
 
     // Una conversación entregada a un humano nunca debe volver a ser contestada por NIVO.
     // Si estaba en cola, cada nuevo mensaje vuelve a intentar una asignación a un agente disponible.
-    if ($assignedUserId > 0) {
+    $humanOnly = !zynkoPlanAllowsModule($planCtx,'chatbot');
+    if ($humanOnly && $assignedUserId === 0) {
+        $engine = ['enabled'=>false,'reply'=>null,'handoff'=>true,'source'=>'human:plan','sources'=>[],'reason'=>'plan_human_only'];
+    } elseif ($assignedUserId > 0) {
         $engine = [
             'reply' => null,
             'handoff' => true,
@@ -1563,12 +1566,12 @@ if ($action === 'send') {
                 ->execute([$cid, $tid]);
         }
 
-        if (trim((string) $reply) === '') {
+        if (trim((string) $reply) === '' && !$humanOnly) {
             $reply = $handoffAgent
                 ? 'Te transfiero con ' . $handoffAgent['name'] . '. Puedes seguir escribiendo aquí; la conversación continúa en tiempo real.'
                 : 'Necesito que una persona continúe contigo para ayudarte correctamente. Tu conversación quedó en cola y el próximo agente disponible podrá verla completa.';
             $replySource = $handoffAgent ? 'handoff:assigned' : 'handoff:notice';
-        } elseif ($handoffAgent) {
+        } elseif ($handoffAgent && !$humanOnly) {
             $reply .= ' Ya te conecté con ' . $handoffAgent['name'] . '; puedes seguir escribiendo aquí.';
         }
 

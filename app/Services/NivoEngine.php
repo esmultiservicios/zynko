@@ -324,6 +324,8 @@ final class NivoEngine
     public static function evaluate(PDO $pdo,int $tenantId,int $conversationId,string $message,string $channelType,string $contactName,string $companyName): array
     {
         $result=['enabled'=>false,'reply'=>null,'handoff'=>false,'source'=>null,'sources'=>[],'confidence'=>'none','channel'=>$channelType,'reason'=>'inactive'];
+        $plan=zynkoPlanContext($pdo,$tenantId,false);
+        if(!zynkoPlanAllowsModule($plan,'chatbot')){ $result['handoff']=true;$result['reason']='plan_human_only';return $result; }
         try{
             $q=$pdo->prepare('SELECT enabled,name,mode,fallback_message,handoff_rules_json,business_hours_json,knowledge_enabled,channel_policy_json FROM bot_profiles WHERE tenant_id=? LIMIT 1');
             $q->execute([$tenantId]);$bot=$q->fetch();

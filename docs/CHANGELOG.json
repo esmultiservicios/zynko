@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.31.144",
+    "date": "2026-11-18",
+    "title": "Modales, catálogo comercial y remitentes de correo",
+    "changes": [
+      "Filtros integrados al flujo normal de los modales, sin superposición de indicadores.",
+      "Centro de plantillas conserva el modal principal al consultar, crear o editar.",
+      "Campos técnicos de API en texto plano y cierre de actividad con estilo oscuro.",
+      "Selector rápido de idioma con preferencia persistente; ayuda contextual y traducción inicial del sitio público.",
+      "Comparativa de planes basada en catálogo real, canales y límites de IA externa.",
+      "Plan Gratis limitado a Web Chat y atención humana; cargos de proveedores externos no incluidos.",
+      "API REST v1 y credenciales existentes conservadas.",
+      "Configuración por propósito para cuatro buzones Graph, pruebas por remitente y separación de campos SMTP."
+    ]
+  },
+  {
     "version": "2.31.143",
     "date": "2026-11-18",
     "title": "Uniformidad visual, Inbox y documentación API v1",

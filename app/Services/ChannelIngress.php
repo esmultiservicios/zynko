@@ -34,8 +34,9 @@ final class ChannelIngress
     }
     public function handle(array $ch,array $events): int
     {
-        $count=0;$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$type=(string)$ch['type'];
+        $count=0;$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$type=(string)$ch['type'];$plan=zynkoPlanContext($this->pdo,$tid,false);
         foreach($events as $ev){$kind=(string)($ev['kind']??'');if(!empty(ChannelSecurity::settings($ch)['phone_conflict']))continue;if($kind==='watermark'){$this->gateway->applyWatermark($ch,(string)($ev['from']??''),(int)($ev['watermark']??0),(string)($ev['status']??'read'));$count++;continue;}if($kind==='status'){$this->gateway->applyStatus($ch,(string)($ev['external']??''),(string)($ev['status']??''),(string)($ev['from']??''),(int)($ev['error_code']??0));$count++;continue;}
+            if(!zynkoPlanAllowsChannel($plan,$type))continue;
             $from=trim((string)($ev['from']??''));if($from===''||strlen($from)>190)continue;$external=trim((string)($ev['external']??''));if($kind!=='contact'&&$external==='')continue;
             // A single transaction serializes contact/conversation creation and receipt claim per channel.
             $cid=0;$mid=0;$outId=0;$historical=!empty($ev['historical']);$echo=!empty($ev['echo']);$text=trim((string)($ev['text']??''));$name=mb_substr(trim((string)($ev['name']??''))?:$from,0,120);

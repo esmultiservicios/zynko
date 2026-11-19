@@ -17,3 +17,6 @@ Para procesar correo entrante periódicamente se puede programar:
 `php /ruta/al/proyecto/bin/email-inbound-poll.php`
 
 Una frecuencia de 5 minutos es adecuada para hosting cPanel sin webhooks push.
+
+## Remitentes de salida por propósito (2.31.144)
+Con Microsoft Graph activo, el administrador puede asignar notificaciones, acceso y seguridad, suscripciones, y soporte. Un campo vacío o pendiente de prueba conserva el buzón principal. La prueba aceptada por Graph habilita el remitente; la entrega efectiva debe revisarse en el buzón receptor. Al cambiar credenciales Graph se requieren nuevas pruebas. Los buzones deben existir y estar autorizados para Mail.Send; pruebe cada uno antes de usarlo. SMTP usa su propio remitente y no aplica estas rutas. La recepción es independiente y continúa usando el buzón principal o IMAP.

@@ -1,11 +1,13 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/../Support/Plan.php';
 
 final class AutomationEngine
 {
     public static function evaluate(PDO $pdo,int $tenantId,int $conversationId,string $channelType,string $message): ?array
     {
         try{
+            if(!zynkoPlanAllowsModule(zynkoPlanContext($pdo,$tenantId,false),'automations'))return null;
             $q=$pdo->prepare("SELECT * FROM automation_flows WHERE tenant_id=? AND status='active' AND (channel_type='all' OR channel_type=?) ORDER BY id ASC");
             $q->execute([$tenantId,$channelType]);
             $normalized=mb_strtolower(trim($message));

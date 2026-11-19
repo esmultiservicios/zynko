@@ -81,7 +81,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
 
     $modules=json_encode([
         'dashboard'=>1,'inbox'=>1,'channels'=>1,'webchat'=>1,'billing'=>1,'onboarding'=>1,
-        'users'=>1,'chatbot'=>0,'integrations'=>0,'email'=>0,'settings'=>0,'api'=>0
+        'users'=>1,'chatbot'=>0,'automations'=>0,'integrations'=>0,'email'=>0,'settings'=>0,'api'=>0
     ],JSON_UNESCAPED_SLASHES);
     $channels=json_encode(['webchat'],JSON_UNESCAPED_SLASHES);
     $features=json_encode([
@@ -95,8 +95,34 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         $st->execute([$channels,$modules,$features]);
     }else{
         $pdo->prepare("UPDATE subscription_plans SET is_default_free=0,code=NULL WHERE id<>? AND (is_default_free=1 OR code='free')")->execute([$free]);
-        $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,is_default_free=1,is_featured=0,featured_label=NULL,is_available=1,availability_label='Disponible',availability_message=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
+        $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,external_ai_included=0,external_ai_monthly_tokens=NULL,external_ai_channels_json=JSON_ARRAY(),is_default_free=1,is_featured=0,featured_label=NULL,is_available=1,availability_label='Disponible',availability_message=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
     }
+}
+
+/** Commercial catalog revision. Prices and availability remain administrable. */
+function zynkoUpgradeCommercialCatalog144(PDO $pdo): void {
+    $marker='commercial_catalog_2_31_144';
+    $pdo->beginTransaction();
+    try {
+        $claim=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES(?, '1')");
+        $claim->execute([$marker]);
+        if(!$claim->rowCount()){ $pdo->commit(); return; }
+        $catalog=[
+            'starter'=>[['webchat','whatsapp'],0,null,[],['NIVO Web Chat incluido','2 sitios autorizados para NIVO Web Chat','1 conexión externa: WhatsApp Business','500 chats nuevos por mes','API para conectar sitios y sistemas externos','Bandeja omnicanal y contactos','Usuarios de ZYNKO ilimitados']],
+            'pro'=>[['webchat','whatsapp','messenger','instagram','telegram'],1,250000,['webchat','whatsapp','messenger','instagram','telegram','api'],['NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 3 conexiones externas según canales habilitados','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados']],
+            'business'=>[['webchat','whatsapp','messenger','instagram','telegram','email'],1,1000000,['webchat','whatsapp','messenger','instagram','telegram','email','api'],['NIVO Web Chat incluido','10 sitios autorizados para NIVO Web Chat','Hasta 10 conexiones externas según canales habilitados','10,000 chats nuevos por mes','API completa con mayor capacidad','NIVO IA y automatizaciones avanzadas','Reportes avanzados y auditoría completa','Soporte prioritario','Usuarios de ZYNKO ilimitados']]
+        ];
+        $get=$pdo->prepare('SELECT id,module_access_json FROM subscription_plans WHERE code=? LIMIT 1');
+        $update=$pdo->prepare('UPDATE subscription_plans SET allowed_channels_json=?,module_access_json=?,features_json=?,external_ai_included=?,external_ai_monthly_tokens=?,external_ai_channels_json=? WHERE id=?');
+        foreach($catalog as $code=>[$channels,$ai,$tokens,$aiChannels,$features]){
+            $get->execute([$code]); $row=$get->fetch(); if(!$row)continue;
+            $modules=zynkoDecodeMap($row['module_access_json']??null);
+            $modules['chatbot']=$ai;$modules['automations']=$ai;$modules['integrations']=1;$modules['api']=1;
+            // Email administration/sending remains available; its omnichannel connection depends on the allowed channels.
+            $update->execute([json_encode($channels),json_encode($modules),json_encode($features,JSON_UNESCAPED_UNICODE),$ai,$tokens,json_encode($aiChannels),(int)$row['id']]);
+        }
+        $pdo->commit();
+    } catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
 function zynkoFreePlanId(PDO $pdo): int{
@@ -151,6 +177,7 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
 function zynkoPlanAllowsModule(array $ctx,string $module): bool{
     if(!empty($ctx['unrestricted']))return true;
     if(empty($ctx['active']))return $module==='billing';
+    if(!empty($ctx['is_free'])&&in_array($module,['chatbot','automations','integrations','api','email'],true))return false;
     if(in_array($module,['dashboard','inbox','channels','webchat','billing','onboarding','surveys','documentation','logs'],true))return true;
     $mods=$ctx['modules']??[];
     return !empty($mods[$module]);
@@ -163,6 +190,7 @@ function zynkoPlanAllowsPage(array $ctx,string $page): bool{
 function zynkoPlanAllowsChannel(array $ctx,string $channel): bool{
     if(!empty($ctx['unrestricted']))return true;
     if(empty($ctx['active']))return false;
+    if(!empty($ctx['is_free']))return $channel==='webchat';
     $allowed=$ctx['allowed_channels']??[];
     if(!$allowed)return true; // legacy paid plan without explicit channel matrix
     return in_array($channel,$allowed,true);

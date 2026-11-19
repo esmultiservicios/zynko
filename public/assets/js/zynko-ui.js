@@ -25,7 +25,7 @@
     return kind==='warning'?'fa-solid fa-check':'fa-solid fa-check';
   };
   // Compatible con las opciones utilizadas por los formularios y canales existentes.
-  let activeDialog=null;
+  let activeDialog=null, dialogSequence=0;
   window.Swal.getHtmlContainer=()=>activeDialog?.overlay.querySelector('.zynko-dialog-content')||null;
   window.Swal.getConfirmButton=()=>activeDialog?.overlay.querySelector('.zynko-dialog-confirm')||null;
   window.Swal.clickConfirm=()=>window.Swal.getConfirmButton()?.click();
@@ -35,13 +35,16 @@
   window.Swal.close=()=>activeDialog?.finish('dismiss');
   window.Swal.fire=(options={})=>new Promise(resolve=>{
     if(typeof options==='string')options={title:options};
-    if(activeDialog)activeDialog.finish('dismiss');
+    const parent=options.stack?activeDialog:null;
+    if(activeDialog&&!parent)activeDialog.finish('dismiss');
+    if(parent){parent.overlay.inert=true;parent.overlay.setAttribute('aria-hidden','true');}
     const previous=document.activeElement, confirmText=options.confirmButtonText||'Aceptar', cancelText=options.cancelButtonText||'Cancelar';
-    const overlay=document.createElement('div');overlay.className='zynko-dialog-overlay';
+    const overlay=document.createElement('div');overlay.className='zynko-dialog-overlay';overlay.style.zIndex=String(100000+(++dialogSequence));
     const icon=options.icon&&icons[options.icon]?`<span class="zynko-dialog-icon ${esc(options.icon)}">${icons[options.icon]}</span>`:'';
     const button=(kind,title,icon)=>`<button type="button" class="zynko-dialog-${kind}"><i class="${esc(icon)}"></i><span>${esc(title)}</span></button>`;
     overlay.innerHTML=`<div class="zynko-dialog" role="dialog" aria-modal="true" aria-labelledby="zynko-dialog-title">${icon}<h2 id="zynko-dialog-title">${esc(options.title||'Confirmación')}</h2>${options.text?`<p>${esc(options.text)}</p>`:''}<div class="zynko-dialog-content"></div><div class="zynko-dialog-validation" role="alert" hidden></div><div class="zynko-dialog-actions">${options.showCancelButton?button('cancel',cancelText,options.cancelButtonIcon||dialogActionIcon(cancelText,false)):''}${options.showDenyButton?button('deny',options.denyButtonText||'No','fa-solid fa-trash-can'):''}${options.showConfirmButton===false?'':button('confirm',confirmText,options.confirmButtonIcon||dialogActionIcon(confirmText,true,options.icon))}</div></div>`;
     const popup=overlay.firstElementChild, content=overlay.querySelector('.zynko-dialog-content'),validation=overlay.querySelector('.zynko-dialog-validation');
+    if(options.closeOnly)popup.classList.add('zynko-close-only');
     if(options.width){const w=typeof options.width==='number'?`${options.width}px`:String(options.width);if(CSS.supports('width',w)){popup.style.width=w;popup.style.maxWidth='calc(100vw - 32px)';}}
     const extra=options.customClass?.popup;if(typeof extra==='string')for(const c of extra.split(/\s+/).filter(Boolean))popup.classList.add(c);
     if(options.workspace){
@@ -50,6 +53,7 @@
       head.innerHTML=`<div class="modal-title-with-icon"><span class="modal-title-icon"><i class="${esc(options.workspace.icon||'fa-solid fa-layer-group')}"></i></span><span class="modal-title-copy"><b id="zynko-dialog-title">${esc(options.title||'')}</b><small>${esc(options.workspace.subtitle||'')}</small></span></div><button type="button" class="modal-close zynko-workspace-close" aria-label="Cerrar"><i class="fa-solid fa-xmark"></i></button>`;
       title.replaceWith(head);popup.classList.add('zynko-workspace');
     }
+    const titleLabel=popup.querySelector('#zynko-dialog-title');if(titleLabel){titleLabel.id='zynko-dialog-title-'+dialogSequence;popup.setAttribute('aria-labelledby',titleLabel.id);}
     if(options.html){if(options.html instanceof Node)content.append(options.html);else content.innerHTML=String(options.html);popup.classList.add('has-content');}
     let input=null;
     if(options.input){
@@ -66,13 +70,13 @@
     if(!content.childNodes.length)content.hidden=true;
     document.body.appendChild(overlay);document.body.classList.add('zynko-dialog-open');
     let settled=false,busy=false,timer=null;
-    const finish=(kind,value)=>{if(settled)return;settled=true;clearTimeout(timer);document.removeEventListener('keydown',key,true);try{options.willClose?.(popup)}catch(_){}if(window.jQuery&&jQuery.fn.select2)jQuery(popup).find('select.select2-hidden-accessible').select2('destroy');if(activeDialog?.overlay===overlay)activeDialog=null;overlay.classList.remove('open');overlay.remove();if(!document.querySelector('.zynko-dialog-overlay'))document.body.classList.remove('zynko-dialog-open');if(previous?.isConnected&&!previous.closest('[hidden]'))try{previous.focus({preventScroll:true})}catch(_){}resolve({isConfirmed:kind==='confirm',isDenied:kind==='deny',isDismissed:kind==='dismiss',value});};
+    const finish=(kind,value)=>{if(settled)return;settled=true;clearTimeout(timer);document.removeEventListener('keydown',key,true);try{options.willClose?.(popup)}catch(_){}if(window.jQuery&&jQuery.fn.select2)jQuery(popup).find('select.select2-hidden-accessible').select2('destroy');if(activeDialog?.overlay===overlay){activeDialog=parent;if(parent){parent.overlay.inert=false;parent.overlay.removeAttribute('aria-hidden');}}overlay.classList.remove('open');overlay.remove();if(!document.querySelector('.zynko-dialog-overlay'))document.body.classList.remove('zynko-dialog-open');if(previous?.isConnected&&!previous.closest('[hidden]'))try{previous.focus({preventScroll:true})}catch(_){}resolve({isConfirmed:kind==='confirm',isDenied:kind==='deny',isDismissed:kind==='dismiss',value});};
     const confirm=async()=>{if(busy||settled)return;busy=true;const btn=overlay.querySelector('.zynko-dialog-confirm');if(btn)btn.disabled=true;validation.hidden=true;try{let value=input?input.value:undefined;if(input&&!input.checkValidity()){Swal.showValidationMessage(input.validationMessage);input.focus();return;}if(options.inputValidator){const msg=await options.inputValidator(value);if(msg){Swal.showValidationMessage(msg);input?.focus();return;}}if(options.preConfirm){const v=await options.preConfirm(value);if(v===false||!validation.hidden)return;if(v!==undefined)value=v;}finish('confirm',value);}catch(e){Swal.showValidationMessage(e?.message||'No se pudo completar.');}finally{busy=false;if(btn)btn.disabled=false;}};
     const key=e=>{if(settled||activeDialog?.overlay!==overlay)return;if(e.key==='Escape'&&options.allowEscapeKey!==false){e.preventDefault();e.stopImmediatePropagation();finish('dismiss');return;}if(e.key==='Enter'&&!e.isComposing&&e.target===input&&input?.tagName!=='TEXTAREA'){e.preventDefault();e.stopImmediatePropagation();confirm();}if(e.key==='Tab'){const list=[...popup.querySelectorAll('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),a[href]')].filter(x=>x.getClientRects().length&&!x.hidden);if(list.length){const first=list[0],last=list[list.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}};
     activeDialog={overlay,input,validation,finish};
     overlay.querySelector('.zynko-workspace-close')?.addEventListener('click',()=>{if(!busy)finish('dismiss')});overlay.querySelector('.zynko-dialog-confirm')?.addEventListener('click',confirm);overlay.querySelector('.zynko-dialog-cancel')?.addEventListener('click',()=>finish('dismiss'));overlay.querySelector('.zynko-dialog-deny')?.addEventListener('click',()=>finish('deny',input?.value));
     overlay.addEventListener('click',e=>{if(e.target===overlay&&options.allowOutsideClick!==false&&!busy)finish('dismiss')});document.addEventListener('keydown',key,true);
-    requestAnimationFrame(()=>{if(settled)return;overlay.classList.add('open');const focus=input||content.querySelector('input:not([disabled]),textarea:not([disabled]),select:not([disabled])')||(options.focusConfirm===false?overlay.querySelector('.zynko-dialog-cancel'):overlay.querySelector('.zynko-dialog-confirm'));focus?.focus();try{options.didOpen?.(popup);window.ZynkoSearchSelects?.(popup)}catch(e){Swal.showValidationMessage(e?.message||'No se pudo abrir el formulario.');}});
+    requestAnimationFrame(()=>{if(settled)return;overlay.classList.add('open');const focus=input||content.querySelector('input:not([disabled]),textarea:not([disabled]),select:not([disabled])')||(options.focusConfirm===false?overlay.querySelector('.zynko-dialog-cancel'):overlay.querySelector('.zynko-dialog-confirm'));focus?.focus({preventScroll:true});try{options.didOpen?.(popup);window.ZynkoSearchSelects?.(popup)}catch(e){Swal.showValidationMessage(e?.message||'No se pudo abrir el formulario.');}});
     if(Number(options.timer)>0)timer=setTimeout(()=>finish('dismiss'),Number(options.timer));
   });
   // API única para modales premium ZYNKO. Evita diálogos nativos y mantiene el mismo comportamiento visual.

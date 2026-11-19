@@ -52,14 +52,25 @@ final class NotificationService
         return $plain === false ? '' : (string)$plain;
     }
 
-    private function cfg(int $tenantId): ?array
+    private function cfg(int $tenantId, string $purpose = 'notifications', bool $test = false): ?array
     {
         $query = $this->pdo->prepare(
             'SELECT * FROM correo WHERE tenant_id=? AND is_default=1 AND estado=1 ORDER BY correo_id DESC LIMIT 1'
         );
         $query->execute([$tenantId]);
 
-        return $query->fetch() ?: null;
+        $config = $query->fetch() ?: null;
+        if (!$config || strtoupper((string)$config['metodo_envio']) !== 'GRAPH') return $config;
+        try {
+            $route = $this->pdo->prepare('SELECT mailbox FROM mail_sender_routes WHERE tenant_id=? AND purpose=?'.($test?'':' AND verified_at IS NOT NULL'));
+            $route->execute([$tenantId,$purpose]);
+            $mailbox = trim((string)($route->fetchColumn() ?: ''));
+            if (filter_var($mailbox,FILTER_VALIDATE_EMAIL)) $config['graph_user'] = $mailbox;
+        } catch (PDOException $e) {
+            // Older installations without the new table continue using the saved primary mailbox.
+            if ($e->getCode() !== '42S02') throw $e;
+        }
+        return $config;
     }
 
     private function setting(int $tenantId): array
@@ -227,7 +238,7 @@ final class NotificationService
 
     public function sendAccountCreated(int $tenantId, string $to): array
     {
-        $config = $this->cfg($tenantId);
+        $config = $this->cfg($tenantId, 'noreply');
         if (!$config) {
             return [
                 'success' => false,
@@ -275,7 +286,7 @@ final class NotificationService
         string $code,
         string $company
     ): array {
-        $config = $this->cfg($platformTenantId);
+        $config = $this->cfg($platformTenantId, 'noreply');
         if (!$config) {
             return [
                 'success' => false,
@@ -321,7 +332,7 @@ final class NotificationService
 
     public function sendFreeAccountWelcome(int $platformTenantId, string $to, array $account): array
     {
-        $config = $this->cfg($platformTenantId);
+        $config = $this->cfg($platformTenantId, 'noreply');
         if (!$config) {
             return [
                 'success' => false,
@@ -386,7 +397,7 @@ final class NotificationService
 
     public function sendPasswordReset(int $tenantId, string $to, string $url): array
     {
-        $config = $this->cfg($tenantId);
+        $config = $this->cfg($tenantId, 'noreply');
         if (!$config) {
             return [
                 'success' => false,
@@ -455,7 +466,9 @@ final class NotificationService
         string $html,
         array $meta = []
     ): array {
-        $config = $this->cfg($platformTenantId);
+        $event = (string)($meta['event'] ?? '');
+        $purpose = str_starts_with($event,'subscription_') || str_starts_with($event,'plan_request_') ? 'billing' : (str_starts_with($event,'public_contact_') ? 'support' : 'notifications');
+        $config = $this->cfg($platformTenantId,$purpose);
         if (!$config) {
             return [
                 'success' => false,
@@ -727,9 +740,10 @@ final class NotificationService
         );
     }
 
-    public function sendTest(int $tenantId, string $to): array
+    public function sendTest(int $tenantId, string $to, string $purpose = 'primary'): array
     {
-        $config = $this->cfg($tenantId);
+        if (!in_array($purpose,['primary','notifications','noreply','billing','support'],true)) throw new InvalidArgumentException('Remitente inválido.');
+        $config = $this->cfg($tenantId,$purpose,true);
         if (!$config) {
             return [
                 'success' => false,
@@ -755,8 +769,13 @@ final class NotificationService
             'app_url' => $base . '/',
         ];
         $subject = 'ZYNKO · Prueba de correo';
+        if($purpose!=='primary' && strtoupper((string)$config['metodo_envio'])!=='GRAPH')return ['success'=>false,'message'=>'Active Microsoft Graph para probar remitentes.'];
         $html = EmailTemplates::test($settings);
         $result = $this->deliver($config, $to, $subject, $html);
+        if (!empty($result['success']) && $purpose !== 'primary') {
+            $update = $this->pdo->prepare('UPDATE mail_sender_routes SET verified_at=NOW() WHERE tenant_id=? AND purpose=? AND mailbox=?');
+            $update->execute([$tenantId,$purpose,$config['graph_user']]);
+        }
 
         $this->logSimple(
             $tenantId,
@@ -764,7 +783,7 @@ final class NotificationService
             $subject,
             $config,
             $result,
-            ['event' => 'test']
+            ['event' => 'test','sender_purpose'=>$purpose,'sender'=>strtoupper((string)$config['metodo_envio'])==='GRAPH'?($config['graph_user']??''):($config['correo']??'')]
         );
 
         return $result;
