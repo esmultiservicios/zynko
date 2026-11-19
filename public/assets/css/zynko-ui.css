@@ -6412,10 +6412,10 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
  body.zynko-phone.page-inbox .message-wrap{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere}
  body.zynko-phone.page-inbox .composer{flex:0 0 auto!important;width:100%!important;min-width:0!important;padding:6px!important}
  body.zynko-phone.page-inbox .composer-tools{flex-wrap:wrap!important;gap:4px!important;min-width:0!important}
- body.zynko-phone.page-inbox .composer-line{display:grid!important;grid-template-columns:minmax(0,1fr) 48px!important;gap:6px!important;align-items:end!important;width:100%!important;min-width:0!important}
- body.zynko-phone.page-inbox .composer-line .composer-send-btn{width:48px!important;min-width:0!important;height:44px!important;min-height:44px!important;padding:0!important;font-size:0!important}
- body.zynko-phone.page-inbox .composer-line .composer-send-btn i{font-size:15px!important}
- body.zynko-phone.page-inbox .composer-line .composer-send-btn span{display:none!important}
+ body.zynko-phone.page-inbox .composer-line{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;align-items:stretch!important;width:100%!important;min-width:0!important}
+ body.zynko-phone.page-inbox .composer-line .composer-send-btn{grid-column:1;justify-self:end;align-self:end!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;width:auto!important;min-width:112px!important;max-width:100%!important;height:44px!important;min-height:44px!important;padding:0 16px!important;font-size:12px!important;line-height:1.2!important;border-radius:11px!important;box-shadow:none!important}
+ body.zynko-phone.page-inbox .composer-line .composer-send-btn i{font-size:15px!important;line-height:1!important}
+ body.zynko-phone.page-inbox .composer-line .composer-send-btn span{display:inline!important;white-space:nowrap!important}
  body.zynko-phone.page-inbox .composer .zynko-rte-toolbar{flex-wrap:wrap!important;max-width:100%!important;gap:3px!important}
  body.zynko-phone.page-inbox .composer [contenteditable=true]{min-height:55px!important;max-height:100px!important;overflow-y:auto!important}
  body.zynko-phone.page-inbox .composer-tip{display:none!important}
