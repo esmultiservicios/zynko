@@ -17,6 +17,12 @@ function zynkoLegalCatalog(): array
             'icon' => 'fa-shield-halved',
             'description' => 'Tratamiento de datos personales y de las integraciones.',
         ],
+        'commercial_conditions' => [
+            'title' => 'Condiciones comerciales y activación',
+            'path' => 'commercial.php',
+            'icon' => 'fa-credit-card',
+            'description' => 'Suscripción, costos externos y activación asistida.',
+        ],
         'data_deletion' => [
             'title' => 'Eliminación de datos',
             'path' => 'data-deletion.php',

@@ -1,0 +1,19 @@
+# ZYNKO 2.31.151 — Fase 2 comercial
+
+## Instalación
+Conservar una copia de la base de datos y del proyecto. Copiar los archivos completos respetando sus rutas y desplegar como de costumbre. El inicio de la aplicación crea seis tablas comerciales de forma idempotente; sus definiciones están también en `database/schema.sql` y `database/upgrade-omnichannel.sql`. La inicialización añade un apartado a los documentos jurídicos existentes, archivando la versión anterior. No altera precios, permisos del catálogo ni disponibilidad. Revisar los documentos con el responsable legal antes de publicar. Los registros pendientes antiguos sin aceptación deben volver a solicitarse; los planes y cuentas ya activos permanecen intactos.
+
+## Precio y responsabilidades
+ZYNKO factura su mensualidad según el catálogo. Meta factura directamente al titular de la cuenta de WhatsApp en el modelo de facturación directa; el cliente registra su método de pago. No utilizar una línea de crédito de ZYNKO para estos clientes. Las tarifas dependen del país, categoría y volumen. Consultar https://business.whatsapp.com/products/platform-pricing . La estimación manual en Suscripciones no es una factura y no identifica mensajes facturables. Los servicios especiales requieren acuerdo previo; el catálogo no genera cargos automáticos.
+
+## Configuración del Owner
+Suscripciones → Condiciones y activación asistida: editar servicios, precio orientativo, modo, publicación y textos ES/EN. Editar presentación de cada plan y traducciones de sus beneficios. Los límites, precio, disponibilidad y canales se siguen administrando en el editor de planes original. La sección de historial muestra las últimas 100 aceptaciones por empresa (global únicamente para la plataforma). Los documentos se mantienen en el centro legal existente. El registro público y las solicitudes de cambio de plan exigen las versiones vigentes. Los cambios de plan desde solicitudes antiguas requieren una nueva aceptación del cliente.
+
+## Guía del cliente
+Canales → Asistente de vinculación de WhatsApp. Elegir número existente (Coexistence, sujeto a elegibilidad), número nuevo (Cloud API) o ayuda. Guardar avance, número internacional y observaciones. Crear o seleccionar portafolio en https://business.facebook.com/ . Autorizar mediante Embedded Signup, verificar el número y completar requisitos de Meta. Configurar el pago en https://business.facebook.com/wa/manage/ . No compartir contraseñas, tokens, PIN, códigos SMS ni tarjeta con el equipo. Realizar pruebas de recepción, envío y plantillas. La lista de preparación es declarativa, no una aprobación de Meta.
+
+## Seguimiento del equipo
+Canales → Seguimiento de solicitudes de empresas. Filtrar, asignar responsable, indicar fecha, registrar observación y actualizar estado. El cliente ve su historial. Para marcar Activado debe existir un canal oficial conectado de la misma empresa, con autorización, webhook y registro Cloud cuando aplique. No utilizar un canal de pruebas o bridge QR como evidencia de autorización comercial. El enlace del asistente reutiliza el flujo Meta existente; mantener `META_EMBEDDED_SIGNUP_ENABLED` deshabilitado hasta contar con la aprobación y configuración oficiales. El envío de correos utiliza NotificationService y la configuración de remitentes existente. No se implementa una nueva facturación de Meta ni una línea de crédito.
+
+## Comprobaciones de despliegue
+Validar primero en una base de datos de prueba: registro y verificación por correo, documentos versionados, solicitud y aprobación de plan, clientes con y sin permisos, aislamiento entre empresas, solicitudes de activación, avisos de seguimiento y regresión del flujo de Meta. No habilitar comercialmente Meta hasta que sus permisos y pruebas reales estén confirmados. La versión en inglés de los nuevos contenidos comerciales se incluye; revisar traducciones heredadas y textos legales oficiales antes de publicación definitiva.

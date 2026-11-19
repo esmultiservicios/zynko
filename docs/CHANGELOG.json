@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.31.151",
+    "date": "2026-11-19",
+    "title": "Fase 2: experiencia comercial y activación asistida",
+    "changes": [
+      "Tarjetas y comparativa comercial dinámicas con costos externos y requisitos.",
+      "Asistente de WhatsApp, seguimiento y catálogo de servicios.",
+      "Aceptación versionada en registro y solicitudes de plan."
+    ]
+  },
+  {
     "version": "2.31.150",
     "date": "2026-11-18",
     "title": "Legibilidad de formato y monitor automático",

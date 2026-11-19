@@ -739,10 +739,10 @@ body.lightbox-open{overflow:hidden}
 .docs-code-column{display:grid;gap:16px;align-content:start;min-width:0}
 .docs-code-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important}
 .docs-code-head>div{min-width:0}
-.docs-copy-btn,.docs-copy-mini{border:1px solid #d2e2e0;background:#fff;color:#0f766e;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:800;cursor:pointer;transition:.18s ease}
+.docs-copy-btn,.docs-copy-mini{border:1px solid #102c40;background:#102c40;color:#fff;border-radius:11px;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-weight:800;cursor:pointer;transition:.18s ease}
 .docs-copy-btn{height:38px;padding:0 12px;font-size:12px}
 .docs-copy-mini{height:30px;padding:0 9px;font-size:10px}
-.docs-copy-btn:hover,.docs-copy-mini:hover,.docs-copy-btn.copied,.docs-copy-mini.copied{background:#eaf8f5;border-color:#72cabb;transform:translateY(-1px)}
+.docs-copy-btn:hover,.docs-copy-mini:hover,.docs-copy-btn.copied,.docs-copy-mini.copied{background:#087f70;border-color:#087f70;color:#fff;transform:translateY(-1px)}
 .docs-response-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
 .docs-response-head>b{font-size:12px}
 .docs-code-column .docs-code-card{align-self:start}

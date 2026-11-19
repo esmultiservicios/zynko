@@ -1,6 +1,7 @@
 <?php
 $root=dirname(__DIR__);
 require_once $root.'/app/Support/LegalDocuments.php';
+require_once $root.'/app/Support/ActivationWorkflow.php';
 require_once $root.'/app/Support/Realtime.php';
 require_once $root.'/app/Support/Plan.php';
 require_once $root.'/app/Support/EnvManager.php';
@@ -404,7 +405,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.150';
+$releaseVersion='2.31.151';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -429,6 +430,7 @@ $pdo->prepare("INSERT IGNORE INTO legal_documents(document_key,title,content,ver
 zynkoSeedLegalDocuments($pdo);
 $legacyTerms="1. Objeto\nEstos Términos y Condiciones regulan el registro y uso de ZYNKO y sus servicios asociados.\n\n2. Cuenta y verificación\nLa persona que registra la empresa declara que la información proporcionada es correcta y que cuenta con autorización para administrar la cuenta. El correo electrónico debe verificarse antes de activar la empresa.\n\n3. Uso aceptable\nLa cuenta debe utilizarse de forma lícita y responsable. No se permite utilizar ZYNKO para fraude, abuso, spam, acceso no autorizado, distribución de contenido ilícito o actividades que afecten la seguridad o disponibilidad del servicio.\n\n4. Plan Gratis\nEl Plan Gratis incluye las capacidades que se muestran durante el registro. Los límites, características y disponibilidad pueden actualizarse y siempre se mostrarán dentro del sistema.\n\n5. Datos y privacidad\nLa empresa es responsable de los datos que incorpora al servicio y de contar con las autorizaciones necesarias para tratarlos. ZYNKO aplica medidas razonables de seguridad y separación de información entre empresas.\n\n6. Disponibilidad y cambios\nPodemos realizar mantenimientos, mejoras técnicas o cambios necesarios para la seguridad y continuidad del servicio. Las funciones pueden evolucionar con nuevas versiones.\n\n7. Credenciales y seguridad\nCada usuario debe proteger sus credenciales y reportar accesos no autorizados. La empresa es responsable de administrar correctamente los accesos de su equipo.\n\n8. Suspensión o cierre\nZYNKO puede limitar o suspender una cuenta cuando exista incumplimiento de estos términos, uso abusivo, riesgo de seguridad o una obligación legal que así lo requiera.\n\n9. Actualizaciones de estos términos\nCuando estos términos cambien, se publicará una nueva versión. La versión aceptada durante el registro queda registrada junto con la solicitud de creación de cuenta.\n\n10. Contacto\nPara consultas relacionadas con estos términos, utiliza los canales oficiales de soporte informados por ZYNKO.";
 try{$q=$pdo->prepare("SELECT id,content,version FROM legal_documents WHERE document_key='terms_conditions' LIMIT 1");$q->execute();$legacy=$q->fetch();if($legacy&&(int)$legacy['version']===1&&hash_equals(hash('sha256',$legacyTerms),hash('sha256',(string)$legacy['content']))){$pdo->prepare("UPDATE legal_documents SET content=?,version=2,published_at=NOW() WHERE id=?")->execute([$defaultTerms,(int)$legacy['id']]);}}catch(Throwable $e){}
+try{zynkoCommercialEnsure($pdo);}catch(Throwable $commercialError){error_log('ZYNKO commercial schema: '.$commercialError->getMessage());}
 try{$current=(string)$pdo->query("SELECT setting_value FROM system_settings WHERE setting_key='app_version'")->fetchColumn();if($current===''||version_compare($current,$releaseVersion,'<')){$pdo->prepare("UPDATE system_settings SET setting_value=? WHERE setting_key='app_version'")->execute([$releaseVersion]);}}catch(Throwable $e){}
 $pdo->exec("CREATE TABLE IF NOT EXISTS subscription_plans(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,name VARCHAR(120) NOT NULL,monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0,currency VARCHAR(8) NOT NULL DEFAULT 'HNL',max_users INT NULL,max_channels INT NULL,features_json JSON NULL,active TINYINT(1) NOT NULL DEFAULT 1,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
 $pdo->exec("CREATE TABLE IF NOT EXISTS tenant_subscriptions(id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,tenant_id BIGINT UNSIGNED NOT NULL,plan_id BIGINT UNSIGNED NOT NULL,status VARCHAR(30) NOT NULL DEFAULT 'active',starts_at DATETIME NULL,ends_at DATETIME NULL,UNIQUE KEY uq_tenant_subscription(tenant_id))");
@@ -594,6 +596,17 @@ function zynkoTrackPublicVisit(): void {
 }
 function authCsrfToken(): string { if(empty($_SESSION['auth_csrf']))$_SESSION['auth_csrf']=bin2hex(random_bytes(24));return (string)$_SESSION['auth_csrf']; }
 function assertAuthCsrf(): void { $v=(string)($_POST['csrf']??'');if($v===''||empty($_SESSION['auth_csrf'])||!hash_equals((string)$_SESSION['auth_csrf'],$v))throw new RuntimeException('La sesión del formulario venció. Actualiza la página e inténtalo nuevamente.'); }
+if(($_SERVER['REQUEST_METHOD']??'GET')==='POST' && isset($_SESSION['user']) && in_array($_POST['action']??'',['commercial_service_save','commercial_plan_copy_save','activation_save','activation_update'],true)){
+ $dest=str_starts_with((string)$_POST['action'],'commercial_')?'billing':'channels';
+ try{assertAuthCsrf();if(zynkoIsImpersonating())throw new RuntimeException('No se puede gestionar una solicitud desde una sesión de suplantación.');$cpdo=appDb();$cuid=(int)$_SESSION['user']['id'];$ctid=(int)$_SESSION['user']['tenant_id'];$act=$_POST['action'];
+  if($act==='commercial_service_save'){if(!isMainOwnerOnly())throw new RuntimeException('No autorizado.');zynkoCommercialServiceSave($cpdo,$_POST);$msg='Servicio comercial guardado.';}
+  elseif($act==='commercial_plan_copy_save'){if(!isMainOwnerOnly())throw new RuntimeException('No autorizado.');zynkoCommercialPlanCopySave($cpdo,$_POST);$msg='Presentación comercial guardada.';}
+  elseif($act==='activation_update'){if(!isPlatformOwner())throw new RuntimeException('No autorizado.');zynkoActivationAdminUpdate($cpdo,$_POST,$cuid,$root);$msg='Seguimiento actualizado.';}
+  else{if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true))throw new RuntimeException('No autorizado.');zynkoActivationSave($cpdo,$_POST,$ctid,$cuid,zynkoPlanContext($cpdo,$ctid,isPlatformOwner()),$root);$msg='Progreso de activación guardado.';}
+  $_SESSION['commercial_flash']=['success',$msg];
+ }catch(Throwable $e){if(isset($cpdo)&&$cpdo->inTransaction())$cpdo->rollBack();$_SESSION['commercial_flash']=['error',$e instanceof RuntimeException&&!($e instanceof PDOException)?$e->getMessage():'No se pudo procesar la solicitud. Revisa los registros.'];error_log('ZYNKO commercial: '.$e->getMessage());}
+ header('Location: ?page='.$dest.'#'.($dest==='billing'?'commercialServices':'activationGuide'));exit;
+}
 function zynkoPublicEmailValidator(): PublicEmailValidationService {
   global $root;
   return new PublicEmailValidationService(envConfig($root.'/.env'));
@@ -852,13 +865,16 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   }
 
   if($action==='plan_request'){
+   if(zynkoIsImpersonating())throw new RuntimeException('El cliente debe aceptar las condiciones con su propia sesión.');
    if(isPlatformOwner())throw new RuntimeException('La cuenta principal administra los planes directamente.');
    if(!in_array($_SESSION['user']['role']??'', ['owner','admin'],true))throw new RuntimeException('Solo un propietario o administrador puede solicitar un cambio de plan.');
    $plan=(int)($_POST['plan_id']??0);$note=mb_substr(trim((string)($_POST['note']??'')),0,500);
    $q=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=? AND active=1 AND is_default_free=0 AND is_available=1');$q->execute([$plan]);$targetPlan=$q->fetch();if(!$targetPlan)throw new RuntimeException('El plan solicitado no está disponible.');
+   assertAuthCsrf();$acceptedDocs=zynkoCommercialValidate($pdo,$_POST);if(!hash_equals(zynkoCommercialPlanHash($targetPlan),(string)($_POST['plan_revision']??'')))throw new RuntimeException('El plan cambió. Actualiza la página y revisa sus condiciones.');
    $q=$pdo->prepare('SELECT plan_id FROM tenant_subscriptions WHERE tenant_id=? LIMIT 1');$q->execute([$tid]);if((int)($q->fetchColumn()?:0)===$plan)throw new RuntimeException('Este ya es tu plan actual.');
    $q=$pdo->prepare("SELECT id FROM plan_upgrade_requests WHERE tenant_id=? AND plan_id=? AND status='pending' LIMIT 1");$q->execute([$tid,$plan]);if($q->fetchColumn())throw new RuntimeException('Ya tienes una solicitud pendiente para este plan.');
-   $pdo->prepare("INSERT INTO plan_upgrade_requests(tenant_id,plan_id,requested_by,status,note) VALUES(?,?,?,'pending',?)")->execute([$tid,$plan,(int)$_SESSION['user']['id'],$note?:null]);$requestId=(int)$pdo->lastInsertId();
+   $pdo->beginTransaction();try{$lock=$pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');$lock->execute([$tid]);$pending=$pdo->prepare("SELECT id FROM plan_upgrade_requests WHERE tenant_id=? AND plan_id=? AND status='pending' LIMIT 1");$pending->execute([$tid,$plan]);if($pending->fetchColumn())throw new RuntimeException('Ya tienes una solicitud pendiente para este plan.');
+   $pdo->prepare("INSERT INTO plan_upgrade_requests(tenant_id,plan_id,requested_by,status,note) VALUES(?,?,?,'pending',?)")->execute([$tid,$plan,(int)$_SESSION['user']['id'],$note?:null]);$requestId=(int)$pdo->lastInsertId();zynkoCommercialRecord($pdo,'plan_request',$requestId,$acceptedDocs,$tid,(int)$_SESSION['user']['id'],zynkoCommercialPlanSnapshot($targetPlan));$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
    $ownerContact=zynkoTenantOwner($pdo,$tid);$requestData=['request_id'=>$requestId,'tenant_id'=>$tid,'company_name'=>$ownerContact['company']??($_SESSION['user']['company']??'Empresa'),'owner_name'=>$ownerContact['name']??($_SESSION['user']['name']??''),'email'=>$ownerContact['email']??($_SESSION['user']['email']??''),'plan_id'=>$plan,'plan_name'=>$targetPlan['name'],'monthly_price'=>$targetPlan['monthly_price'],'currency'=>$targetPlan['currency'],'note'=>$note];
    try{require_once $root.'/app/Services/NotificationService.php';$ns=new NotificationService($pdo,$root);$platformTid=mainTenantId();if(!empty($requestData['email']))$ns->sendPlanRequestCustomer($platformTid,(string)$requestData['email'],$requestData);$adminMail=zynkoPlatformAdminEmail($pdo);if($adminMail!=='')$ns->sendPlanRequestAdmin($platformTid,$adminMail,$requestData);}catch(Throwable $mailError){}
    jsonOut(true,'Solicitud enviada. Te avisaremos por correo cuando sea revisada.',['request_id'=>$requestId]);
@@ -869,6 +885,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $requestId=(int)($_POST['request_id']??0);$resolution=in_array($_POST['resolution']??'',['approved','rejected'],true)?$_POST['resolution']:'';$note=mb_substr(trim((string)($_POST['note']??'')),0,500);if(!$requestId||$resolution==='')throw new RuntimeException('Solicitud inválida.');
    $q=$pdo->prepare("SELECT r.*,t.name company_name,sp.name plan_name,sp.active plan_active,sp.is_available plan_available,sp.monthly_price,sp.currency,u.name requester_name,u.email requester_email,cur.name previous_plan_name FROM plan_upgrade_requests r JOIN tenants t ON t.id=r.tenant_id JOIN subscription_plans sp ON sp.id=r.plan_id JOIN users u ON u.id=r.requested_by LEFT JOIN tenant_subscriptions ts ON ts.tenant_id=r.tenant_id LEFT JOIN subscription_plans cur ON cur.id=ts.plan_id WHERE r.id=? AND r.status='pending' LIMIT 1");$q->execute([$requestId]);$req=$q->fetch();if(!$req)throw new RuntimeException('La solicitud ya fue atendida o no existe.');
    if($resolution==='approved' && (int)$req['plan_active']!==1)throw new RuntimeException('El plan solicitado ya no está activo.');if($resolution==='approved' && (int)($req['plan_available']??0)!==1)throw new RuntimeException('El plan solicitado todavía está marcado como Próximamente y no puede aprobarse.');
+   if($resolution==='approved'){$a=$pdo->prepare("SELECT plan_json,documents_json FROM commercial_acceptances WHERE context='plan_request' AND reference_id=? AND tenant_id=?");$a->execute([$requestId,(int)$req['tenant_id']]);$accepted=$a->fetch();$p=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=?');$p->execute([(int)$req['plan_id']]);$current=$p->fetch();if(!$accepted||!$current||json_decode((string)$accepted['plan_json'],true)!=zynkoCommercialPlanSnapshot($current))throw new RuntimeException('La solicitud no tiene aceptación vigente del plan. Recházala y solicita al cliente una nueva confirmación.');foreach(zynkoCommercialDocs($pdo) as $key=>$doc){$snapshot=json_decode((string)$accepted['documents_json'],true);if(($snapshot[$key]['version']??0)!==(int)$doc['version'])throw new RuntimeException('Las condiciones cambiaron. Solicita una nueva aceptación.');}}
    $pdo->beginTransaction();
    try{
     if($resolution==='approved'){$pdo->prepare("INSERT INTO tenant_subscriptions(tenant_id,plan_id,status,starts_at) VALUES(?,?,'active',NOW()) ON DUPLICATE KEY UPDATE plan_id=VALUES(plan_id),status='active',starts_at=IF(plan_id<>VALUES(plan_id),NOW(),starts_at)")->execute([(int)$req['tenant_id'],(int)$req['plan_id']]);zynkoApplyPlanEntitlements($pdo,(int)$req['tenant_id'],(int)$req['plan_id']);$pdo->prepare("UPDATE plan_upgrade_requests SET status='cancelled',resolved_at=NOW(),resolved_by=? WHERE tenant_id=? AND status='pending' AND id<>?")->execute([(int)$_SESSION['user']['id'],(int)$req['tenant_id'],$requestId]);}
@@ -1016,6 +1033,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
     if(mb_strlen($content)>100000)throw new RuntimeException('El contenido supera el máximo permitido.');
     $expectedVersion=filter_var($_POST['document_version']??null,FILTER_VALIDATE_INT,['options'=>['min_range'=>0]]);
     if($expectedVersion===false)throw new RuntimeException('Actualiza el dashboard antes de publicar.');
+    if($expectedVersion>0){$archive=$pdo->prepare('SELECT * FROM legal_documents WHERE document_key=? AND version=?');$archive->execute([$key,$expectedVersion]);if($prior=$archive->fetch())zynkoCommercialArchive($pdo,$prior);}
     // No sobrescribir una versión publicada por otra sesión después de abrir el editor.
     if($expectedVersion===0){
       $q=$pdo->prepare('INSERT IGNORE INTO legal_documents(document_key,title,content,version,updated_by,published_at) VALUES(?,?,?,1,?,NOW())');

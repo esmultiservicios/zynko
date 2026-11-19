@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__.'/NotificationService.php';
 require_once __DIR__.'/../Support/Plan.php';
+require_once __DIR__.'/../Support/Commercial.php';
 
 final class RegistrationService{
     public function __construct(private PDO $pdo,private string $root){}
@@ -65,6 +66,7 @@ final class RegistrationService{
         if(!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Ingresa un correo válido.');
         if(strlen($pass)<8)throw new RuntimeException('La contraseña debe tener al menos 8 caracteres.');
         if($pass!==$confirm)throw new RuntimeException('Las contraseñas no coinciden.');
+        $commercialDocs=zynkoCommercialValidate($this->pdo,$data);
         if(empty($data['terms']))throw new RuntimeException('Debes aceptar los términos para crear la cuenta.');
         $terms=$this->pdo->query("SELECT version FROM legal_documents WHERE document_key='terms_conditions' LIMIT 1")->fetch();$currentTermsVersion=(int)($terms['version']??0);$submittedTermsVersion=(int)($data['terms_version']??0);if(!$currentTermsVersion)throw new RuntimeException('Los Términos y Condiciones no están disponibles en este momento.');if($submittedTermsVersion!==$currentTermsVersion)throw new RuntimeException('Los Términos y Condiciones fueron actualizados. Recarga la página, revísalos y vuelve a aceptarlos.');
         $q=$this->pdo->prepare('SELECT id FROM users WHERE email=? LIMIT 1');$q->execute([$email]);if($q->fetchColumn())throw new RuntimeException('Este correo ya tiene una cuenta en ZYNKO.');
@@ -72,7 +74,8 @@ final class RegistrationService{
         $q=$this->pdo->prepare("SELECT COALESCE(SUM(send_count),0) FROM registration_requests WHERE ip_address=? AND last_sent_at>=DATE_SUB(NOW(),INTERVAL 1 HOUR)");$q->execute([$ip]);if((int)$q->fetchColumn()>=8)throw new RuntimeException('Se alcanzó el límite temporal de registros desde esta conexión. Intenta más tarde.');
 
         $code=$this->code();$hash=password_hash($code,PASSWORD_DEFAULT);$passwordHash=password_hash($pass,PASSWORD_DEFAULT);
-        $q=$this->pdo->prepare('SELECT * FROM registration_requests WHERE email=? LIMIT 1');$q->execute([$email]);$existing=$q->fetch();
+         $this->pdo->beginTransaction();try{
+        $q=$this->pdo->prepare('SELECT * FROM registration_requests WHERE email=? LIMIT 1 FOR UPDATE');$q->execute([$email]);$existing=$q->fetch();
         if($existing){
             if(($existing['status']??'')==='verified')throw new RuntimeException('Este correo ya fue verificado. Inicia sesión.');
             if(strtotime((string)$existing['last_sent_at'])>time()-60)throw new RuntimeException('Ya enviamos un código a este correo. Espera 60 segundos antes de solicitar otro.');
@@ -84,6 +87,8 @@ final class RegistrationService{
             $st=$this->pdo->prepare("INSERT INTO registration_requests(company_name,business_id,owner_name,phone,email,password_hash,verification_code_hash,code_expires_at,ip_address,user_agent,terms_version,terms_accepted_at) VALUES(?,?,?,?,?,?,?,DATE_ADD(NOW(),INTERVAL 10 MINUTE),?,?,?,NOW())");
             $st->execute([$company,$business?:null,$owner,$phone?:null,$email,$passwordHash,$hash,$ip,mb_substr($ua,0,500),$currentTermsVersion]);$id=(int)$this->pdo->lastInsertId();
         }
+        zynkoCommercialRecord($this->pdo,'registration',$id,$commercialDocs);$this->pdo->commit();
+        }catch(Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
         $mail=(new NotificationService($this->pdo,$this->root))->sendRegistrationCode($platformTid,$email,$code,$company);
         if(empty($mail['success']))throw new RuntimeException('No pudimos enviar el código de verificación. '.$mail['message']);
         return ['request_id'=>$id,'email'=>$email,'company_name'=>$company];
@@ -110,6 +115,8 @@ final class RegistrationService{
         $slug=$this->uniqueSlug((string)$r['company_name']);
         $this->pdo->beginTransaction();
         try{
+            $lock=$this->pdo->prepare("SELECT status,verification_code_hash FROM registration_requests WHERE id=? FOR UPDATE");$lock->execute([$requestId]);$locked=$lock->fetch();if(!$locked||$locked['status']!=='pending'||!hash_equals((string)$locked['verification_code_hash'],(string)$r['verification_code_hash']))throw new RuntimeException('La solicitud cambió. Solicita un nuevo código.');
+            $accept=$this->pdo->prepare("SELECT id FROM commercial_acceptances WHERE context='registration' AND reference_id=? AND tenant_id IS NULL FOR UPDATE");$accept->execute([$requestId]);if(!$accept->fetchColumn())throw new RuntimeException('Completa el registro nuevamente para aceptar las condiciones comerciales vigentes.');
             $this->pdo->prepare("INSERT INTO tenants(uuid,name,business_id,contact_phone,registration_source,slug,status,locale,bot_name) VALUES(?,?,?,?,?,?, 'active','es','NIVO')")->execute([self::uuid4(),$r['company_name'],$r['business_id']?:null,$r['phone']?:null,'self_service',$slug]);$tenantId=(int)$this->pdo->lastInsertId();
             $this->pdo->prepare("INSERT INTO users(uuid,name,email,email_verified_at,password_hash,locale,status) VALUES(?,?,?,NOW(),?,'es','active')")->execute([self::uuid4(),$r['owner_name'],$r['email'],$r['password_hash']]);$userId=(int)$this->pdo->lastInsertId();
             $this->pdo->prepare("INSERT INTO tenant_users(tenant_id,user_id,role_code,is_owner) VALUES(?,?,'owner',1)")->execute([$tenantId,$userId]);
@@ -118,6 +125,7 @@ final class RegistrationService{
             $this->pdo->prepare("INSERT INTO channels(tenant_id,uuid,type,name,display_address,status,settings_json) VALUES(?,?, 'webchat','NIVO Web Chat','NIVO Web Chat','connected','{}')")->execute([$tenantId,self::uuid4()]);$channelId=(int)$this->pdo->lastInsertId();
             $publicKey=bin2hex(random_bytes(20));
             $this->pdo->prepare("INSERT INTO webchat_widgets(tenant_id,channel_id,name,public_key,enabled,position,display_mode,accent_color,welcome_title,assistant_subtitle,welcome_message,ask_name,ask_email,profile_required,allow_multiple_domains,created_by) VALUES(?,?,'NIVO Web Chat',?,1,'bottom-right','launcher','#0F766E','¡Hola! Soy NIVO',?,'¿En qué puedo ayudarte hoy?',1,0,0,0,?)")->execute([$tenantId,$channelId,$publicKey,'Asistente virtual de '.$r['company_name'],$userId]);
+            $this->pdo->prepare("UPDATE commercial_acceptances SET tenant_id=?,user_id=? WHERE context='registration' AND reference_id=? AND tenant_id IS NULL")->execute([$tenantId,$userId,$requestId]);
             $this->pdo->prepare("UPDATE registration_requests SET status='verified',verified_at=NOW() WHERE id=?")->execute([$requestId]);
             $this->pdo->commit();
         }catch(Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
