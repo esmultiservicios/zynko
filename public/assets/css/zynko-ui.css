@@ -6416,7 +6416,10 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
  body.zynko-phone.page-inbox .chat-head:not(.phone-actions-open) .chat-actions{display:none!important}
  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;width:100%!important;max-height:24dvh;overflow:auto}
  body.zynko-phone.page-inbox #chatExpandBtn{display:none!important}
- body.zynko-phone.page-inbox .chat-identity{width:100%!important;min-width:0!important;overflow-wrap:anywhere}
+ body.zynko-phone.page-inbox .chat-head .chat-identity{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:0 0 auto!important;margin:0!important}
+ body.zynko-phone.page-inbox .chat-head .chat-identity>b{flex:1 1 0;min-width:0;margin:0;font-size:clamp(11px,3.2vw,14px);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body.zynko-phone.page-inbox .chat-head .chat-identity>small{flex:0 1 auto;min-width:0;max-width:54%;margin:0;padding-left:8px;border-left:1px solid var(--line);font-size:clamp(9px,2.6vw,11px);line-height:1.35;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ body.zynko-phone.page-inbox .chat-head .chat-identity>small i{margin-right:3px}
  body.zynko-phone.page-inbox #messages{flex:1 1 0!important;height:auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overflow-x:hidden!important;width:100%!important}
  body.zynko-phone.page-inbox .message-wrap{min-width:0!important;max-width:100%!important;overflow-wrap:anywhere}
  body.zynko-phone.page-inbox .composer{flex:0 0 auto!important;width:100%!important;min-width:0!important;padding:6px!important}
