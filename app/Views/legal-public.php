@@ -27,7 +27,7 @@ header('Cache-Control: no-cache, must-revalidate');
 header('X-Content-Type-Options: nosniff');
 header("Content-Security-Policy: default-src 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'");
 $escape = static fn($value): string => htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-$documentTitle = $available && empty($localized['translated']) ? (string)$doc['title'] : $definition['title'];
+$documentTitle = $available ? $localized['title'] : $definition['title'];
 $published = $available && !empty($doc['published_at']) ? date('d/m/Y', strtotime($doc['published_at'])) : '';
 $cssVersion = filemtime($root.'/public/assets/css/legal-public.css');
 ?>

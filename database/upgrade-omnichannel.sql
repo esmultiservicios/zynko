@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS mail_sender_routes (tenant_id BIGINT UNSIGNED NOT NUL
 -- Fase 2: contratos y activación asistida
 CREATE TABLE IF NOT EXISTS commercial_document_versions (
  document_key VARCHAR(80) NOT NULL, version INT UNSIGNED NOT NULL, title VARCHAR(190) NOT NULL,
- content LONGTEXT NOT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
+ content LONGTEXT NOT NULL, title_en VARCHAR(190) NULL, content_en LONGTEXT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS commercial_acceptances (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, context VARCHAR(30) NOT NULL, reference_id BIGINT UNSIGNED NOT NULL,
@@ -103,16 +103,30 @@ CREATE TABLE IF NOT EXISTS commercial_plan_copy (
 INSERT IGNORE INTO channel_connector_catalog(code,name,icon_class,icon_style,description,connector_ready,visible,linkable,sort_order)
 VALUES ('threads','Threads','fa-brands fa-threads','instagram','Canal previsto; requiere un conector real y autorización del proveedor.',0,1,0,80);
 
--- Catálogo comercial estándar v024 (integrado en este único script).
--- Respaldar primero. No cambia precios, disponibilidad comercial, mensajes, credenciales ni historial.
--- max_channels incluye el cupo reservado para NIVO Web Chat.
+-- v028: traducciones en la misma revisión de los documentos legales.
+ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS title_en VARCHAR(190) NULL AFTER content, ADD COLUMN IF NOT EXISTS content_en LONGTEXT NULL AFTER title_en;
+ALTER TABLE commercial_document_versions ADD COLUMN IF NOT EXISTS title_en VARCHAR(190) NULL AFTER content, ADD COLUMN IF NOT EXISTS content_en LONGTEXT NULL AFTER title_en;
+
+-- v028: política de conexiones configurable; max_channels mantiene el cupo reservado para Web Chat.
+-- Respalde antes de actualizar. No se habilitan conectores ni se desconectan cuentas existentes.
+ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS distinct_external_types TINYINT(1) NOT NULL DEFAULT 0 AFTER max_channels;
 START TRANSACTION;
-UPDATE subscription_plans SET max_channels=1,allowed_channels_json=JSON_ARRAY('webchat') WHERE code='free';
-UPDATE subscription_plans SET max_channels=2,allowed_channels_json=JSON_ARRAY('webchat','whatsapp') WHERE code='starter';
-UPDATE subscription_plans SET max_channels=3,allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram'),features_json=JSON_ARRAY('NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados') WHERE code='pro';
-UPDATE subscription_plans SET max_channels=11,allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x') WHERE code='business';
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_plan_config_2_31_154','1');
+SET @zynko_apply_plan_config_154 := ROW_COUNT();
+UPDATE subscription_plans SET max_channels=CASE code WHEN 'free' THEN 1 WHEN 'starter' THEN 2 WHEN 'pro' THEN 3 WHEN 'business' THEN 5 ELSE max_channels END,distinct_external_types=1 WHERE @zynko_apply_plan_config_154=1 AND code IN ('free','starter','pro','business');
+UPDATE subscription_plans SET max_channels=1,allowed_channels_json=JSON_ARRAY('webchat') WHERE @zynko_apply_plan_config_154=1 AND code='free';
+UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp') WHERE @zynko_apply_plan_config_154=1 AND code='starter';
+UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram') WHERE @zynko_apply_plan_config_154=1 AND code='pro';
+UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x') WHERE @zynko_apply_plan_config_154=1 AND code='business' AND (allowed_channels_json IS NULL OR JSON_LENGTH(allowed_channels_json)=0);
+-- Eliminar únicamente los beneficios numéricos obsoletos conocidos; conservar los personalizados.
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','1 conexión externa: WhatsApp Business'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','1 conexión externa: WhatsApp Business') IS NOT NULL;
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram') IS NOT NULL;
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','Capacidad de hasta 10 conexiones externas según canales habilitados'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','Capacidad de hasta 10 conexiones externas según canales habilitados') IS NOT NULL;
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','Hasta 10 conexiones externas según canales habilitados'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','Hasta 10 conexiones externas según canales habilitados') IS NOT NULL;
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','Capacidad de hasta 3 conexiones externas según canales habilitados'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','Capacidad de hasta 3 conexiones externas según canales habilitados') IS NOT NULL;
+UPDATE subscription_plans SET features_json=JSON_REMOVE(features_json,JSON_UNQUOTE(JSON_SEARCH(features_json,'one','Hasta 3 conexiones externas según canales habilitados'))) WHERE @zynko_apply_plan_config_154=1 AND code IN ('starter','pro','business') AND JSON_SEARCH(features_json,'one','Hasta 3 conexiones externas según canales habilitados') IS NOT NULL;
 COMMIT;
-SELECT code,name,monthly_price,max_channels-1 AS cupos_externos,allowed_channels_json FROM subscription_plans WHERE code IN ('free','starter','pro','business') ORDER BY monthly_price;
+SELECT code,name,monthly_price,max_channels-1 AS cupos_externos,distinct_external_types,allowed_channels_json FROM subscription_plans ORDER BY monthly_price;
 SELECT code,visible,connector_ready,linkable FROM channel_connector_catalog ORDER BY sort_order;
--- No habilita conectores ni desconecta cuentas existentes. Revisar excesos antes de aplicar cualquier desconexión.
-SELECT ts.tenant_id,sp.code,COUNT(ch.id) AS conexiones_externas,sp.max_channels-1 AS cupos FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id JOIN channels ch ON ch.tenant_id=ts.tenant_id AND ch.type<>'webchat' AND ch.status<>'disconnected' WHERE sp.code IN ('free','starter','pro','business') GROUP BY ts.tenant_id,sp.code,sp.max_channels HAVING COUNT(ch.id)>sp.max_channels-1;
+-- Revisar cuentas heredadas por encima del nuevo cupo; no se desconectan automáticamente en esta actualización.
+SELECT ts.tenant_id,sp.code,COUNT(ch.id) AS conexiones_externas,sp.max_channels-1 AS cupos FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id JOIN channels ch ON ch.tenant_id=ts.tenant_id AND ch.type<>'webchat' AND ch.status<>'disconnected' WHERE sp.max_channels IS NOT NULL GROUP BY ts.tenant_id,sp.code,sp.max_channels HAVING COUNT(ch.id)>sp.max_channels-1;

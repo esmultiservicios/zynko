@@ -14,6 +14,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         currency VARCHAR(8) NOT NULL DEFAULT 'HNL',
         max_users INT NULL,
         max_channels INT NULL,
+        distinct_external_types TINYINT(1) NOT NULL DEFAULT 0,
         max_webchat_sites INT NULL,
         max_daily_chats INT NULL,
         max_monthly_chats INT NULL,
@@ -33,6 +34,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     zynkoPlanColumn($pdo,'subscription_plans','code','code VARCHAR(50) NULL UNIQUE AFTER id');
+    zynkoPlanColumn($pdo,'subscription_plans','distinct_external_types','distinct_external_types TINYINT(1) NOT NULL DEFAULT 0 AFTER max_channels');
     zynkoPlanColumn($pdo,'subscription_plans','max_webchat_sites','max_webchat_sites INT NULL AFTER max_channels');
     zynkoPlanColumn($pdo,'subscription_plans','max_daily_chats','max_daily_chats INT NULL AFTER max_webchat_sites');
     zynkoPlanColumn($pdo,'subscription_plans','max_monthly_chats','max_monthly_chats INT NULL AFTER max_daily_chats');
@@ -204,6 +206,26 @@ function zynkoUpgradeCommercialCatalog152(PDO $pdo): void {
     }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
 }
 
+/** v028: commercial defaults, without resetting later Owner edits or disconnecting existing accounts. */
+function zynkoUpgradePlanConfiguration154(PDO $pdo): void {
+    $pdo->beginTransaction();
+    try {
+        $mark=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_plan_config_2_31_154','1')");$mark->execute();
+        if($mark->rowCount()===1){
+            $sql="UPDATE subscription_plans SET max_channels=CASE code WHEN 'free' THEN 1 WHEN 'starter' THEN 2 WHEN 'pro' THEN 3 WHEN 'business' THEN 5 ELSE max_channels END, distinct_external_types=1 WHERE code IN ('free','starter','pro','business')";
+            $pdo->exec($sql);
+            // Preserve the catalog selection made by Owner; v022/v025 supplied the standard allowed channel lists.
+            $pdo->exec("UPDATE subscription_plans SET max_channels=1,allowed_channels_json=JSON_ARRAY('webchat') WHERE code='free'");
+            $pdo->exec("UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp') WHERE code='starter'");
+            $pdo->exec("UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram') WHERE code='pro'");
+            $pdo->exec("UPDATE subscription_plans SET allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x') WHERE code='business' AND (allowed_channels_json IS NULL OR JSON_LENGTH(allowed_channels_json)=0)");
+            $q=$pdo->query("SELECT id,features_json FROM subscription_plans WHERE code IN ('starter','pro','business')");$save=$pdo->prepare('UPDATE subscription_plans SET features_json=? WHERE id=?');
+            foreach($q->fetchAll(PDO::FETCH_ASSOC) as $row)$save->execute([json_encode(zynkoPlanDisplayFeatures($row),JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES),(int)$row['id']]);
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
+
 function zynkoFreePlanId(PDO $pdo): int{
     zynkoEnsurePlanSchema($pdo);
     $q=$pdo->query("SELECT id FROM subscription_plans WHERE is_default_free=1 AND active=1 ORDER BY id LIMIT 1");
@@ -277,29 +299,49 @@ function zynkoPlanChannelIcon(array $catalog,string $code): string {
     $item=zynkoPlanChannelDisplay($catalog,$code);
     return '<span class="plan-channel-icon" data-channel="'.htmlspecialchars($code,ENT_QUOTES,'UTF-8').'"><i class="'.htmlspecialchars($item['icon'],ENT_QUOTES,'UTF-8').'" aria-hidden="true"></i></span>';
 }
-/** Capacity is an account/number limit, not a promise that every eligible connector is live. */
+/** Capacity uses the real catalog and stored limits; NIVO has its own website quota. */
+function zynkoPlanChannelStats(array $plan,array $catalog): array {
+    $codes=zynkoPlanDisplayChannels($plan,$catalog);
+    $external=array_values(array_diff($codes,['webchat']));
+    $count=count($external);$ready=count(array_filter($external,fn($code)=>!empty($catalog[$code]['available'])));
+    $limit=zynkoPlanExternalConnectionLimit($plan);$distinct=zynkoPlanDistinctExternalTypes($plan);
+    if(!$count){$limit=0;}elseif($distinct){$limit=$limit===null?$count:min($limit,$count);}
+    return compact('codes','external','count','ready','limit','distinct')+['visible_total'=>count($codes),'ready_total'=>$ready+(in_array('webchat',$codes,true)?1:0)];
+}
+function zynkoPlanChannelHeading(array $stats,string $language='es'): string {
+    $en=$language==='en';$limit=$stats['limit'];$count=$stats['count'];
+    if($limit===0||$count===0)return $en?'No external channels':'Sin canales externos';
+    if($limit===1&&$count===1)return $en?'1 external channel':'1 canal externo';
+    if($stats['distinct'])return $en?"Choose up to $limit of $count external channels":"Elige hasta $limit de $count canales externos";
+    if($limit===null)return $en?'Unlimited external connections':'Conexiones externas ilimitadas';
+    return $en?"Up to $limit external connections":"Hasta $limit conexiones externas";
+}
+function zynkoPlanChannelDetail(array $stats,string $language='es'): string {
+    $en=$language==='en';$count=$stats['count'];$limit=$stats['limit'];
+    if(!$count||$limit===0)return $en?'NIVO Web Chat included.':'NIVO Web Chat incluido.';
+    $rule=$stats['distinct']&&$count>1?($en?'One account per channel type. ':'Una cuenta por tipo de canal. '):(!$stats['distinct']&&$count>1?($en?'Multiple accounts per eligible type allowed. ':'Se permiten varias cuentas por tipo elegible. '):'');
+    return $rule.($en?'NIVO Web Chat is included separately; it does not use an external slot.':'NIVO Web Chat se incluye por separado; no consume un cupo externo.');
+}
+function zynkoPlanChannelCountText(array $stats,string $language='es'): string {
+    $en=$language==='en';$r=$stats['ready'];$c=$stats['count'];$rt=$stats['ready_total'];$t=$stats['visible_total'];
+    return $en?"$rt of $t channels currently available · $r of $c external":"$rt de $t canales disponibles actualmente · $r de $c externos";
+}
 function zynkoPlanChannelCapacityText(array $plan,array $catalog,string $language='es'): string {
-    $en=$language==='en';$codes=array_values(array_diff(zynkoPlanDisplayChannels($plan,$catalog),['webchat']));
-    $total=zynkoPlanExternalConnectionLimit($plan);$count=count($codes);$available=count(array_filter($codes,fn($code)=>!empty($catalog[$code]['available'])));$now=$en?" $available of $count currently available.":" $available de $count disponibles actualmente.";
-    if($total===0||$count===0)return $en?'No external channels. NIVO Web Chat included.':'Sin canales externos. NIVO Web Chat incluido.';
-    if(zynkoPlanDistinctExternalTypes($plan)&&$total!==null){
-        $choose=min($total,$count);
-        return $en?"Choose up to $choose of $count external channel types (one account per type). NIVO Web Chat included.$now":"Elige hasta $choose de $count tipos de canales externos (una cuenta por tipo). NIVO Web Chat incluido.$now";
-    }
-    if($total===null)return $en?"$count eligible external channel types; unlimited connections. NIVO Web Chat included.":"$count tipos de canales externos elegibles; conexiones ilimitadas. NIVO Web Chat incluido.";
-    return $en?"Up to $total external connections across $count eligible channel types. NIVO Web Chat included.$now":"Hasta $total conexiones externas entre $count tipos de canales elegibles. NIVO Web Chat incluido.$now";
+    $stats=zynkoPlanChannelStats($plan,$catalog);
+    return zynkoPlanChannelHeading($stats,$language).'. '.zynkoPlanChannelDetail($stats,$language).' '.zynkoPlanChannelCountText($stats,$language).'.';
+}
+/** Standard numeric capacity descriptions are rendered dynamically rather than duplicated in benefits. */
+function zynkoPlanDisplayFeatures(array $plan): array {
+    return array_values(array_filter(zynkoDecodeList($plan['features_json']??null),fn($v)=>is_string($v)&&!preg_match('/^(?:(?:capacidad de )?hasta\s+|elige hasta\s+)?\d+\s+conexi[oó]n(?:es)?\s+externa(?:s)?(?:\b|:)/iu',trim($v))));
 }
 function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales elegibles',string $language='es'): string {
-    $en=$language==='en';$esc=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
-    $codes=zynkoPlanDisplayChannels($plan,$catalog);$external=array_values(array_diff($codes,['webchat']));$total=zynkoPlanExternalConnectionLimit($plan);$count=count($external);$ready=count(array_filter($external,fn($code)=>!empty($catalog[$code]['available'])));
-    $heading=$total===0||!$count?($en?'No external channels':'Sin canales externos'):($total===null?($en?'Unlimited external connections':'Conexiones externas ilimitadas'):(zynkoPlanDistinctExternalTypes($plan)?($en?'Choose up to '.min($total,$count).' of '.$count.' external channels':'Elige hasta '.min($total,$count).' de '.$count.' canales externos'):($en?'Up to '.$total.' external connections':'Hasta '.$total.' conexiones externas')));
-    $detail=$total===0||!$count?($en?'NIVO Web Chat included.':'NIVO Web Chat incluido.'):(zynkoPlanDistinctExternalTypes($plan)?($en?'One account per channel type. ':'Una cuenta por tipo de canal. '):'').($en?'NIVO Web Chat does not use an external slot.':'NIVO Web Chat no consume un cupo externo.');
-    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity"><strong>'.$esc($heading).'</strong><small>'.$esc($detail).'</small></div><div class="plan-channel-items">';
-    foreach($codes as $code){
-        $item=zynkoPlanChannelDisplay($catalog,$code);
-        $html.='<span class="plan-channel-chip">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.zynkoPlanChannelStatus($catalog,$code,$language).'</span>';
+    $esc=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');$stats=zynkoPlanChannelStats($plan,$catalog);
+    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity"><strong>'.$esc(zynkoPlanChannelHeading($stats,$language)).'</strong><small>'.$esc(zynkoPlanChannelDetail($stats,$language)).'</small></div><div class="plan-channel-items">';
+    foreach($stats['codes'] as $code){
+        $item=zynkoPlanChannelDisplay($catalog,$code);$ready=$code==='webchat'||!empty($catalog[$code]['available']);
+        $html.='<span class="plan-channel-chip '.($ready?'is-ready':'is-upcoming').'">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.zynkoPlanChannelStatus($catalog,$code,$language).'</span>';
     }
-    $html.='</div>';if($count)$html.='<small class="plan-channel-current">'.$esc($en?$ready.' of '.$count.' external channel types currently available.':$ready.' de '.$count.' tipos de canales externos disponibles actualmente.').'</small>';
+    $html.='</div><small class="plan-channel-current">'.$esc(zynkoPlanChannelCountText($stats,$language)).'</small>';
     return $html.'</div>';
 }
 
@@ -329,7 +371,7 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
         $active=in_array($status,['active','grace','trial'],true)&&((int)($p['active']??1)===1);
         return [
             'unrestricted'=>false,'has_plan'=>true,'plan_id'=>(int)$p['id'],'plan_code'=>(string)($p['code']??''),'plan_name'=>(string)$p['name'],'subscription_status'=>$status,
-            'max_users'=>$p['max_users']!==null?(int)$p['max_users']:null,'max_channels'=>$p['max_channels']!==null?(int)$p['max_channels']:null,
+            'max_users'=>$p['max_users']!==null?(int)$p['max_users']:null,'max_channels'=>$p['max_channels']!==null?(int)$p['max_channels']:null,'distinct_external_types'=>(int)($p['distinct_external_types']??(($p['code']??'')==='pro')), 
             'max_webchat_sites'=>$p['max_webchat_sites']!==null?(int)$p['max_webchat_sites']:null,'max_daily_chats'=>$p['max_daily_chats']!==null?(int)$p['max_daily_chats']:null,'max_monthly_chats'=>$p['max_monthly_chats']!==null?(int)$p['max_monthly_chats']:null,
             'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active,
             'external_ai_included'=>(int)($p['external_ai_included']??0)===1,'external_ai_monthly_tokens'=>$p['external_ai_monthly_tokens']!==null?(int)$p['external_ai_monthly_tokens']:null,'external_ai_channels'=>$externalAiChannels
@@ -377,7 +419,8 @@ function zynkoPlanExternalConnectionLimit(array $ctx): ?int{
     return $total===null?null:max(0,$total-1);
 }
 function zynkoPlanDistinctExternalTypes(array $ctx): bool {
-    return empty($ctx['unrestricted'])&&($ctx['plan_code']??$ctx['code']??'')==='pro';
+    if(!empty($ctx['unrestricted']))return false;
+    return array_key_exists('distinct_external_types',$ctx)?!empty($ctx['distinct_external_types']):(($ctx['plan_code']??$ctx['code']??'')==='pro');
 }
 function zynkoPlanExternalConnectionUsage(PDO $pdo,int $tenantId): int{
     $q=$pdo->prepare("SELECT COUNT(*) FROM channels WHERE tenant_id=? AND type<>'webchat' AND status<>'disconnected'");$q->execute([$tenantId]);return (int)$q->fetchColumn();
@@ -390,7 +433,7 @@ function zynkoPlanConnectionDenial(array $ctx,string $type,array $connections,in
     $active=array_values(array_filter($connections,fn($r)=>($r['type']??'')!=='webchat'&&($r['status']??'')!=='disconnected'&&(int)($r['id']??0)!==$existingId));
     $limit=zynkoPlanExternalConnectionLimit($ctx);
     if($limit!==null&&count($active)>=$limit)return 'Alcanzaste el límite de '.$limit.' conexiones externas de tu plan. Desconecta una conexión para liberar un cupo.';
-    if(zynkoPlanDistinctExternalTypes($ctx))foreach($active as $r)if(($r['type']??'')===$type)return 'El plan Pro permite una cuenta por tipo de canal. Elige otro canal o cambia a Business.';
+    if(zynkoPlanDistinctExternalTypes($ctx))foreach($active as $r)if(($r['type']??'')===$type)return 'Tu plan permite una cuenta por tipo de canal. Elige otro canal o solicita un cambio de plan.';
     return null;
 }
 /** Call under the tenant row lock for admission; an existing enabled connection can still be maintained. */

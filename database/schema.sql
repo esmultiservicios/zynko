@@ -6,7 +6,8 @@ CREATE TABLE users (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, uuid CHAR(36)
 CREATE TABLE teams (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, uuid CHAR(36) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, active TINYINT(1) NOT NULL DEFAULT 1, INDEX(tenant_id));
 CREATE TABLE tenant_users (tenant_id BIGINT UNSIGNED NOT NULL, user_id BIGINT UNSIGNED NOT NULL, role_code VARCHAR(40) NOT NULL DEFAULT 'agent', team_id BIGINT UNSIGNED NULL, is_owner TINYINT(1) NOT NULL DEFAULT 0, PRIMARY KEY(tenant_id,user_id), INDEX(team_id));
 CREATE TABLE roles (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NULL, code VARCHAR(40) NOT NULL, name VARCHAR(80) NOT NULL, permissions_json JSON NOT NULL, UNIQUE KEY uq_role(tenant_id,code));
-CREATE TABLE plans (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0, currency CHAR(3) NOT NULL DEFAULT 'HNL', max_users INT NULL, max_channels INT NULL, features_json JSON NULL, active TINYINT(1) NOT NULL DEFAULT 1);
+CREATE TABLE plans (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, code VARCHAR(50) NOT NULL UNIQUE, name VARCHAR(100) NOT NULL, monthly_price DECIMAL(12,2) NOT NULL DEFAULT 0, currency CHAR(3) NOT NULL DEFAULT 'HNL', max_users INT NULL, max_channels INT NULL,
+ distinct_external_types TINYINT(1) NOT NULL DEFAULT 0, features_json JSON NULL, active TINYINT(1) NOT NULL DEFAULT 1);
 CREATE TABLE subscriptions (id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL, plan_id BIGINT UNSIGNED NOT NULL, status ENUM('trial','active','past_due','suspended','cancelled') NOT NULL DEFAULT 'trial', starts_at DATETIME NOT NULL, renews_at DATETIME NULL, grace_until DATETIME NULL, monthly_amount DECIMAL(12,2) NOT NULL, currency CHAR(3) NOT NULL DEFAULT 'HNL', notes VARCHAR(500), INDEX(tenant_id,status));
 
 CREATE TABLE channel_connector_catalog (
@@ -308,9 +309,9 @@ CREATE TABLE IF NOT EXISTS registration_requests (
 -- max_channels reserva un cupo para NIVO Web Chat: externos 0 / 1 / 2 / 10.
 INSERT IGNORE INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,external_ai_included,external_ai_monthly_tokens,external_ai_channels_json,is_default_free,is_featured,featured_label,is_available,availability_label,availability_message,active) VALUES
 ('free','Gratis',0,'USD',NULL,1,1,5,NULL,JSON_ARRAY('webchat'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',0,'automations',0,'integrations',0,'email',0,'settings',0,'api',0),JSON_ARRAY('NIVO Web Chat incluido','1 sitio autorizado para NIVO Web Chat','5 chats nuevos por día','Mensajes ilimitados dentro de cada chat','Usuarios de ZYNKO ilimitados'),0,NULL,JSON_ARRAY(),1,0,NULL,1,'Disponible',NULL,1),
-('starter','Starter',19,'USD',NULL,2,2,NULL,500,JSON_ARRAY('webchat','whatsapp'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',0,'automations',0,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','2 sitios autorizados para NIVO Web Chat','1 conexión externa: WhatsApp Business','500 chats nuevos por mes','API para conectar sitios y sistemas externos','Bandeja omnicanal y contactos','Usuarios de ZYNKO ilimitados'),0,NULL,JSON_ARRAY(),0,0,NULL,0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1),
-('pro','Pro',49,'USD',NULL,3,5,NULL,3000,JSON_ARRAY('webchat','whatsapp','messenger','instagram'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'automations',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados'),1,250000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','api'),0,1,'Más popular',0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1),
-('business','Business',99,'USD',NULL,11,10,NULL,10000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'automations',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','10 sitios autorizados para NIVO Web Chat','Capacidad de hasta 10 conexiones externas según canales habilitados','10,000 chats nuevos por mes','API completa con mayor capacidad','NIVO IA y automatizaciones avanzadas','Reportes avanzados y auditoría completa','Soporte prioritario','Usuarios de ZYNKO ilimitados'),1,1000000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','api'),0,0,NULL,0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1);
+('starter','Starter',19,'USD',NULL,2,2,NULL,500,JSON_ARRAY('webchat','whatsapp'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',0,'automations',0,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','2 sitios autorizados para NIVO Web Chat','500 chats nuevos por mes','API para conectar sitios y sistemas externos','Bandeja omnicanal y contactos','Usuarios de ZYNKO ilimitados'),0,NULL,JSON_ARRAY(),0,0,NULL,0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1),
+('pro','Pro',49,'USD',NULL,3,5,NULL,3000,JSON_ARRAY('webchat','whatsapp','messenger','instagram'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'automations',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados'),1,250000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','api'),0,1,'Más popular',0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1),
+('business','Business',99,'USD',NULL,5,10,NULL,10000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x'),JSON_OBJECT('dashboard',1,'inbox',1,'channels',1,'webchat',1,'billing',1,'onboarding',1,'users',1,'chatbot',1,'automations',1,'integrations',1,'email',1,'settings',1,'api',1),JSON_ARRAY('NIVO Web Chat incluido','10 sitios autorizados para NIVO Web Chat','10,000 chats nuevos por mes','API completa con mayor capacidad','NIVO IA y automatizaciones avanzadas','Reportes avanzados y auditoría completa','Soporte prioritario','Usuarios de ZYNKO ilimitados'),1,1000000,JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','api'),0,0,NULL,0,'Próximamente','Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',1);
 
 CREATE TABLE IF NOT EXISTS ai_provider_settings(
  id TINYINT UNSIGNED NOT NULL PRIMARY KEY DEFAULT 1,
@@ -493,7 +494,10 @@ CREATE TABLE IF NOT EXISTS whatsapp_ai_calls (
 );
 
 CREATE TABLE system_settings (setting_key VARCHAR(80) PRIMARY KEY, setting_value VARCHAR(255) NOT NULL, updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP);
-INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.153');
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('app_version','2.31.154');
+-- Los planes incluidos ya reflejan la configuración comercial vigente; evitar migraciones históricas que los reescriban.
+INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES ('commercial_catalog_2_31_144','1'),('commercial_whatsapp_2_31_145','1'),('commercial_catalog_2_31_146','1'),('commercial_catalog_2_31_152','1'),('commercial_plan_config_2_31_154','1');
+UPDATE subscription_plans SET distinct_external_types=1 WHERE code IN ('free','starter','pro','business');
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES
 ('seo_site_name','ZYNKO'),
 ('seo_description','Plataforma SaaS omnicanal para centralizar conversaciones, Web Chat, automatización y atención humana.'),
@@ -539,6 +543,8 @@ CREATE TABLE IF NOT EXISTS legal_documents(
   document_key VARCHAR(80) NOT NULL UNIQUE,
   title VARCHAR(190) NOT NULL,
   content LONGTEXT NOT NULL,
+  title_en VARCHAR(190) NULL,
+  content_en LONGTEXT NULL,
   version INT UNSIGNED NOT NULL DEFAULT 1,
   updated_by BIGINT UNSIGNED NULL,
   published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -845,7 +851,7 @@ CREATE TABLE IF NOT EXISTS channel_structured_outbox (
 -- Fase 2: contratos y activación asistida
 CREATE TABLE IF NOT EXISTS commercial_document_versions (
  document_key VARCHAR(80) NOT NULL, version INT UNSIGNED NOT NULL, title VARCHAR(190) NOT NULL,
- content LONGTEXT NOT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
+ content LONGTEXT NOT NULL, title_en VARCHAR(190) NULL, content_en LONGTEXT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS commercial_acceptances (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, context VARCHAR(30) NOT NULL, reference_id BIGINT UNSIGNED NOT NULL,

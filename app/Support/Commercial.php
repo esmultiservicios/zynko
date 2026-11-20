@@ -24,7 +24,7 @@ function zynkoCommercialEnsure(PDO $pdo): void {
  $sql=<<<'SQL'
 CREATE TABLE IF NOT EXISTS commercial_document_versions (
  document_key VARCHAR(80) NOT NULL, version INT UNSIGNED NOT NULL, title VARCHAR(190) NOT NULL,
- content LONGTEXT NOT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
+ content LONGTEXT NOT NULL, title_en VARCHAR(190) NULL, content_en LONGTEXT NULL, published_at DATETIME NOT NULL, PRIMARY KEY(document_key,version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 CREATE TABLE IF NOT EXISTS commercial_acceptances (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, context VARCHAR(30) NOT NULL, reference_id BIGINT UNSIGNED NOT NULL,
@@ -56,6 +56,8 @@ CREATE TABLE IF NOT EXISTS commercial_plan_copy (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 SQL;
  foreach(explode(';',$sql) as $statement)if(trim($statement)!=='')$pdo->exec($statement);
+ zynkoPlanColumn($pdo,'commercial_document_versions','title_en','title_en VARCHAR(190) NULL AFTER content');
+ zynkoPlanColumn($pdo,'commercial_document_versions','content_en','content_en LONGTEXT NULL AFTER title_en');
  $pdo->prepare("INSERT IGNORE INTO legal_documents(document_key,title,content,version,published_at) VALUES('commercial_conditions','Condiciones comerciales y activación / Commercial conditions',?,1,NOW())")->execute([zynkoCommercialText()]);
  // One-time append, preserving Owner-edited documents. Archive before publication.
  $pdo->beginTransaction();
@@ -81,10 +83,11 @@ SQL;
  ] as $row)$ins->execute($row);} $pdo->commit();}catch(Throwable $e){$pdo->rollBack();throw $e;}
 }
 function zynkoCommercialArchive(PDO $pdo,array $doc): void {
- $pdo->prepare('INSERT IGNORE INTO commercial_document_versions(document_key,version,title,content,published_at) VALUES(?,?,?,?,?)')->execute([$doc['document_key'],$doc['version'],$doc['title'],$doc['content'],$doc['published_at']]);
+ $localized=zynkoLegalLocalizedDocument((string)$doc['document_key'],$doc,'en');
+ $pdo->prepare('INSERT IGNORE INTO commercial_document_versions(document_key,version,title,content,title_en,content_en,published_at) VALUES(?,?,?,?,?,?,?)')->execute([$doc['document_key'],$doc['version'],$doc['title'],$doc['content'],empty($localized['fallback'])?$localized['title']:null,empty($localized['fallback'])?$localized['content']:null,$doc['published_at']]);
 }
 function zynkoCommercialDocs(PDO $pdo): array {
- $rows=$pdo->query("SELECT document_key,title,content,version,published_at FROM legal_documents WHERE document_key IN ('terms_conditions','privacy_policy','commercial_conditions')")->fetchAll();$out=[];foreach($rows as $row)$out[$row['document_key']]=$row;return $out;
+ $rows=$pdo->query("SELECT document_key,title,content,title_en,content_en,version,published_at FROM legal_documents WHERE document_key IN ('terms_conditions','privacy_policy','commercial_conditions')")->fetchAll();$out=[];foreach($rows as $row)$out[$row['document_key']]=$row;return $out;
 }
 function zynkoCommercialValidate(PDO $pdo,array $data): array {
  $docs=zynkoCommercialDocs($pdo);$versions=[];
@@ -93,7 +96,7 @@ function zynkoCommercialValidate(PDO $pdo,array $data): array {
  foreach($docs as $key=>$doc){zynkoCommercialArchive($pdo,$doc);$versions[$key]=['version'=>(int)$doc['version'],'sha256'=>hash('sha256',(string)$doc['content'])];}return $versions;
 }
 function zynkoCommercialPlanSnapshot(array $plan): array {
- $out=[];foreach(['id','code','name','monthly_price','currency','max_users','max_channels','max_webchat_sites','max_daily_chats','max_monthly_chats','allowed_channels_json','module_access_json','features_json','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json'] as $key)$out[$key]=(string)($plan[$key]??'');return $out;
+ $out=[];foreach(['id','code','name','monthly_price','currency','max_users','max_channels','distinct_external_types','max_webchat_sites','max_daily_chats','max_monthly_chats','allowed_channels_json','module_access_json','features_json','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json'] as $key)$out[$key]=(string)($plan[$key]??'');return $out;
 }
 function zynkoCommercialPlanHash(array $plan): string {return hash('sha256',json_encode(zynkoCommercialPlanSnapshot($plan),JSON_THROW_ON_ERROR));}
 function zynkoCommercialRecord(PDO $pdo,string $context,int $reference,array $versions,?int $tenant=null,?int $user=null,?array $plan=null): void {

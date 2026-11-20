@@ -112,7 +112,7 @@ function zynkoFindLegalDocument(PDO $pdo, string $key): ?array
     if (!isset(zynkoLegalCatalog()[$key])) {
         return null;
     }
-    $query = $pdo->prepare('SELECT title,content,version,published_at FROM legal_documents WHERE document_key=? LIMIT 1');
+    $query = $pdo->prepare('SELECT title,content,title_en,content_en,version,published_at FROM legal_documents WHERE document_key=? LIMIT 1');
     $query->execute([$key]);
     $row = $query->fetch(PDO::FETCH_ASSOC);
     return is_array($row) ? $row : null;
