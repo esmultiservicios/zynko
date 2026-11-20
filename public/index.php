@@ -1016,6 +1016,14 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   if($action==='public_showcase_reset'){
     if(!isMainOwnerOnly())throw new RuntimeException('Solo el Owner principal puede administrar las imágenes del sitio público.');$key=preg_replace('/[^a-z0-9_-]/','',strtolower((string)($_POST['key']??'')));$path=$root.'/storage/public-showcase.json';$saved=[];if(is_file($path)){$tmp=json_decode((string)@file_get_contents($path),true);if(is_array($tmp))$saved=$tmp;}unset($saved[$key]);zynkoSavePublicShowcaseOverrides($saved);jsonOut(true,'Vista restaurada a la imagen incluida en ZYNKO.');
   }
+  if($action==='public_faq_save'){
+    if(!isPlatformOwner()||zynkoIsImpersonating())throw new RuntimeException('Solo la empresa principal puede administrar las preguntas frecuentes.');
+    assertAuthCsrf();require_once $root.'/app/Support/PublicFaq.php';
+    $input=$_POST['faq']??null;if(!is_array($input))throw new RuntimeException('Preguntas frecuentes no válidas.');
+    $items=zynkoPublicFaqSettings($input);$pdo->beginTransaction();
+    try{$st=$pdo->prepare('INSERT INTO system_settings(setting_key,setting_value,updated_by) VALUES(?,?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value),updated_by=VALUES(updated_by)');foreach($items as $key=>$value)$st->execute([$key,$value,(int)$_SESSION['user']['id']]);$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+    jsonOut(true,'Preguntas frecuentes guardadas correctamente.');
+  }
   if($action==='public_site_save'){
     if(!isPlatformOwner())throw new RuntimeException('Solo la empresa principal puede administrar el sitio público y las redes sociales.');
     $parentName=mb_substr(trim((string)($_POST['public_parent_name']??'ES MULTISERVICIOS')),0,100);$parentUrl=trim((string)($_POST['public_parent_url']??''));

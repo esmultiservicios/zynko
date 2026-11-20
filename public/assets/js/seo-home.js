@@ -119,11 +119,6 @@
     renderShowcase();
   }
 
-  const faq=[...document.querySelectorAll('.faq-grid details')];
-  faq.forEach(item=>item.addEventListener('toggle',()=>{
-    if(!item.open)return;faq.forEach(other=>{if(other!==item&&other.open)other.open=false});
-  }));
-
   const lightbox=document.getElementById('showcaseLightbox');
   const lightboxImage=document.getElementById('showcaseLightboxImage');
   const lightboxTitle=document.getElementById('showcaseLightboxTitle');
