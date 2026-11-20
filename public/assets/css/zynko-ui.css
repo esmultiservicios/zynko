@@ -3968,8 +3968,14 @@ body:has(.inbox-premium-toolbar) .attachment-preview:empty{
   display:none!important;
 }
 body:has(.inbox-premium-toolbar) .attachment-preview:not(:empty){
-  margin:0 0 6px!important;
+  display:flex!important;flex-wrap:nowrap!important;align-items:center;gap:6px!important;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;max-height:46px;box-sizing:border-box;margin:0 0 5px!important;padding:1px 0 3px;scrollbar-width:thin;
 }
+.attachment-preview .inbox-pending-file{display:flex;align-items:center;flex:0 0 auto;min-width:0;max-width:min(260px,82%);height:34px;gap:6px;padding:3px 4px 3px 6px;box-sizing:border-box;background:var(--surface2);border:1px solid var(--line);border-radius:8px}
+.attachment-preview .inbox-pending-file>img{width:26px;height:26px;object-fit:cover;border-radius:4px;flex:none}
+.attachment-preview .inbox-pending-file>i{flex:none;color:#087e75}.attachment-preview .inbox-pending-file>i.fa-file-pdf{color:#b42318}
+.attachment-preview .inbox-pending-file .inbox-pending-file-name{min-width:0;flex:1;max-width:none;padding:0;border:0;background:transparent;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.attachment-preview .inbox-pending-file-remove{flex:0 0 25px;display:grid;place-items:center;width:25px;min-width:25px;height:25px;min-height:25px;padding:0!important;border:0!important;border-radius:6px;background:#10283a!important;color:#fff!important;box-shadow:none!important;margin:0!important}.attachment-preview .inbox-pending-file-remove:hover{background:#b42318!important;color:#fff!important}
+
 @media(max-width:760px){
   body:has(.inbox-premium-toolbar) .pro-composer{
     padding:8px!important;
@@ -5695,7 +5701,8 @@ body:has(.inbox-premium-toolbar) .inbox-layout.chat-expanded>.chat{grid-column:1
   border-radius:16px!important;
   border:1px solid #dbe8e5!important;
   box-shadow:0 24px 60px rgba(10,28,42,.18)!important;
-  overflow:hidden;
+  overflow:auto;
+  overscroll-behavior:contain;
 }
 .flyout>small{font-size:10px!important;font-weight:900!important;letter-spacing:.12em!important;color:#6f8293!important;padding:2px 6px 0}
 .flyout>b{font-size:14px!important;color:#10283a!important;padding:0 6px 6px;border-bottom:1px solid #e8efef}
@@ -6679,7 +6686,7 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
 
 .inbox-phone-fields .select2-container,.inbox-new-body .select2-container{max-width:100%;min-width:0}
 .inbox-contact-status{color:var(--muted);display:block;margin-bottom:8px;overflow-wrap:anywhere}
-.inbox-phone-input-group{display:flex;align-items:center;gap:0;min-width:0;width:100%;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:3px;overflow:hidden}.inbox-phone-input-group:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 16%,transparent)}.inbox-phone-input-group input{flex:1 1 0;min-width:0!important;width:0!important;border:0!important;border-radius:0!important;outline:none!important;box-shadow:none!important;background:transparent!important;margin:0!important;padding:5px 8px!important;min-height:30px!important;height:30px!important}.inbox-phone-input-group .inbox-copy-number{margin:0!important;flex:0 0 30px;width:30px!important;min-width:30px!important;min-height:30px!important;height:30px!important;display:grid!important;place-items:center;border:0!important;border-radius:7px!important;background:#10283a!important;color:#fff!important;padding:0!important;box-shadow:none!important}.inbox-phone-input-group .inbox-copy-number:hover{background:#17384f!important}
+ .inbox-phone-input-group{display:flex;align-items:stretch;gap:0;min-width:0;width:100%;max-width:100%;box-sizing:border-box;padding:0;border:0;background:transparent}.inbox-phone-input-group input{flex:1 1 0;min-width:0!important;width:0!important;border:1px solid var(--line)!important;border-right:0!important;border-radius:9px 0 0 9px!important;outline:none!important;box-shadow:none!important;background:var(--surface)!important;margin:0!important;padding:8px 10px!important;min-height:38px!important;height:38px!important;cursor:default}.inbox-phone-input-group .inbox-copy-number{margin:0!important;flex:0 0 38px;width:38px!important;min-width:38px!important;min-height:38px!important;height:38px!important;display:grid!important;place-items:center;border:1px solid #10283a!important;border-radius:0 9px 9px 0!important;background:#10283a!important;color:#fff!important;padding:0!important;box-shadow:none!important}.inbox-phone-input-group .inbox-copy-number:hover{background:#17384f!important}.inbox-phone-input-group .inbox-copy-number:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px}
 /* Inbox toolbar: actions live in the existing header, search only consumes space when open. */
 .inbox-more-menu{position:relative;flex:none;min-width:0}.inbox-more-menu>summary{list-style:none;display:flex!important;align-items:center;gap:6px;cursor:pointer;background:#10283a!important;color:#fff!important;border:1px solid #10283a!important;border-radius:9px;padding:10px 12px;font-weight:750;font-size:12px;white-space:nowrap}.inbox-more-menu>summary::-webkit-details-marker{display:none}.inbox-more-menu>summary:hover{background:#17384f!important}.inbox-more-menu .inbox-more-options{position:absolute;right:0;top:calc(100% + 6px);width:min(230px,calc(100vw - 40px));z-index:150;display:grid;gap:6px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 28px rgba(16,40,58,.18)}.inbox-more-menu:not([open]) .inbox-more-options{display:none}.inbox-more-options button{width:100%;justify-content:flex-start!important;white-space:normal!important;min-width:0;text-align:left}.inbox-chat-search .soft,.inbox-copy-message,.inbox-clear-files,.message-pdf-preview{background:#10283a!important;color:#fff!important;border-color:#10283a!important}
 .inbox-chat-search{display:flex;gap:10px;align-items:center;min-width:0;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);flex:0 0 auto}.inbox-search-input{display:flex;align-items:center;gap:9px;flex:1 1 auto;min-width:0;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}.inbox-search-input>i{color:var(--muted)}.inbox-search-input input{flex:1;min-width:0;width:100%;height:40px;min-height:40px;border:0!important;background:transparent!important;color:var(--text);outline:none!important;box-shadow:none!important;padding:7px 0!important;font:inherit}.inbox-search-input:focus-within{border-color:#1bb89d;box-shadow:0 0 0 2px rgba(27,184,157,.15)}.inbox-chat-search small{flex:0 1 auto;white-space:normal;font-size:11px}.inbox-contact-name-card .inbox-contact-name-body{padding:18px 20px}.inbox-contact-name-card .modal-actions{justify-content:flex-end}
@@ -6695,7 +6702,7 @@ body.page-inbox .message-pdf-preview i{color:#fca5a5;font-size:1.2rem;flex:none}
 #messageMediaModalPdf{width:100%;height:62dvh;border:0;background:#f3f7f8;border-radius:8px}
 #messageMediaModalFiles{width:100%;display:grid;gap:8px}
 #messageMediaModalFiles button,#messageMediaModalFiles a{display:block;width:100%;padding:12px!important;overflow-wrap:anywhere;text-align:left;border-radius:8px;background:#10283a!important;color:#fff!important}
-body.page-inbox .inbox-clear-files{align-self:flex-end;margin:4px 10px}
+
 @media(max-width:600px){.inbox-chat-search{padding:7px 8px;gap:6px;flex-wrap:wrap}.inbox-chat-search small{font-size:10px}#newConversationModal .inbox-new-phone-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}#newConversationModal .inbox-new-phone-grid label{font-size:11px;line-height:1.4}.inbox-more-menu .inbox-more-options{position:static;width:100%;box-shadow:none;margin-top:5px}.inbox-more-menu[open]{grid-column:1/-1}.inbox-more-menu>summary{justify-content:center}#newConversationModal .inbox-new-body{padding:12px}#newConversationModal .modal-actions{padding:10px 12px}#messageMediaModalPdf{height:55dvh}}
 
 /* Compact mobile rich-text toolbar. Extra formatting is expanded only on demand. */
@@ -6739,5 +6746,5 @@ body.page-channels .channel-state[data-channel-status="upcoming"]{background:#ff
 
 /* Compact Inbox controls: scoped to the contact profile and phone formatting menu. */
 body.page-inbox .info .inbox-phone-hint{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;line-height:1.25}
-body.page-inbox .info .customer-facts .fact-card{min-height:42px!important;height:auto!important;padding:6px!important;justify-content:flex-start!important;gap:3px!important}body.page-inbox .info .customer-facts .fact-card small,body.page-inbox .info .customer-facts .fact-card b{margin:0!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.2!important}
+body.page-inbox .info .customer-facts .fact-card{min-height:38px!important;height:auto!important;padding:5px 4px!important;justify-content:center!important;align-items:center!important;text-align:center!important;gap:3px!important;min-width:0}body.page-inbox .info .customer-facts .fact-card small,body.page-inbox .info .customer-facts .fact-card b{margin:0!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.2!important;text-align:center!important;max-width:100%}
 @media(max-width:600px){body.zynko-phone.page-inbox .phone-chat-nav button>i{flex:none;margin:0!important;line-height:1!important}body.zynko-phone.page-inbox .phone-chat-nav button>span{line-height:1.2;min-width:0}body .zynko-rte-toolbar.rte-extra-open>.zynko-rte-extra{padding:4px!important;gap:2px!important;max-height:min(260px,54dvh)!important}body .zynko-rte-toolbar .zynko-rte-extra button.rte-menu-item{padding:4px 7px!important;min-height:30px!important;height:auto!important;gap:7px!important;line-height:1.2!important}body .zynko-rte-toolbar .zynko-rte-extra button.rte-menu-item>i{width:24px!important;height:24px!important;min-width:24px!important;font-size:12px!important}}

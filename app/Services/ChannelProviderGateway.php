@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__.'/../Support/ChannelSecurity.php';
+require_once __DIR__.'/../Support/AttachmentMime.php';
 require_once __DIR__.'/../Support/Realtime.php';
 require_once __DIR__.'/../Support/Plan.php';
 require_once __DIR__.'/../Support/ChannelIdentity.php';
@@ -149,7 +150,7 @@ final class ChannelProviderGateway
         $base=realpath($this->root.'/public/uploads');
         if(!preg_match('#^uploads/(?:chat|quick-replies|quick_replies)/'.preg_quote((string)$tid,'#').'/[A-Za-z0-9_./-]+$#D',$url)||str_contains($url,'..')||!$base)throw new ChannelDispatchException('Adjunto fuera del espacio de la empresa.');
         $path=realpath($this->root.'/public/'.$url);if(!$path||!str_starts_with($path,$base.DIRECTORY_SEPARATOR)||!is_file($path)||filesize($path)>10*1024*1024)throw new ChannelDispatchException('Adjunto no disponible o superior a 10 MB.');
-        $mime=(new finfo(FILEINFO_MIME_TYPE))->file($path)?:'application/octet-stream';$type=str_starts_with($mime,'image/')?'image':(str_starts_with($mime,'audio/')?'audio':(str_starts_with($mime,'video/')?'video':'document'));
+        $mime=AttachmentMime::file($path);if($mime==='application/octet-stream'&&!class_exists('finfo'))throw new ChannelDispatchException('Habilite la extensión PHP Fileinfo para verificar este adjunto.');$type=str_starts_with($mime,'image/')?'image':(str_starts_with($mime,'audio/')?'audio':(str_starts_with($mime,'video/')?'video':'document'));
         return ['path'=>$path,'mime'=>$mime,'name'=>basename((string)($f['name']??basename($path))),'type'=>$type,'url'=>$url];
     }
     private function sendPart(array $ch,array $s,string $mode,string $to,string $text,?array $f): array
@@ -264,9 +265,9 @@ final class ChannelProviderGateway
             $q=$this->pdo->prepare('SELECT source_ciphertext,mime FROM channel_media_assets WHERE tenant_id=? AND channel_id=? AND asset_key=?');$q->execute([$tid,$cid,$id]);$row=$q->fetch();if(!$row)throw new ChannelDispatchException('Adjunto no disponible.');
             $dir=$this->root.'/storage/channel-media/'.$tid.'/'.$cid;$path=$dir.'/'.$id;
             if(is_file($path)&&!is_link($path)&&filesize($path)<=15*1024*1024){$bytes=file_get_contents($path);if($bytes===false)throw new ChannelDispatchException('No se pudo leer el adjunto.');}
-            else{$url=ChannelSecurity::secret((string)$row['source_ciphertext'],$this->env);if(!ChannelSecurity::metaMediaUrl($url))throw new ChannelDispatchException('Origen de adjunto no autorizado.');$r=$this->http('GET',$url,null,[],false,15*1024*1024);if($r['status']!==200)throw new ChannelDispatchException('El adjunto ya no está disponible en Meta.');$bytes=$r['body'];if($bytes==='')throw new ChannelDispatchException('Adjunto vacío.');if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))throw new ChannelDispatchException('No se pudo conservar el adjunto.');$tmp=$path.'.'.bin2hex(random_bytes(8));if(file_put_contents($tmp,$bytes,LOCK_EX)!==false){chmod($tmp,0600);rename($tmp,$path);$this->pdo->prepare('UPDATE channel_media_assets SET cached_at=NOW(),mime=? WHERE tenant_id=? AND channel_id=? AND asset_key=?')->execute([(new finfo(FILEINFO_MIME_TYPE))->buffer($bytes)?:'application/octet-stream',$tid,$cid,$id]);}else @unlink($tmp);}
+            else{$url=ChannelSecurity::secret((string)$row['source_ciphertext'],$this->env);if(!ChannelSecurity::metaMediaUrl($url))throw new ChannelDispatchException('Origen de adjunto no autorizado.');$r=$this->http('GET',$url,null,[],false,15*1024*1024);if($r['status']!==200)throw new ChannelDispatchException('El adjunto ya no está disponible en Meta.');$bytes=$r['body'];if($bytes==='')throw new ChannelDispatchException('Adjunto vacío.');if(!is_dir($dir)&&!mkdir($dir,0700,true)&&!is_dir($dir))throw new ChannelDispatchException('No se pudo conservar el adjunto.');$tmp=$path.'.'.bin2hex(random_bytes(8));if(file_put_contents($tmp,$bytes,LOCK_EX)!==false){chmod($tmp,0600);rename($tmp,$path);$this->pdo->prepare('UPDATE channel_media_assets SET cached_at=NOW(),mime=? WHERE tenant_id=? AND channel_id=? AND asset_key=?')->execute([AttachmentMime::buffer($bytes),$tid,$cid,$id]);}else @unlink($tmp);}
         }else throw new ChannelDispatchException('Canal sin descarga de adjuntos.');
-        return ['bytes'=>$bytes,'mime'=>(new finfo(FILEINFO_MIME_TYPE))->buffer($bytes)?:'application/octet-stream'];
+        return ['bytes'=>$bytes,'mime'=>AttachmentMime::buffer($bytes)];
     }
     private function waba(array $ch): string {$s=ChannelSecurity::settings($ch);$id=trim((string)($s['business_id']??''));if($id==='')$id=(string)($ch['external_account_id']??'');if(($ch['type']??'')!=='whatsapp'||ChannelSecurity::mode($ch)==='qr_bridge'||!preg_match('/^\d{5,30}$/D',$id))throw new ChannelDispatchException('Este canal no tiene una WABA oficial configurada.');return $id;}
     private function graph(): string {return 'https://graph.facebook.com/'.ChannelSecurity::version($this->env);}

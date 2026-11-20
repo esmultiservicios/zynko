@@ -1516,7 +1516,7 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
    if(!empty($_FILES['media']['name'])&&($_FILES['media']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){
     if(($_FILES['media']['error']??1)!==UPLOAD_ERR_OK)throw new RuntimeException('No se pudo cargar el adjunto.');
     if(($_FILES['media']['size']??0)>10*1024*1024)throw new RuntimeException('El adjunto debe ser menor de 10 MB.');
-    $tmp=$_FILES['media']['tmp_name'];$mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp);
+    $tmp=$_FILES['media']['tmp_name'];$mime=AttachmentMime::file($tmp);
     $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','application/pdf'=>'pdf','text/plain'=>'txt','audio/mpeg'=>'mp3','audio/ogg'=>'ogg','video/mp4'=>'mp4','application/msword'=>'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document'=>'docx','application/vnd.ms-excel'=>'xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=>'xlsx'];
     $ext=$allowed[$mime]??null;if(!$ext)throw new RuntimeException('Ese tipo de adjunto no está permitido.');
     $dir=__DIR__.'/uploads/quick-replies/'.$tid;if(!is_dir($dir)&&!mkdir($dir,0775,true)&&!is_dir($dir))throw new RuntimeException('No se pudo preparar la carpeta de adjuntos.');
@@ -1558,7 +1558,7 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
     foreach($_FILES['attachments']['name'] as $i=>$name){
      if(($_FILES['attachments']['error'][$i]??1)!==UPLOAD_ERR_OK)continue;
      if(($_FILES['attachments']['size'][$i]??0)>10*1024*1024)throw new RuntimeException('Cada adjunto debe ser menor de 10 MB.');
-     $tmp=$_FILES['attachments']['tmp_name'][$i];$mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp);
+     $tmp=$_FILES['attachments']['tmp_name'][$i];if(!is_uploaded_file($tmp))throw new RuntimeException('Adjunto inválido.');$mime=AttachmentMime::file($tmp);if($mime==='application/octet-stream'&&!class_exists('finfo'))throw new RuntimeException('No se puede verificar este formato. Habilite la extensión PHP Fileinfo.');
      $allowed=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','application/pdf'=>'pdf','text/plain'=>'txt','audio/mpeg'=>'mp3','audio/ogg'=>'ogg','video/mp4'=>'mp4','application/msword'=>'doc','application/vnd.openxmlformats-officedocument.wordprocessingml.document'=>'docx','application/vnd.ms-excel'=>'xls','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'=>'xlsx'];
      $ext=$allowed[$mime]??null;if(!$ext)throw new RuntimeException('Uno de los adjuntos no está permitido.');
      $fn=bin2hex(random_bytes(8)).'.'.$ext;if(!move_uploaded_file($tmp,$dir.'/'.$fn))throw new RuntimeException('No se pudo guardar uno de los adjuntos.');$media[]=['name'=>basename($name),'url'=>'uploads/chat/'.$tid.'/'.$cid.'/'.$fn,'mime'=>$mime];
@@ -1609,12 +1609,11 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
     if($mode==='save')$pdo->prepare("UPDATE contacts SET name=?,custom_fields=JSON_SET(COALESCE(custom_fields,JSON_OBJECT()),'$.inbox_saved',true) WHERE id=? AND tenant_id=?")->execute([$name,$contact,$tid]);else $pdo->prepare('UPDATE contacts SET name=? WHERE id=? AND tenant_id=?')->execute([$name,$contact,$tid]);
     $pdo->prepare('INSERT INTO contact_activity(tenant_id,contact_id,user_id,action,detail) VALUES(?,?,?,?,?)')->execute([$tid,$contact,(int)$_SESSION['user']['id'],$mode==='save'?'contact.saved':'contact.renamed',$name]);$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
     zynkoRealtimePublishSafe($pdo,$tid,'contact.updated',['contact_id'=>$contact,'conversation_id'=>$cid],'contact',(string)$contact);jsonOut(true,$mode==='save'?'Contacto guardado.':'Contacto renombrado.');}
-   $name=mb_substr(trim((string)($_POST['name']??'')),0,160);$phone=trim((string)($_POST['phone']??''));$email=mb_substr(trim((string)($_POST['email']??'')),0,190);if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo electrónico inválido.');$priority=(string)($_POST['priority']??'normal');
+   $name=mb_substr(trim((string)($_POST['name']??'')),0,160);$email=mb_substr(trim((string)($_POST['email']??'')),0,190);if($email!==''&&!filter_var($email,FILTER_VALIDATE_EMAIL))throw new RuntimeException('Correo electrónico inválido.');$priority=(string)($_POST['priority']??'normal');
    if(!in_array($priority,['low','normal','high','urgent'],true))$priority='normal';if($name==='')throw new RuntimeException('El nombre del contacto es obligatorio.');
-   if($phone!=='')$phone=InboxContact::phone($phone,(string)($_POST['country']??''));
    $q=$pdo->prepare('SELECT ct.id,ch.type FROM contacts ct JOIN conversations c ON c.contact_id=ct.id AND c.tenant_id=ct.tenant_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE ct.id=? AND ct.tenant_id=? AND c.id=? AND c.deleted_at IS NULL');$q->execute([$contact,$tid,$cid]);$found=$q->fetch();if(!$found)throw new RuntimeException('Contacto no disponible.');
    $pdo->beginTransaction();try{
-    $pdo->prepare("UPDATE contacts SET name=?,phone=?,email=?,custom_fields=JSON_SET(COALESCE(custom_fields,JSON_OBJECT()),'$.inbox_saved',true,'$.inbox_country',?) WHERE id=? AND tenant_id=?")->execute([$name,$phone?:null,$email?:null,(string)($_POST['country']??''),$contact,$tid]);
+    $pdo->prepare("UPDATE contacts SET name=?,email=?,custom_fields=JSON_SET(COALESCE(custom_fields,JSON_OBJECT()),'$.inbox_saved',true) WHERE id=? AND tenant_id=?")->execute([$name,$email?:null,$contact,$tid]);
     $pdo->prepare('UPDATE conversations SET priority=? WHERE id=? AND tenant_id=? AND contact_id=?')->execute([$priority,$cid,$tid,$contact]);
     $pdo->prepare('INSERT INTO contact_activity(tenant_id,contact_id,user_id,action,detail) VALUES(?,?,?,?,?)')->execute([$tid,$contact,(int)$_SESSION['user']['id'],'contact.updated','Perfil y prioridad actualizados']);$pdo->commit();
    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
