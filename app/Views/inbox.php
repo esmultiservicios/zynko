@@ -70,7 +70,9 @@ function channelMeta(string $type):array{return match($type){'whatsapp'=>['fa-br
 $filterQuery='&channel='.urlencode($channelFilter).'&assignment='.urlencode($assignmentFilter).'&priority='.urlencode($priorityFilter).'&category='.(int)$categoryFilter.'&state='.urlencode($stateFilter).'&attention='.urlencode($attentionFilter);
 ?>
 <div class="inbox-premium-toolbar">
+<?php if(!$zynkoInboxFragment):?><script>window.ZynkoInboxInitial?.prepareToolbar(document.currentScript.parentElement);if(window.ZynkoInboxInitial?.phone&&<?= $selected&&isset($_GET['conversation'])?'true':'false' ?>)document.body.classList.add('phone-chat-active');</script><?php endif?>
  <div class="inbox-view-title"><div><b><?=zynkoUiText('Bandeja omnicanal')?></b><small><?=zynkoUiText('Todos tus canales, categorías, seguimiento y prioridades en una sola vista.')?></small></div><div class="inbox-view-actions"><span class="view-count"><?=count($convs)?> conversaciones</span><button type="button" class="soft inbox-section-toggle" data-inbox-toggle="filters" aria-expanded="true" aria-label="Ocultar filtros"><i class="fa-solid fa-chevron-up"></i></button></div></div>
+ <?php if(!$zynkoInboxFragment):?><script>window.ZynkoInboxInitial?.prepareControls(document.currentScript.parentElement);</script><?php endif?>
  <form class="inbox-filters inbox-filters-advanced" id="inboxFilters" data-preference-user="<?=$tid?>-<?=$uid?>" method="get"><input type="hidden" name="page" value="inbox">
   <label><span><?=zynkoUiText('Canal')?></span><select name="channel" class="select2 inbox-filter"><option value="all"><?=zynkoUiText('Todos los canales')?></option><?php $filterTypes=array_values(array_unique(array_merge(['webchat'],array_column($channels,'type')))); foreach($filterTypes as $type):$cm=channelMeta($type);?><option value="<?=htmlspecialchars($type)?>" <?=$channelFilter===$type?'selected':''?>><?=htmlspecialchars($cm[1])?></option><?php endforeach?></select></label>
   <label><span><?=zynkoUiText('Asignación')?></span><select name="assignment" class="select2 inbox-filter"><option value="all" <?=$assignmentFilter==='all'?'selected':''?>><?=zynkoUiText('Todos')?></option><option value="mine" <?=$assignmentFilter==='mine'?'selected':''?>><?=zynkoUiText('Mis conversaciones')?></option><option value="unassigned" <?=$assignmentFilter==='unassigned'?'selected':''?>><?=zynkoUiText('Sin asignar')?></option></select></label>
@@ -82,6 +84,7 @@ $filterQuery='&channel='.urlencode($channelFilter).'&assignment='.urlencode($ass
  </form>
 </div>
 <div class="inbox-layout">
+<?php if(!$zynkoInboxFragment):?><script>window.ZynkoInboxInitial?.prepareLayout(document.currentScript.parentElement,<?= $selected?'true':'false' ?>);</script><?php endif?>
 <section class="panel conv-list">
  <div class="panel-head"><div><b><?=zynkoUiText('Conversaciones')?></b><small><?=zynkoUiText('Vista guardada automáticamente')?></small></div><div class="head-actions"><button class="soft" data-open="newConversationModal"><i class="fa-solid fa-plus"></i> <?=zynkoUiText('Nueva')?></button><button class="soft" id="bulkToggle"><i class="fa-solid fa-list-check"></i> <?=zynkoUiText('Seleccionar')?></button></div></div>
  <div class="search-wrap inbox-search"><i class="fa-solid fa-magnifying-glass"></i><input class="list-search" placeholder="Buscar cliente, teléfono, mensaje o categoría"><button class="clear-search" hidden><i class="fa-solid fa-xmark"></i></button></div>
@@ -142,6 +145,7 @@ $filterQuery='&channel='.urlencode($channelFilter).'&assignment='.urlencode($ass
  </div>
 <?php else:?><div class="empty-compact"><i class="fa-solid fa-circle-info"></i><span><?=zynkoUiText('Información del contacto')?></span></div><?php endif?>
 </section>
+<?php if(!$zynkoInboxFragment):?><script>window.ZynkoInboxInitial?.prepareControls(document.currentScript.parentElement);</script><?php endif?>
 </div>
 <div class="zynko-context-menu" id="conversationContextMenu" role="menu" aria-hidden="true">
  <div class="context-menu-head"><span class="context-menu-icon"><i class="fa-solid fa-comments"></i></span><div><b><?=zynkoUiText('Conversación')?></b><small><?=zynkoUiText('Acciones rápidas')?></small></div></div>
