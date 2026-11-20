@@ -281,6 +281,7 @@ $$('.user-actions').forEach(b=>b.addEventListener('click',()=>{const u=JSON.pars
    $('#fullscreenBtn')?.addEventListener('click',()=>{try{window.parent.postMessage({type:'zynko:fullscreen-exit'},location.origin)}catch(_){}});
  }else{
    let fsFrame=null,fsExitRequested=false;
+   const fsPreference=on=>{try{sessionStorage.setItem('zynko.fullscreen.requested',on?'1':'0')}catch(_){}};
    const frameRelativeUrl=url=>{try{const u=new URL(url,location.href);return u.pathname+u.search+u.hash}catch(_){return location.pathname+location.search+location.hash}};
    const mountFullscreenFrame=()=>{
      if(fsFrame?.isConnected)return fsFrame;
@@ -307,13 +308,13 @@ $$('.user-actions').forEach(b=>b.addEventListener('click',()=>{const u=JSON.pars
        if(el.requestFullscreen)await el.requestFullscreen({navigationUI:'hide'});
        else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
        else throw new Error('Fullscreen API no disponible');
-       mountFullscreenFrame();syncFsIcon(true);
+       mountFullscreenFrame();syncFsIcon(true);fsPreference(true);
        showNotify('success','Pantalla completa','Puedes navegar por todos los módulos sin salir de pantalla completa. ESC permite salir.');
        return true;
      }catch(e){showNotify('error','No se pudo activar pantalla completa','El navegador no permitió activar la pantalla completa.');return false}
    };
    const exitFullscreen=async()=>{
-     fsExitRequested=true;
+     fsExitRequested=true;fsPreference(false);
      try{
        if(document.exitFullscreen)await document.exitFullscreen();
        else if(document.webkitExitFullscreen)document.webkitExitFullscreen();
@@ -322,11 +323,11 @@ $$('.user-actions').forEach(b=>b.addEventListener('click',()=>{const u=JSON.pars
      fsExitRequested=false;
    };
    $('#fullscreenBtn')?.addEventListener('click',async()=>{if(fullscreenElement())await exitFullscreen();else await enterFullscreen()});
-   const handleFsChange=()=>{const active=!!fullscreenElement();syncFsIcon(active);if(active){mountFullscreenFrame();return;}if(fsFrame&&!fsExitRequested)unmountFullscreenFrame(true)};
+   const handleFsChange=()=>{const active=!!fullscreenElement();syncFsIcon(active);if(active){mountFullscreenFrame();return;}if(fsFrame&&!fsExitRequested){fsPreference(false);unmountFullscreenFrame(true)}};
    document.addEventListener('fullscreenchange',handleFsChange);
    document.addEventListener('webkitfullscreenchange',handleFsChange);
-   window.addEventListener('message',e=>{if(e.origin!==location.origin||e.data?.type!=='zynko:fullscreen-exit')return;exitFullscreen()});
-   syncFsIcon(false);
+   window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==fsFrame?.contentWindow||e.data?.type!=='zynko:fullscreen-exit')return;exitFullscreen()});
+   syncFsIcon(false);try{if(sessionStorage.getItem('zynko.fullscreen.requested')==='1'&&!fullscreenElement()){const b=$('#fullscreenBtn');if(b){b.setAttribute('title','Restaurar pantalla completa');b.setAttribute('aria-label','Restaurar pantalla completa');b.classList.add('fullscreen-restore-ready');}}}catch(_){}
  }
  function syncPlanChannelRequirements(form){
    if(!form)return;
@@ -1167,12 +1168,12 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  const q=(s,r=document)=>r.querySelector(s), root=q('.app'), header=q('.main>header'); if(!root||!header)return;
  const en=document.documentElement.lang==='en', t=(es,english)=>en?english:es;
  const button=(label,icon,fn)=>{const b=document.createElement('button');b.type='button';b.className='soft phone-only';b.innerHTML=`<i class="fa-solid ${icon}" aria-hidden="true"></i> <span>${label}</span>`;b.addEventListener('click',fn);return b;};
- let moves=[], menu=null, view=new URLSearchParams(location.search).has('conversation')?'chat':'list', lastId='', filters=false;
+ let moves=[], menu=null, view=new URLSearchParams(location.search).has('conversation')?'chat':'list', lastId='';
  const closeSide=()=>{root.classList.remove('menu-open');q('#flyout')?.classList.remove('open');};
  const restore=()=>{for(const [node,anchor] of moves){if(anchor.parentNode)anchor.replaceWith(node);}moves=[];menu?.remove();menu=null;document.body.classList.remove('zynko-phone');q('.inbox-layout')?.removeAttribute('data-phone-view');};
  function setupHeader(){if(menu)return;const actions=q('.header-actions',header), user=q('.user-menu-wrap',header);if(!actions||!user)return;menu=document.createElement('details');menu.className='phone-header-menu phone-only';menu.innerHTML=`<summary aria-label="${t('Más opciones','More options')}"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></summary><div class="phone-header-items"></div>`;actions.insertBefore(menu,user);const fs=q('#fullscreenBtn',header);if(fs){const anchor=document.createComment('phone fullscreen position');fs.before(anchor);moves.push([fs,anchor]);actions.insertBefore(fs,menu);}const dest=q('.phone-header-items',menu);for(const sel of ['.header-public-site','#realtimePill','#theme','.header-language','#helpBtn']){const node=q(sel,header);if(!node)continue;const anchor=document.createComment('phone header position');node.before(anchor);moves.push([node,anchor]);dest.append(node);if(node.matches('button')&&!node.querySelector('.phone-option-label')){const label=document.createElement('span');label.className='phone-option-label phone-only';label.textContent=node.id==='theme'?t('Tema','Theme'):node.id==='helpBtn'?t('Ayuda','Help'):t('Pantalla completa','Full screen');node.append(label);}}}
  function setView(next,scroll=false){const layout=q('.inbox-layout');if(!layout)return;view=next;if(!q('.chat[data-current-conversation]',layout)&&view!=='list')view='list';layout.dataset.phoneView=view;document.body.classList.toggle('phone-chat-active',mq.matches&&view!=='list');if(scroll){requestAnimationFrame(()=>{const box=q('#messages');if(view==='chat'&&box)box.scrollTop=box.scrollHeight;});}}
- function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar&&!q('.phone-filter-toggle',toolbar)){const b=button(t('Filtros','Filters'),'fa-sliders',()=>{filters=!filters;toolbar.classList.toggle('phone-filters-open',filters);b.setAttribute('aria-expanded',String(filters));});b.classList.add('phone-filter-toggle');b.setAttribute('aria-expanded',String(filters));toolbar.append(b);}const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',()=>{chat.classList.toggle('phone-actions-open');a.setAttribute('aria-expanded',String(chat.classList.contains('phone-actions-open')));});a.setAttribute('aria-expanded','false');nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
+ function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',()=>{chat.classList.toggle('phone-actions-open');a.setAttribute('aria-expanded',String(chat.classList.contains('phone-actions-open')));});a.setAttribute('aria-expanded','false');nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
  function sync(){if(!mq.matches){restore();document.body.classList.remove('phone-chat-active');return;}document.body.classList.add('zynko-phone');setupHeader();setupInbox();}
  mq.addEventListener?.('change',sync);sync();
  document.addEventListener('click',e=>{if(!mq.matches)return;const link=e.target.closest('#sidebar nav a,#flyout a');if(link){if(!e.defaultPrevented)closeSide();}else if(!e.target.closest('#sidebar,#flyout,#menu'))closeSide();if(menu&&!menu.contains(e.target))menu.open=false;if(e.target.closest('.phone-header-items button')){if(menu)menu.open=false;}},false);
@@ -1212,3 +1213,9 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  document.addEventListener('keydown',e=>{if(e.key==='Escape')menuClose()});
  form.addEventListener('submit',async e=>{e.preventDefault();const b=document.querySelector('[form="inboxContactNameForm"]');if(b.disabled)return;b.disabled=true;try{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});const j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Contacto':'Error',j.message);if(j.ok){window.ZynkoModal.close('#inboxContactNameModal');location.reload()}}catch(_){showNotify('error','Contacto','No se pudo guardar el contacto.')}finally{b.disabled=false}});
 })();
+
+/* Inbox layout preferences: per browser and per signed-in user, independent of conversation filters. */
+(()=>{if(!document.body.classList.contains('page-inbox'))return;const key='zynko.inbox.layout.'+(document.body.dataset.userId||document.querySelector('#inboxFilters')?.dataset.preferenceUser||'local');let prefs={};try{prefs=JSON.parse(localStorage.getItem(key)||'{}')||{}}catch(_){}const mobile=()=>document.body.classList.contains('zynko-phone');function sync(){const toolbar=document.querySelector('.inbox-premium-toolbar'),layout=document.querySelector('.inbox-layout');toolbar?.classList.toggle('inbox-filters-hidden',!!prefs.filters);layout?.classList.toggle('inbox-client-hidden',!!prefs.client&&!mobile());document.querySelectorAll('[data-inbox-toggle]').forEach(b=>{let hidden=!!prefs[b.dataset.inboxToggle];b.setAttribute('aria-expanded',String(!hidden));if(b.dataset.inboxToggle==='filters'){b.setAttribute('aria-label',hidden?'Mostrar filtros':'Ocultar filtros');b.querySelector('i').className='fa-solid '+(hidden?'fa-chevron-down':'fa-chevron-up')}})}document.addEventListener('click',e=>{const b=e.target.closest('[data-inbox-toggle]');if(!b)return;const keyName=b.dataset.inboxToggle;if(keyName==='client'&&mobile()){document.querySelector('.phone-info-back')?.click();return}prefs[keyName]=!prefs[keyName];try{localStorage.setItem(key,JSON.stringify(prefs))}catch(_){}sync()});document.addEventListener('zynko:inbox-conversation-changed',sync);window.addEventListener('resize',sync);sync()})();
+/* Dismiss only the active format disclosure, without altering editor selection. */
+document.addEventListener('click',e=>{document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{if(!t.contains(e.target)){t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')}})});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')})});

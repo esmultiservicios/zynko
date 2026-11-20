@@ -50,3 +50,5 @@
     .zynko-legal-public .legal-public-layout { display: block; width: 100%; padding: 0; }
     .zynko-legal-public .legal-public-card { border: 0; box-shadow: none; padding: 0; }
 }
+
+.legal-nav-actions{display:flex;align-items:center;gap:9px;flex:none}.legal-nav-actions .lang-menu{flex:none}.legal-nav-actions .legal-home-button{white-space:nowrap}@media(max-width:480px){.zynko-legal-public .legal-site-nav{gap:8px}.legal-nav-actions{gap:5px}.legal-nav-actions .legal-home-button{font-size:11px;padding:9px}.legal-nav-actions .lang-menu summary{min-height:36px;padding:0 7px}}

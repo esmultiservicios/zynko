@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/LegalTranslations.php';
 
 /** Catálogo único de documentos públicos. Las claves y rutas no son editables. */
 function zynkoLegalCatalog(): array
