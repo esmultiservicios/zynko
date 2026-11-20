@@ -2190,8 +2190,10 @@ body:has(.inbox-premium-toolbar) .composer-tip kbd{
 .conversation-state-action small,.conversation-delete-action small{font-size:9px!important;line-height:1.35!important;color:#6a7f90!important}
 .conversation-delete-action.danger-action{background:#fff8f7!important;border-color:#f0c6c2!important}
 .conversation-delete-action.danger-action>i{background:#fff0ee!important;color:#b42318!important}
-body:has(.inbox-premium-toolbar) .bulk-bar{flex-wrap:wrap!important;gap:6px!important}
-body:has(.inbox-premium-toolbar) .bulk-bar .soft{height:31px!important;padding:5px 8px!important;font-size:9px!important}
+body:has(.inbox-premium-toolbar) .bulk-bar{display:grid!important;grid-template-columns:minmax(0,1fr);gap:6px!important;min-width:0}
+body:has(.inbox-premium-toolbar) .bulk-bar[hidden]{display:none!important}
+.bulk-bar .bulk-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;min-width:0}
+body:has(.inbox-premium-toolbar) .bulk-bar .soft{height:31px!important;min-width:0!important;padding:4px 2px!important;font-size:9px!important;display:flex!important;align-items:center;justify-content:center;gap:3px;white-space:nowrap!important}
 
 @media(max-width:1450px) and (min-width:1051px){
   body:has(.inbox-premium-toolbar) .inbox-filters-advanced{grid-template-columns:repeat(3,minmax(0,1fr)) auto!important}
