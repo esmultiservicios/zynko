@@ -5,7 +5,8 @@
  const en=()=>document.documentElement.lang==='en';
  const tr=(es,english)=>en()?english:es;
  const notify=(type,title,message)=>{if(typeof window.showNotify==='function')window.showNotify(type,title,message);else console.warn(title,message);};
- const open=(id,trigger)=>{const d=document.getElementById(id);if(!(d instanceof HTMLDialogElement)||d.open)return false;d.showModal();d._zcTrigger=trigger;if(window.jQuery?.fn?.select2){qa('select.zc-select',d).forEach(el=>{const j=window.jQuery(el);if(!j.hasClass('select2-hidden-accessible')){j.select2({dropdownParent:window.jQuery(d),width:'100%',minimumResultsForSearch:0});j.on('select2:select',()=>el.dispatchEvent(new Event('change',{bubbles:true})));}});}return true;};
+ const enhance=d=>{window.ZynkoSearchSelects?.(d);if(window.jQuery?.fn?.select2){qa('select.zc-select',d).forEach(el=>{const j=window.jQuery(el);if(!j.hasClass('select2-hidden-accessible')){j.select2({dropdownParent:window.jQuery(d),width:'100%',minimumResultsForSearch:0});j.on('select2:select',()=>el.dispatchEvent(new Event('change',{bubbles:true})));}});}};
+ const open=(id,trigger)=>{const d=document.getElementById(id);if(!(d instanceof HTMLDialogElement)||d.open)return false;d.showModal();d._zcTrigger=trigger;enhance(d);return true;};
  document.addEventListener('click',e=>{
   const hide=e.target.closest?.('[data-zc-hide-comparison]');if(hide){const details=hide.closest('.zc-compare details');if(details){details.open=false;const summary=q('summary',details);summary?.focus({preventScroll:true});summary?.scrollIntoView({block:'center',behavior:'instant'});}return;}
   const b=e.target.closest?.('[data-zc-open]');if(b){e.preventDefault();open(b.dataset.zcOpen,b);return;}
@@ -21,6 +22,39 @@
    const btn=q('[data-zc-meta]',form);if(btn){btn.disabled=method==='help'||btn.dataset.ready!=='1';}
   });qa('[data-zc-pricing-form]').forEach(form=>{const mode=q('[name=pricing_mode]',form)?.value,field=q('[name=price]',form);if(field){field.disabled=mode!=='fixed';field.required=mode==='fixed';}});};
  document.addEventListener('change',e=>{if(e.target.closest?.('[data-zc-progress-form],[data-zc-pricing-form]'))sync();});
+ // Activation forms stay open; refresh only the server-rendered tracking content.
+ let activationBusy=false;
+ const destroySelects=node=>{if(window.jQuery?.fn?.select2)qa('select.select2-hidden-accessible',node).forEach(el=>window.jQuery(el).select2('destroy'));};
+ const refreshActivation=async(url)=>{
+   const res=await fetch(url,{credentials:'same-origin',cache:'no-store'});if(!res.ok)throw new Error('HTTP '+res.status);
+   const doc=new DOMParser().parseFromString(await res.text(),'text/html'),center=q('#zc-activation-center'),fresh=q('#zc-activation-center',doc);
+   if(!center||!fresh)throw new Error('Activation view unavailable');
+   const body=q('.zc-dialog-body',center),replacement=q('.zc-dialog-body',fresh),pos=body.scrollTop;
+   destroySelects(body);body.replaceChildren(...replacement.childNodes);enhance(center);body.scrollTop=pos;
+   const current=qa('dialog[id^="zc-track-"],#zc-activation-wizard');
+   const incoming=qa('dialog[id^="zc-track-"],#zc-activation-wizard',doc);
+   for(const d of current){const next=incoming.find(x=>x.id===d.id);if(d.open){const history=q('[data-zc-track-history]',d),updated=next&&q('[data-zc-track-history]',next);if(history&&updated)history.replaceChildren(...updated.childNodes);continue;}destroySelects(d);if(next)d.replaceWith(next);else d.remove();}
+   for(const d of incoming)if(!document.getElementById(d.id))center.after(d);
+   sync();
+ };
+ let trackingUrl=location.href;
+ document.addEventListener('submit',async e=>{
+   const form=e.target,action=form.elements?.action?.value,filter=form.matches?.('[data-zc-activation-filter]');
+   if(!filter&&!['activation_save','activation_update'].includes(action))return;
+   e.preventDefault();if(activationBusy||!form.reportValidity())return;activationBusy=true;
+   const data=new FormData(form),buttons=qa('button:not([type]),button[type="submit"]',form);buttons.forEach(b=>b.disabled=true);
+   let saved=false;
+   try{
+     if(filter){const url=new URL(location.href);url.search=new URLSearchParams(data).toString();url.hash='';await refreshActivation(url);trackingUrl=url.href;return;}
+     const res=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},credentials:'same-origin',body:data});const result=await res.json();
+     if(!result.ok){notify('error',tr('No se pudo guardar','Unable to save'),result.message);return;}saved=true;
+     if(result.data?.request_id&&form.elements.request_id){form.elements.request_id.value=String(result.data.request_id);const meta=q('[data-zc-meta]',form);if(meta){meta.dataset.ready='1';meta.hidden=false;}}
+     if(form.elements.note)form.elements.note.value='';sync();notify('success',tr('Cambios guardados','Changes saved'),result.message);
+     await refreshActivation(trackingUrl);
+   }catch(err){notify(saved?'warning':'error',saved?tr('Cambios guardados','Changes saved'):tr('No se pudo completar','Unable to complete'),saved?tr('El seguimiento no pudo actualizarse. Usa Filtrar para actualizarlo.','Tracking could not refresh. Use Filter to refresh it.'):tr('Comprueba tu conexión e inténtalo nuevamente.','Check your connection and try again.'));}
+   finally{activationBusy=false;buttons.forEach(b=>b.disabled=false);}
+ });
+ document.addEventListener('click',async e=>{const link=e.target.closest?.('[data-zc-activation-nav]');if(!link)return;e.preventDefault();if(activationBusy)return;activationBusy=true;try{await refreshActivation(link.href);trackingUrl=link.href;}catch(err){notify('error',tr('No se pudo actualizar','Unable to refresh'),tr('Intenta nuevamente.','Try again.'));}finally{activationBusy=false;}});
  const center=q('#zc-activation-center[data-zc-reopen="1"]');if(center)open(center.id,q('[data-zc-open="zc-activation-center"]'));
  const request=q('#zcPlanRequestForm');
  if(request){qa('.plan-request[data-plan-revision]').forEach(btn=>btn.addEventListener('click',()=>{
