@@ -1,5 +1,5 @@
 
--- ZYNKO: script unificado de actualización (hasta v024).
+-- ZYNKO: script unificado de actualización (v031; MySQL 8 / MariaDB).
 -- Seleccione la base de datos ZYNKO existente y realice un respaldo antes de ejecutar.
 -- Las tablas nuevas se crean si no existen. La sección comercial reafirma los límites estándar de los planes.
 -- No utilizar schema.sql para actualizar una instalación existente.
@@ -104,12 +104,29 @@ INSERT IGNORE INTO channel_connector_catalog(code,name,icon_class,icon_style,des
 VALUES ('threads','Threads','fa-brands fa-threads','instagram','Canal previsto; requiere un conector real y autorización del proveedor.',0,1,0,80);
 
 -- v028: traducciones en la misma revisión de los documentos legales.
-ALTER TABLE legal_documents ADD COLUMN IF NOT EXISTS title_en VARCHAR(190) NULL AFTER content, ADD COLUMN IF NOT EXISTS content_en LONGTEXT NULL AFTER title_en;
-ALTER TABLE commercial_document_versions ADD COLUMN IF NOT EXISTS title_en VARCHAR(190) NULL AFTER content, ADD COLUMN IF NOT EXISTS content_en LONGTEXT NULL AFTER title_en;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='legal_documents' AND COLUMN_NAME='title_en'), 'SELECT 1', 'ALTER TABLE `legal_documents` ADD COLUMN `title_en` VARCHAR(190) NULL AFTER `content`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='legal_documents' AND COLUMN_NAME='content_en'), 'SELECT 1', 'ALTER TABLE `legal_documents` ADD COLUMN `content_en` LONGTEXT NULL AFTER `title_en`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commercial_document_versions' AND COLUMN_NAME='title_en'), 'SELECT 1', 'ALTER TABLE `commercial_document_versions` ADD COLUMN `title_en` VARCHAR(190) NULL AFTER `content`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='commercial_document_versions' AND COLUMN_NAME='content_en'), 'SELECT 1', 'ALTER TABLE `commercial_document_versions` ADD COLUMN `content_en` LONGTEXT NULL AFTER `title_en`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
 
 -- v028: política de conexiones configurable; max_channels mantiene el cupo reservado para Web Chat.
 -- Respalde antes de actualizar. No se habilitan conectores ni se desconectan cuentas existentes.
-ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS distinct_external_types TINYINT(1) NOT NULL DEFAULT 0 AFTER max_channels;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='distinct_external_types'), 'SELECT 1', 'ALTER TABLE `subscription_plans` ADD COLUMN `distinct_external_types` TINYINT(1) NOT NULL DEFAULT 0 AFTER `max_channels`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
 START TRANSACTION;
 INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_plan_config_2_31_154','1');
 SET @zynko_apply_plan_config_154 := ROW_COUNT();

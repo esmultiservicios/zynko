@@ -471,7 +471,8 @@ final class NotificationService
         int $platformTenantId,
         string $to,
         string $action,
-        array $plan
+        array $plan,
+        ?array $previousPlan = null
     ): array {
         $verb = [
             'created' => 'creado',
@@ -482,7 +483,8 @@ final class NotificationService
         $html = EmailTemplates::planCatalogEvent(
             $action,
             $plan,
-            $this->platformSettings($platformTenantId)
+            $this->platformSettings($platformTenantId),
+            $previousPlan
         );
 
         return $this->directPlatformMail(

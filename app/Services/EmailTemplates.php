@@ -98,16 +98,61 @@ final class EmailTemplates
     }
 
 
-    public static function planCatalogEvent(string $action,array $plan,array $settings): string {
+    /** Present saved values in business terms, not storage-specific reserved slots. */
+    private static function planCatalogValues(array $plan): array {
+        $limit=static fn($v)=>$v===null||(int)$v===0?'Ilimitados':number_format((int)$v);
+        $yes=static fn($v)=>!empty($v)?'Sí':'No';
+        $labels=['webchat'=>'NIVO Web Chat','whatsapp'=>'WhatsApp Business','messenger'=>'Messenger','instagram'=>'Instagram','telegram'=>'Telegram','email'=>'Correo','threads'=>'Threads','x'=>'X / Twitter','api'=>'API','dashboard'=>'Dashboard','inbox'=>'Bandeja','channels'=>'Canales','billing'=>'Suscripción','onboarding'=>'Inicio guiado','users'=>'Usuarios','chatbot'=>'NIVO IA','automations'=>'Automatizaciones','integrations'=>'Integraciones','settings'=>'Configuración'];
+        $list=static function($v,bool $map=false) use($labels): string {
+            $a=is_array($v)?$v:json_decode((string)$v,true);
+            if(!is_array($a))return '—';
+            if($map){$a=array_keys(array_filter($a));}
+            $a=array_map('strval',$a);sort($a,SORT_STRING);
+            return $a?implode(', ',array_map(static fn($x)=>$labels[$x]??$x,$a)):'—';
+        };
+        $external=(!empty($plan['is_default_free'])||($plan['code']??'')==='free')?'0':(empty($plan['max_channels'])?'Ilimitadas':(string)max(0,(int)$plan['max_channels']-1));
+        return [
+            'Nombre'=>$plan['name']??'Plan',
+            'Precio mensual'=>($plan['currency']??'HNL').' '.number_format((float)($plan['monthly_price']??0),2),
+            'Estado'=>!empty($plan['active'])?'Activo':'Inactivo',
+            'Disponible para contratar'=>$yes($plan['is_available']??0),
+            'Etiqueta de disponibilidad'=>$plan['availability_label']??'—',
+            'Mensaje de disponibilidad'=>$plan['availability_message']??'—',
+            'Usuarios'=>$limit($plan['max_users']??null),
+            'Conexiones externas'=>$external,
+            'Una cuenta por tipo de canal'=>$yes($plan['distinct_external_types']??0),
+            'Canales incluidos'=>$list($plan['allowed_channels_json']??null),
+            'Sitios Web Chat'=>$limit($plan['max_webchat_sites']??null),
+            'Chats nuevos por día'=>$limit($plan['max_daily_chats']??null),
+            'Chats nuevos por mes'=>$limit($plan['max_monthly_chats']??null),
+            'Módulos habilitados'=>$list($plan['module_access_json']??null,true),
+            'Beneficios'=>$list($plan['features_json']??null),
+            'IA externa'=>$yes($plan['external_ai_included']??0),
+            'Tokens mensuales de IA'=>empty($plan['external_ai_included'])?'No incluido':$limit($plan['external_ai_monthly_tokens']??null),
+            'Canales IA externa'=>$list($plan['external_ai_channels_json']??null),
+            'Plan gratuito predeterminado'=>$yes($plan['is_default_free']??0),
+            'Plan destacado'=>$yes($plan['is_featured']??0),
+            'Etiqueta destacada'=>$plan['featured_label']??'—',
+        ];
+    }
+
+    public static function planCatalogEvent(string $action,array $plan,array $settings,?array $previousPlan=null): string {
         $name=self::e($plan['name']??'Plan');
-        $price=self::e(($plan['currency']??'HNL').' '.number_format((float)($plan['monthly_price']??0),2));
-        $status=!empty($plan['active'])?'Activo':'Inactivo';
         $verb=['created'=>'creado','updated'=>'actualizado','deleted'=>'eliminado'][$action]??'actualizado';
-        $content='<p style="margin:0">El plan <strong>'.$name.'</strong> fue '.$verb.' en ZYNKO.</p>'
-            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
-            .'<div style="font-size:14px;line-height:1.75"><strong>Plan:</strong> '.$name.'<br><strong>Precio:</strong> '.$price.'<br><strong>Estado:</strong> '.self::e($status)
-            .'<br><strong>Sitios Web Chat:</strong> '.self::e(($plan['max_webchat_sites']??null)?:'Ilimitados')
-            .'<br><strong>Chats nuevos:</strong> '.self::e(!empty($plan['max_daily_chats'])?($plan['max_daily_chats'].'/día'):(!empty($plan['max_monthly_chats'])?(number_format((int)$plan['max_monthly_chats']).'/mes'):'Ilimitados')).'</div></div>';
+        $values=self::planCatalogValues($plan);
+        $content='<p style="margin:0">El plan <strong>'.$name.'</strong> fue '.$verb.' en ZYNKO.</p>';
+        $card='margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px;font-size:14px;line-height:1.7';
+        if($action==='updated'&&$previousPlan!==null){
+            $before=self::planCatalogValues($previousPlan);$changes='';
+            foreach($values as $label=>$value){
+                if((string)$before[$label]===(string)$value)continue;
+                $changes.='<div style="padding:8px 0;border-bottom:1px solid #DCEEEA"><strong>'.self::e($label).'</strong><br><span style="color:#6F7F91">Anterior: '.self::e($before[$label]).'</span><br><span style="color:#087f70">Nuevo: '.self::e($value).'</span></div>';
+            }
+            $content.='<div style="'.$card.'"><strong>Cambios realizados</strong>'.($changes!==''?$changes:'<p>No se detectaron cambios en la configuración del plan.</p>').'</div>';
+        }
+        $content.='<div style="'.$card.'"><strong>'.($action==='deleted'?'Última configuración':'Configuración actual').'</strong>';
+        foreach($values as $label=>$value)$content.='<br><strong>'.self::e($label).':</strong> '.self::e($value);
+        $content.='</div>';
         return self::shell('PLANES Y SUSCRIPCIONES','Plan '.$verb,$content,$settings,'PLAN '.strtoupper($verb));
     }
 

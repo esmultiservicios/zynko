@@ -242,6 +242,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
  currency VARCHAR(8) NOT NULL DEFAULT 'HNL',
  max_users INT NULL,
  max_channels INT NULL,
+ distinct_external_types TINYINT(1) NOT NULL DEFAULT 0,
  max_webchat_sites INT NULL,
  max_daily_chats INT NULL,
  max_monthly_chats INT NULL,
