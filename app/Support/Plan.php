@@ -291,12 +291,15 @@ function zynkoPlanChannelCapacityText(array $plan,array $catalog,string $languag
 }
 function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales elegibles',string $language='es'): string {
     $en=$language==='en';$esc=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');
-    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity">'.$esc(zynkoPlanChannelCapacityText($plan,$catalog,$language)).'</div><div class="plan-channel-items">';
-    foreach(zynkoPlanDisplayChannels($plan,$catalog) as $code){
+    $codes=zynkoPlanDisplayChannels($plan,$catalog);$external=array_values(array_diff($codes,['webchat']));$total=zynkoPlanExternalConnectionLimit($plan);$count=count($external);$ready=count(array_filter($external,fn($code)=>!empty($catalog[$code]['available'])));
+    $heading=$total===0||!$count?($en?'No external channels':'Sin canales externos'):($total===null?($en?'Unlimited external connections':'Conexiones externas ilimitadas'):(zynkoPlanDistinctExternalTypes($plan)?($en?'Choose up to '.min($total,$count).' of '.$count.' external channels':'Elige hasta '.min($total,$count).' de '.$count.' canales externos'):($en?'Up to '.$total.' external connections':'Hasta '.$total.' conexiones externas')));
+    $detail=$total===0||!$count?($en?'NIVO Web Chat included.':'NIVO Web Chat incluido.'):(zynkoPlanDistinctExternalTypes($plan)?($en?'One account per channel type. ':'Una cuenta por tipo de canal. '):'').($en?'NIVO Web Chat does not use an external slot.':'NIVO Web Chat no consume un cupo externo.');
+    $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity"><strong>'.$esc($heading).'</strong><small>'.$esc($detail).'</small></div><div class="plan-channel-items">';
+    foreach($codes as $code){
         $item=zynkoPlanChannelDisplay($catalog,$code);
         $html.='<span class="plan-channel-chip">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.zynkoPlanChannelStatus($catalog,$code,$language).'</span>';
     }
-    $html.='</div><small class="plan-channel-explanation">'.$esc($en?'Available = enabled in the catalog; authorization and validation may still be required. Coming soon = included in the plan, but new connections are not yet enabled.':'Disponible = habilitado en el catálogo; puede requerir autorización y validación. Próximamente = incluido en el plan, pero todavía no admite nuevas conexiones.').'</small>';
+    $html.='</div>';if($count)$html.='<small class="plan-channel-current">'.$esc($en?$ready.' of '.$count.' external channel types currently available.':$ready.' de '.$count.' tipos de canales externos disponibles actualmente.').'</small>';
     return $html.'</div>';
 }
 

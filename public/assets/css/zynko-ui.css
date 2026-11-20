@@ -6425,15 +6425,264 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
 #newConversationModal .inbox-new-conversation{display:flex;flex-direction:column;max-height:min(88dvh,780px);overflow:hidden;width:min(600px,calc(100vw - 28px))}
 #newConversationModal .inbox-new-body{padding:16px 20px;overflow-y:auto;min-height:0;flex:1 1 auto}
 #newConversationModal .modal-actions{flex:0 0 auto;justify-content:flex-end;margin:0;padding:14px 20px;border-top:1px solid var(--line)}
-#newConversationModal [hidden],.inbox-chat-tools [hidden],#messageMediaModal [hidden],.inbox-clear-files[hidden]{display:none!important}
-.inbox-phone-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}
+#newConversationModal [hidden],.inbox-chat-search[hidden],#messageMediaModal [hidden],.inbox-clear-files[hidden]{display:none!important}
+.inbox-phone-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-width:0}.inbox-new-body .field{display:grid;gap:8px;margin:0 0 16px!important;min-width:0}#newConversationModal .inbox-new-phone-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:end}#newConversationModal .inbox-new-phone-grid>.field{grid-template-rows:auto auto;align-content:end;min-width:0}#newConversationModal .inbox-new-phone-grid input,#newConversationModal .inbox-new-phone-grid .select2-container{width:100%!important;min-width:0;max-width:100%}.inbox-new-phone-grid>.field{margin-bottom:8px!important}.inbox-new-body #inboxNumberPreview{display:block;margin:0 0 12px;color:var(--accent2);font-weight:700}.inbox-new-body #inboxNewPhone>small:last-child{display:block;margin:0 0 16px;line-height:1.45}.inbox-new-body #inboxKnownRecipient .field{margin-top:8px!important}
+.zynko-country-option{display:flex;align-items:center;gap:7px;min-width:0;max-width:100%;line-height:1.3}.zynko-country-option>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.zynko-country-flag{display:inline-block;flex:0 0 27px;width:27px;height:21px;background-image:url(../img/country-flags.png);background-repeat:no-repeat;background-size:432px auto}.select2-results__option .zynko-country-option>span:last-child{white-space:normal;overflow-wrap:anywhere}
+/* Select2's floating wrapper must not inherit width:100% from the control. */
+.select2-container--open:has(>.select2-dropdown){width:auto!important;min-width:0!important;max-width:calc(100vw - 16px)!important}.select2-dropdown{max-width:calc(100vw - 16px)!important;min-width:0!important}.select2-search--dropdown .select2-search__field{max-width:100%!important;min-width:0!important}.select2-results__options{overflow-x:hidden!important}
+.zynko-country-flag.flag-AF{background-position:-0px -0px}
+.zynko-country-flag.flag-AL{background-position:-27px -0px}
+.zynko-country-flag.flag-DZ{background-position:-54px -0px}
+.zynko-country-flag.flag-AS{background-position:-81px -0px}
+.zynko-country-flag.flag-AD{background-position:-108px -0px}
+.zynko-country-flag.flag-AO{background-position:-135px -0px}
+.zynko-country-flag.flag-AI{background-position:-162px -0px}
+.zynko-country-flag.flag-AG{background-position:-189px -0px}
+.zynko-country-flag.flag-AR{background-position:-216px -0px}
+.zynko-country-flag.flag-AM{background-position:-243px -0px}
+.zynko-country-flag.flag-AW{background-position:-270px -0px}
+.zynko-country-flag.flag-AU{background-position:-297px -0px}
+.zynko-country-flag.flag-AT{background-position:-324px -0px}
+.zynko-country-flag.flag-AZ{background-position:-351px -0px}
+.zynko-country-flag.flag-BS{background-position:-378px -0px}
+.zynko-country-flag.flag-BH{background-position:-405px -0px}
+.zynko-country-flag.flag-BD{background-position:-0px -21px}
+.zynko-country-flag.flag-BB{background-position:-27px -21px}
+.zynko-country-flag.flag-BY{background-position:-54px -21px}
+.zynko-country-flag.flag-BE{background-position:-81px -21px}
+.zynko-country-flag.flag-BZ{background-position:-108px -21px}
+.zynko-country-flag.flag-BJ{background-position:-135px -21px}
+.zynko-country-flag.flag-BM{background-position:-162px -21px}
+.zynko-country-flag.flag-BT{background-position:-189px -21px}
+.zynko-country-flag.flag-BO{background-position:-216px -21px}
+.zynko-country-flag.flag-BQ{background-position:-243px -21px}
+.zynko-country-flag.flag-BA{background-position:-270px -21px}
+.zynko-country-flag.flag-BW{background-position:-297px -21px}
+.zynko-country-flag.flag-BR{background-position:-324px -21px}
+.zynko-country-flag.flag-IO{background-position:-351px -21px}
+.zynko-country-flag.flag-BN{background-position:-378px -21px}
+.zynko-country-flag.flag-BG{background-position:-405px -21px}
+.zynko-country-flag.flag-BF{background-position:-0px -42px}
+.zynko-country-flag.flag-BI{background-position:-27px -42px}
+.zynko-country-flag.flag-KH{background-position:-54px -42px}
+.zynko-country-flag.flag-CM{background-position:-81px -42px}
+.zynko-country-flag.flag-CA{background-position:-108px -42px}
+.zynko-country-flag.flag-CV{background-position:-135px -42px}
+.zynko-country-flag.flag-KY{background-position:-162px -42px}
+.zynko-country-flag.flag-CF{background-position:-189px -42px}
+.zynko-country-flag.flag-TD{background-position:-216px -42px}
+.zynko-country-flag.flag-CL{background-position:-243px -42px}
+.zynko-country-flag.flag-CN{background-position:-270px -42px}
+.zynko-country-flag.flag-CX{background-position:-297px -42px}
+.zynko-country-flag.flag-CC{background-position:-324px -42px}
+.zynko-country-flag.flag-CO{background-position:-351px -42px}
+.zynko-country-flag.flag-KM{background-position:-378px -42px}
+.zynko-country-flag.flag-CG{background-position:-405px -42px}
+.zynko-country-flag.flag-CD{background-position:-0px -63px}
+.zynko-country-flag.flag-CK{background-position:-27px -63px}
+.zynko-country-flag.flag-CR{background-position:-54px -63px}
+.zynko-country-flag.flag-CI{background-position:-81px -63px}
+.zynko-country-flag.flag-HR{background-position:-108px -63px}
+.zynko-country-flag.flag-CU{background-position:-135px -63px}
+.zynko-country-flag.flag-CW{background-position:-162px -63px}
+.zynko-country-flag.flag-CY{background-position:-189px -63px}
+.zynko-country-flag.flag-CZ{background-position:-216px -63px}
+.zynko-country-flag.flag-DK{background-position:-243px -63px}
+.zynko-country-flag.flag-DJ{background-position:-270px -63px}
+.zynko-country-flag.flag-DM{background-position:-297px -63px}
+.zynko-country-flag.flag-DO{background-position:-324px -63px}
+.zynko-country-flag.flag-EC{background-position:-351px -63px}
+.zynko-country-flag.flag-EG{background-position:-378px -63px}
+.zynko-country-flag.flag-SV{background-position:-405px -63px}
+.zynko-country-flag.flag-GQ{background-position:-0px -84px}
+.zynko-country-flag.flag-ER{background-position:-27px -84px}
+.zynko-country-flag.flag-EE{background-position:-54px -84px}
+.zynko-country-flag.flag-SZ{background-position:-81px -84px}
+.zynko-country-flag.flag-ET{background-position:-108px -84px}
+.zynko-country-flag.flag-FK{background-position:-135px -84px}
+.zynko-country-flag.flag-FO{background-position:-162px -84px}
+.zynko-country-flag.flag-FJ{background-position:-189px -84px}
+.zynko-country-flag.flag-FI{background-position:-216px -84px}
+.zynko-country-flag.flag-FR{background-position:-243px -84px}
+.zynko-country-flag.flag-GF{background-position:-270px -84px}
+.zynko-country-flag.flag-PF{background-position:-297px -84px}
+.zynko-country-flag.flag-GA{background-position:-324px -84px}
+.zynko-country-flag.flag-GM{background-position:-351px -84px}
+.zynko-country-flag.flag-GE{background-position:-378px -84px}
+.zynko-country-flag.flag-DE{background-position:-405px -84px}
+.zynko-country-flag.flag-GH{background-position:-0px -105px}
+.zynko-country-flag.flag-GI{background-position:-27px -105px}
+.zynko-country-flag.flag-GR{background-position:-54px -105px}
+.zynko-country-flag.flag-GL{background-position:-81px -105px}
+.zynko-country-flag.flag-GD{background-position:-108px -105px}
+.zynko-country-flag.flag-GP{background-position:-135px -105px}
+.zynko-country-flag.flag-GU{background-position:-162px -105px}
+.zynko-country-flag.flag-GT{background-position:-189px -105px}
+.zynko-country-flag.flag-GG{background-position:-216px -105px}
+.zynko-country-flag.flag-GN{background-position:-243px -105px}
+.zynko-country-flag.flag-GW{background-position:-270px -105px}
+.zynko-country-flag.flag-GY{background-position:-297px -105px}
+.zynko-country-flag.flag-HT{background-position:-324px -105px}
+.zynko-country-flag.flag-HN{background-position:-351px -105px}
+.zynko-country-flag.flag-HK{background-position:-378px -105px}
+.zynko-country-flag.flag-HU{background-position:-405px -105px}
+.zynko-country-flag.flag-IS{background-position:-0px -126px}
+.zynko-country-flag.flag-IN{background-position:-27px -126px}
+.zynko-country-flag.flag-ID{background-position:-54px -126px}
+.zynko-country-flag.flag-IR{background-position:-81px -126px}
+.zynko-country-flag.flag-IQ{background-position:-108px -126px}
+.zynko-country-flag.flag-IE{background-position:-135px -126px}
+.zynko-country-flag.flag-IM{background-position:-162px -126px}
+.zynko-country-flag.flag-IL{background-position:-189px -126px}
+.zynko-country-flag.flag-IT{background-position:-216px -126px}
+.zynko-country-flag.flag-JM{background-position:-243px -126px}
+.zynko-country-flag.flag-JP{background-position:-270px -126px}
+.zynko-country-flag.flag-JE{background-position:-297px -126px}
+.zynko-country-flag.flag-JO{background-position:-324px -126px}
+.zynko-country-flag.flag-KZ{background-position:-351px -126px}
+.zynko-country-flag.flag-KE{background-position:-378px -126px}
+.zynko-country-flag.flag-KI{background-position:-405px -126px}
+.zynko-country-flag.flag-KP{background-position:-0px -147px}
+.zynko-country-flag.flag-KR{background-position:-27px -147px}
+.zynko-country-flag.flag-XK{background-position:-54px -147px}
+.zynko-country-flag.flag-KW{background-position:-81px -147px}
+.zynko-country-flag.flag-KG{background-position:-108px -147px}
+.zynko-country-flag.flag-LA{background-position:-135px -147px}
+.zynko-country-flag.flag-LV{background-position:-162px -147px}
+.zynko-country-flag.flag-LB{background-position:-189px -147px}
+.zynko-country-flag.flag-LS{background-position:-216px -147px}
+.zynko-country-flag.flag-LR{background-position:-243px -147px}
+.zynko-country-flag.flag-LY{background-position:-270px -147px}
+.zynko-country-flag.flag-LI{background-position:-297px -147px}
+.zynko-country-flag.flag-LT{background-position:-324px -147px}
+.zynko-country-flag.flag-LU{background-position:-351px -147px}
+.zynko-country-flag.flag-MO{background-position:-378px -147px}
+.zynko-country-flag.flag-MG{background-position:-405px -147px}
+.zynko-country-flag.flag-MW{background-position:-0px -168px}
+.zynko-country-flag.flag-MY{background-position:-27px -168px}
+.zynko-country-flag.flag-MV{background-position:-54px -168px}
+.zynko-country-flag.flag-ML{background-position:-81px -168px}
+.zynko-country-flag.flag-MT{background-position:-108px -168px}
+.zynko-country-flag.flag-MH{background-position:-135px -168px}
+.zynko-country-flag.flag-MQ{background-position:-162px -168px}
+.zynko-country-flag.flag-MR{background-position:-189px -168px}
+.zynko-country-flag.flag-MU{background-position:-216px -168px}
+.zynko-country-flag.flag-YT{background-position:-243px -168px}
+.zynko-country-flag.flag-MX{background-position:-270px -168px}
+.zynko-country-flag.flag-FM{background-position:-297px -168px}
+.zynko-country-flag.flag-MD{background-position:-324px -168px}
+.zynko-country-flag.flag-MC{background-position:-351px -168px}
+.zynko-country-flag.flag-MN{background-position:-378px -168px}
+.zynko-country-flag.flag-ME{background-position:-405px -168px}
+.zynko-country-flag.flag-MS{background-position:-0px -189px}
+.zynko-country-flag.flag-MA{background-position:-27px -189px}
+.zynko-country-flag.flag-MZ{background-position:-54px -189px}
+.zynko-country-flag.flag-MM{background-position:-81px -189px}
+.zynko-country-flag.flag-NA{background-position:-108px -189px}
+.zynko-country-flag.flag-NR{background-position:-135px -189px}
+.zynko-country-flag.flag-NP{background-position:-162px -189px}
+.zynko-country-flag.flag-NL{background-position:-189px -189px}
+.zynko-country-flag.flag-NC{background-position:-216px -189px}
+.zynko-country-flag.flag-NZ{background-position:-243px -189px}
+.zynko-country-flag.flag-NI{background-position:-270px -189px}
+.zynko-country-flag.flag-NE{background-position:-297px -189px}
+.zynko-country-flag.flag-NG{background-position:-324px -189px}
+.zynko-country-flag.flag-NU{background-position:-351px -189px}
+.zynko-country-flag.flag-NF{background-position:-378px -189px}
+.zynko-country-flag.flag-MP{background-position:-405px -189px}
+.zynko-country-flag.flag-NO{background-position:-0px -210px}
+.zynko-country-flag.flag-OM{background-position:-27px -210px}
+.zynko-country-flag.flag-PK{background-position:-54px -210px}
+.zynko-country-flag.flag-PW{background-position:-81px -210px}
+.zynko-country-flag.flag-PS{background-position:-108px -210px}
+.zynko-country-flag.flag-PA{background-position:-135px -210px}
+.zynko-country-flag.flag-PG{background-position:-162px -210px}
+.zynko-country-flag.flag-PY{background-position:-189px -210px}
+.zynko-country-flag.flag-PE{background-position:-216px -210px}
+.zynko-country-flag.flag-PH{background-position:-243px -210px}
+.zynko-country-flag.flag-PN{background-position:-270px -210px}
+.zynko-country-flag.flag-PL{background-position:-297px -210px}
+.zynko-country-flag.flag-PT{background-position:-324px -210px}
+.zynko-country-flag.flag-PR{background-position:-351px -210px}
+.zynko-country-flag.flag-QA{background-position:-378px -210px}
+.zynko-country-flag.flag-RE{background-position:-405px -210px}
+.zynko-country-flag.flag-RO{background-position:-0px -231px}
+.zynko-country-flag.flag-RU{background-position:-27px -231px}
+.zynko-country-flag.flag-RW{background-position:-54px -231px}
+.zynko-country-flag.flag-BL{background-position:-81px -231px}
+.zynko-country-flag.flag-KN{background-position:-108px -231px}
+.zynko-country-flag.flag-LC{background-position:-135px -231px}
+.zynko-country-flag.flag-MF{background-position:-162px -231px}
+.zynko-country-flag.flag-PM{background-position:-189px -231px}
+.zynko-country-flag.flag-VC{background-position:-216px -231px}
+.zynko-country-flag.flag-WS{background-position:-243px -231px}
+.zynko-country-flag.flag-SM{background-position:-270px -231px}
+.zynko-country-flag.flag-ST{background-position:-297px -231px}
+.zynko-country-flag.flag-SA{background-position:-324px -231px}
+.zynko-country-flag.flag-SN{background-position:-351px -231px}
+.zynko-country-flag.flag-RS{background-position:-378px -231px}
+.zynko-country-flag.flag-SC{background-position:-405px -231px}
+.zynko-country-flag.flag-SL{background-position:-0px -252px}
+.zynko-country-flag.flag-SG{background-position:-27px -252px}
+.zynko-country-flag.flag-SX{background-position:-54px -252px}
+.zynko-country-flag.flag-SK{background-position:-81px -252px}
+.zynko-country-flag.flag-SI{background-position:-108px -252px}
+.zynko-country-flag.flag-SB{background-position:-135px -252px}
+.zynko-country-flag.flag-SO{background-position:-162px -252px}
+.zynko-country-flag.flag-ZA{background-position:-189px -252px}
+.zynko-country-flag.flag-SS{background-position:-216px -252px}
+.zynko-country-flag.flag-ES{background-position:-243px -252px}
+.zynko-country-flag.flag-LK{background-position:-270px -252px}
+.zynko-country-flag.flag-SH{background-position:-297px -252px}
+.zynko-country-flag.flag-SD{background-position:-324px -252px}
+.zynko-country-flag.flag-SR{background-position:-351px -252px}
+.zynko-country-flag.flag-SJ{background-position:-378px -252px}
+.zynko-country-flag.flag-SE{background-position:-405px -252px}
+.zynko-country-flag.flag-CH{background-position:-0px -273px}
+.zynko-country-flag.flag-SY{background-position:-27px -273px}
+.zynko-country-flag.flag-TW{background-position:-54px -273px}
+.zynko-country-flag.flag-TJ{background-position:-81px -273px}
+.zynko-country-flag.flag-TZ{background-position:-108px -273px}
+.zynko-country-flag.flag-TH{background-position:-135px -273px}
+.zynko-country-flag.flag-TL{background-position:-162px -273px}
+.zynko-country-flag.flag-TG{background-position:-189px -273px}
+.zynko-country-flag.flag-TK{background-position:-216px -273px}
+.zynko-country-flag.flag-TO{background-position:-243px -273px}
+.zynko-country-flag.flag-TT{background-position:-270px -273px}
+.zynko-country-flag.flag-TN{background-position:-297px -273px}
+.zynko-country-flag.flag-TR{background-position:-324px -273px}
+.zynko-country-flag.flag-TM{background-position:-351px -273px}
+.zynko-country-flag.flag-TC{background-position:-378px -273px}
+.zynko-country-flag.flag-TV{background-position:-405px -273px}
+.zynko-country-flag.flag-UG{background-position:-0px -294px}
+.zynko-country-flag.flag-UA{background-position:-27px -294px}
+.zynko-country-flag.flag-AE{background-position:-54px -294px}
+.zynko-country-flag.flag-GB{background-position:-81px -294px}
+.zynko-country-flag.flag-US{background-position:-108px -294px}
+.zynko-country-flag.flag-UY{background-position:-135px -294px}
+.zynko-country-flag.flag-UZ{background-position:-162px -294px}
+.zynko-country-flag.flag-VU{background-position:-189px -294px}
+.zynko-country-flag.flag-VA{background-position:-216px -294px}
+.zynko-country-flag.flag-VE{background-position:-243px -294px}
+.zynko-country-flag.flag-VN{background-position:-270px -294px}
+.zynko-country-flag.flag-VG{background-position:-297px -294px}
+.zynko-country-flag.flag-VI{background-position:-324px -294px}
+.zynko-country-flag.flag-WF{background-position:-351px -294px}
+.zynko-country-flag.flag-EH{background-position:-378px -294px}
+.zynko-country-flag.flag-YE{background-position:-405px -294px}
+.zynko-country-flag.flag-ZM{background-position:-0px -315px}
+.zynko-country-flag.flag-ZW{background-position:-27px -315px}
+.zynko-country-flag.flag-AX{background-position:-54px -315px}
+.zynko-country-flag.flag-AC{background-position:-81px -315px}
+.zynko-country-flag.flag-TA{background-position:-108px -315px}
+.zynko-country-flag.flag-MK{background-position:-135px -315px}
+
 .inbox-phone-fields .select2-container,.inbox-new-body .select2-container{max-width:100%;min-width:0}
 .inbox-contact-status{color:var(--muted);display:block;margin-bottom:8px;overflow-wrap:anywhere}
 .inbox-copy-number{margin-top:8px;align-self:flex-start}
-body.page-inbox .inbox-chat-tools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;padding:7px 12px;border-bottom:1px solid var(--line);flex:0 0 auto}
-.inbox-chat-tools .soft,.inbox-copy-message,.inbox-clear-files,.message-pdf-preview{background:#10283a!important;color:#fff!important;border-color:#10283a!important}
-.inbox-chat-search{flex:1 1 100%;display:flex;gap:8px;align-items:center;min-width:0}
-.inbox-chat-search input{flex:1 1 auto;min-width:0}.inbox-chat-search small{flex:0 0 auto}
+/* Inbox toolbar: actions live in the existing header, search only consumes space when open. */
+.inbox-more-menu{position:relative;flex:none;min-width:0}.inbox-more-menu>summary{list-style:none;display:flex!important;align-items:center;gap:6px;cursor:pointer;background:#10283a!important;color:#fff!important;border:1px solid #10283a!important;border-radius:9px;padding:10px 12px;font-weight:750;font-size:12px;white-space:nowrap}.inbox-more-menu>summary::-webkit-details-marker{display:none}.inbox-more-menu>summary:hover{background:#17384f!important}.inbox-more-menu .inbox-more-options{position:absolute;right:0;top:calc(100% + 6px);width:min(230px,calc(100vw - 40px));z-index:150;display:grid;gap:6px;padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 28px rgba(16,40,58,.18)}.inbox-more-menu:not([open]) .inbox-more-options{display:none}.inbox-more-options button{width:100%;justify-content:flex-start!important;white-space:normal!important;min-width:0;text-align:left}.inbox-more-options .soft,.inbox-chat-search .soft,.inbox-copy-message,.inbox-clear-files,.message-pdf-preview{background:#10283a!important;color:#fff!important;border-color:#10283a!important}
+.inbox-chat-search{display:flex;gap:10px;align-items:center;min-width:0;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);flex:0 0 auto}.inbox-search-input{display:flex;align-items:center;gap:9px;flex:1 1 auto;min-width:0;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}.inbox-search-input>i{color:var(--muted)}.inbox-search-input input{flex:1;min-width:0;width:100%;height:40px;min-height:40px;border:0!important;background:transparent!important;color:var(--text);outline:none!important;box-shadow:none!important;padding:7px 0!important;font:inherit}.inbox-search-input:focus-within{border-color:#1bb89d;box-shadow:0 0 0 2px rgba(27,184,157,.15)}.inbox-chat-search small{flex:0 1 auto;white-space:normal;font-size:11px}.inbox-contact-name-card .inbox-contact-name-body{padding:18px 20px}.inbox-contact-name-card .modal-actions{justify-content:flex-end}
 .inbox-search-hidden{display:none!important}
 body.page-inbox .message-delivery{margin-top:6px!important;margin-bottom:2px!important}
 body.page-inbox .inbox-message-meta{display:flex;align-items:center;gap:6px;font-size:.68rem;color:var(--muted);margin-top:5px;flex-wrap:wrap}
@@ -6447,4 +6696,9 @@ body.page-inbox .message-pdf-preview i{color:#fca5a5;font-size:1.2rem;flex:none}
 #messageMediaModalFiles{width:100%;display:grid;gap:8px}
 #messageMediaModalFiles button,#messageMediaModalFiles a{display:block;width:100%;padding:12px!important;overflow-wrap:anywhere;text-align:left;border-radius:8px;background:#10283a!important;color:#fff!important}
 body.page-inbox .inbox-clear-files{align-self:flex-end;margin:4px 10px}
-@media(max-width:600px){body.page-inbox .inbox-chat-tools{padding:5px 8px}body.page-inbox .inbox-chat-tools .soft{font-size:.72rem;padding:5px 8px}#newConversationModal .inbox-new-body{padding:12px}#newConversationModal .modal-actions{padding:10px 12px}#messageMediaModalPdf{height:55dvh}}
+@media(max-width:600px){.inbox-chat-search{padding:7px 8px;gap:6px;flex-wrap:wrap}.inbox-chat-search small{font-size:10px}#newConversationModal .inbox-new-phone-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}#newConversationModal .inbox-new-phone-grid label{font-size:11px;line-height:1.4}.inbox-more-menu .inbox-more-options{position:static;width:100%;box-shadow:none;margin-top:5px}.inbox-more-menu[open]{grid-column:1/-1}.inbox-more-menu>summary{justify-content:center}#newConversationModal .inbox-new-body{padding:12px}#newConversationModal .modal-actions{padding:10px 12px}#messageMediaModalPdf{height:55dvh}}
+
+/* Compact mobile rich-text toolbar. Extra formatting is expanded only on demand. */
+.zynko-rte-more,.zynko-rte-extra{display:none!important}
+@media(max-width:600px){body .zynko-rte-toolbar{gap:5px!important;flex-wrap:wrap!important;align-items:center!important}body .zynko-rte-toolbar>.zynko-rte-more{display:inline-flex!important;align-items:center;justify-content:center;background:#10283a!important;color:#fff!important;min-width:34px!important;min-height:34px!important}body .zynko-rte-toolbar>.zynko-rte-secondary{display:none!important}body .zynko-rte-toolbar.rte-extra-open>.zynko-rte-secondary{display:inline-flex!important}body .zynko-rte-toolbar>span:not(.zynko-rte-format-control):not(.select2-container){display:none!important}}
+.message-activity-chart{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:8px;min-width:0;padding-top:20px}.message-activity-chart .analytics-window-plot{height:160px}.message-activity-chart .analytics-window-value{background:none!important;box-shadow:none!important;border:0!important}.message-activity-chart .analytics-window-fill{min-height:0!important}

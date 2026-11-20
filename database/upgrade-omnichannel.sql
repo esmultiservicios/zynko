@@ -1,5 +1,8 @@
 
--- Omnichannel: additive upgrade, safe to execute again.
+-- ZYNKO: script unificado de actualización (hasta v024).
+-- Seleccione la base de datos ZYNKO existente y realice un respaldo antes de ejecutar.
+-- Las tablas nuevas se crean si no existen. La sección comercial reafirma los límites estándar de los planes.
+-- No utilizar schema.sql para actualizar una instalación existente.
 CREATE TABLE IF NOT EXISTS channel_event_receipts (
             channel_id BIGINT UNSIGNED NOT NULL, tenant_id BIGINT UNSIGNED NOT NULL,
             event_key CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -99,3 +102,17 @@ CREATE TABLE IF NOT EXISTS commercial_plan_copy (
 -- including reconciliation of existing subscriptions. Keep application startup enabled after deployment.
 INSERT IGNORE INTO channel_connector_catalog(code,name,icon_class,icon_style,description,connector_ready,visible,linkable,sort_order)
 VALUES ('threads','Threads','fa-brands fa-threads','instagram','Canal previsto; requiere un conector real y autorización del proveedor.',0,1,0,80);
+
+-- Catálogo comercial estándar v024 (integrado en este único script).
+-- Respaldar primero. No cambia precios, disponibilidad comercial, mensajes, credenciales ni historial.
+-- max_channels incluye el cupo reservado para NIVO Web Chat.
+START TRANSACTION;
+UPDATE subscription_plans SET max_channels=1,allowed_channels_json=JSON_ARRAY('webchat') WHERE code='free';
+UPDATE subscription_plans SET max_channels=2,allowed_channels_json=JSON_ARRAY('webchat','whatsapp') WHERE code='starter';
+UPDATE subscription_plans SET max_channels=3,allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram'),features_json=JSON_ARRAY('NIVO Web Chat incluido','5 sitios autorizados para NIVO Web Chat','Hasta 2 conexiones externas: elige entre WhatsApp, Messenger e Instagram','3,000 chats nuevos por mes','API completa para integraciones externas','NIVO IA y automatizaciones','Asignación de conversaciones, reportes y auditoría','Usuarios de ZYNKO ilimitados') WHERE code='pro';
+UPDATE subscription_plans SET max_channels=11,allowed_channels_json=JSON_ARRAY('webchat','whatsapp','messenger','instagram','telegram','email','threads','x') WHERE code='business';
+COMMIT;
+SELECT code,name,monthly_price,max_channels-1 AS cupos_externos,allowed_channels_json FROM subscription_plans WHERE code IN ('free','starter','pro','business') ORDER BY monthly_price;
+SELECT code,visible,connector_ready,linkable FROM channel_connector_catalog ORDER BY sort_order;
+-- No habilita conectores ni desconecta cuentas existentes. Revisar excesos antes de aplicar cualquier desconexión.
+SELECT ts.tenant_id,sp.code,COUNT(ch.id) AS conexiones_externas,sp.max_channels-1 AS cupos FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id JOIN channels ch ON ch.tenant_id=ts.tenant_id AND ch.type<>'webchat' AND ch.status<>'disconnected' WHERE sp.code IN ('free','starter','pro','business') GROUP BY ts.tenant_id,sp.code,sp.max_channels HAVING COUNT(ch.id)>sp.max_channels-1;

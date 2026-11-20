@@ -7,6 +7,7 @@
  const notify=(type,title,message)=>{if(typeof window.showNotify==='function')window.showNotify(type,title,message);else console.warn(title,message);};
  const open=(id,trigger)=>{const d=document.getElementById(id);if(!(d instanceof HTMLDialogElement)||d.open)return false;d.showModal();d._zcTrigger=trigger;if(window.jQuery?.fn?.select2){qa('select.zc-select',d).forEach(el=>{const j=window.jQuery(el);if(!j.hasClass('select2-hidden-accessible')){j.select2({dropdownParent:window.jQuery(d),width:'100%',minimumResultsForSearch:0});j.on('select2:select',()=>el.dispatchEvent(new Event('change',{bubbles:true})));}});}return true;};
  document.addEventListener('click',e=>{
+  const hide=e.target.closest?.('[data-zc-hide-comparison]');if(hide){const details=hide.closest('.zc-compare details');if(details){details.open=false;const summary=q('summary',details);summary?.focus({preventScroll:true});summary?.scrollIntoView({block:'center',behavior:'instant'});}return;}
   const b=e.target.closest?.('[data-zc-open]');if(b){e.preventDefault();open(b.dataset.zcOpen,b);return;}
   const close=e.target.closest?.('[data-zc-close]');if(close){const d=close.closest('dialog.zc-dialog');if(d?.open)d.close();return;}
   // Direct connection button: hand-off to the existing production Meta flow (no synthetic connection).
@@ -20,6 +21,7 @@
    const btn=q('[data-zc-meta]',form);if(btn){btn.disabled=method==='help'||btn.dataset.ready!=='1';}
   });qa('[data-zc-pricing-form]').forEach(form=>{const mode=q('[name=pricing_mode]',form)?.value,field=q('[name=price]',form);if(field){field.disabled=mode!=='fixed';field.required=mode==='fixed';}});};
  document.addEventListener('change',e=>{if(e.target.closest?.('[data-zc-progress-form],[data-zc-pricing-form]'))sync();});
+ const center=q('#zc-activation-center[data-zc-reopen="1"]');if(center)open(center.id,q('[data-zc-open="zc-activation-center"]'));
  const request=q('#zcPlanRequestForm');
  if(request){qa('.plan-request[data-plan-revision]').forEach(btn=>btn.addEventListener('click',()=>{
   request.reset();q('[data-zc-contract-error]',request).textContent='';request.elements.plan_id.value=btn.dataset.id;request.elements.plan_revision.value=btn.dataset.planRevision;

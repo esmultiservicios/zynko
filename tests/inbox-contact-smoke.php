@@ -14,7 +14,7 @@ check(InboxContact::split('50499990000')===['HN','99990000'],'Separar prefijo');
 check(InboxContact::split('99990000')===['HN','99990000'],'Honduras legado local');
 check(InboxContact::split('12425550101')===['BS','5550101'],'Prefijo diferenciado NANP');
 check(count(InboxContact::countries())===246,'246 países y territorios con prefijo');
-check(str_contains(InboxContact::options(),'value="HN" data-dial="504" selected'),'Honduras preseleccionada');
+check(str_contains(InboxContact::options(),'value="HN" data-dial="504" data-flag="HN" selected'),'Honduras preseleccionada');
 check(InboxContact::isSaved(['custom_fields'=>'{"inbox_saved":true}']),'Contacto guardado');
 check(!InboxContact::isSaved(['custom_fields'=>'{"inbox_saved":false}']),'Contacto no guardado');
 check(InboxContact::mediaUrl(['url'=>'uploads/chat/1/3/photo.png'],7,0)==='channel-media.php?message_id=7&index=0','Adjunto servido por endpoint autenticado');
