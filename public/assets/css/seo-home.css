@@ -1302,5 +1302,10 @@ body .plan-channel-chip>.plan-channel-name{display:flex!important;align-items:ce
 .faq-trigger .faq-number{flex:none;background:#e4f5f1;color:#087c6c}
 .faq-open-icon{flex:none;display:grid;place-items:center;width:29px;height:29px;border-radius:9px;background:#087f70;color:#fff}
 .faq-trigger:focus-visible{outline:2px solid #10aa8c;outline-offset:-4px}
+/* FAQ: one compact, centered size for every answer; scroll only the body. */
+dialog.zc-dialog.faq-answer-dialog{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(640px,calc(100vw - 30px));height:min(340px,calc(100dvh - 30px));min-height:0;max-height:calc(100dvh - 30px);overflow:hidden}
+dialog.zc-dialog.faq-answer-dialog>.zc-dialog-frame{display:flex;flex-direction:column;width:100%;height:100%;min-height:0;max-height:100%;overflow:hidden}
+.faq-answer-dialog .zc-dialog-head,.faq-answer-dialog .zc-dialog-foot{flex:0 0 auto}
+.faq-answer-dialog .zc-dialog-body{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;align-content:start}
 .faq-answer-dialog .faq-answer-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;color:var(--zc-ink)}
 @media(max-width:600px){.faq-grid .faq-trigger{padding:14px;gap:10px}.faq-trigger .faq-label{gap:9px}}
