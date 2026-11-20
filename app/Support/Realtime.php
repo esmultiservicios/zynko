@@ -48,6 +48,7 @@ function zynkoRealtimeMessage(PDO $pdo, int $tenantId, int $messageId): ?array
             m.media_json,
             m.status,
             o.last_error AS delivery_error,
+            o.state AS outbox_state,
             m.sent_at,
             m.created_at
          FROM messages m

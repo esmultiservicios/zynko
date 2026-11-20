@@ -803,7 +803,7 @@ if(isset($_SESSION['user']) && in_array($_GET['action']??'',['companies_export_e
 
 if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts_with($_POST['action']??'','ajax_')===false && isset($_SERVER['HTTP_X_ZYNKO_AJAX'])){
  try{$pdo=appDb();$tid=(int)$_SESSION['user']['tenant_id'];$action=$_POST['action']??'';$planCtx=zynkoPlanContext($pdo,$tid,isPlatformOwner());
- if(in_array($action,['channel_save','channel_validate','channel_qr_start','channel_templates_list','channel_template_create','channel_template_update','channel_template_delete','channel_qr_pair','channel_qr_unlink','channel_x_start','channel_metrics','channel_cloud_register','channel_disconnect','meta_signup_exchange','meta_signup_verify','message_send'],true))ChannelSchema::ensure($pdo);
+ if(in_array($action,['channel_save','channel_validate','channel_qr_start','channel_templates_list','channel_template_create','channel_template_update','channel_template_delete','channel_qr_pair','channel_qr_unlink','channel_x_start','channel_metrics','channel_cloud_register','channel_disconnect','meta_signup_exchange','meta_signup_verify','message_send','inbox_message_retry','inbox_message_info','inbox_forward_targets'],true))ChannelSchema::ensure($pdo);
   if(str_starts_with($action,'company_')){
    if(!isPlatformOwner())throw new RuntimeException('Solo el administrador principal puede gestionar empresas.');
    if($action==='company_create'){
@@ -930,7 +930,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   $operationalActions=[
    'channels'=>['channel_save','channel_validate','channel_qr_start','channel_templates_list','channel_template_create','channel_template_update','channel_template_delete','channel_qr_pair','channel_qr_unlink','channel_x_start','channel_metrics','channel_cloud_register','channel_disconnect'],
    'webchat'=>['webchat_widget_save','webchat_installation_add','webchat_installation_update','webchat_installation_toggle','webchat_installation_delete'],
-   'inbox'=>['conversation_create','conversation_assign','conversation_auto_assign','conversation_bulk_action','conversation_mark_state','conversation_note_add','conversation_secure_delete','conversation_snapshot','message_send','contact_update','contact_categories_save','category_add','followup_save','quick_reply_save','quick_reply_delete'],
+   'inbox'=>['conversation_create','conversation_assign','conversation_auto_assign','conversation_bulk_action','conversation_mark_state','conversation_note_add','conversation_secure_delete','conversation_snapshot','message_send','inbox_message_retry','inbox_message_info','inbox_forward_targets','contact_update','contact_categories_save','category_add','followup_save','quick_reply_save','quick_reply_delete'],
   ];foreach($operationalActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
 
   if($action==='api_key_create'){
@@ -1550,8 +1550,44 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
   }
   if($action==='conversation_assign'){$cid=(int)($_POST['conversation_id']??0);$uid=(int)($_POST['user_id']??0);$q=$pdo->prepare("SELECT u.name FROM users u JOIN tenant_users tu ON tu.user_id=u.id WHERE u.id=? AND tu.tenant_id=? AND u.status='active'");$q->execute([$uid,$tid]);$name=$q->fetchColumn();if(!$name)throw new RuntimeException('El agente no está disponible.');$q=$pdo->prepare('UPDATE conversations SET assigned_user_id=?,status=\'open\' WHERE id=? AND tenant_id=?');$q->execute([$uid,$cid,$tid]);if(!$q->rowCount())throw new RuntimeException('Conversación no encontrada.');$body='Hola 👋 ¿En qué puedo ayudarle?';$pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,sender_user_id,type,body,status,sent_at) VALUES(?,?,?,'out','system',?,'text',?,'queued',NOW())")->execute([$tid,$cid,uuid4(),$uid,$body]);$assignmentMessageId=(int)$pdo->lastInsertId();zynkoRealtimePublishMessage($pdo,$tid,$assignmentMessageId,['channel'=>'admin','sender'=>'system']);zynkoRealtimePublish($pdo,$tid,'conversation.assigned',['conversation_id'=>$cid,'agent'=>$name,'message'=>$body],'conversation',(string)$cid);jsonOut(true,'Conversación asignada a '.$name.'.',['greeting'=>$body,'message_id'=>$assignmentMessageId]);}
   if($action==='conversation_auto_assign'){$cid=(int)($_POST['conversation_id']??0);$q=$pdo->prepare("SELECT u.id,u.name FROM users u JOIN tenant_users tu ON tu.user_id=u.id LEFT JOIN agent_presence ap ON ap.user_id=u.id AND ap.tenant_id=tu.tenant_id WHERE tu.tenant_id=? AND u.status='active' AND tu.role_code IN ('agent','supervisor','admin','owner') AND COALESCE(ap.status,'online')='online' ORDER BY RAND() LIMIT 1");$q->execute([$tid]);$a=$q->fetch();$display=null;$uid=null;if($a){$uid=(int)$a['id'];$display=$a['name'];}elseif(isPlatformOwner()){$q=$pdo->prepare('SELECT display_name FROM nivo_agent_aliases WHERE tenant_id=? AND active=1 ORDER BY RAND() LIMIT 1');$q->execute([$tid]);$display=$q->fetchColumn();}if(!$display){$body='En este momento no hay agentes disponibles. Dejé tu conversación en cola para que el próximo agente disponible continúe contigo.';$pdo->prepare("UPDATE conversations SET status='pending',assigned_user_id=NULL WHERE id=? AND tenant_id=?")->execute([$cid,$tid]);}else{$body='Hola 👋 ¿En qué puedo ayudarle?';$pdo->prepare("UPDATE conversations SET status='open',assigned_user_id=? WHERE id=? AND tenant_id=?")->execute([$uid,$cid,$tid]);}$pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,sender_user_id,type,body,status,sent_at) VALUES(?,?,?,'out','system',?,'text',?,'queued',NOW())")->execute([$tid,$cid,uuid4(),$uid,$body]);$assignmentMessageId=(int)$pdo->lastInsertId();zynkoRealtimePublishMessage($pdo,$tid,$assignmentMessageId,['channel'=>'admin','sender'=>'system']);zynkoRealtimePublish($pdo,$tid,'conversation.assigned',['conversation_id'=>$cid,'agent'=>$display,'message'=>$body],'conversation',(string)$cid);jsonOut(true,$display?'Conversación transferida.':'Conversación puesta en cola.',['agent'=>$display,'message'=>$body,'message_id'=>$assignmentMessageId]);}
+  if($action==='inbox_forward_targets'){
+   assertAuthCsrf();
+   $q=$pdo->prepare("SELECT c.id,ct.name contact_name,ct.phone,ch.name channel_name,ch.type channel_type,ch.status channel_status FROM conversations c JOIN contacts ct ON ct.id=c.contact_id AND ct.tenant_id=c.tenant_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.tenant_id=? AND c.deleted_at IS NULL AND c.archived_at IS NULL AND c.status IN ('open','pending') AND ch.status='connected' AND ch.type IN ('webchat','whatsapp','messenger','instagram','telegram','x') AND (ch.type='webchat' OR EXISTS (SELECT 1 FROM contact_identities ci WHERE ci.contact_id=c.contact_id AND ci.tenant_id=c.tenant_id AND ci.channel_id=ch.id)) ORDER BY c.last_message_at DESC,c.id DESC");$q->execute([$tid]);$rows=[];
+   foreach($q->fetchAll(PDO::FETCH_ASSOC) as $r){if(!zynkoPlanAllowsChannel($planCtx,(string)$r['channel_type']))continue;$rows[]=['id'=>(int)$r['id'],'label'=>((string)($r['contact_name']?:$r['phone']?:'Contacto')).' · '.(string)$r['channel_name'].(!empty($r['phone'])?' · '.$r['phone']:'')];}
+   jsonOut(true,'Destinos disponibles.',['conversations'=>$rows]);
+  }
+  if($action==='inbox_message_info'){
+   assertAuthCsrf();$mid=(int)($_POST['message_id']??0);$cid=(int)($_POST['conversation_id']??0);
+   $q=$pdo->prepare('SELECT m.id FROM messages m JOIN conversations c ON c.id=m.conversation_id AND c.tenant_id=m.tenant_id WHERE m.id=? AND m.tenant_id=? AND c.id=? AND c.deleted_at IS NULL');$q->execute([$mid,$tid,$cid]);if(!$q->fetchColumn())throw new RuntimeException('Mensaje no disponible.');
+   $q=$pdo->prepare('SELECT delivery_status,updated_at FROM channel_message_receipts WHERE tenant_id=? AND message_id=? ORDER BY updated_at,provider_key');$q->execute([$tid,$mid]);
+   $r=zynkoRealtimeMessage($pdo,$tid,$mid);jsonOut(true,'Información del mensaje.',['status'=>$r['status']??null,'delivery_error'=>$r['delivery_error']??null,'receipts'=>$q->fetchAll(PDO::FETCH_ASSOC)]);
+  }
+  if($action==='inbox_message_retry'){
+   assertAuthCsrf();$mid=(int)($_POST['message_id']??0);$cid=(int)($_POST['conversation_id']??0);$gateway=new ChannelProviderGateway($pdo,$root);$retryId=$mid;
+   $pdo->beginTransaction();try{
+    $q=$pdo->prepare("SELECT m.*,ch.id channel_id,ch.type channel_type,ch.status channel_status,o.state outbox_state,o.last_error delivery_error FROM messages m JOIN conversations c ON c.id=m.conversation_id AND c.tenant_id=m.tenant_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id AND o.conversation_id=c.id AND o.channel_id=ch.id WHERE m.id=? AND m.tenant_id=? AND c.id=? AND c.deleted_at IS NULL AND m.direction='out' AND m.status='failed' FOR UPDATE");$q->execute([$mid,$tid,$cid]);$m=$q->fetch(PDO::FETCH_ASSOC);
+    if(!$m||$m['channel_status']!=='connected'||!zynkoPlanAllowsChannel($planCtx,(string)$m['channel_type']))throw new RuntimeException('Mensaje o canal no disponible para reintentar.');
+    $q=$pdo->prepare('SELECT delivery_status FROM channel_message_receipts WHERE tenant_id=? AND message_id=? FOR UPDATE');$q->execute([$tid,$mid]);$receipts=$q->fetchAll(PDO::FETCH_COLUMN);
+    if(!$receipts&&$m['outbox_state']==='failed'&&empty($m['external_message_id'])){
+     $pdo->prepare("UPDATE channel_outbox SET state='queued',attempts=0,next_attempt_at=NOW(),claimed_at=NULL,last_error=NULL WHERE message_id=? AND tenant_id=? AND state='failed'")->execute([$mid,$tid]);
+     $pdo->prepare("UPDATE messages SET status='queued' WHERE id=? AND tenant_id=? AND status='failed'")->execute([$mid,$tid]);
+    }elseif($receipts&&$m['outbox_state']==='sent'&&count(array_filter($receipts,static fn($v)=>$v==='failed'))===count($receipts)){
+     // Provider confirmed every receipt failed; retain the original and create a new attempt.
+     $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,sender_user_id,type,body,media_json,status,sent_at) VALUES(?,?,?,'out',?,?,?,?,?,'queued',NOW())")->execute([$tid,$cid,uuid4(),$m['sender_type'],$m['sender_user_id'],$m['type'],$m['body'],$m['media_json']]);$retryId=(int)$pdo->lastInsertId();
+     $pdo->prepare('INSERT INTO channel_structured_outbox(message_id,tenant_id,channel_id,payload_json) SELECT ?,tenant_id,channel_id,payload_json FROM channel_structured_outbox WHERE message_id=? AND tenant_id=? AND channel_id=?')->execute([$retryId,$mid,$tid,(int)$m['channel_id']]);
+     if(!$gateway->enqueue($tid,$cid,$retryId))throw new RuntimeException('No se pudo registrar el reintento.');
+     $pdo->prepare("UPDATE channel_outbox SET state='superseded',last_error=? WHERE message_id=? AND tenant_id=? AND state='sent'")->execute([mb_substr(trim((string)($m['delivery_error']??'').' · Reintento registrado: #'.$retryId),0,500),$mid,$tid]);
+     $pdo->prepare('UPDATE conversations SET last_message_at=NOW() WHERE id=? AND tenant_id=?')->execute([$cid,$tid]);
+     zynkoRealtimePublishMessage($pdo,$tid,$retryId,['channel'=>'admin','sender'=>'retry']);
+    }else throw new RuntimeException('No se puede repetir con seguridad: revise los comprobantes o el resultado anterior.');
+    $pdo->commit();
+   }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+   $old=zynkoRealtimeMessage($pdo,$tid,$mid);if($old)zynkoRealtimePublishSafe($pdo,$tid,'message.status',['conversation_id'=>$cid,'message_id'=>$mid,'message'=>$old],'message',(string)$mid);
+   $sent=$gateway->dispatchQueued($tid,$retryId,$cid);$updated=zynkoRealtimeMessage($pdo,$tid,$retryId);
+   jsonOut((bool)$sent[0],(string)$sent[1],['message'=>$updated,'original'=>$old]);
+  }
   if($action==='message_send'){
-   assertAuthCsrf();$cid=(int)($_POST['conversation_id']??0);$body=trim($_POST['body']??'');$q=$pdo->prepare('SELECT ch.type,ch.status FROM conversations c JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL');$q->execute([$cid,$tid]);$sendChannel=$q->fetch();if(!$sendChannel||!zynkoPlanAllowsChannel($planCtx,(string)$sendChannel['type'])||($sendChannel['type']!=='webchat'&&$sendChannel['status']!=='connected'))throw new RuntimeException('Conversación o canal no disponible.');
+   assertAuthCsrf();$cid=(int)($_POST['conversation_id']??0);$body=trim($_POST['body']??'');$q=$pdo->prepare('SELECT ch.type,ch.status,c.status conversation_status,c.archived_at FROM conversations c JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.id=? AND c.tenant_id=? AND c.deleted_at IS NULL');$q->execute([$cid,$tid]);$sendChannel=$q->fetch();if(!$sendChannel||!zynkoPlanAllowsChannel($planCtx,(string)$sendChannel['type'])||($sendChannel['type']!=='webchat'&&$sendChannel['status']!=='connected'))throw new RuntimeException('Conversación o canal no disponible.');
    $structured=null;$structuredChannel=null;
    if(isset($_POST['structured_json'])){
      if(empty($_SESSION['structured_message_csrf'])||!hash_equals((string)$_SESSION['structured_message_csrf'],(string)($_POST['structured_csrf']??'')))throw new RuntimeException('Actualiza la bandeja antes de continuar.');
@@ -1560,7 +1596,12 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
      if($structured['kind']==='template'){$t=(new ChannelProviderGateway($pdo,$root))->ownedTemplate($structuredChannel,$structured['template_id']);if(($t['status']??'')!=='APPROVED')throw new RuntimeException('La plantilla no está aprobada.');ChannelTemplateComponents::forSend($t,$structured['values']);foreach($t['components']??[] as $c)if(($c['type']??'')==='BODY'){$body=preg_replace_callback('/\{\{([1-9][0-9]*)\}\}/',fn($m)=>$structured['values'][(int)$m[1]-1]??'',(string)$c['text']);break;}}
      if(!empty($_FILES)||!empty($_POST['quick_reply_id']))throw new RuntimeException('No combine este mensaje con archivos o respuestas rápidas.');
    }
-   $media=[];$quickReplyId=max(0,(int)($_POST['quick_reply_id']??0));
+   $media=[];$quickReplyId=max(0,(int)($_POST['quick_reply_id']??0));$forwardId=(int)($_POST['forward_message_id']??0);$forwardFiles=[];
+   if($forwardId){
+    if($structured!==null||$quickReplyId||!empty($_FILES)||$body!==''||!in_array($sendChannel['conversation_status'],['open','pending'],true)||$sendChannel['archived_at']!==null||!in_array($sendChannel['type'],['webchat','whatsapp','messenger','instagram','telegram','x'],true))throw new RuntimeException('Destino no disponible o solicitud de reenvío inválida.');
+    require_once $root.'/app/Support/InboxMessageForward.php';
+    $forward=InboxMessageForward::prepare($pdo,$root,$tid,$forwardId,(int)($_POST['forward_source_conversation_id']??0),$cid,(string)$sendChannel['type']);$body=$forward['body'];$media=$forward['media'];$forwardFiles=$forward['created'];
+   }
    if($quickReplyId){$qr=$pdo->prepare('SELECT body,media_json FROM quick_replies WHERE id=? AND tenant_id=? AND active=1 LIMIT 1');$qr->execute([$quickReplyId,$tid]);if($row=$qr->fetch()){if($body==='')$body=trim((string)$row['body']);$media=json_decode((string)($row['media_json']??''),true)?:[];}}
    if(!empty($_FILES['attachments']['name'])&&is_array($_FILES['attachments']['name'])){
     $dir=__DIR__.'/uploads/chat/'.$tid.'/'.$cid;if(!is_dir($dir))mkdir($dir,0775,true);
@@ -1574,8 +1615,8 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
     }
    }
    if($body===''&&!$media)throw new RuntimeException('Escribe un mensaje o adjunta un archivo.');
-   $pdo->beginTransaction();
    try{
+    $pdo->beginTransaction();
     $pdo->prepare("INSERT INTO messages(tenant_id,conversation_id,uuid,direction,sender_type,sender_user_id,type,body,media_json,status,sent_at) VALUES(?,?,?,'out','user',?,?,?,?, 'queued',NOW())")->execute([$tid,$cid,uuid4(),(int)$_SESSION['user']['id'],$media?'media':'text',$body?:null,$media?json_encode($media,JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE):null]);
     $messageId=(int)$pdo->lastInsertId();
     if($structured!==null)$pdo->prepare('INSERT INTO channel_structured_outbox(message_id,tenant_id,channel_id,payload_json) VALUES(?,?,?,?)')->execute([$messageId,$tid,(int)$structuredChannel['id'],json_encode($structured,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)]);
@@ -1584,7 +1625,7 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
     zynkoRealtimePublishMessage($pdo,$tid,$messageId,['channel'=>'admin','sender'=>'user']);
     zynkoRealtimePublish($pdo,$tid,'conversation.updated',['conversation_id'=>$cid,'channel'=>'admin','reason'=>'agent_message','message_id'=>$messageId],'conversation',(string)$cid);
     $pdo->commit();
-   }catch(Throwable $messageError){if($pdo->inTransaction())$pdo->rollBack();throw $messageError;}
+   }catch(Throwable $messageError){if($pdo->inTransaction())$pdo->rollBack();if($forwardFiles)InboxMessageForward::cleanup($forwardFiles);throw $messageError;}
    try{
     $dq=$pdo->prepare('SELECT c.channel_id,ch.type FROM conversations c JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id WHERE c.id=? AND c.tenant_id=?');$dq->execute([$cid,$tid]);$dc=$dq->fetch();
     if($dc && !in_array((string)$dc['type'],['webchat','email'],true)){
@@ -1592,7 +1633,7 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
       if(!$sent[0])throw new RuntimeException((string)$sent[1]);
     }
    }catch(Throwable $dispatchError){$pdo->prepare("UPDATE messages SET status='failed' WHERE id=? AND tenant_id=? AND status='queued' AND NOT EXISTS (SELECT 1 FROM channel_outbox WHERE message_id=?)")->execute([$messageId,$tid,$messageId]);jsonOut(false,'El mensaje quedó guardado. Revisa el estado antes de reenviar: '.$dispatchError->getMessage(),['message_id'=>$messageId,'message'=>zynkoRealtimeMessage($pdo,$tid,$messageId)]);}
-   if($body!==''&&$structured===null){
+   if($body!==''&&$structured===null&&!$forwardId){
     try{
      $bp=$pdo->prepare('SELECT handoff_rules_json FROM bot_profiles WHERE tenant_id=? LIMIT 1');$bp->execute([$tid]);$learnCfg=json_decode((string)($bp->fetchColumn()?:'{}'),true)?:[];
      if(($learnCfg['learn_mode']??'review')==='review'){
@@ -1667,7 +1708,7 @@ if($action==='category_add'){$name=trim($_POST['category_name']??'');if($name===
   if($action==='contact_categories_save'){$conversation=(int)($_POST['conversation_id']??0);$ids=array_values(array_unique(array_map('intval',$_POST['categories']??[])));$q=$pdo->prepare('SELECT id FROM conversations WHERE id=? AND tenant_id=? AND deleted_at IS NULL');$q->execute([$conversation,$tid]);if(!$q->fetchColumn())throw new RuntimeException('Conversación no disponible.');$pdo->beginTransaction();$pdo->prepare('DELETE ccm FROM conversation_category_map ccm JOIN contact_categories cc ON cc.id=ccm.category_id WHERE ccm.conversation_id=? AND cc.tenant_id=?')->execute([$conversation,$tid]);$ins=$pdo->prepare('INSERT INTO conversation_category_map(conversation_id,category_id) SELECT ?,id FROM contact_categories WHERE id=? AND tenant_id=?');foreach($ids as $id)if($id>0)$ins->execute([$conversation,$id,$tid]);$pdo->commit();jsonOut(true,'Categorías de la conversación actualizadas.');}
   if($action==='followup_save'){$cid=(int)($_POST['conversation_id']??0);$at=trim($_POST['follow_up_at']??'');$note=trim($_POST['follow_up_note']??'');if(!$cid||$at==='')throw new RuntimeException('Selecciona fecha y hora de seguimiento.');$dt=date('Y-m-d H:i:s',strtotime($at));$pdo->prepare("UPDATE conversation_followups SET status='cancelled' WHERE tenant_id=? AND conversation_id=? AND status='pending'")->execute([$tid,$cid]);$pdo->prepare('INSERT INTO conversation_followups(tenant_id,conversation_id,follow_up_at,note,created_by) VALUES(?,?,?,?,?)')->execute([$tid,$cid,$dt,$note?:null,(int)$_SESSION['user']['id']]);jsonOut(true,'Seguimiento programado.');}
   if($action==='conversation_note_add'){$cid=(int)($_POST['conversation_id']??0);$body=trim($_POST['note']??'');if($body==='')throw new RuntimeException('Escribe una nota interna.');$pdo->prepare('INSERT INTO conversation_notes(tenant_id,conversation_id,user_id,body) VALUES(?,?,?,?)')->execute([$tid,$cid,(int)$_SESSION['user']['id'],$body]);jsonOut(true,'Nota interna agregada.');}
-  if($action==='conversation_snapshot'){$cid=(int)($_POST['conversation_id']??0);$q=$pdo->prepare("SELECT m.id,m.direction,m.sender_type,m.sender_user_id,m.body,m.media_json,m.status,m.sent_at,u.name sender_name,o.last_error delivery_error FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id WHERE m.tenant_id=? AND m.conversation_id=? AND EXISTS (SELECT 1 FROM conversations c WHERE c.id=m.conversation_id AND c.tenant_id=m.tenant_id AND c.deleted_at IS NULL) ORDER BY CASE WHEN m.type='greeting' THEN 0 ELSE 1 END,m.sent_at,m.id");$q->execute([$tid,$cid]);jsonOut(true,'Conversación actualizada.',['messages'=>$q->fetchAll()]);}
+  if($action==='conversation_snapshot'){$cid=(int)($_POST['conversation_id']??0);$q=$pdo->prepare("SELECT m.id,m.direction,m.sender_type,m.sender_user_id,m.type,m.body,m.media_json,m.status,m.sent_at,u.name sender_name,o.last_error delivery_error,o.state outbox_state FROM messages m LEFT JOIN users u ON u.id=m.sender_user_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id WHERE m.tenant_id=? AND m.conversation_id=? AND EXISTS (SELECT 1 FROM conversations c WHERE c.id=m.conversation_id AND c.tenant_id=m.tenant_id AND c.deleted_at IS NULL) ORDER BY m.sent_at,m.id");$q->execute([$tid,$cid]);jsonOut(true,'Conversación actualizada.',['messages'=>$q->fetchAll(),'today'=>date('Y-m-d'),'yesterday'=>date('Y-m-d',strtotime('-1 day'))]);}
   if($action==='knowledge_site_add'){$svc=new NivoWebsiteKnowledgeService($pdo,$root);$id=$svc->create($tid,$_POST);$sync=!empty($_POST['sync_now']);$data=['website_id'=>$id];if($sync)$data=array_merge($data,$svc->sync($tid,$id));jsonOut(true,$sync?'Fuente web creada y sincronizada.':'Fuente web creada. Puedes sincronizarla cuando quieras.',$data);}
   if($action==='knowledge_site_update'){$id=(int)($_POST['website_id']??0);if(!$id)throw new RuntimeException('Fuente web inválida.');$svc=new NivoWebsiteKnowledgeService($pdo,$root);$svc->update($tid,$id,$_POST);jsonOut(true,'Fuente web actualizada.');}
   if($action==='knowledge_site_sync'){$id=(int)($_POST['website_id']??0);if(!$id)throw new RuntimeException('Fuente web inválida.');$svc=new NivoWebsiteKnowledgeService($pdo,$root);$data=$svc->sync($tid,$id);jsonOut(true,'Fuente web sincronizada: '.(int)$data['pages'].' página(s) aprendidas.',$data);}
