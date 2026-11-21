@@ -6709,6 +6709,19 @@ body.dark #inboxMessageContextMenu button:hover{background:var(--surface2)}
 .modal-shell .inbox-message-dialog-body{flex:1 1 0!important;min-height:0!important;overflow:auto;overscroll-behavior:contain;padding:15px 18px!important;display:flex;flex-direction:column;gap:12px}
 .modal-shell .inbox-message-dialog>.modal-actions{flex:0 0 auto!important;position:relative!important;justify-content:flex-end!important;margin:0!important;padding:12px 18px!important;border-top:1px solid var(--line)!important;min-height:0!important;height:auto!important;background:var(--surface)!important}
 .modal-shell .inbox-message-dialog>.modal-actions button{height:40px;min-height:40px;white-space:nowrap}
+
+/* Message information: grow to its content without changing the forward dialog.
+   Keep the body scrollable only when its contents exceed the viewport. */
+#inboxMessageInfoModal .modal-card.inbox-message-dialog{
+ height:auto!important;
+ max-height:calc(100dvh - 28px)!important;
+}
+#inboxMessageInfoModal .inbox-message-dialog-body{
+ flex:0 1 auto!important;
+ min-height:0!important;
+ overflow-y:auto;
+}
+
 .inbox-message-info-rows{display:grid;gap:8px;min-width:0}
 .inbox-message-info-row{display:grid;grid-template-columns:minmax(105px,42%) minmax(0,1fr);align-items:start;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
 .inbox-message-info-row small{color:var(--muted);font-size:.78rem}.inbox-message-info-row b{font-size:.8rem;line-height:1.45;font-weight:650}
