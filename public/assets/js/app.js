@@ -1210,11 +1210,12 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',event=>{event.preventDefault();event.stopPropagation();const dropdown=q('.chat-actions .inbox-more-menu',chat);if(!dropdown)return;dropdown.open=!dropdown.open;a.setAttribute('aria-expanded',String(dropdown.open));if(dropdown.open)dropdown.dispatchEvent(new Event('zynko:phone-menu-open'));});a.setAttribute('aria-expanded','false');const dropdown=q('.chat-actions .inbox-more-menu',chat);dropdown?.addEventListener('toggle',()=>a.setAttribute('aria-expanded',String(dropdown.open)));nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
  function sync(){if(!mq.matches){restore();document.body.classList.remove('phone-chat-active');return;}document.body.classList.add('zynko-phone');setupHeader();setupInbox();}
  mq.addEventListener?.('change',sync);sync();
- // En Android el viewport visual se mueve al enfocar el editor.
- // Mantener el chat dentro del área realmente visible, sin dejar el fondo gris
- // ni depender de un mínimo fijo de altura que oculte la barra de enviar.
+ // Ajuste exclusivo de la bandeja de teléfono al teclado virtual.
+ // La posición se deriva SIEMPRE del viewport visible actual. No se usan
+ // medidas anteriores del chat: Edge/Chrome pueden desplazar el viewport
+ // mientras el teclado termina de abrirse y eso causaba un desfase acumulativo.
  let phoneKeyboardFrame=0;
- let phoneViewportBaseline=Math.max(window.innerHeight,window.visualViewport?.height||0);
+ let phoneViewportBaseline=Math.max(window.innerHeight,document.documentElement.clientHeight,window.visualViewport?.height||0);
  function syncPhoneKeyboard(){
    if(phoneKeyboardFrame)cancelAnimationFrame(phoneKeyboardFrame);
    phoneKeyboardFrame=requestAnimationFrame(()=>{
@@ -1223,8 +1224,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
      const vv=window.visualViewport;
      const focus=document.activeElement;
      const editorFocus=!!focus?.closest?.('.composer')&&focus.matches?.('textarea,input,[contenteditable="true"]');
-     if(!editorFocus&&vv)phoneViewportBaseline=Math.max(phoneViewportBaseline,window.innerHeight,vv.height);
-     const active=!!chat&&mq.matches&&window.innerWidth<=600&&!!vv&&editorFocus&&(Math.max(phoneViewportBaseline,window.innerHeight)-vv.height>110);
+     const viewportHeight=vv?.height||window.innerHeight;
+     if(!editorFocus)phoneViewportBaseline=Math.max(phoneViewportBaseline,window.innerHeight,document.documentElement.clientHeight,viewportHeight);
+     const keyboardVisible=phoneViewportBaseline-viewportHeight>110;
+     const active=!!chat&&mq.matches&&window.innerWidth<=600&&editorFocus&&keyboardVisible;
      document.body.classList.toggle('zynko-phone-keyboard',active);
      if(!chat)return;
      if(!active){
@@ -1232,39 +1235,14 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
        chat.style.removeProperty('--zynko-phone-keyboard-height');
        return;
      }
-     // La ventana visible puede desplazarse cuando Edge abre el teclado.
-     // Alinear la tarjeta con el borde inferior real del viewport visual:
-     // una altura teórica sola deja un hueco si algún ancestro altera el
-     // bloque de posicionamiento o si Edge realiza un segundo desplazamiento.
+     // Coordenadas del visual viewport dentro del layout viewport.
+     // Un único origen y una única altura, sin medir ni corregir el rectángulo
+     // que nosotros mismos cambiamos en el frame anterior.
      const inset=4;
-     const targetTop=vv.offsetTop+inset;
-     const targetBottom=vv.offsetTop+vv.height-inset;
-     const rect=chat.getBoundingClientRect();
-     const currentTop=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-top'));
-     const currentHeight=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'));
-     const baseTop=Number.isFinite(currentTop)?currentTop:targetTop;
-     const baseHeight=Number.isFinite(currentHeight)?currentHeight:Math.max(0,vv.height-inset*2);
-     // Ajustar el borde medido, no sumar repetidamente correcciones.
-     const top=Math.round(baseTop+(targetTop-rect.top));
-     const height=Math.max(0,Math.round(baseHeight+(targetBottom-rect.bottom)+(rect.top-targetTop)));
+     const top=Math.round((vv?.offsetTop||0)+inset);
+     const height=Math.max(0,Math.round(viewportHeight-2*inset));
      chat.style.setProperty('--zynko-phone-keyboard-top',top+'px');
      chat.style.setProperty('--zynko-phone-keyboard-height',height+'px');
-     // Edge a veces desplaza el viewport después del primer resize.
-     // La siguiente medición se limita a rectificar el borde restante.
-     if(Math.abs(targetBottom-rect.bottom)>3 || Math.abs(targetTop-rect.top)>3){
-       requestAnimationFrame(()=>{
-         if(!document.body.classList.contains('zynko-phone-keyboard'))return;
-         const bounds=chat.getBoundingClientRect();
-         const viewport=window.visualViewport;
-         if(!viewport)return;
-         const bottom=viewport.offsetTop+viewport.height-inset;
-         const delta=bottom-bounds.bottom;
-         if(Math.abs(delta)>3){
-           const current=parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'))||0;
-           chat.style.setProperty('--zynko-phone-keyboard-height',Math.max(0,Math.round(current+delta))+'px');
-         }
-       });
-     }
    });
  }
  window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});
