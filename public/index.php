@@ -790,6 +790,26 @@ if(!function_exists('zynkoXmlText')){
   }
 }
 
+if(isset($_SESSION['user']) && in_array($_GET['action']??'',['mail_history_export_excel','mail_history_export_pdf'],true)){
+  $tenantId=(int)($_SESSION['user']['tenant_id']??0);
+  if($tenantId<=0||!in_array((string)($_SESSION['user']['role']??''),['owner','admin'],true)){http_response_code(403);exit('No autorizado.');}
+  $filter=trim(mb_substr((string)($_GET['mail_q']??''),0,120));
+  $sql="SELECT id,recipient,subject,status,provider,error_message,metadata_json,created_at FROM notification_log WHERE tenant_id=? AND channel='email'";
+  $params=[$tenantId];
+  if($filter!==''){$sql.=" AND (subject LIKE ? OR recipient LIKE ? OR provider LIKE ? OR status LIKE ? OR error_message LIKE ? OR metadata_json LIKE ?)";$match='%'.$filter.'%';array_push($params,$match,$match,$match,$match,$match,$match);}
+  $sql.=' ORDER BY id DESC';$st=appDb()->prepare($sql);$st->execute($params);
+  $labels=['sent'=>'Aceptado por el proveedor','failed'=>'No enviado','skipped'=>'Omitido','queued'=>'Pendiente'];$rows=[];$cards=[];
+  while($r=$st->fetch(PDO::FETCH_ASSOC)){
+    $metadata=json_decode((string)($r['metadata_json']??''),true);$metadata=is_array($metadata)?$metadata:[];
+    $status=$labels[(string)$r['status']]??(string)$r['status'];$sender=(string)($metadata['sender']??'');
+    $rows[]=[(string)$r['id'],(string)$r['created_at'],(string)$r['subject'],(string)$r['recipient'],$sender,(string)$r['provider'],$status,(string)$r['error_message']];
+    $cards[]=['title'=>(string)$r['subject'],'lines'=>['Fecha: '.$r['created_at'].' · Estado: '.$status,'Para: '.(string)$r['recipient'].' · Proveedor: '.$r['provider'],'Desde: '.$sender,'Detalle: '.(string)($r['error_message']??'')]];
+  }
+  $stamp=date('Y-m-d');$company=(string)($_SESSION['user']['company']??'Empresa');$caption=$company.($filter!==''?' · Búsqueda: '.$filter:' · Historial completo');
+  if(($_GET['action']??'')==='mail_history_export_pdf')zynkoExportPdf('ZYNKO_Historial_Correos_'.$stamp.'.pdf','ZYNKO · Historial de notificaciones',$caption,$cards,'detail');
+  zynkoExportXlsx('ZYNKO_Historial_Correos_'.$stamp.'.xlsx','ZYNKO · Historial de notificaciones',$caption,['ID','Fecha y hora','Asunto','Destinatario','Remitente','Proveedor','Estado','Detalle / Error'],$rows,[10,22,40,36,36,18,26,54]);
+}
+
 if(isset($_SESSION['user']) && in_array($_GET['action']??'',['plans_export','plans_export_excel','plans_export_pdf'],true)){
   if(!isPlatformOwner()){http_response_code(403);exit('No autorizado.');}
   $rows=appDb()->query('SELECT name,monthly_price,currency,max_users,max_channels,distinct_external_types,max_webchat_sites,max_daily_chats,max_monthly_chats,external_ai_included,is_featured,featured_label,is_available,availability_label,external_ai_monthly_tokens,external_ai_channels_json,allowed_channels_json,features_json,active,is_default_free FROM subscription_plans ORDER BY is_default_free DESC,monthly_price,name')->fetchAll();$stamp=date('Y-m-d');$action=$_GET['action'];

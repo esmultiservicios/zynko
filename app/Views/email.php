@@ -16,23 +16,70 @@
 <form method="post"><input type="hidden" name="csrf" value="<?=htmlspecialchars(authCsrfToken(),ENT_QUOTES)?>"><input type="hidden" name="action" value="notification_settings_save"><section class="panel spaced"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-envelope-circle-check"></i></span><div><b>Notificaciones automáticas</b><small>Elige qué eventos generan correo. Los mensajes se agrupan para evitar saturar la bandeja.</small></div></div><div class="settings-grid notification-settings-grid"><div class="field"><label>Seguridad</label><label class="switch-line"><input name="login_enabled" type="checkbox" <?=!empty($notif['login_enabled'])?'checked':''?>><span></span> Inicios de sesión</label><small class="hint">Se avisa al usuario tras cada inicio con credenciales. Requiere el remitente Acceso y seguridad validado en la plataforma. <?=empty($notif['login_enabled'])?'Actualmente desactivado: no se enviarán estos avisos.':''?></small></div><div class="field"><label>Conversaciones</label><label class="switch-line"><input name="message_enabled" type="checkbox" <?=!empty($notif['message_enabled'])?'checked':''?>><span></span> Nuevos mensajes</label></div><div class="field"><label>NIVO</label><label class="switch-line"><input name="handoff_enabled" type="checkbox" <?=!empty($notif['handoff_enabled'])?'checked':''?>><span></span> Solicitudes de agente</label></div><div class="field"><label>Sistema</label><label class="switch-line"><input name="critical_enabled" type="checkbox" <?=!empty($notif['critical_enabled'])?'checked':''?>><span></span> Eventos críticos</label></div><div class="field full notification-cooldown"><label>Agrupar mensajes durante</label><select class="select2" name="cooldown_minutes"><option value="0" <?=$notif['cooldown_minutes']==0?'selected':''?>>Sin agrupación</option><option value="5" <?=$notif['cooldown_minutes']==5?'selected':''?>>5 minutos</option><option value="10" <?=$notif['cooldown_minutes']==10?'selected':''?>>10 minutos · recomendado</option><option value="15" <?=$notif['cooldown_minutes']==15?'selected':''?>>15 minutos</option><option value="30" <?=$notif['cooldown_minutes']==30?'selected':''?>>30 minutos</option><option value="60" <?=$notif['cooldown_minutes']==60?'selected':''?>>1 hora</option></select><small class="hint">Si una conversación recibe varios mensajes en este período, ZYNKO envía solo la primera alerta.</small></div></div><div class="notification-actions"><button class="primary" type="submit"><i class="fa-solid fa-bell"></i> Guardar notificaciones</button><span class="hint"><i class="fa-solid fa-circle-info"></i> Usa el remitente validado de su propósito con Microsoft Graph, o el proveedor SMTP activo.</span></div></section></form>
 <section class="panel spaced"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-envelope-circle-check"></i></span><div><b>Estado</b><small><?=empty($cfg)?'Correo no configurado: no se enviarán emails hasta guardar un proveedor.':'Proveedor guardado: '.htmlspecialchars($method).'.'?></small></div></div></section>
 <?php if(in_array($_SESSION['user']['role']??'',['owner','admin'],true)):
-$mailHistory=[];$mailHistoryError=false;
-try{$mq=appDb()->prepare("SELECT id,recipient,subject,status,provider,error_message,metadata_json,created_at FROM notification_log WHERE tenant_id=? AND channel='email' ORDER BY id DESC LIMIT 30");$mq->execute([(int)$_SESSION['user']['tenant_id']]);$mailHistory=$mq->fetchAll();}catch(Throwable $e){$mailHistoryError=true;}
+$mailHistory=[];$mailHistoryError=false;$mailHistoryTotal=0;
+$mailHistoryQuery=trim(mb_substr((string)($_GET['mail_q']??''),0,120));
+$mailHistorySize=in_array((string)($_GET['mail_size']??'10'),['10','25','50','all'],true)?(string)($_GET['mail_size']??'10'):'10';
+$mailHistoryPage=max(1,min(100000,(int)($_GET['mail_page']??1)));$mailHistoryPages=1;
+try {
+  $historyWhere=" FROM notification_log WHERE tenant_id=? AND channel='email'";
+  $historyParams=[(int)$_SESSION['user']['tenant_id']];
+  if($mailHistoryQuery!==''){
+    $historyWhere.=" AND (subject LIKE ? OR recipient LIKE ? OR provider LIKE ? OR status LIKE ? OR error_message LIKE ? OR metadata_json LIKE ?)";
+    $match='%'.$mailHistoryQuery.'%';array_push($historyParams,$match,$match,$match,$match,$match,$match);
+  }
+  $countQuery=appDb()->prepare('SELECT COUNT(*)'.$historyWhere);$countQuery->execute($historyParams);
+  $mailHistoryTotal=(int)$countQuery->fetchColumn();
+  $mailHistoryLimit=$mailHistorySize==='all'?max(1,$mailHistoryTotal):(int)$mailHistorySize;
+  $mailHistoryPages=max(1,(int)ceil($mailHistoryTotal/$mailHistoryLimit));
+  $mailHistoryPage=min($mailHistoryPage,$mailHistoryPages);
+  $sql='SELECT id,recipient,subject,status,provider,error_message,metadata_json,created_at'.$historyWhere.' ORDER BY id DESC';
+  if($mailHistorySize!=='all')$sql.=' LIMIT '.($mailHistoryLimit*($mailHistoryPage-1)).','.$mailHistoryLimit;
+  $mq=appDb()->prepare($sql);$mq->execute($historyParams);$mailHistory=$mq->fetchAll();
+}catch(Throwable $e){$mailHistoryError=true;}
+function zynkoMailHistoryUrl(int $page,string $query,string $size): string {
+  return '?'.http_build_query(['page'=>'email','mail_q'=>$query,'mail_size'=>$size,'mail_page'=>$page]).'#mail-history';
+}
+function zynkoMailHistoryPages(int $current,int $pages): array {
+  if($pages<=7)return range(1,$pages);
+  $selected=[1,$pages];for($i=max(2,$current-2);$i<=min($pages-1,$current+2);$i++)$selected[]=$i;
+  $selected=array_values(array_unique($selected));sort($selected);$out=[];$last=0;
+  foreach($selected as $n){if($last&&$n-$last>1)$out[]='…';$out[]=$n;$last=$n;}return $out;
+}
 ?>
-<section class="panel spaced" id="mail-history"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span><div><b>Historial de notificaciones</b><small>Últimos 30 intentos de correo de esta empresa. Aceptado significa que el proveedor recibió la solicitud, no que el destinatario haya leído o recibido el mensaje.</small></div></div>
+<section class="panel spaced" id="mail-history"><div class="panel-head premium-card-head"><span class="premium-card-head-icon" aria-hidden="true"><i class="fa-solid fa-clock-rotate-left"></i></span><div><b>Historial de notificaciones</b><small>Historial de intentos de correo de esta empresa. Aceptado significa que el proveedor recibió la solicitud, no que el destinatario haya leído o recibido el mensaje.</small></div></div>
 <?php if(isPlatformOwner()&&$method==='GRAPH'&&!$senderRoutesError&&empty($senderRoutes['noreply']['verified_at'])):?>
 <div class="security-note mail-info-note"><span class="mail-info-icon" aria-hidden="true"><i class="fa-solid fa-triangle-exclamation"></i></span><div><b>Acceso y seguridad requiere validación</b><small>Guarde y pruebe noreply antes de iniciar sesión nuevamente. Una prueba correcta del remitente Notificaciones no valida los demás buzones.</small></div></div>
 <?php endif?>
-<div class="actions-inline"><a class="soft" href="?page=email#mail-history"><i class="fa-solid fa-rotate"></i> Actualizar historial</a></div>
+<div id="mailHistoryToolbar" class="record-toolbar mail-history-toolbar">
+  <form id="mailHistorySearch" class="mail-history-filter" action="" method="get">
+    <input type="hidden" name="page" value="email"><input type="hidden" name="mail_page" value="1">
+    <label class="users-show-count">Mostrar
+      <select id="mailHistorySize" name="mail_size" class="select2 compact" aria-label="Registros por página">
+        <?php foreach(['10','25','50','all'] as $opt):?><option value="<?=$opt?>" <?=$mailHistorySize===$opt?'selected':''?>><?=$opt==='all'?'Todos ('.$mailHistoryTotal.')':$opt?></option><?php endforeach?>
+      </select> registros
+    </label>
+    <div class="search-wrap mail-history-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input id="mailHistoryQuery" type="search" name="mail_q" value="<?=htmlspecialchars($mailHistoryQuery,ENT_QUOTES,'UTF-8')?>" placeholder="Buscar asunto, destinatario, estado..." autocomplete="off" aria-label="Buscar en historial de notificaciones"><button type="button" id="mailHistoryClear" class="clear-search" <?=$mailHistoryQuery===''?'hidden':''?> aria-label="Limpiar búsqueda"><i class="fa-solid fa-xmark"></i></button></div>
+  </form>
+  <div class="mail-history-actions"><a class="company-export-btn excel" id="mailHistoryExcel" href="?<?=htmlspecialchars(http_build_query(['action'=>'mail_history_export_excel','mail_q'=>$mailHistoryQuery]),ENT_QUOTES,'UTF-8')?>"><span class="company-export-icon"><i class="fa-solid fa-file-excel"></i></span><span class="company-export-copy"><b>Excel</b><small>Descargar .xlsx</small></span></a><a class="company-export-btn pdf zynko-report-preview-open" id="mailHistoryPdf" href="?<?=htmlspecialchars(http_build_query(['action'=>'mail_history_export_pdf','mail_q'=>$mailHistoryQuery]),ENT_QUOTES,'UTF-8')?>"><span class="company-export-icon"><i class="fa-solid fa-file-pdf"></i></span><span class="company-export-copy"><b>PDF</b><small>Vista previa</small></span></a><a class="soft" href="?page=email#mail-history"><i class="fa-solid fa-rotate"></i> Actualizar</a></div>
+</div>
+<div id="mailHistoryResults" data-total="<?=$mailHistoryTotal?>">
 <div class="system-log-list">
 <?php if($mailHistoryError):?><div class="empty-compact"><i class="fa-solid fa-triangle-exclamation"></i><b>No se pudo consultar el historial</b><span>Revise el registro de errores del servidor.</span></div>
-<?php elseif(!$mailHistory):?><div class="empty-compact"><i class="fa-solid fa-envelope-open"></i><b>Sin intentos registrados</b><span>Los correos automáticos y pruebas aparecerán aquí.</span></div>
+<?php elseif(!$mailHistory):?><div class="empty-compact"><i class="fa-solid fa-envelope-open"></i><b>Sin resultados</b><span>No hay notificaciones que coincidan con la búsqueda.</span></div>
 <?php else: foreach($mailHistory as $entry):
 $state=(string)$entry['status'];$label=['sent'=>'Aceptado por el proveedor','failed'=>'No enviado','skipped'=>'Omitido','queued'=>'Pendiente'][$state]??$state;
 $severity=$state==='sent'?'info':($state==='failed'?'error':'warning');$metadata=json_decode((string)($entry['metadata_json']??''),true);$metadata=is_array($metadata)?$metadata:[];
 ?>
 <article class="system-log-row level-<?=$severity?>"><span class="log-level" aria-hidden="true"><i class="fa-solid <?=$state==='sent'?'fa-circle-check':($state==='failed'?'fa-circle-xmark':'fa-clock')?>"></i></span><div><div class="system-log-title"><b><?=htmlspecialchars((string)$entry['subject'],ENT_QUOTES,'UTF-8')?></b><span><?=htmlspecialchars($label,ENT_QUOTES,'UTF-8')?></span></div><small><?=htmlspecialchars((string)$entry['created_at'],ENT_QUOTES,'UTF-8')?> · <?=htmlspecialchars((string)$entry['provider'],ENT_QUOTES,'UTF-8')?> · Para: <?=htmlspecialchars((string)$entry['recipient'],ENT_QUOTES,'UTF-8')?></small><?php if(!empty($metadata['sender'])):?><div><small>Desde: <?=htmlspecialchars((string)$metadata['sender'],ENT_QUOTES,'UTF-8')?></small></div><?php endif?><?php if(!empty($entry['error_message'])):?><div><small><?=htmlspecialchars((string)$entry['error_message'],ENT_QUOTES,'UTF-8')?></small></div><?php endif?></div></article>
 <?php endforeach;endif?>
+</div>
+<nav class="company-directory-footer mail-history-footer" aria-label="Páginas del historial"><small><?=$mailHistoryTotal?> registros · Página <?=$mailHistoryPage?> de <?=$mailHistoryPages?></small><div class="company-pagination">
+  <a class="company-page-btn <?=$mailHistoryPage<=1?'is-disabled':''?>" href="<?=htmlspecialchars(zynkoMailHistoryUrl(max(1,$mailHistoryPage-1),$mailHistoryQuery,$mailHistorySize),ENT_QUOTES,'UTF-8')?>" <?=$mailHistoryPage<=1?'aria-disabled="true" tabindex="-1"':''?>><i class="fa-solid fa-chevron-left"></i> Anterior</a>
+  <?php foreach(zynkoMailHistoryPages($mailHistoryPage,$mailHistoryPages) as $n):?>
+  <?php if($n==='…'):?><span class="company-page-dots">…</span><?php else:?><a class="company-page-btn <?=$n===$mailHistoryPage?'active':''?>" href="<?=htmlspecialchars(zynkoMailHistoryUrl($n,$mailHistoryQuery,$mailHistorySize),ENT_QUOTES,'UTF-8')?>" <?=$n===$mailHistoryPage?'aria-current="page"':''?>><?=$n?></a><?php endif?>
+  <?php endforeach?>
+  <a class="company-page-btn <?=$mailHistoryPage>=$mailHistoryPages?'is-disabled':''?>" href="<?=htmlspecialchars(zynkoMailHistoryUrl(min($mailHistoryPages,$mailHistoryPage+1),$mailHistoryQuery,$mailHistorySize),ENT_QUOTES,'UTF-8')?>" <?=$mailHistoryPage>=$mailHistoryPages?'aria-disabled="true" tabindex="-1"':''?>>Siguiente <i class="fa-solid fa-chevron-right"></i></a>
+</div></nav>
 </div></section><?php endif?>
 <script>document.addEventListener('DOMContentLoaded',()=>{const routes=document.getElementById('mailSenderRoutes');
 let runRouteTest=null;
@@ -52,4 +99,19 @@ if(routes){
  runRouteTest=()=>{const card=cards.find(c=>c.dataset.purpose==='notifications');if(card){card.scrollIntoView({behavior:'smooth',block:'center'});perform([card],true,card.querySelector('.mail-route-test'));}};
 }
 document.getElementById('testConfiguredMail')?.addEventListener('click',async()=>{const b=document.getElementById('testConfiguredMail'),old=b.innerHTML;const chosen=document.getElementById('mailMethod')?.value;const stored=<?=json_encode($method)?>;if(chosen!==stored){showNotify('info','Correo','Guarde primero el proveedor seleccionado.');return;}if(stored==='GRAPH'&&runRouteTest){runRouteTest();return;}b.disabled=true;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Enviando prueba…';try{const fd=new FormData();fd.append('action','email_test');const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Correo verificado':'No se pudo enviar',j.message)}catch(e){showNotify('error','No se pudo enviar',e.message)}finally{b.disabled=false;b.innerHTML=old}});const m=document.getElementById('mailMethod'),ss=[...document.querySelectorAll('.smtp-fields')],gs=[...document.querySelectorAll('.graph-fields')];const sync=()=>{const graph=m.value==='GRAPH';ss.forEach(s=>{s.hidden=graph;s.querySelectorAll('input,select').forEach(e=>e.disabled=graph)});gs.forEach(g=>{g.hidden=!graph;g.querySelectorAll('input,select').forEach(e=>e.disabled=!graph)});};m.addEventListener('change',sync);if(window.jQuery)jQuery(m).on('change.mailProvider',sync);sync();const inbound=document.getElementById('inboundMethod'),imap=[...document.querySelectorAll('.imap-inbound-fields')],graphHelp=document.querySelector('.graph-inbound-help');const syncInbound=()=>{const v=inbound?.value||'NONE';imap.forEach(x=>x.hidden=v!=='IMAP');if(graphHelp)graphHelp.hidden=v!=='GRAPH'};inbound?.addEventListener('change',syncInbound);if(inbound&&window.jQuery)jQuery(inbound).on('change.mailInbound',syncInbound);syncInbound();document.getElementById('testInboundMail')?.addEventListener('click',async()=>{const b=document.getElementById('testInboundMail'),old=b.innerHTML;b.disabled=true;b.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Probando…';try{const fd=new FormData();fd.append('action','email_inbound_test');fd.append('csrf',document.getElementById('inboundMailConfigForm').elements.csrf.value);const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();showNotify(j.ok?'success':'error',j.ok?'Recepción validada':'Recepción no disponible',j.message);if(j.ok)setTimeout(()=>location.reload(),500)}catch(e){showNotify('error','No se pudo probar',e.message)}finally{b.disabled=false;b.innerHTML=old}});});</script>
+<script>
+(()=>{
+ const form=document.getElementById('mailHistorySearch'),results=document.getElementById('mailHistoryResults');if(!form||!results)return;
+ const field=document.getElementById('mailHistoryQuery'),clear=document.getElementById('mailHistoryClear'),size=document.getElementById('mailHistorySize');let timer,controller,serial=0;
+ const url=(page=1)=>{const u=new URL(location.href);u.searchParams.set('page','email');u.searchParams.set('mail_q',field.value.trim());u.searchParams.set('mail_size',size.value);u.searchParams.set('mail_page',String(page));u.hash='mail-history';return u.toString()};
+ const exportsSync=()=>{['mailHistoryExcel','mailHistoryPdf'].forEach(id=>{const a=document.getElementById(id);if(!a)return;const u=new URL(a.href,location.href);u.searchParams.set('mail_q',field.value.trim());a.href=u.toString()})};
+ async function load(target){const id=++serial;controller?.abort();controller=new AbortController();try{const resp=await fetch(target,{credentials:'same-origin',signal:controller.signal});if(!resp.ok)throw new Error('No se pudo consultar el historial.');const html=await resp.text();const doc=new DOMParser().parseFromString(html,'text/html'),fresh=doc.getElementById('mailHistoryResults');if(!fresh)throw new Error('Respuesta incompleta.');if(serial!==id)return;results.innerHTML=fresh.innerHTML;results.dataset.total=fresh.dataset.total;const all=size.querySelector('option[value="all"]');if(all)all.textContent='Todos ('+fresh.dataset.total+')';history.replaceState(history.state,'',target);exportsSync()}catch(err){if(err.name!=='AbortError'){console.warn('Historial de correo',err);if(window.showNotify)showNotify('error','Historial',err.message)}}}
+ field.addEventListener('input',()=>{clear.hidden=!field.value;clearTimeout(timer);timer=setTimeout(()=>load(url()),300)});
+ clear.addEventListener('click',()=>{field.value='';clear.hidden=true;field.focus();clearTimeout(timer);load(url())});
+ form.addEventListener('submit',e=>{e.preventDefault();clearTimeout(timer);load(url())});
+ size.addEventListener('change',()=>load(url()));
+ results.addEventListener('click',e=>{const a=e.target.closest('.mail-history-footer a.company-page-btn');if(!a)return;e.preventDefault();if(a.classList.contains('is-disabled')||a.classList.contains('active'))return;load(a.href)});
+ document.getElementById('mailHistoryToolbar')?.addEventListener('click',e=>{if(e.target.closest('#mailHistoryExcel,#mailHistoryPdf'))exportsSync()},true);
+})();
+</script>
 <?php require __DIR__.'/partials/bottom.php'; ?>

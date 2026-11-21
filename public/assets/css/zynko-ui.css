@@ -7040,3 +7040,21 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
 body.page-inbox .inbox-browser-notification-toggle{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;min-height:32px;padding:6px 10px;font-size:11px}
 body.page-inbox .inbox-browser-notification-toggle[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
 @media(max-width:760px){body.page-inbox .inbox-browser-notification-toggle{display:none!important}}
+
+/* Correo: herramientas y paginación alineadas con los directorios existentes. */
+#mail-history .mail-history-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:14px 0}
+#mail-history .mail-history-filter{display:flex;align-items:center;gap:14px;flex:1;flex-wrap:wrap;min-width:0}
+#mail-history .mail-history-search{position:relative;flex:1;min-width:220px;max-width:430px}
+#mail-history .mail-history-search>i{position:absolute;left:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:#64748b}
+#mail-history .mail-history-search input{width:100%;padding-left:39px!important;padding-right:43px!important}
+#mail-history .mail-history-search input::-webkit-search-cancel-button,#mail-history .mail-history-search input::-webkit-search-decoration{display:none!important;-webkit-appearance:none!important}
+#mail-history .mail-history-search input{appearance:textfield!important}
+#mail-history .mail-history-search .clear-search{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:30px;height:30px;display:grid;place-items:center;padding:0;border-radius:9px}
+#mail-history .mail-history-search .clear-search[hidden]{display:none!important}
+#mail-history .mail-history-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+#mail-history .mail-history-footer{margin-top:16px;border:1px solid #e7eef3;border-radius:12px}
+#mail-history .mail-history-footer .company-page-btn.is-disabled{opacity:.4;pointer-events:none}
+.dashboard-attention-pager-actions{flex-wrap:wrap}
+.dashboard-attention-pager-actions a.company-page-btn{min-width:36px;height:38px;padding:0 11px;background:#fff!important;color:#122033!important;border:1px solid #dbe5ea!important;border-radius:11px}
+.dashboard-attention-pager-actions a.company-page-btn.active{background:#0f766e!important;color:#fff!important;border-color:#0f766e!important}
+@media(max-width:760px){#mail-history .mail-history-toolbar,#mail-history .mail-history-filter{align-items:stretch;flex-direction:column}#mail-history .mail-history-search{width:100%;max-width:none}#mail-history .mail-history-actions{justify-content:flex-start}#mail-history .mail-history-footer{align-items:stretch}#mail-history .mail-history-footer .company-pagination{justify-content:center}}
