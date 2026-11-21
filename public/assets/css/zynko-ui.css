@@ -6813,3 +6813,24 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 .dashboard-grid .chart-card .bar-wrap:hover .bar-value{transform:none!important}
 @media(max-width:1050px){.zynko-department-content{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:560px){.zynko-department-content{padding:12px;gap:12px}.zynko-department-form-grid{grid-template-columns:1fr}.zynko-department-exports{margin:0 12px 12px}.zynko-report-controls{grid-template-columns:1fr}.zynko-department-form-actions button{width:100%}}
+
+/* v042 — compact report preview and informative empty departments, scoped to existing components. */
+.zynko-department-content:has(.zynko-department-empty){align-items:stretch!important}
+.zynko-department-content:has(.zynko-department-empty) .zynko-department-list{align-self:stretch;min-height:0}
+.zynko-department-content:has(.zynko-department-empty) .zynko-department-empty{min-height:clamp(360px,58vh,620px)!important;height:100%;width:100%;max-width:none;display:flex;align-items:center;justify-content:center;text-align:center;gap:13px;padding:32px 24px}
+.zynko-department-empty>b{font-size:16px;line-height:1.4}
+.zynko-department-empty>small{font-size:13px;max-width:480px;line-height:1.65}
+/* Layout is owned by this one report modal, not global modal selectors. */
+#zynkoReportPreviewModal{padding:14px!important;align-items:center!important;justify-content:center!important}
+#zynkoReportPreviewModal .zynko-report-modal{box-sizing:border-box!important;width:min(1120px,calc(100vw - 28px))!important;max-width:1120px!important;height:auto!important;min-height:0!important;max-height:calc(100dvh - 28px)!important;padding:0!important;margin:auto!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#zynkoReportPreviewModal .zynko-report-modal>.modal-head{flex:0 0 auto!important;display:flex!important;align-items:center!important;margin:0!important;padding:18px 22px!important;min-height:74px!important;border-bottom:1px solid #dce8ed!important}
+#zynkoReportPreviewModal .zynko-report-modal-body{box-sizing:border-box;display:flex!important;flex-direction:column!important;flex:0 1 auto!important;min-height:0!important;overflow:auto!important;gap:12px!important;padding:18px 22px!important}
+#zynkoReportPreviewModal .zynko-report-modal iframe{box-sizing:border-box;width:100%;height:clamp(300px,57dvh,640px)!important;min-height:0!important;max-height:57dvh;flex:0 1 auto!important;background:#fff}
+#zynkoReportPreviewModal .zynko-report-modal>.modal-actions{box-sizing:border-box;display:flex!important;flex:0 0 auto!important;align-items:center!important;justify-content:flex-end!important;flex-direction:row!important;gap:10px!important;margin:0!important;padding:11px 22px!important;min-height:62px!important;height:auto!important;border-top:1px solid #dce8ed!important}
+#zynkoReportPreviewModal .zynko-report-modal>.modal-actions>*{flex:none!important;width:auto!important;min-height:38px!important;padding:9px 13px!important}
+#zynkoReportPreviewModal .zynko-report-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.dashboard-attention-count select,.dashboard-attention-count .select2-container{width:154px!important;min-width:154px!important;max-width:154px!important}
+.dashboard-attention-count .select2-selection__rendered{padding-right:24px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dashboard-attention-count .select2-container--open .select2-dropdown{min-width:170px!important}
+@media(max-width:700px){#zynkoReportPreviewModal .zynko-report-modal>.modal-head{padding:14px 16px!important}#zynkoReportPreviewModal .zynko-report-modal-body{padding:12px 16px!important}#zynkoReportPreviewModal .zynko-report-modal>.modal-actions{padding:10px 16px!important}#zynkoReportPreviewModal .zynko-report-modal iframe{height:49dvh!important;max-height:49dvh}.zynko-department-content:has(.zynko-department-empty) .zynko-department-empty{min-height:300px!important;height:auto}}
+@media(max-width:480px){#zynkoReportPreviewModal .zynko-report-controls{grid-template-columns:1fr;gap:8px}#zynkoReportPreviewModal .zynko-report-modal>.modal-actions{flex-wrap:wrap!important}}
