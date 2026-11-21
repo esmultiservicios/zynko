@@ -137,10 +137,17 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
    // Avoid duplicate OS alerts when the open conversation is already in view.
    const active=document.querySelector('.chat[data-current-conversation]')?.dataset.currentConversation;
    if(!document.hidden&&document.hasFocus()&&String(active||'')===cid)return;
-   const contact=String(event.data?.contact_name||event.data?.conversation_name||tr('Nuevo mensaje','New message')).slice(0,90);
+   // Reutiliza el canal real de la conversación; nunca supone que todos son WhatsApp.
+   const conversation=[...document.querySelectorAll('.conversation[data-conversation-id]')]
+     .find(node=>node.dataset.conversationId===cid);
+   const channelType=String(conversation?.dataset.channelType||event.data?.channel_type||message.channel_type||'').toLowerCase();
+   const channelLabels={whatsapp:'WhatsApp',messenger:'Messenger',instagram:'Instagram',webchat:'NIVO Web Chat',threads:'Threads',thread:'Threads',telegram:'Telegram',x:'X / Twitter',twitter:'X / Twitter',email:tr('Correo','Email')};
+   const channelName=channelLabels[channelType]||'';
+   const contact=String(event.data?.contact_name||event.data?.conversation_name||conversation?.dataset.contactName||tr('Nuevo mensaje','New message')).slice(0,90);
    const body=String(message.body||tr('Tienes un mensaje nuevo en ZYNKO.','You have a new message in ZYNKO.')).replace(/\s+/g,' ').slice(0,140);
    try{
-     const notice=new Notification('ZYNKO · '+contact,{body,icon:'assets/img/favicon.svg',tag:'zynko-msg-'+id});
+     const title=(channelName?'ZYNKO · '+channelName:'ZYNKO')+' · '+contact;
+     const notice=new Notification(title,{body,icon:'assets/img/favicon.svg',tag:'zynko-msg-'+id});
      notice.onclick=()=>{window.focus();location.href='?page=inbox&conversation='+encodeURIComponent(cid);notice.close();};
    }catch(_){}
  });
