@@ -7058,3 +7058,16 @@ body.page-inbox .inbox-browser-notification-toggle[aria-pressed="true"]{color:va
 .dashboard-attention-pager-actions a.company-page-btn{min-width:36px;height:38px;padding:0 11px;background:#fff!important;color:#122033!important;border:1px solid #dbe5ea!important;border-radius:11px}
 .dashboard-attention-pager-actions a.company-page-btn.active{background:#0f766e!important;color:#fff!important;border-color:#0f766e!important}
 @media(max-width:760px){#mail-history .mail-history-toolbar,#mail-history .mail-history-filter{align-items:stretch;flex-direction:column}#mail-history .mail-history-search{width:100%;max-width:none}#mail-history .mail-history-actions{justify-content:flex-start}#mail-history .mail-history-footer{align-items:stretch}#mail-history .mail-history-footer .company-pagination{justify-content:center}}
+
+/* v026 · Historial: el selector debe mostrar Todos (n) en una sola línea. */
+#mail-history .users-show-count .select2-container{width:160px!important;min-width:160px!important;max-width:160px!important}
+#mail-history .users-show-count .select2-selection__rendered{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+#mail-history #mailHistorySize{min-width:160px!important;width:160px!important}
+/* v026 · Paginación centrada y fija al final de la lista, sin alterar la zona de escritura. */
+body.page-inbox .conv-list .inbox-conversation-pagination{flex:0 0 auto;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;border-top:1px solid var(--line,#dbe5ea);padding:10px 2px 3px;margin-top:auto;min-width:0}
+body.page-inbox .conv-list .inbox-conversation-pagination[hidden]{display:none!important}
+body.page-inbox .conv-list .inbox-conversation-page-summary{font-size:11px;color:var(--muted,#667b8c);text-align:center}
+body.page-inbox .conv-list .inbox-conversation-page-nav{justify-content:center!important;gap:5px;max-width:100%;flex-wrap:wrap}
+body.page-inbox .conv-list .inbox-conversation-page-nav .company-page-btn{min-width:31px;height:34px;padding:0 8px;font-size:11px;white-space:nowrap}
+body.page-inbox .conv-list .conversation[hidden]{display:none!important}
+@media(max-width:760px){body.page-inbox .conv-list .inbox-conversation-pagination{padding:12px 4px 6px}body.page-inbox .conv-list .inbox-conversation-page-nav{justify-content:center!important}}

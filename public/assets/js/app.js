@@ -291,9 +291,61 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
    const empty=panel.querySelector('.directory-empty-state');
    if(empty)empty.hidden=matchesTotal!==0;
  };
- $$('.list-search').forEach(inp=>{const panel=inp.closest('.panel')||document,wrap=inp.closest('.search-wrap')||inp.parentElement,clear=wrap?.querySelector('.clear-search');const run=()=>{const q=inp.value.trim();if(clear)clear.hidden=!q;refreshRecordList(panel);};inp.addEventListener('input',run);clear?.addEventListener('click',()=>{inp.value='';run();inp.focus()});run();});
+ $$('.list-search').filter(inp=>!inp.closest('.conv-list')).forEach(inp=>{const panel=inp.closest('.panel')||document,wrap=inp.closest('.search-wrap')||inp.parentElement,clear=wrap?.querySelector('.clear-search');const run=()=>{const q=inp.value.trim();if(clear)clear.hidden=!q;refreshRecordList(panel);};inp.addEventListener('input',run);clear?.addEventListener('click',()=>{inp.value='';run();inp.focus()});run();});
  $$('.records-per-page').forEach(sel=>{const panel=sel.closest('.panel')||document;const all=sel.querySelector('option[value="all"]');if(all){const total=$$('.searchable',panel).length;all.textContent=`Todos (${total})`;}sel.addEventListener('change',()=>refreshRecordList(panel));refreshRecordList(panel);});
  ['#usersRoleFilter','#usersStatusFilter'].forEach(sel=>document.querySelector(sel)?.addEventListener('change',()=>refreshRecordList(document.querySelector('#usersDirectoryPanel'))));document.querySelector('#usersFilterClear')?.addEventListener('click',()=>{const r=document.querySelector('#usersRoleFilter'),s=document.querySelector('#usersStatusFilter');if(r)r.value='';if(s)s.value='';if(window.jQuery){jQuery('#usersRoleFilter,#usersStatusFilter').trigger('change.select2')}refreshRecordList(document.querySelector('#usersDirectoryPanel'));});document.querySelectorAll('.team-role-filter').forEach(btn=>btn.addEventListener('click',()=>{const r=document.querySelector('#usersRoleFilter'),panel=document.querySelector('#usersDirectoryPanel');if(r){r.value=btn.dataset.role||'';if(window.jQuery)jQuery(r).trigger('change.select2');}if(panel){refreshRecordList(panel);panel.scrollIntoView({behavior:'smooth',block:'start'});panel.classList.add('hash-focus');setTimeout(()=>panel.classList.remove('hash-focus'),1400);}}));
+ // Paginación exclusiva de Conversaciones: respeta filtros, búsqueda y actualizaciones en tiempo real.
+ (()=>{
+  const panel=document.querySelector('.conv-list'),search=panel?.querySelector('.list-search'),list=panel?.querySelector('.conversation-scroll');
+  const footer=panel?.querySelector('#inboxConversationPagination'),nav=panel?.querySelector('#inboxConversationPageNav');
+  const summary=panel?.querySelector('#inboxConversationPageSummary');
+  if(!panel||!search||!list||!footer||!nav||!summary)return;
+  const clear=panel.querySelector('.inbox-search .clear-search');
+  let page=1,limit=10,query='',lastActive='';
+  const options=()=>[...panel.querySelectorAll('.conversation-scroll > .conversation')];
+  const numbers=(total,current)=>{
+   const set=new Set([1,total]);for(let i=Math.max(2,current-2);i<=Math.min(total-1,current+2);i++)set.add(i);
+   return [...set].sort((a,b)=>a-b);
+  };
+  const button=(label,target,disabled=false,active=false)=>{
+   const el=document.createElement('button');el.type='button';el.className='company-page-btn'+(active?' active':'');
+   el.textContent=label;el.disabled=disabled;el.dataset.inboxPage=String(target);
+   if(active)el.setAttribute('aria-current','page');return el;
+  };
+  const render=(selectActive=false)=>{
+   const items=options(),term=query.trim().toLocaleLowerCase();
+   const matching=items.filter(item=>((item.dataset.search||'')+' '+item.textContent).toLocaleLowerCase().includes(term));
+   const pages=Math.max(1,Math.ceil(matching.length/limit));
+   if(selectActive&&!term){const selected=items.find(item=>item.classList.contains('active'));
+    const index=selected?matching.indexOf(selected):-1;
+    if(index>=0)page=Math.floor(index/limit)+1;
+   }
+   page=Math.max(1,Math.min(page,pages));
+   const start=(page-1)*limit,end=start+limit,visible=new Set(matching.slice(start,end));
+   items.forEach(item=>{item.hidden=!visible.has(item);});
+   const empty=panel.querySelector('.inbox-empty-list');
+   if(empty)empty.hidden=items.length>0;
+   summary.textContent=`${matching.length} conversaciones · Página ${page} de ${pages}`;
+   const nodes=[button('‹ Anterior',page-1,page===1)];
+   let previous=0;
+   for(const n of numbers(pages,page)){
+    if(previous&&n-previous>1){const dots=document.createElement('span');dots.className='company-page-dots';dots.textContent='…';nodes.push(dots)}
+    nodes.push(button(String(n),n,false,n===page));previous=n;
+   }
+   nodes.push(button('Siguiente ›',page+1,page===pages));
+   nav.replaceChildren(...nodes);
+   footer.hidden=items.length===0;
+  };
+  const run=()=>{query=search.value;page=1;if(clear)clear.hidden=!query.trim();render();};
+  search.addEventListener('input',run);
+  clear?.addEventListener('click',e=>{e.preventDefault();search.value='';run();search.focus();});
+  nav.addEventListener('click',e=>{const btn=e.target.closest('button[data-inbox-page]');if(!btn||btn.disabled)return;
+   page=Number(btn.dataset.inboxPage)||1;render();panel.querySelector('.conversation-scroll')?.scrollTo({top:0});});
+  document.addEventListener('zynko:conversation-list-updated',()=>{render(false)});
+  document.addEventListener('zynko:inbox-conversation-changed',e=>{const active=String(e.detail?.conversation_id||'');if(lastActive!==active){lastActive=active;render(false)}});
+  lastActive=String(panel.querySelector('.conversation.active')?.dataset.conversationId||'');
+  render(true);
+ })();
  // Directory views: detail / mini, persisted per module.
  $$('.directory-view-toggle').forEach(group=>{
    const directory=group.dataset.directory||'directory';
@@ -521,7 +573,7 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
  const render=(box,rows)=>{const previousTop=box.scrollTop,distance=box.scrollHeight-box.clientHeight-box.scrollTop,nearBottom=!box.dataset.historyReady||distance<64;const existing=new Map([...box.querySelectorAll('.message-wrap')].map(n=>[Number(n.dataset.messageId),n]));const fragment=document.createDocumentFragment();for(const m of rows){const html=messageHtml(m),old=existing.get(Number(m.id));let node=old;if(!node||renderSignatures.get(node)!==html){const t=document.createElement('template');t.innerHTML=html;node=t.content.firstElementChild;renderSignatures.set(node,html);}fragment.append(node)}box.replaceChildren(fragment);applySearch(box);if(nearBottom)box.scrollTop=box.scrollHeight;else box.scrollTop=Math.min(previousTop,Math.max(0,box.scrollHeight-box.clientHeight));box.dataset.historyReady='1'};
  const upsertRealtimeMessage=(box,message)=>{if(!box||!message?.id)return;const id=Number(message.id);const existing=box.querySelector(`[data-message-id="${id}"]`);const t=document.createElement('template'),html=messageHtml(message);t.innerHTML=html;const node=t.content.firstElementChild;if(!node)return;renderSignatures.set(node,html);if(existing&&renderSignatures.get(existing)===html)return;const nearBottom=box.scrollHeight-box.clientHeight-box.scrollTop<72;if(existing)existing.replaceWith(node);else{const nodes=[...box.querySelectorAll('[data-message-id]')],after=nodes.find(item=>String(item.dataset.messageAt||'')>String(message.sent_at||'')||(String(item.dataset.messageAt||'')===String(message.sent_at||'')&&Number(item.dataset.messageId||0)>id));if(after)box.insertBefore(node,after);else box.appendChild(node)}applySearch(box);if(nearBottom||(!existing&&message.direction==='out'))box.scrollTop=box.scrollHeight};
  const refresh=async()=>{const{box,cid}=current();if(!cid||!box||busy)return;if(cid!==lastCid){last='';lastCid=cid}busy=true;try{const fd=new FormData();fd.append('action','conversation_snapshot');fd.append('conversation_id',cid);const j=await send(fd);if(j.ok&&current().box===box&&String(current().cid)===String(cid)){if(j.data.today)box.dataset.today=j.data.today;if(j.data.yesterday)box.dataset.yesterday=j.data.yesterday;const sig=JSON.stringify([j.data.today,j.data.messages]);if(sig!==last){last=sig;render(box,j.data.messages)}}}finally{busy=false}};
- const refreshConversationList=async()=>{if(document.hidden){listQueued=true;return}if(listBusy){listQueued=true;return}listBusy=true;try{const r=await fetch(location.href,{headers:{'X-ZYNKO-AJAX':'1','X-Requested-With':'XMLHttpRequest'},cache:'no-store'});if(!r.ok)return;const html=await r.text();const doc=new DOMParser().parseFromString(html,'text/html');const fresh=doc.querySelector('.conv-list .conversation-scroll'),currentList=document.querySelector('.conv-list .conversation-scroll');if(fresh&&currentList){const activeId=current().cid;currentList.replaceWith(fresh);document.querySelectorAll('.conv-list .conversation').forEach(x=>x.classList.toggle('active',String(x.dataset.conversationId||'')===String(activeId)))}const freshCount=doc.querySelector('.inbox-view-title .view-count'),currentCount=document.querySelector('.inbox-view-title .view-count');if(freshCount&&currentCount)currentCount.textContent=freshCount.textContent}finally{listBusy=false;if(listQueued){listQueued=false;setTimeout(refreshConversationList,50)}}};
+ const refreshConversationList=async()=>{if(document.hidden){listQueued=true;return}if(listBusy){listQueued=true;return}listBusy=true;try{const r=await fetch(location.href,{headers:{'X-ZYNKO-AJAX':'1','X-Requested-With':'XMLHttpRequest'},cache:'no-store'});if(!r.ok)return;const html=await r.text();const doc=new DOMParser().parseFromString(html,'text/html');const fresh=doc.querySelector('.conv-list .conversation-scroll'),currentList=document.querySelector('.conv-list .conversation-scroll');if(fresh&&currentList){const activeId=current().cid;currentList.replaceWith(fresh);document.querySelectorAll('.conv-list .conversation').forEach(x=>x.classList.toggle('active',String(x.dataset.conversationId||'')===String(activeId)));document.dispatchEvent(new Event('zynko:conversation-list-updated'))}const freshCount=doc.querySelector('.inbox-view-title .view-count'),currentCount=document.querySelector('.inbox-view-title .view-count');if(freshCount&&currentCount)currentCount.textContent=freshCount.textContent}finally{listBusy=false;if(listQueued){listQueued=false;setTimeout(refreshConversationList,50)}}};
  const syncFromEvent=detail=>{const cid=current().cid,eventCid=detail?.data?.conversation_id||detail?.data?.message?.conversation_id||detail?.entity_id||'';if(['message.created','message.status'].includes(detail?.event)){const message=detail?.data?.message;if(String(eventCid)===String(cid)){if(message)upsertRealtimeMessage(current().box,message);else refresh()}refreshConversationList();return}if(String(eventCid)===String(cid)&&['conversation.updated','conversation.assigned','conversation.resolved','conversation.closed'].includes(detail?.event))refresh();if(['conversation.created','conversation.updated','conversation.assigned','conversation.resolved','conversation.closed'].includes(detail?.event))refreshConversationList()};
  document.addEventListener('zynko:realtime',e=>syncFromEvent(e.detail));
  document.addEventListener('zynko:realtime-resync',()=>{refresh();refreshConversationList()});
