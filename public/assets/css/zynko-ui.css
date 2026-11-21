@@ -6408,7 +6408,7 @@ body .plan-channel-chip>.plan-channel-name,body .billing-plan-directory.view-det
  body.zynko-phone.page-inbox .inbox-layout>.panel{display:none!important;min-width:0!important;width:100%!important;max-width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;padding:12px!important}
  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=list]>.conv-list{display:flex!important;flex-direction:column!important;max-height:none!important;overflow:visible!important}
  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=list] .conversation-scroll{height:auto!important;max-height:none!important;overflow:visible!important;flex:initial!important}
- body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat{display:flex!important;flex-direction:column!important;height:calc(100dvh - 84px)!important;min-height:360px!important;max-height:none!important;overflow:hidden!important}
+ body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat{display:flex!important;flex-direction:column!important;height:calc(100dvh - 84px)!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=info]>.info{display:block!important;overflow-y:auto!important;max-height:calc(100dvh - 84px)!important}
  body.zynko-phone.page-inbox .phone-chat-nav{display:flex!important;align-items:center;justify-content:space-between;gap:5px;width:100%;flex-wrap:wrap}
  body.zynko-phone.page-inbox .phone-chat-nav button{display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;line-height:1.2!important;flex:1 1 auto;min-width:0!important;padding:6px 8px!important;white-space:nowrap!important;font-size:11px!important;min-height:36px}
@@ -7025,21 +7025,15 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
   body.zynko-phone.page-inbox .chat-head .inbox-more-search{
     position:sticky!important;top:0!important;z-index:2!important;padding:5px 7px!important;margin:0 0 4px!important;
   }
-  /* Teclado abierto: acoplar el chat al área realmente visible de Edge/Chrome.
-     Contraer solo mensajes y cabecera; el editor y Enviar permanecen accesibles. */
-  body.zynko-phone.page-inbox.zynko-phone-keyboard .inbox-layout[data-phone-view=chat] > .chat{
-    position:fixed!important;top:var(--zynko-phone-keyboard-top,4px)!important;
-    bottom:auto!important;
-    left:8px!important;right:8px!important;width:auto!important;
-    height:var(--zynko-phone-keyboard-height,auto)!important;min-height:0!important;max-height:none!important;
-    margin:0!important;z-index:90!important;overflow:hidden!important;
+  /* El teclado redimensiona el viewport de diseño (meta interactive-widget).
+     Mantener el chat en el flujo normal y dejar que el historial se contraiga. */
+  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat:focus-within{
+    min-height:0!important;max-height:calc(100dvh - 84px)!important;
   }
-  body.zynko-phone.page-inbox.zynko-phone-keyboard .chat-head{display:none!important}
-  body.zynko-phone.page-inbox.zynko-phone-keyboard #messages{min-height:0!important;flex:1 1 0!important}
-  body.zynko-phone.page-inbox.zynko-phone-keyboard .composer{flex:0 0 auto!important}
-  /* Impedir que la página exterior compita con el scroll del historial al escribir. */
-  body.zynko-phone.page-inbox.zynko-phone-keyboard{overflow:hidden!important}
-  body.zynko-phone.page-inbox.zynko-phone-keyboard .main>main{overflow:hidden!important}
+  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat:focus-within #messages{
+    min-height:0!important;flex-shrink:1!important;
+  }
+
 }
 
 /* Opt-in desktop message alerts reuse ZYNKO's existing soft-button design. */

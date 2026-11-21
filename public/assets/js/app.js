@@ -1277,51 +1277,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',event=>{event.preventDefault();event.stopPropagation();const dropdown=q('.chat-actions .inbox-more-menu',chat);if(!dropdown)return;dropdown.open=!dropdown.open;a.setAttribute('aria-expanded',String(dropdown.open));if(dropdown.open)dropdown.dispatchEvent(new Event('zynko:phone-menu-open'));});a.setAttribute('aria-expanded','false');const dropdown=q('.chat-actions .inbox-more-menu',chat);dropdown?.addEventListener('toggle',()=>a.setAttribute('aria-expanded',String(dropdown.open)));nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
  function sync(){if(!mq.matches){restore();document.body.classList.remove('phone-chat-active');return;}document.body.classList.add('zynko-phone');setupHeader();setupInbox();}
  mq.addEventListener?.('change',sync);sync();
- // Phone keyboard: a single viewport measurement. The previous controller
- // accumulated positional corrections against its own last measured rectangle.
- // The chat is fixed only while the editor has focus and the usable area shrinks.
- let keyboardFrame=0;
- let viewportBaseline=Math.max(window.innerHeight,window.visualViewport?.height||0);
- const phoneChat=()=>q('.inbox-layout[data-phone-view="chat"]>.chat');
- const keyboardEditorFocused=()=>{
-   const el=document.activeElement;
-   return !!el?.closest?.('.composer')&&!!el.matches?.('textarea,input,[contenteditable="true"], [contenteditable=""]');
- };
- function syncPhoneKeyboard(){
-   if(keyboardFrame)cancelAnimationFrame(keyboardFrame);
-   keyboardFrame=requestAnimationFrame(()=>{
-     keyboardFrame=0;
-     const chat=phoneChat(),vv=window.visualViewport;
-     const viewportHeight=Math.max(0,vv?.height||window.innerHeight);
-     const visibleTop=vv?.offsetTop||0;
-     const focused=keyboardEditorFocused();
-     if(!focused)viewportBaseline=Math.max(viewportBaseline,window.innerHeight,viewportHeight);
-     // Browsers use different keyboard modes: some shrink the visual viewport,
-     // others overlay the keyboard and report its rect. Never subtract both.
-     const viewportShrank=viewportBaseline-viewportHeight>100;
-     const overlayKeyboardHeight=viewportShrank?0:Math.max(0,window.navigator.virtualKeyboard?.boundingRect?.height||0);
-     const visibleHeight=Math.max(0,viewportHeight-overlayKeyboardHeight);
-     const smallScreen=window.innerWidth<=600&&mq.matches;
-     const keyboardOpen=smallScreen&&!!chat&&focused&&(viewportShrank||overlayKeyboardHeight>100);
-     document.body.classList.toggle('zynko-phone-keyboard',keyboardOpen);
-     if(!chat)return;
-     if(!keyboardOpen){
-       chat.style.removeProperty('--zynko-phone-keyboard-top');
-       chat.style.removeProperty('--zynko-phone-keyboard-height');
-       return;
-     }
-     // No delta from previous layout, no second pass that changes its own base.
-     const inset=4;
-     chat.style.setProperty('--zynko-phone-keyboard-top',Math.round(visibleTop+inset)+'px');
-     chat.style.setProperty('--zynko-phone-keyboard-height',Math.max(0,Math.round(visibleHeight-2*inset))+'px');
-   });
- }
- window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});
- window.visualViewport?.addEventListener('scroll',syncPhoneKeyboard,{passive:true});
- window.addEventListener('resize',syncPhoneKeyboard,{passive:true});
- document.addEventListener('focusin',event=>{if(event.target.closest?.('.composer')){syncPhoneKeyboard();setTimeout(syncPhoneKeyboard,180);setTimeout(syncPhoneKeyboard,450);}});
- document.addEventListener('focusout',event=>{if(event.target.closest?.('.composer'))requestAnimationFrame(syncPhoneKeyboard)});
- document.addEventListener('zynko:inbox-conversation-changed',syncPhoneKeyboard);
+ // En teléfonos, el viewport declara interactive-widget=resizes-content.
+ // Mantener la conversación dentro del flujo normal: no convertirla en fixed
+ // ni desplazarla a partir de visualViewport (Edge puede moverlo por separado).
+ // El CSS limita el chat a la altura disponible al enfocar el editor.
 
  document.addEventListener('click',e=>{if(!mq.matches)return;const link=e.target.closest('#sidebar nav a,#flyout a');if(link){if(!e.defaultPrevented)closeSide();}else if(!e.target.closest('#sidebar,#flyout,#menu'))closeSide();if(menu&&!menu.contains(e.target))menu.open=false;if(e.target.closest('.phone-header-items button')){if(menu)menu.open=false;}},false);
  document.addEventListener('keydown',e=>{if(mq.matches&&e.key==='Escape'){closeSide();if(menu)menu.open=false;}});

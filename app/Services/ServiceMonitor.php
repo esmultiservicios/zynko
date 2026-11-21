@@ -56,6 +56,34 @@ final class ZynkoServiceMonitor
     {
         $settings = $this->settings();
         $services = $this->probeServices();
+        // Un sondeo puntual puede fallar por latencia del proxy/handshake.
+        // Confirmar WebSocket antes de cambiar estado o ejecutar autorrecuperación.
+        // No altera el estado de API (401) ni Web Chat (403): ambos responden.
+        $wsInitialDown = false;
+        foreach ($services as $svc) {
+            if ($svc['key'] === 'websocket' && $svc['status'] === 'down') {
+                $wsInitialDown = true;
+                break;
+            }
+        }
+        if ($wsInitialDown) {
+            usleep(700000);
+            $confirmed = $this->probeServices();
+            foreach ($confirmed as $confirmation) {
+                if ($confirmation['key'] !== 'websocket') continue;
+                foreach ($services as &$svc) {
+                    if ($svc['key'] === 'websocket') {
+                        $svc = $confirmation;
+                        if ($confirmation['status'] === 'down') {
+                            $svc['detail'] .= ' · Caída confirmada en dos comprobaciones.';
+                        }
+                        break;
+                    }
+                }
+                unset($svc);
+                break;
+            }
+        }
         $changes = [];
 
         // Primero persistimos el estado REAL observado. Esto es importante porque, si
