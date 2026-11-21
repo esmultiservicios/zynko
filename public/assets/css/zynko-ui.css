@@ -6867,3 +6867,12 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 #zynkoExcelOptionsModal .zynko-excel-protection-copy{display:flex;flex:1;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-width:0}
 #zynkoExcelOptionsModal .zynko-excel-protection-copy strong{font-size:13px;white-space:nowrap}
 #zynkoExcelOptionsModal .zynko-excel-protection small{display:block;font-weight:400;font-size:11px;color:#627b8d;margin:0;line-height:1.4}
+
+/* v051: filtro de acciones del dropdown Más; hereda el diseño corporativo ZYNKO. */
+body.page-inbox .inbox-more-search{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:7px;padding:7px 9px;margin:0 0 5px;background:#fff;border:1px solid #dbe6eb;border-radius:9px;box-sizing:border-box;min-width:0}
+body.page-inbox .inbox-more-search>i{color:#087e75;flex:none}
+body.page-inbox .inbox-more-search-input{width:100%;min-width:0;flex:1;border:0!important;background:transparent!important;box-shadow:none!important;outline:0!important;padding:5px 0!important;font-size:12px!important;color:#10283a!important}
+body.page-inbox .inbox-more-search-input::-webkit-search-cancel-button{display:none}
+body.page-inbox .inbox-more-search .inbox-more-search-clear{display:inline-flex;flex:none;align-items:center;justify-content:center;width:24px;height:24px;padding:0;border:0;background:#eaf6f3;color:#087e75;border-radius:5px}
+body.page-inbox .inbox-more-search .inbox-more-search-clear[hidden],body.page-inbox .inbox-more-empty[hidden],body.page-inbox .inbox-more-options .inbox-menu-option[hidden]{display:none!important}
+body.page-inbox .inbox-more-empty{font-size:12px;text-align:center;color:#64748b;margin:10px 4px}

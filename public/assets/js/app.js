@@ -1312,9 +1312,28 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
 document.addEventListener('click',e=>{document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{if(!t.contains(e.target)){t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')}})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')})});
 
-// Transferencia departamental: conserva el modal si falla el servidor y evita recargas intermedias.
-(()=>{const bind=()=>{const form=document.getElementById('departmentTransferForm');if(!form||form.dataset.transferBound)return;form.dataset.transferBound='1';form.addEventListener('submit',async e=>{
- e.preventDefault();const button=document.querySelector('[form="departmentTransferForm"][type="submit"]');if(button)button.disabled=true;
- try{const r=await fetch(location.href,{method:'POST',credentials:'same-origin',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'No se pudo transferir');window.showNotify?.('success','Transferencia',j.message);location.reload();}
- catch(error){window.showNotify?.('error','Transferencia',error.message);if(!window.showNotify)alert(error.message);}finally{if(button)button.disabled=false}
-});};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();document.addEventListener('zynko:page-loaded',bind);})();
+/* v051 · Búsqueda local del menú Más. No interfiere con los controladores de acciones. */
+(()=>{
+  const setup=menu=>{
+    if(!menu||menu.dataset.searchReady==='1')return;
+    const field=menu.querySelector('.inbox-more-search-input'),clear=menu.querySelector('.inbox-more-search-clear'),empty=menu.querySelector('.inbox-more-empty');
+    if(!field)return;menu.dataset.searchReady='1';
+    const update=()=>{
+      const term=field.value.trim().toLocaleLowerCase();let found=0;
+      menu.querySelectorAll('button.inbox-menu-option').forEach(button=>{
+        const match=!term||button.textContent.toLocaleLowerCase().includes(term);
+        button.hidden=!match;if(match)found++;
+      });
+      if(clear)clear.hidden=!field.value;
+      if(empty)empty.hidden=found>0;
+    };
+    field.addEventListener('input',update);
+    clear?.addEventListener('click',()=>{field.value='';update();field.focus()});
+    field.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();event.preventDefault();field.value='';update();menu.closest('details')?.removeAttribute('open')}});
+    menu.closest('details')?.addEventListener('toggle',event=>{if(event.currentTarget.open){update();}else if(field.value){field.value='';update()}});
+    update();
+  };
+  document.addEventListener('toggle',event=>{if(event.target.matches?.('.inbox-more-menu')&&event.target.open)setup(event.target.querySelector('.inbox-more-options'))},true);
+  document.addEventListener('focusin',event=>{if(event.target.matches?.('.inbox-more-search-input'))setup(event.target.closest('.inbox-more-options'))});
+  document.querySelectorAll('.inbox-more-options').forEach(setup);
+})();
