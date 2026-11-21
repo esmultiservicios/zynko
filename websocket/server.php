@@ -241,17 +241,40 @@ $dsn = 'mysql:host=' . ($env['DB_HOST'] ?? '127.0.0.1')
     . ';dbname=' . ($env['DB_DATABASE'] ?? 'zynko')
     . ';charset=utf8mb4';
 
-try {
-    $pdo = new PDO(
+/**
+ * The daemon is long-lived; the database can close idle/old connections while
+ * the WebSocket listener itself remains healthy. Recreate PDO when that happens.
+ * Keep the realtime cursor and all client sockets across reconnections.
+ */
+function openRealtimeDatabase(string $dsn, array $env): PDO
+{
+    $connection = new PDO(
         $dsn,
         $env['DB_USERNAME'] ?? 'root',
         $env['DB_PASSWORD'] ?? '',
         [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_TIMEOUT => 3,
         ]
     );
-    $pdo->query('SELECT id FROM realtime_events LIMIT 1');
+    $connection->query('SELECT id FROM realtime_events LIMIT 1');
+    return $connection;
+}
+
+function realtimeConnectionLost(Throwable $error): bool
+{
+    $code = (string) $error->getCode();
+    if (in_array($code, ['2006', '2013', '2055'], true)) return true;
+    $message = strtolower($error->getMessage());
+    return str_contains($message, 'server has gone away')
+        || str_contains($message, 'lost connection to mysql')
+        || str_contains($message, 'error while sending query packet')
+        || str_contains($message, 'connection refused');
+}
+
+try {
+    $pdo = openRealtimeDatabase($dsn, $env);
 } catch (Throwable $error) {
     fwrite(STDERR, "Base de datos/WebSocket no preparada: {$error->getMessage()}\n");
     exit(1);
@@ -270,6 +293,11 @@ $clients = [];
 $lastEvent = (int) ($pdo->query('SELECT COALESCE(MAX(id),0) FROM realtime_events')->fetchColumn());
 $lastPoll = 0.0;
 $lastPing = time();
+// Back off while the database is unreachable instead of producing an error
+// every 200 ms. The last successfully processed event ID is never reset.
+$dbRetryAt = 0.0;
+$dbRetryDelay = 1;
+$dbOffline = false;
 
 while (true) {
     $read = [$server];
@@ -411,10 +439,16 @@ while (true) {
     }
 
     $now = microtime(true);
-    if ($now - $lastPoll >= 0.20) {
+    if ($now - $lastPoll >= 0.20 && $now >= $dbRetryAt) {
         $lastPoll = $now;
 
         try {
+            if ($dbOffline) {
+                $pdo = openRealtimeDatabase($dsn, $env);
+                $dbOffline = false;
+                $dbRetryDelay = 1;
+                fwrite(STDERR, "Realtime outbox: MySQL reconectado; eventos pendientes desde #{$lastEvent}.\n");
+            }
             $statement = $pdo->prepare(
                 'SELECT id,tenant_id,event_type,entity_type,entity_id,payload_json,created_at '
                 . 'FROM realtime_events WHERE id>? ORDER BY id ASC LIMIT 500'
@@ -455,7 +489,19 @@ while (true) {
                 unset($client);
             }
         } catch (Throwable $error) {
-            fwrite(STDERR, 'Realtime outbox: ' . $error->getMessage() . "\n");
+            if (realtimeConnectionLost($error) || $dbOffline) {
+                if (!$dbOffline) {
+                    fwrite(STDERR, 'Realtime outbox: conexión MySQL perdida; iniciando reconexión. ' . $error->getMessage() . "\n");
+                }
+                $dbOffline = true;
+                $dbRetryAt = microtime(true) + $dbRetryDelay;
+                $dbRetryDelay = min(30, $dbRetryDelay * 2);
+            } else {
+                // Keep non-connection errors visible without modifying the
+                // existing WebSocket event processing semantics.
+                fwrite(STDERR, 'Realtime outbox: ' . $error->getMessage() . "\n");
+                $dbRetryAt = microtime(true) + 2;
+            }
         }
     }
 
