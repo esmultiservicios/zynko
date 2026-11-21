@@ -1232,13 +1232,39 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
        chat.style.removeProperty('--zynko-phone-keyboard-height');
        return;
      }
-     // Edge/Chrome puede reducir el viewport de posicionamiento al mostrar el teclado.
-     // Restar su altura otra vez mediante bottom deja un hueco grande bajo Enviar.
-     // Definir la altura visible directamente, sin descuento doble del teclado.
-     const top=Math.max(0,Math.round(vv.offsetTop+4));
-     const height=Math.max(0,Math.round(vv.height-8));
+     // La ventana visible puede desplazarse cuando Edge abre el teclado.
+     // Alinear la tarjeta con el borde inferior real del viewport visual:
+     // una altura teórica sola deja un hueco si algún ancestro altera el
+     // bloque de posicionamiento o si Edge realiza un segundo desplazamiento.
+     const inset=4;
+     const targetTop=vv.offsetTop+inset;
+     const targetBottom=vv.offsetTop+vv.height-inset;
+     const rect=chat.getBoundingClientRect();
+     const currentTop=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-top'));
+     const currentHeight=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'));
+     const baseTop=Number.isFinite(currentTop)?currentTop:targetTop;
+     const baseHeight=Number.isFinite(currentHeight)?currentHeight:Math.max(0,vv.height-inset*2);
+     // Ajustar el borde medido, no sumar repetidamente correcciones.
+     const top=Math.round(baseTop+(targetTop-rect.top));
+     const height=Math.max(0,Math.round(baseHeight+(targetBottom-rect.bottom)+(rect.top-targetTop)));
      chat.style.setProperty('--zynko-phone-keyboard-top',top+'px');
      chat.style.setProperty('--zynko-phone-keyboard-height',height+'px');
+     // Edge a veces desplaza el viewport después del primer resize.
+     // La siguiente medición se limita a rectificar el borde restante.
+     if(Math.abs(targetBottom-rect.bottom)>3 || Math.abs(targetTop-rect.top)>3){
+       requestAnimationFrame(()=>{
+         if(!document.body.classList.contains('zynko-phone-keyboard'))return;
+         const bounds=chat.getBoundingClientRect();
+         const viewport=window.visualViewport;
+         if(!viewport)return;
+         const bottom=viewport.offsetTop+viewport.height-inset;
+         const delta=bottom-bounds.bottom;
+         if(Math.abs(delta)>3){
+           const current=parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'))||0;
+           chat.style.setProperty('--zynko-phone-keyboard-height',Math.max(0,Math.round(current+delta))+'px');
+         }
+       });
+     }
    });
  }
  window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});

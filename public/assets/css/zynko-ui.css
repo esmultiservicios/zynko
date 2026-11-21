@@ -7001,4 +7001,7 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
   body.zynko-phone.page-inbox.zynko-phone-keyboard .chat-head{display:none!important}
   body.zynko-phone.page-inbox.zynko-phone-keyboard #messages{min-height:0!important;flex:1 1 0!important}
   body.zynko-phone.page-inbox.zynko-phone-keyboard .composer{flex:0 0 auto!important}
+  /* Impedir que la página exterior compita con el scroll del historial al escribir. */
+  body.zynko-phone.page-inbox.zynko-phone-keyboard{overflow:hidden!important}
+  body.zynko-phone.page-inbox.zynko-phone-keyboard .main>main{overflow:hidden!important}
 }
