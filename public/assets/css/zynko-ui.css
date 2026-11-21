@@ -6864,6 +6864,6 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 #zynkoExcelOptionsModal .zynko-excel-protection-indicator{width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;border:1.5px solid #b6cbd0;border-radius:6px;background:white;color:transparent}
 #zynkoExcelOptionsModal .zynko-excel-protection input:checked+.zynko-excel-protection-indicator{background:#0d9f8c;border-color:#0d9f8c;color:white}
 #zynkoExcelOptionsModal .zynko-excel-protection input:focus-visible+.zynko-excel-protection-indicator{outline:3px solid #a9e4da;outline-offset:3px}
-#zynkoExcelOptionsModal .zynko-excel-protection-copy{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0}
+#zynkoExcelOptionsModal .zynko-excel-protection-copy{display:flex;flex:1;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;min-width:0}
 #zynkoExcelOptionsModal .zynko-excel-protection-copy strong{font-size:13px;white-space:nowrap}
-#zynkoExcelOptionsModal .zynko-excel-protection small{display:inline;font-weight:400;font-size:11px;color:#627b8d;margin:0;line-height:1.4}
+#zynkoExcelOptionsModal .zynko-excel-protection small{display:block;font-weight:400;font-size:11px;color:#627b8d;margin:0;line-height:1.4}
