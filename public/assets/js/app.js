@@ -1229,14 +1229,16 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
      if(!chat)return;
      if(!active){
        chat.style.removeProperty('--zynko-phone-keyboard-top');
-       chat.style.removeProperty('--zynko-phone-keyboard-bottom');
+       chat.style.removeProperty('--zynko-phone-keyboard-height');
        return;
      }
-     // fixed offsets follow the visual viewport, which Edge/Chrome can pan.
-     const top=Math.max(0,Math.round(vv.offsetTop+5));
-     const bottom=Math.max(0,Math.round(window.innerHeight-vv.offsetTop-vv.height+5));
+     // Edge/Chrome puede reducir el viewport de posicionamiento al mostrar el teclado.
+     // Restar su altura otra vez mediante bottom deja un hueco grande bajo Enviar.
+     // Definir la altura visible directamente, sin descuento doble del teclado.
+     const top=Math.max(0,Math.round(vv.offsetTop+4));
+     const height=Math.max(0,Math.round(vv.height-8));
      chat.style.setProperty('--zynko-phone-keyboard-top',top+'px');
-     chat.style.setProperty('--zynko-phone-keyboard-bottom',bottom+'px');
+     chat.style.setProperty('--zynko-phone-keyboard-height',height+'px');
    });
  }
  window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});

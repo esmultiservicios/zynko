@@ -6992,10 +6992,10 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
   /* Teclado abierto: acoplar el chat al área realmente visible de Edge/Chrome.
      Contraer solo mensajes y cabecera; el editor y Enviar permanecen accesibles. */
   body.zynko-phone.page-inbox.zynko-phone-keyboard .inbox-layout[data-phone-view=chat] > .chat{
-    position:fixed!important;top:var(--zynko-phone-keyboard-top,5px)!important;
-    bottom:var(--zynko-phone-keyboard-bottom,5px)!important;
+    position:fixed!important;top:var(--zynko-phone-keyboard-top,4px)!important;
+    bottom:auto!important;
     left:8px!important;right:8px!important;width:auto!important;
-    height:auto!important;min-height:0!important;max-height:none!important;
+    height:var(--zynko-phone-keyboard-height,auto)!important;min-height:0!important;max-height:none!important;
     margin:0!important;z-index:90!important;overflow:hidden!important;
   }
   body.zynko-phone.page-inbox.zynko-phone-keyboard .chat-head{display:none!important}
