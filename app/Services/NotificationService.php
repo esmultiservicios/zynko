@@ -669,7 +669,7 @@ final class NotificationService
         $settings = $this->platformSettings($platformTenantId, '/?page=' . $page);
         $html = ($meta['event'] ?? '') === 'service_monitor' && !empty($meta['changes']) && is_array($meta['changes'])
             ? EmailTemplates::serviceMonitor($title, $message, $meta['changes'], $settings)
-            : EmailTemplates::generic('ACTIVIDAD DE CUENTA', $title, $message, $settings, 'ACTUALIZACIÓN');
+            : EmailTemplates::administrativeNotice($title, $message, $settings, (string)($meta['event'] ?? ''));
 
         return $this->directPlatformMail(
             $platformTenantId,

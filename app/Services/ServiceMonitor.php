@@ -302,18 +302,32 @@ final class ZynkoServiceMonitor
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) $to = $this->platformAdminEmail();
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return;
 
+        // A run may capture a fall and recovery in its own recovery cycle.
+        // Use the FINAL measured status, not a historical transition, for the
+        // email headline. Keep every original transition in the body.
+        $finalByKey = [];
+        foreach ($services as $service) {
+            $finalByKey[(string)($service['key'] ?? '')] = (string)($service['status'] ?? '');
+        }
+        $affectedNames = [];
         $hasFailure = false;
         $hasRecovery = false;
         foreach ($changes as $c) {
-            if (in_array($c['new'], ['down','degraded'], true)) $hasFailure = true;
-            if ($c['new'] === 'up' && in_array($c['old'], ['down','degraded'], true)) $hasRecovery = true;
+            $key = (string)($c['key'] ?? '');
+            $affectedNames[$key] = (string)($c['name'] ?? 'Servicio');
+            $final = $finalByKey[$key] ?? (string)($c['new'] ?? '');
+            if (in_array($final, ['down', 'degraded'], true)) $hasFailure = true;
+            if ($final === 'up' && in_array((string)($c['old'] ?? ''), ['down','degraded'], true)) $hasRecovery = true;
         }
-        if ($hasFailure && $hasRecovery) {
-            $title = 'Incidente recuperado: ZYNKO detectó y restauró un servicio';
-        } elseif ($hasFailure) {
-            $title = 'Alerta de servicio: ZYNKO requiere atención';
+        // Limit the subject for mobile Outlook; full service detail remains below.
+        $label = implode(', ',array_values(array_unique($affectedNames)));
+        if (strlen($label) > 115) $label = preg_replace('/^(.{0,82}).*/us', '$1…', $label) ?? $label;
+        if ($hasFailure) {
+            $title = 'Alerta: servicio requiere atención · ' . $label;
+        } elseif ($hasRecovery) {
+            $title = 'Incidente recuperado · ' . $label;
         } else {
-            $title = 'Servicio recuperado: ZYNKO volvió a estado operativo';
+            $title = 'Cambio de estado · ' . $label;
         }
         $lines = [];
         $lines[] = 'Cambios detectados:';

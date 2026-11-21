@@ -15,7 +15,7 @@ final class EmailTemplates
     private static function e(mixed $v): string { return htmlspecialchars((string)$v, ENT_QUOTES|ENT_SUBSTITUTE, 'UTF-8'); }
     private static function setting(array $s,string $key,string $fallback=''): string { $v=trim((string)($s[$key]??'')); return $v!==''?$v:$fallback; }
 
-    private static function shell(string $eyebrow,string $title,string $content,array $settings,string $badge='NOTIFICACIÓN'): string
+    private static function shell(string $eyebrow,string $title,string $content,array $settings,string $badge='NOTIFICACIÓN',?string $tone=null): string
     {
         $company=self::setting($settings,'company_name','Tu empresa');
         $app=self::setting($settings,'app_title','ZYNKO');
@@ -23,12 +23,16 @@ final class EmailTemplates
         $support=self::setting($settings,'support_email','');
         $url=self::setting($settings,'app_url','');
         $year=date('Y');
-        // Only the notification accent changes; the original email layout stays intact.
-        $warning=preg_match('/alerta|requiere atención|incidente|rechazad|eliminad|suspendid|desactivad|fallid|error|down/i',$title.' '.$badge)===1;
-        $accent=$warning?'#C83535':self::TEAL;
-        $accentBg=$warning?'#FFF1F0':self::SOFT;
-        $accentBorder=$warning?'#F4CCCA':'#D4EEE8';
-        $accentText=$warning?'#A92323':'#08705C';
+        // Explicit outcome takes precedence over words such as "incidente recuperado".
+        // Do not classify successful recovery emails as failures.
+        $tone=$tone??self::noticeTone($title.' '.$badge);
+        $palettes=[
+            'danger'=>['#C83535','#FFF1F0','#F4CCCA','#A92323'],
+            'warning'=>['#B66B00','#FFF8E9','#F4DCA7','#865000'],
+            'success'=>[self::TEAL,self::SOFT,'#D4EEE8','#08705C'],
+            'info'=>['#3879BB','#EEF6FF','#CCE2FA','#245F99'],
+        ];
+        [$accent,$accentBg,$accentBorder,$accentText]=$palettes[$tone]??$palettes['info'];
         $logoHtml=$logo!==''?'<img src="'.self::e($logo).'" alt="'.self::e($company).'" style="display:block;max-width:150px;max-height:46px;width:auto;height:auto;border:0">':'<div style="width:44px;height:44px;line-height:44px;text-align:center;border-radius:13px;background:'.self::TEAL.';color:#fff;font-weight:900;font-size:15px">ZY</div>';
         $cta='';
         if($url!==''){
@@ -61,14 +65,51 @@ final class EmailTemplates
         return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>'.self::e($title).'</title><style>@media only screen and (max-width:640px){.z-wrap{width:100%!important}.z-pad{padding-left:22px!important;padding-right:22px!important}.z-title{font-size:27px!important;white-space:normal!important}.z-one-line{white-space:normal!important}.z-meta{display:block!important;text-align:left!important;padding-top:14px!important}}</style></head><body style="margin:0;padding:0;background:'.self::BG.';font-family:Arial,Helvetica,sans-serif;color:'.self::TEXT.'"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:'.self::BG.'"><tr><td align="center" style="padding:34px 14px"><table role="presentation" class="z-wrap" width="760" cellspacing="0" cellpadding="0" border="0" style="width:760px;max-width:760px;background:#fff;border:1px solid '.self::BORDER.';border-radius:18px;border-collapse:separate;overflow:hidden;box-shadow:0 12px 34px rgba(11,22,37,.07)"><tr><td class="z-pad" style="padding:25px 34px;border-top:4px solid '.$accent.';border-bottom:1px solid '.self::BORDER.'"><table role="presentation" width="100%"><tr><td>'.$logoHtml.'</td><td align="right"><div style="font-size:16px;font-weight:900;color:'.self::NAVY.'">'.self::e($company).'</div><div style="margin-top:4px;font-size:12px;color:'.self::MUTED.'">Comunicaciones mediante '.self::e($app).'</div></td></tr></table></td></tr><tr><td class="z-pad" style="padding:34px 34px 10px"><table role="presentation" width="100%"><tr><td><div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:'.self::TEAL.';text-transform:uppercase">'.self::e($eyebrow).'</div><h1 class="z-title z-one-line" style="margin:10px 0 0;font-size:32px;line-height:1.18;white-space:normal;overflow-wrap:break-word;color:'.self::NAVY.';letter-spacing:-.5px">'.self::e($title).'</h1></td><td class="z-meta" align="right" valign="top"><span class="z-one-line" style="display:inline-block;padding:7px 14px;border-radius:999px;background:'.$accentBg.';border:1px solid '.$accentBorder.';color:'.$accentText.';font-size:10px;font-weight:900;letter-spacing:.7px;white-space:nowrap">'.self::e($badge).'</span></td></tr></table></td></tr><tr><td class="z-pad" style="padding:14px 34px 36px;font-size:15px;line-height:1.7">'.$content.$nivoHtml.$cta.'</td></tr><tr><td class="z-pad" style="padding:22px 34px 26px;background:#F9FBFC;border-top:1px solid '.self::BORDER.'"><div style="font-size:12px;line-height:1.7;color:'.self::MUTED.'"><strong style="color:'.self::NAVY.'">'.self::e($company).'</strong>'.$supportHtml.'<div style="margin-top:12px">Este mensaje fue generado automáticamente por '.self::e($app).'.</div><div style="margin-top:3px">© '.$year.' '.self::e($company).'.</div></div></td></tr></table></td></tr></table></body></html>';
     }
 
+    /** Keep one consistent severity vocabulary for all transactional notices. */
+    private static function noticeTone(string $text): string {
+        $t=strtolower($text);
+        if(preg_match('/recuperad|restablecid|resuelt|exitos|correctament|aprobada|aprobado/u',$t))return 'success';
+        if(preg_match('/fallid|error|fuera de servicio|no disponible|ca[ií]da|bloquead|suspendid|rechazad|no entregad|acceso no reconocid|requiere atenci[oó]n|incidente activo/u',$t))return 'danger';
+        if(preg_match('/advertencia|warning|degradad|pendiente|pr[oó]xim[oa] a vencer|intento|revisar|alerta|eliminad|cambio de contrase[nñ]a/u',$t))return 'warning';
+        if(preg_match('/seguridad|sesi[oó]n|verificaci[oó]n|acceso|usuario|canal|actividad|informaci[oó]n/u',$t))return 'info';
+        return 'success';
+    }
+
+    private static function noticeCard(string $heading,string $detail,string $tone='info'): string {
+        $colors=['danger'=>['#C83535','#FFF5F4'],'warning'=>['#B66B00','#FFFAED'],'success'=>[self::TEAL,'#F2FBF8'],'info'=>['#3879BB','#F5F9FE']];
+        [$edge,$bg]=$colors[$tone]??$colors['info'];
+        return '<div style="margin-top:16px;padding:14px 16px;border:1px solid '.self::BORDER.';border-left:4px solid '.$edge.';border-radius:11px;background:'.$bg.'">'
+            .'<div style="font-size:13px;font-weight:900;color:'.self::NAVY.'">'.self::e($heading).'</div>'
+            .'<div style="margin-top:7px;font-size:13px;line-height:1.65;overflow-wrap:anywhere">'.nl2br(self::e($detail)).'</div></div>';
+    }
+
+    /** Show source facts verbatim; never manufacture a root cause or a completed action. */
+    private static function eventBody(string $message,string $title,string $category): string {
+        $message=trim($message);
+        $tone=self::noticeTone($title.' '.$message);
+        if($message==='')return self::noticeCard('Detalle del evento','No se proporcionaron detalles adicionales.',$tone);
+        $content=self::noticeCard('Qué ocurrió',$message,$tone);
+        $lower=strtolower($title.' '.$message);
+        if(preg_match('/no reconoces|no solicitaste|sesi[oó]n|contrase[nñ]a|inicio de sesi[oó]n/u',$lower)){
+            $content.=self::noticeCard('Qué hacer','Si reconoces la actividad, no necesitas realizar ninguna acción. Si no la reconoces, revisa tus accesos, cambia tu contraseña y contacta a soporte.','info');
+        } elseif(preg_match('/error|fallid|rechazad|no disponible|fuera de servicio|degradad/u',$lower)){
+            $content.=self::noticeCard('Qué hacer','Revisa el estado actual y el detalle del evento en ZYNKO. Si continúa, contacta a soporte con la fecha y el mensaje de error; no compartas claves ni tokens.','warning');
+        } elseif(preg_match('/recuperad|restablecid|resuelt/u',$lower)){
+            $content.=self::noticeCard('Seguimiento','El aviso indica una recuperación. Confirma el estado actual en ZYNKO; no se requiere intervención si el servicio permanece operativo.','success');
+        }
+        return $content;
+    }
+
     /** Status pill and before/after comparison shared by monitoring and plan notices. */
     private static function statePill(string $value,bool $isNew=false): string {
         $v=strtolower(trim($value));
         $ok=in_array($v,['up','active','activo','activa','enabled','habilitado','aprobado'],true);
-        $bad=in_array($v,['down','inactive','inactivo','inactiva','disabled','deshabilitado','rechazado','suspendido'],true);
-        $bg=$ok?'#E7F7F0':($bad?'#FFF0EF':($isNew?'#E7F7F0':'#F2F5F8'));
-        $fg=$ok?'#08765C':($bad?'#B4232C':($isNew?'#08765C':'#516173'));
-        $bd=$ok?'#C6EBDC':($bad?'#F5CAC8':($isNew?'#C6EBDC':'#DEE5EB'));
+        $bad=in_array($v,['down','error','failed','fallido','rechazado','suspendido'],true);
+        $warn=in_array($v,['degraded','degradado','warning','advertencia','pending','pendiente'],true);
+        $neutral=in_array($v,['inactive','inactivo','inactiva','disabled','deshabilitado'],true);
+        $bg=$ok?'#E7F7F0':($bad?'#FFF0EF':($warn?'#FFF8E9':($neutral?'#F2F5F8':($isNew?'#E7F7F0':'#F2F5F8'))));
+        $fg=$ok?'#08765C':($bad?'#B4232C':($warn?'#865000':($neutral?'#516173':($isNew?'#08765C':'#516173'))));
+        $bd=$ok?'#C6EBDC':($bad?'#F5CAC8':($warn?'#F4DCA7':($neutral?'#DEE5EB':($isNew?'#C6EBDC':'#DEE5EB'))));
         $text=['up'=>'OPERATIVO','down'=>'FUERA DE SERVICIO','degraded'=>'DEGRADADO','active'=>'ACTIVO','inactive'=>'INACTIVO'][$v]??strtoupper($value);
         return '<span style="display:inline-block;padding:5px 10px;margin:3px 0;border-radius:7px;background:'.$bg.';color:'.$fg.';border:1px solid '.$bd.';font-size:12px;font-weight:800;line-height:1.4">'.self::e($text).'</span>';
     }
@@ -83,38 +124,84 @@ final class EmailTemplates
     }
 
     public static function serviceMonitor(string $title,string $message,array $changes,array $settings): string {
-        $failure=false;$recovery=false;$content='';
+        // The same run can include UP -> DOWN -> UP. The LAST observed status
+        // determines the headline; earlier changes remain available as history.
+        $timeline=[];$last=[];$first=[];
         foreach($changes as $change){
             if(!is_array($change))continue;
-            $old=strtolower((string)($change['old']??''));$new=strtolower((string)($change['new']??''));
-            if(in_array($new,['down','degraded'],true))$failure=true;
-            if($new==='up'&&in_array($old,['down','degraded'],true))$recovery=true;
-            $content.=self::comparison((string)($change['name']??'Servicio'),$old,$new);
+            $key=(string)($change['key']??$change['name']??'service');
+            $name=trim((string)($change['name']??'Servicio'));
+            $old=strtolower(trim((string)($change['old']??'')));
+            $new=strtolower(trim((string)($change['new']??'')));
             $detail=trim((string)($change['detail']??''));
-            if($detail!=='')$content.='<div style="margin:0 0 8px;font-size:12px;color:'.self::MUTED.'">'.nl2br(self::e($detail)).'</div>';
+            $item=['key'=>$key,'name'=>$name,'old'=>$old,'new'=>$new,'detail'=>$detail];
+            $timeline[]=$item;
+            if(!isset($first[$key]))$first[$key]=$item;
+            $last[$key]=$item;
         }
-        $summary=$failure?'Uno o más servicios requieren atención.':($recovery?'Los servicios indicados recuperaron su funcionamiento.':'Se detectaron cambios en la operación de los servicios.');
-        $tone=$failure?'#C83535':'#13A88A';
-        $content='<p style="margin:0 0 14px">'.self::e($summary).'</p>'
-            .'<div style="padding:14px 17px;border:1px solid #E3EAF0;border-left:4px solid '.$tone.';border-radius:11px">'.$content.'</div>';
-        if(preg_match('/Resumen actual:(.*?)(?:Revisión:|$)/su',$message,$m)){
-            $items=preg_split('/\R/u',trim($m[1]))?:[];
-            $content.='<div style="margin-top:16px"><strong>Estado actual de los servicios</strong>';
-            foreach($items as $item){
-                if(!preg_match('/^\s*[•-]\s*(.+?):\s*(UP|DOWN|DEGRADED)\s*$/iu',trim($item),$parts))continue;
-                $content.='<div style="margin-top:8px;font-size:13px">'.self::e($parts[1]).': '.self::statePill($parts[2]).'</div>';
+        // Final summary from the monitor is more authoritative than the title.
+        $observed=[];
+        if(preg_match('/Resumen actual:(.*?)(?:Revisi[oó]n:|$)/su',$message,$m)){
+            foreach(preg_split('/\R/u',trim($m[1]))?:[] as $line){
+                if(preg_match('/^\s*[•-]\s*(.+?):\s*(UP|DOWN|DEGRADED|INACTIVE)\s*$/iu',trim($line),$parts)){
+                    $observed[trim($parts[1])]=strtolower($parts[2]);
+                }
+            }
+        }
+        $issues=0;$recovered=0;
+        foreach($last as $key=>$item){
+            $status=$observed[$item['name']]??$item['new'];
+            if(in_array($status,['down','degraded'],true))$issues++;
+            elseif($status==='up' && array_filter($timeline, static fn($event) => $event['key']===$key && $event['new']==='up' && in_array($event['old'],['down','degraded'],true)))$recovered++;
+        }
+        $tone=$issues>0?'danger':($recovered>0?'success':'info');
+        $badge=$issues>0?'REQUIERE ATENCIÓN':($recovered>0?'RECUPERADO':'ESTADO ACTUALIZADO');
+        $heading=$issues>0?'Servicios con incidencias activas':($recovered>0?'Servicios recuperados':'Cambios en los servicios');
+        $summary=$issues>0
+            ?'Se detectaron '.count($last).' servicio(s) con cambios; '.$issues.' continúan fuera de servicio o degradados al finalizar la revisión.'
+            :($recovered>0?'Los servicios afectados volvieron a estar operativos al finalizar la revisión. El historial de la interrupción se conserva debajo.':'Se registraron cambios en la supervisión de servicios.');
+        $content=self::noticeCard('Resultado final',$summary,$tone);
+        foreach($last as $key=>$item){
+            $final=$observed[$item['name']]??$item['new'];
+            $content.='<div style="margin-top:14px;padding:14px 16px;border:1px solid '.self::BORDER.';border-radius:11px">'
+                .'<div style="font-weight:900;color:'.self::NAVY.'">'.self::e($item['name']).'</div>'
+                .self::comparison('Estado inicial y resultado final', $first[$key]['old'], $final);
+            $detail=$item['detail'];
+            if($detail!=='')$content.='<div style="margin-top:8px;font-size:12px;color:'.self::MUTED.';overflow-wrap:anywhere"><strong>Resultado de la comprobación:</strong> '.nl2br(self::e($detail)).'</div>';
+            $content.='</div>';
+        }
+        if(count($timeline)>1){
+            $content.='<div style="margin-top:18px"><strong>Historial de cambios detectados</strong>';
+            foreach($timeline as $item){
+                $content.='<div style="margin-top:9px;font-size:12px;line-height:1.6;color:'.self::MUTED.'">'
+                    .'<strong>'.self::e($item['name']).':</strong> '.self::e(strtoupper($item['old'])).' → '.self::e(strtoupper($item['new']))
+                    .($item['detail']!==''?' · '.self::e($item['detail']):'').'</div>';
             }
             $content.='</div>';
         }
-        if(preg_match('/Revisión:\s*([^\r\n]+)/u',$message,$m))$content.='<p style="font-size:12px;color:'.self::MUTED.'">Última revisión: '.self::e($m[1]).'</p>';
-        return self::shell('ESTADO DE LOS SERVICIOS',$title,$content,$settings,$failure?'REQUIERE ATENCIÓN':'ESTADO ACTUALIZADO');
+        if($observed){
+            $content.='<div style="margin-top:18px"><strong>Estado actual de los servicios</strong>';
+            foreach($observed as $name=>$status)$content.='<div style="margin-top:8px;font-size:13px">'.self::e($name).': '.self::statePill($status).'</div>';
+            $content.='</div>';
+        }
+        if($issues>0){
+            $content.=self::noticeCard('Acción recomendada','Consulta Configuración → Estado de los servicios y revisa los registros correspondientes. Comprueba la disponibilidad actual antes de reiniciar un proceso; la causa no está confirmada por este aviso.','warning');
+        } elseif($recovered>0){
+            $content.=self::noticeCard('Seguimiento','Los servicios implicados se muestran operativos en la última revisión. Si el incidente se repite, consulta los registros y los eventos del monitor.','success');
+        }
+        if(preg_match('/Revisi[oó]n:\s*([^\r\n]+)/u',$message,$m))$content.='<p style="font-size:12px;color:'.self::MUTED.'">Última revisión: '.self::e($m[1]).'</p>';
+        // The email subject supplied by the caller is unchanged, while the visual
+        // heading and badge always reflect the final measured status.
+        $visualTitle=$issues>0?'ZYNKO requiere atención: '.implode(', ',array_map(static fn($x)=>$x['name'],$last))
+            :($recovered>0?'Servicios recuperados: '.implode(', ',array_map(static fn($x)=>$x['name'],$last)):$title);
+        return self::shell('ESTADO DE LOS SERVICIOS',$visualTitle,$content,$settings,$badge,$tone);
     }
 
     public static function test(array $settings): string { return self::shell('CONFIGURACIÓN DE CORREO','Prueba enviada correctamente','<p style="margin:0">Tu configuración de correo está funcionando. ZYNKO ya puede entregar notificaciones transaccionales utilizando el proveedor configurado.</p><div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px"><strong style="color:'.self::NAVY.'">Conexión verificada</strong><div style="margin-top:5px;color:'.self::MUTED.';font-size:13px">No necesitas realizar ninguna acción adicional.</div></div>',$settings,'VERIFICADO'); }
     public static function accountCreated(array $settings): string { return self::shell('BIENVENIDO A ZYNKO','Tu cuenta de ZYNKO fue creada','<p style="margin:0">Tu cuenta principal y tu empresa fueron creadas correctamente. Ya puedes ingresar a ZYNKO con el correo registrado.</p><div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px"><strong style="color:'.self::NAVY.'">Todo listo para comenzar</strong><div style="margin-top:5px;color:'.self::MUTED.';font-size:13px">Configura tus canales, tu equipo y NIVO desde el panel de ZYNKO.</div></div>',$settings,'CUENTA CREADA'); }
     public static function companyCreated(array $company,array $settings): string { $name=self::e($company['name']??'Nueva empresa'); return self::shell('EMPRESAS','Empresa creada en ZYNKO','<p style="margin:0">La empresa <strong>'.$name.'</strong> fue creada correctamente y ya está disponible en la plataforma.</p>',$settings,'EMPRESA'); }
-    public static function security(string $message,array $settings): string { return self::shell('SEGURIDAD','Actividad de seguridad','<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'SEGURIDAD'); }
-    public static function billing(string $title,string $message,array $settings): string { return self::shell('FACTURACIÓN',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'FACTURACIÓN'); }
+    public static function security(string $message,array $settings): string { return self::shell('SEGURIDAD','Actividad de seguridad',self::eventBody($message,'Actividad de seguridad','security'),$settings,'SEGURIDAD',self::noticeTone($message)); }
+    public static function billing(string $title,string $message,array $settings): string { return self::shell('FACTURACIÓN',$title,self::eventBody($message,$title,'billing'),$settings,'FACTURACIÓN',self::noticeTone($title.' '.$message)); }
 
     public static function verificationCode(string $code,string $company,array $settings): string {
         $safeCompany=self::e($company);
@@ -275,11 +362,11 @@ final class EmailTemplates
     }
 
     public static function userLifecycle(string $title,string $message,array $settings,string $badge='USUARIO'): string {
-        return self::shell('SEGURIDAD Y ACCESO',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,$badge);
+        return self::shell('SEGURIDAD Y ACCESO',$title,self::eventBody($message,$title,'security'),$settings,$badge,self::noticeTone($title.' '.$message));
     }
 
     public static function channelLifecycle(string $title,string $message,array $settings): string {
-        return self::shell('CANALES E INTEGRACIONES',$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,'CANAL');
+        return self::shell('CANALES E INTEGRACIONES',$title,self::eventBody($message,$title,'channel'),$settings,'CANAL',self::noticeTone($title.' '.$message));
     }
 
     public static function publicContactAdmin(array $data,array $settings): string {
@@ -314,5 +401,25 @@ final class EmailTemplates
         return self::shell('CONFIRMACIÓN DE CONTACTO','Recibimos tu consulta',$content,$settings,'RECIBIDO');
     }
 
-    public static function generic(string $eyebrow,string $title,string $message,array $settings,string $badge='NOTIFICACIÓN'): string { return self::shell($eyebrow,$title,'<p style="margin:0">'.nl2br(self::e($message)).'</p>',$settings,$badge); }
+    /** Classify administrative emails by the event that actually occurred. */
+    public static function administrativeNotice(string $title,string $message,array $settings,string $event=''): string {
+        $category=strtolower($title.' '.$event);
+        $tone=self::noticeTone($title.' '.$message);
+        if(preg_match('/seguridad|sesi[oó]n|contrase[nñ]a|acceso|bloqueo|usuario/u',$category)){
+            $eyebrow='SEGURIDAD Y ACCESO';
+            $badge=$tone==='danger'?'ALERTA DE SEGURIDAD':'SEGURIDAD';
+        } elseif(preg_match('/correo|notificaci[oó]n|mail|smtp|graph/u',$category)){
+            $eyebrow='CORREO Y NOTIFICACIONES';
+            $badge=$tone==='danger'?'ERROR':($tone==='warning'?'ADVERTENCIA':'INFORMACIÓN');
+        } elseif(preg_match('/canal|whatsapp|integraci[oó]n|websocket|api|servicio|nivo/u',$category)){
+            $eyebrow='SERVICIOS E INTEGRACIONES';
+            $badge=$tone==='danger'?'REQUIERE ATENCIÓN':($tone==='warning'?'ADVERTENCIA':'ACTUALIZACIÓN');
+        } else {
+            $eyebrow='ACTIVIDAD DE CUENTA';
+            $badge=$tone==='danger'?'REQUIERE ATENCIÓN':($tone==='warning'?'ADVERTENCIA':'ACTUALIZACIÓN');
+        }
+        return self::shell($eyebrow,$title,self::eventBody($message,$title,$event),$settings,$badge,$tone);
+    }
+
+    public static function generic(string $eyebrow,string $title,string $message,array $settings,string $badge='NOTIFICACIÓN'): string { return self::shell($eyebrow,$title,self::eventBody($message,$title,$eyebrow),$settings,$badge,self::noticeTone($title.' '.$message)); }
 }
