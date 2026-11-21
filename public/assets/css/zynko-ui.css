@@ -6877,34 +6877,32 @@ body.page-inbox .inbox-more-search .inbox-more-search-clear{display:inline-flex;
 body.page-inbox .inbox-more-search .inbox-more-search-clear[hidden],body.page-inbox .inbox-more-empty[hidden],body.page-inbox .inbox-more-options .inbox-menu-option[hidden]{display:none!important}
 body.page-inbox .inbox-more-empty{font-size:12px;text-align:center;color:#64748b;margin:10px 4px}
 
-/* Inbox: tamaño definitivo del botón desde el primer pintado, antes y después de inicializar el RTE.
-   Se limita a escritorio/tablet; se preserva el diseño independiente de teléfono. */
+/* Inbox: reservar desde el primer pintado el espacio del editor enriquecido.
+   zynko-ui.js sustituye el textarea por toolbar + editor + estado al iniciar;
+   la altura equivalente evita que la conversación salte al finalizar la carga.
+   El textarea oculto (.zynko-rte-native) conserva su comportamiento original. */
 @media (min-width:761px){
   body.page-inbox .pro-composer .composer-line{
-    position:relative!important;
     grid-template-columns:minmax(0,1fr) 96px!important;
     align-items:end!important;
     gap:8px!important;
   }
-  body.page-inbox .pro-composer .composer-line::before{
-    content:"";
-    position:absolute;
-    z-index:0;
-    right:0;
-    top:0;
-    bottom:0;
-    width:96px;
-    pointer-events:none;
-    border:1px solid var(--line,#dbe8e7);
-    border-radius:12px;
-    background:linear-gradient(180deg,rgba(15,159,135,.07),rgba(15,159,135,.025));
+  body.page-inbox .pro-composer .composer-line>textarea#messageInput:not(.zynko-rte-native){
+    display:block!important;
+    width:100%!important;
+    height:202px!important;
+    min-height:202px!important;
+    max-height:202px!important;
+    resize:none!important;
+    grid-column:1;
+    box-sizing:border-box!important;
   }
-  body.page-inbox .pro-composer .composer-line>.zynko-rte-shell,
-  body.page-inbox .pro-composer .composer-line>textarea{min-width:0;grid-column:1;position:relative;z-index:1}
+  body.page-inbox .pro-composer .composer-line>.zynko-rte-shell{
+    min-width:0;
+    grid-column:1;
+  }
   body.page-inbox .pro-composer .composer-line>.composer-send-btn{
     grid-column:2;
-    position:relative;
-    z-index:1;
     justify-self:end!important;
     align-self:end!important;
     width:94px!important;
@@ -6913,14 +6911,16 @@ body.page-inbox .inbox-more-empty{font-size:12px;text-align:center;color:#64748b
     height:40px!important;
     min-height:40px!important;
     padding:0 9px!important;
-    margin:0 1px 1px 0!important;
+    margin:0!important;
     border-radius:10px!important;
     font-size:11px!important;
     gap:6px!important;
     transform:none!important;
     transition:background-color .15s ease,border-color .15s ease!important;
   }
-  body.page-inbox .pro-composer .composer-line>.composer-send-btn:hover{transform:none!important}
+  body.page-inbox .pro-composer .composer-line>.composer-send-btn:hover{
+    transform:none!important;
+  }
 }
 
 /* Chrome/Edge/Safari: suprimir únicamente la X nativa del navegador.
