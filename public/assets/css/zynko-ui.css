@@ -6948,3 +6948,64 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear>i{
   font-size:12px!important;position:static!important;transform:none!important;
 }
 body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hidden]{display:none!important}
+
+/* v004 — Bandeja móvil: el contenedor de Acciones no debe recortar el menú Más.
+   Se conserva el mismo dropdown, buscador y controladores usados en escritorio. */
+@media (max-width:760px){
+  body.zynko-phone.page-inbox .chat-head{
+    position:relative!important;
+    z-index:20!important;
+    overflow:visible!important;
+  }
+  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:5px!important;
+    max-height:none!important;
+    overflow:visible!important;
+    position:relative!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu{
+    grid-column:auto!important;
+    position:relative!important;
+    min-width:0!important;
+    width:100%!important;
+    z-index:21!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu>summary{
+    width:100%!important;
+    min-height:36px!important;
+    justify-content:center!important;
+    box-sizing:border-box!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
+    position:absolute!important;
+    top:calc(100% + 6px)!important;
+    right:0!important;
+    left:auto!important;
+    width:min(270px,calc(100vw - 38px))!important;
+    max-height:min(52dvh,420px)!important;
+    overflow-y:auto!important;
+    overflow-x:hidden!important;
+    overscroll-behavior:contain!important;
+    z-index:50!important;
+    display:grid!important;
+    gap:2px!important;
+    padding:7px!important;
+    margin:0!important;
+    box-shadow:0 12px 28px rgba(16,40,58,.18)!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
+    min-height:35px!important;
+    padding:4px 7px!important;
+    gap:7px!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
+    width:27px!important;
+    height:27px!important;
+    flex:0 0 27px!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-search{
+    padding:5px 7px!important;
+    margin-bottom:3px!important;
+  }
+}
