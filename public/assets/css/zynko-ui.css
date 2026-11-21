@@ -6949,138 +6949,56 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear>i{
 }
 body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hidden]{display:none!important}
 
-/* v004 — Bandeja móvil: el contenedor de Acciones no debe recortar el menú Más.
-   Se conserva el mismo dropdown, buscador y controladores usados en escritorio. */
-@media (max-width:760px){
-  body.zynko-phone.page-inbox .chat-head{
-    position:relative!important;
-    z-index:20!important;
-    overflow:visible!important;
-  }
-  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
-    grid-template-columns:repeat(2,minmax(0,1fr))!important;
-    gap:5px!important;
-    max-height:none!important;
-    overflow:visible!important;
-    position:relative!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu{
-    grid-column:auto!important;
-    position:relative!important;
-    min-width:0!important;
-    width:100%!important;
-    z-index:21!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu>summary{
-    width:100%!important;
-    min-height:36px!important;
-    justify-content:center!important;
-    box-sizing:border-box!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
-    position:absolute!important;
-    top:calc(100% + 6px)!important;
-    right:0!important;
-    left:auto!important;
-    width:min(270px,calc(100vw - 38px))!important;
-    max-height:min(52dvh,420px)!important;
-    overflow-y:auto!important;
-    overflow-x:hidden!important;
-    overscroll-behavior:contain!important;
-    z-index:50!important;
-    display:grid!important;
-    gap:2px!important;
-    padding:7px!important;
-    margin:0!important;
-    box-shadow:0 12px 28px rgba(16,40,58,.18)!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
-    min-height:35px!important;
-    padding:4px 7px!important;
-    gap:7px!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
-    width:27px!important;
-    height:27px!important;
-    flex:0 0 27px!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-search{
-    padding:5px 7px!important;
-    margin-bottom:3px!important;
-  }
-}
-
-/* v005 · Menú Más realmente compacto en teléfono, sin afectar escritorio. */
-@media (max-width:760px){
-  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
-    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
-    gap:5px!important;align-items:center!important;max-height:none!important;overflow:visible!important;
-    padding:0!important;margin:0!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .chat-actions>button.soft,
-  body.zynko-phone.page-inbox .chat-head .chat-actions>.inbox-more-menu>summary{
-    height:34px!important;min-height:34px!important;padding:5px 6px!important;
-    font-size:11px!important;line-height:1.2!important;border-radius:9px!important;
-  }
-  /* La navegación "Cliente" del teléfono ya reemplaza este botón duplicado. */
-  body.zynko-phone.page-inbox .chat-head .chat-actions>.inbox-client-toggle{display:none!important}
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
-    position:fixed!important;top:var(--zynko-more-top,115px)!important;
-    left:var(--zynko-more-left,12px)!important;right:auto!important;
-    width:var(--zynko-more-width,270px)!important;
-    max-width:calc(100vw - 24px)!important;
-    max-height:var(--zynko-more-height,350px)!important;
-    overflow-y:auto!important;overflow-x:hidden!important;
-    margin:0!important;padding:5px!important;gap:1px!important;
-    border-radius:12px!important;z-index:10080!important;
-    box-shadow:0 12px 30px rgba(16,40,58,.20)!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
-    min-height:32px!important;padding:3px 7px!important;gap:7px!important;
-    font-size:11px!important;line-height:1.2!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
-    width:25px!important;height:25px!important;flex:0 0 25px!important;font-size:12px!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-search{
-    position:sticky!important;top:0!important;z-index:2!important;
-    min-height:35px!important;padding:4px 7px!important;margin:0 0 3px!important;
-  }
-}
-
-/* v006 · Únicamente teléfonos: Acciones abre el mismo menú desplegable de Más.
-   Sin una segunda fila de controles ni cambios en escritorio o tabletas. */
+/* v007: menú Acciones del teléfono reutiliza el desplegable Más existente.
+   Anula la antigua cuadrícula de botones, incluida la regla que ocultaba el contenedor. */
 @media (max-width:600px){
-  body.zynko-phone.page-inbox .chat-head,
+  body.zynko-phone.page-inbox .chat-head{position:relative!important;overflow:visible!important;z-index:20!important}
   body.zynko-phone.page-inbox .chat-head .phone-chat-nav{overflow:visible!important}
-  body.zynko-phone.page-inbox .chat-head .chat-actions,
-  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
+  body.zynko-phone.page-inbox .chat-head:not(.phone-actions-open) .chat-actions,
+  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions,
+  body.zynko-phone.page-inbox .chat-head .chat-actions{
+    display:block!important;position:static!important;overflow:visible!important;
+    width:0!important;height:0!important;min-width:0!important;min-height:0!important;
+    max-height:0!important;margin:0!important;padding:0!important;border:0!important;
+    flex:0 0 0!important;gap:0!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .chat-actions > :not(.inbox-more-menu){display:none!important}
+  body.zynko-phone.page-inbox .chat-head .chat-actions > .inbox-more-menu{
     display:block!important;position:static!important;width:0!important;height:0!important;
-    min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;
-    border:0!important;gap:0!important;overflow:visible!important;
+    min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;
+    overflow:visible!important;
   }
-  body.zynko-phone.page-inbox .chat-head .chat-actions> :not(.inbox-more-menu){display:none!important}
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu{
-    display:block!important;position:static!important;width:0!important;height:0!important;
-    margin:0!important;padding:0!important;min-width:0!important;overflow:visible!important;
+  body.zynko-phone.page-inbox .chat-head .chat-actions > .inbox-more-menu > summary{display:none!important}
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open] > .inbox-more-options{
+    position:fixed!important;top:var(--zynko-more-top,125px)!important;
+    left:var(--zynko-more-left,12px)!important;right:auto!important;
+    width:var(--zynko-more-width,260px)!important;max-width:calc(100vw - 24px)!important;
+    max-height:var(--zynko-more-height,350px)!important;
+    display:grid!important;grid-template-columns:minmax(0,1fr)!important;
+    overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;
+    margin:0!important;padding:6px!important;gap:2px!important;
+    z-index:1100!important;border-radius:12px!important;
+    box-shadow:0 12px 28px rgba(16,40,58,.2)!important;
   }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu>summary{display:none!important}
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
-    position:absolute!important;top:calc(8px + 42px)!important;right:8px!important;left:auto!important;
-    width:min(260px,calc(100vw - 42px))!important;max-height:min(56dvh,390px)!important;
-    overflow-y:auto!important;overflow-x:hidden!important;z-index:100!important;
-    padding:6px!important;gap:1px!important;
+  body.zynko-phone.page-inbox .chat-head .inbox-more-options button.inbox-menu-option{
+    min-height:34px!important;padding:4px 7px!important;gap:7px!important;font-size:11px!important;
   }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
-    min-height:32px!important;padding:3px 7px!important;gap:7px!important;
-  }
-  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
+  body.zynko-phone.page-inbox .chat-head .inbox-more-options button.inbox-menu-option > i{
     width:26px!important;height:26px!important;flex:0 0 26px!important;
   }
-  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat{
-    height:var(--zynko-phone-chat-height,calc(100dvh - 84px))!important;
+  body.zynko-phone.page-inbox .chat-head .inbox-more-search{
+    position:sticky!important;top:0!important;z-index:2!important;padding:5px 7px!important;margin:0 0 4px!important;
   }
-  body.zynko-phone.page-inbox.zynko-phone-keyboard .inbox-layout[data-phone-view=chat]>.chat{
-    min-height:0!important;max-height:100%!important;
+  /* Teclado abierto: acoplar el chat al área realmente visible de Edge/Chrome.
+     Contraer solo mensajes y cabecera; el editor y Enviar permanecen accesibles. */
+  body.zynko-phone.page-inbox.zynko-phone-keyboard .inbox-layout[data-phone-view=chat] > .chat{
+    position:fixed!important;top:var(--zynko-phone-keyboard-top,5px)!important;
+    bottom:var(--zynko-phone-keyboard-bottom,5px)!important;
+    left:8px!important;right:8px!important;width:auto!important;
+    height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;z-index:90!important;overflow:hidden!important;
   }
+  body.zynko-phone.page-inbox.zynko-phone-keyboard .chat-head{display:none!important}
+  body.zynko-phone.page-inbox.zynko-phone-keyboard #messages{min-height:0!important;flex:1 1 0!important}
+  body.zynko-phone.page-inbox.zynko-phone-keyboard .composer{flex:0 0 auto!important}
 }

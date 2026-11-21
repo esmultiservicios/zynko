@@ -1207,32 +1207,41 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  const restore=()=>{for(const [node,anchor] of moves){if(anchor.parentNode)anchor.replaceWith(node);}moves=[];menu?.remove();menu=null;document.body.classList.remove('zynko-phone');q('.inbox-layout')?.removeAttribute('data-phone-view');};
  function setupHeader(){if(menu)return;const actions=q('.header-actions',header), user=q('.user-menu-wrap',header);if(!actions||!user)return;menu=document.createElement('details');menu.className='phone-header-menu phone-only';menu.innerHTML=`<summary aria-label="${t('Más opciones','More options')}"><i class="fa-solid fa-ellipsis" aria-hidden="true"></i></summary><div class="phone-header-items"></div>`;actions.insertBefore(menu,user);const fs=q('#fullscreenBtn',header);if(fs){const anchor=document.createComment('phone fullscreen position');fs.before(anchor);moves.push([fs,anchor]);actions.insertBefore(fs,menu);}const dest=q('.phone-header-items',menu);for(const sel of ['.header-public-site','#realtimePill','#theme','.header-language','#helpBtn']){const node=q(sel,header);if(!node)continue;const anchor=document.createComment('phone header position');node.before(anchor);moves.push([node,anchor]);dest.append(node);if(node.matches('button')&&!node.querySelector('.phone-option-label')){const label=document.createElement('span');label.className='phone-option-label phone-only';label.textContent=node.id==='theme'?t('Tema','Theme'):node.id==='helpBtn'?t('Ayuda','Help'):t('Pantalla completa','Full screen');node.append(label);}}}
  function setView(next,scroll=false){const layout=q('.inbox-layout');if(!layout)return;view=next;if(!q('.chat[data-current-conversation]',layout)&&view!=='list')view='list';layout.dataset.phoneView=view;document.body.classList.toggle('phone-chat-active',mq.matches&&view!=='list');if(scroll){requestAnimationFrame(()=>{const box=q('#messages');if(view==='chat'&&box)box.scrollTop=box.scrollHeight;});}}
- function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',event=>{event.stopPropagation();const dropdown=q('.chat-actions .inbox-more-menu',chat);if(!dropdown)return;dropdown.open=!dropdown.open;a.setAttribute('aria-expanded',String(dropdown.open));});a.setAttribute('aria-expanded','false');const dropdown=q('.chat-actions .inbox-more-menu',chat);dropdown?.addEventListener('toggle',()=>a.setAttribute('aria-expanded',String(dropdown.open)));nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
+ function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',event=>{event.preventDefault();event.stopPropagation();const dropdown=q('.chat-actions .inbox-more-menu',chat);if(!dropdown)return;dropdown.open=!dropdown.open;a.setAttribute('aria-expanded',String(dropdown.open));if(dropdown.open)dropdown.dispatchEvent(new Event('zynko:phone-menu-open'));});a.setAttribute('aria-expanded','false');const dropdown=q('.chat-actions .inbox-more-menu',chat);dropdown?.addEventListener('toggle',()=>a.setAttribute('aria-expanded',String(dropdown.open)));nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
  function sync(){if(!mq.matches){restore();document.body.classList.remove('phone-chat-active');return;}document.body.classList.add('zynko-phone');setupHeader();setupInbox();}
  mq.addEventListener?.('change',sync);sync();
- // El teclado en teléfonos reduce el viewport visual sin reducir siempre 100dvh.
- // Ajustar solo el chat activo, sin modificar el diseño de escritorio o tableta.
+ // En Android el viewport visual se mueve al enfocar el editor.
+ // Mantener el chat dentro del área realmente visible, sin dejar el fondo gris
+ // ni depender de un mínimo fijo de altura que oculte la barra de enviar.
  let phoneKeyboardFrame=0;
+ let phoneViewportBaseline=Math.max(window.innerHeight,window.visualViewport?.height||0);
  function syncPhoneKeyboard(){
    if(phoneKeyboardFrame)cancelAnimationFrame(phoneKeyboardFrame);
    phoneKeyboardFrame=requestAnimationFrame(()=>{
      phoneKeyboardFrame=0;
      const chat=q('.inbox-layout[data-phone-view="chat"]>.chat');
-     if(!chat||!mq.matches||window.innerWidth>600){chat?.style.removeProperty('--zynko-phone-chat-height');return;}
      const vv=window.visualViewport;
      const focus=document.activeElement;
      const editorFocus=!!focus?.closest?.('.composer')&&focus.matches?.('textarea,input,[contenteditable="true"]');
-     const keyboardOpen=!!vv&&editorFocus&&(window.innerHeight-vv.height>110);
-     document.body.classList.toggle('zynko-phone-keyboard',keyboardOpen);
-     if(!keyboardOpen){chat.style.removeProperty('--zynko-phone-chat-height');return;}
-     const visibleTop=vv.offsetTop;
-     const chatTop=chat.getBoundingClientRect().top;
-     const available=vv.height-Math.max(0,chatTop-visibleTop)-8;
-     chat.style.setProperty('--zynko-phone-chat-height',Math.max(210,Math.floor(available))+'px');
+     if(!editorFocus&&vv)phoneViewportBaseline=Math.max(phoneViewportBaseline,window.innerHeight,vv.height);
+     const active=!!chat&&mq.matches&&window.innerWidth<=600&&!!vv&&editorFocus&&(Math.max(phoneViewportBaseline,window.innerHeight)-vv.height>110);
+     document.body.classList.toggle('zynko-phone-keyboard',active);
+     if(!chat)return;
+     if(!active){
+       chat.style.removeProperty('--zynko-phone-keyboard-top');
+       chat.style.removeProperty('--zynko-phone-keyboard-bottom');
+       return;
+     }
+     // fixed offsets follow the visual viewport, which Edge/Chrome can pan.
+     const top=Math.max(0,Math.round(vv.offsetTop+5));
+     const bottom=Math.max(0,Math.round(window.innerHeight-vv.offsetTop-vv.height+5));
+     chat.style.setProperty('--zynko-phone-keyboard-top',top+'px');
+     chat.style.setProperty('--zynko-phone-keyboard-bottom',bottom+'px');
    });
  }
  window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});
  window.visualViewport?.addEventListener('scroll',syncPhoneKeyboard,{passive:true});
+ window.addEventListener('resize',syncPhoneKeyboard,{passive:true});
  document.addEventListener('focusin',event=>{if(event.target.closest?.('.composer'))syncPhoneKeyboard()});
  document.addEventListener('focusout',event=>{if(event.target.closest?.('.composer'))requestAnimationFrame(syncPhoneKeyboard)});
 
@@ -1377,21 +1386,28 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   const isPhone=()=>document.body.classList.contains('zynko-phone')&&matchMedia('(max-width:760px)').matches;
   const position=details=>{
     if(!details?.open||!isPhone())return;
+    const phoneButton=details.closest('.chat-head')?.querySelector('.phone-chat-nav button:last-child');
     const summary=details.querySelector(':scope > summary');
-    if(!summary)return;
-    const rect=summary.getBoundingClientRect();
+    const trigger=window.innerWidth<=600&&phoneButton?phoneButton:summary;
+    if(!trigger)return;
+    const rect=trigger.getBoundingClientRect();
+    const viewport=window.visualViewport;
+    const visibleBottom=viewport?viewport.offsetTop+viewport.height:window.innerHeight;
+    const visibleTop=viewport?viewport.offsetTop:0;
     const width=Math.min(278,window.innerWidth-24);
     const left=Math.max(12,Math.min(window.innerWidth-width-12,rect.right-width));
-    const below=Math.max(0,window.innerHeight-rect.bottom-12);
-    const above=Math.max(0,rect.top-12);
+    const below=Math.max(0,visibleBottom-rect.bottom-12);
+    const above=Math.max(0,rect.top-visibleTop-12);
     const openAbove=below<220&&above>below;
-    const height=Math.min(350,Math.max(140,openAbove?above-8:below-8));
-    const top=openAbove?Math.max(8,rect.top-height-6):Math.min(window.innerHeight-8,rect.bottom+6);
+    const height=Math.min(350,Math.max(120,openAbove?above-8:below-8));
+    const top=openAbove?Math.max(visibleTop+8,rect.top-height-6):Math.min(visibleBottom-8,rect.bottom+6);
     details.style.setProperty('--zynko-more-left',left+'px');
     details.style.setProperty('--zynko-more-top',top+'px');
     details.style.setProperty('--zynko-more-width',width+'px');
     details.style.setProperty('--zynko-more-height',height+'px');
   };
+  document.addEventListener('zynko:phone-menu-open',e=>position(e.target),true);
+  window.visualViewport?.addEventListener('resize',()=>document.querySelectorAll('.inbox-more-menu[open]').forEach(position),{passive:true});
   document.addEventListener('toggle',e=>{
     const details=e.target;
     if(!details.matches?.('.inbox-more-menu'))return;
