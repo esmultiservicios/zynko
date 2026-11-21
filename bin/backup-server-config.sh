@@ -30,13 +30,23 @@ fi
 # Almacena la tabla entera por seguridad, pero NO debe restaurarse sin comparar
 # sus tareas: puede incluir otros servicios del usuario (por ejemplo, IZZY).
 crontab -u "$OWNER" -l > "$TMP/crontab-$OWNER.txt" 2>/dev/null || :
+# Inventario de todos los scripts actuales, incluidos los que se agreguen en el futuro.
+find "$ROOT/bin" -maxdepth 1 -type f \( -name '*.php' -o -name '*.sh' \) -printf '%f\n' | LC_ALL=C sort > "$TMP/bin-inventory.txt"
+# Copia de lectura del inventario del proyecto y las tareas ZYNKO existentes.
+# No programa nuevas tareas, ni ejecuta scripts que puedan enviar mensajes.
+if [ -f "$ROOT/bin/audit-server-jobs.sh" ]; then
+  bash "$ROOT/bin/audit-server-jobs.sh" > "$TMP/Inventario-ZYNKO.txt" 2>&1 || {
+    echo 'WARN No pudo completarse inventario de cron de ZYNKO.' > "$TMP/Inventario-ZYNKO.txt"
+  }
+fi
 {
   printf 'Servidor: %s\n' "$(hostname)"
   printf 'Fecha: %s\n' "$(date -Is)"
   printf 'Instalación ZYNKO: %s\n' "$ROOT"
   printf 'Restauración: ejecutar bin/install-logrotate.sh como root y bin/install-service-monitor-cron.sh como %s.\n' "$OWNER"
   printf 'No restaurar el crontab completo sin comparar sus otras tareas.\n'
-} > "$TMP/README.txt"
+  printf 'Los scripts de campaña, correo y NIVO se inventarían, pero no se activan automáticamente.\n'
+} > "$TMP/backup-info.txt"
 ARCHIVE="$DEST/ZYNKO_Configuracion_Servidor_$(date +%Y%m%d_%H%M%S).tar.gz"
 (umask 077; tar -czf "$ARCHIVE" -C "$TMP" .)
 chmod 600 "$ARCHIVE"

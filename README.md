@@ -499,3 +499,31 @@ El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF
 - Eliminación autorizada de conversaciones con campo de contraseña nativo y auditable.
 - Selector de emojis cerrable con X o clic fuera; filtros CRM alineados; categorías por conversación preservadas.
 - Mantiene scroll inteligente, cierre por inactividad, reconciliación HTTP y comunicación bilateral durable.
+
+## Administración y recuperación de tareas del servidor (v024)
+
+ZYNKO conserva sus herramientas operativas en `bin/`. La presencia de un script **no significa** que deba ejecutarse por cron. Las tareas existentes y los servicios de otros proyectos deben conservarse durante cualquier restauración.
+
+| Script operativo | Uso | Programación |
+|---|---|---|
+| `bin/service-monitor.php` | Monitorización, recuperación WebSocket y cola de canales | Instalado por `bin/install-service-monitor-cron.sh`, cada minuto |
+| `bin/campaign-dispatch.php` | Despacho de campañas | Disponible; no habilitado automáticamente |
+| `bin/email-inbound-poll.php` | Consulta de correo entrante | Disponible; no habilitado automáticamente |
+| `bin/nivo-knowledge-sync.php` | Sincronización del conocimiento de NIVO | Disponible; no habilitado automáticamente |
+| `bin/nivo-rag-sync.php` | Sincronización RAG | Disponible; no habilitado automáticamente |
+| `bin/manage-websocket.sh` y `bin/restart-websocket.sh` | Administración del WebSocket | Utilidades de control, no cron |
+
+**Recuperación después de restaurar el proyecto:**
+
+1. Recuperar el código actualizado, la base de datos, los archivos persistentes y `.env` desde sus respaldos seguros respectivos.
+2. Como `root`, ejecutar `bash bin/install-logrotate.sh` para restaurar la configuración de rotación de los logs.
+3. Como propietario de cPanel (`esmultiservicios`), ejecutar `bash bin/install-service-monitor-cron.sh`. El despliegue existente en `.cpanel.yml` ya contempla este instalador.
+4. Consultar `bash bin/audit-server-jobs.sh` y `bash bin/install-zynko-tasks.sh --check` para identificar la programación real y las tareas adicionales disponibles.
+5. **Solo después de aprobar frecuencias y activaciones**, editar `bin/zynko-schedules.conf` y ejecutar `bash bin/install-zynko-tasks.sh --apply` como `root` o propietario. Este instalador gestiona únicamente su bloque de tareas adicionales, sin reemplazar los cron de IZZY ni el bloque del monitor.
+6. Como `root`, ejecutar `bash bin/backup-server-config.sh` para guardar la configuración administrativa fuera de `public_html`, en `~/zynko-server-backups` del propietario del proyecto. Conservar una copia adicional fuera de WEB01.
+7. Validar `crontab -u esmultiservicios -l`, `systemctl is-active logrotate.timer` y `bash bin/manage-websocket.sh status`.
+
+El manifiesto `bin/zynko-schedules.conf` incluye frecuencias **de ejemplo, deshabilitadas**, no cron aprobados. Las tareas nuevas deben revisarse antes de incorporarlas al instalador y a dicho manifiesto. El respaldo registra automáticamente el inventario de scripts `.php` y `.sh` actuales de `bin/`, pero no los activa.
+
+**Precaución:** el respaldo administrativo puede contener un crontab con tareas de otros sistemas. No restaurarlo íntegramente sin comparar la programación actual. El archivo de respaldo no incluye `.env`, credenciales, mensajes ni base de datos.
+
