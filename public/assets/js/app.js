@@ -1319,13 +1319,18 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
     const field=menu.querySelector('.inbox-more-search-input'),clear=menu.querySelector('.inbox-more-search-clear'),empty=menu.querySelector('.inbox-more-empty');
     if(!field)return;menu.dataset.searchReady='1';
     const update=()=>{
-      const term=field.value.trim().toLocaleLowerCase();let found=0;
+      const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
+      const term=normalize(field.value.trim());let found=0;
       menu.querySelectorAll('button.inbox-menu-option').forEach(button=>{
-        const match=!term||button.textContent.toLocaleLowerCase().includes(term);
-        button.hidden=!match;if(match)found++;
+        const match=!term||normalize(button.textContent).includes(term);
+        button.hidden=!match;
+        // Las reglas antiguas del menú tienen display:flex!important;
+        // la propiedad inline important prevalece sin alterar su diseño.
+        if(match){button.style.removeProperty('display');found++;}
+        else button.style.setProperty('display','none','important');
       });
-      if(clear)clear.hidden=!field.value;
-      if(empty)empty.hidden=found>0;
+      if(clear){clear.hidden=!field.value;clear.style.setProperty('display',field.value?'inline-flex':'none','important');}
+      if(empty){empty.hidden=found>0;empty.style.setProperty('display',found>0?'none':'block','important');}
     };
     field.addEventListener('input',update);
     clear?.addEventListener('click',()=>{field.value='';update();field.focus()});
