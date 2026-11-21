@@ -2,9 +2,11 @@
 declare(strict_types=1);
 /** Department workflows: all identifiers scoped to authenticated tenant. */
 function zynkoDepartmentAction(PDO $pdo, int $tenantId, int $actorId, string $role, string $action, array $post): array {
-    if (!in_array($role, ['owner','admin'], true)) {
-        throw new RuntimeException('Solamente el administrador de la empresa puede modificar departamentos.');
+    if (!in_array($role, ['owner','admin','supervisor'], true)) {
+        throw new RuntimeException('No está autorizado para administrar departamentos.');
     }
+    $isAdmin=in_array($role,['owner','admin'],true);
+    if($action==='department_save' && !$isAdmin)throw new RuntimeException('Solo el administrador puede crear o modificar departamentos.');
     if ($action === 'department_save') {
         $name = trim((string)($post['name'] ?? ''));
         $id = (int)($post['team_id'] ?? 0);
@@ -26,6 +28,15 @@ function zynkoDepartmentAction(PDO $pdo, int $tenantId, int $actorId, string $ro
     if ($action === 'department_member_save') {
         $teamId=(int)($post['team_id']??0);$userId=(int)($post['user_id']??0);
         $roleSupervisor=!empty($post['is_supervisor'])?1:0;
+        if(!$isAdmin){
+          if($roleSupervisor)throw new RuntimeException('Solo un administrador puede designar supervisores.');
+          $check=$pdo->prepare('SELECT 1 FROM department_members WHERE tenant_id=? AND team_id=? AND user_id=? AND enabled=1 AND is_supervisor=1');
+          $check->execute([$tenantId,$teamId,$actorId]);
+          if(!$check->fetchColumn())throw new RuntimeException('Solo puede gestionar agentes de sus departamentos supervisados.');
+          $check=$pdo->prepare('SELECT is_supervisor FROM department_members WHERE tenant_id=? AND team_id=? AND user_id=?');
+          $check->execute([$tenantId,$teamId,$userId]);
+          if((int)$check->fetchColumn()===1)throw new RuntimeException('Solo un administrador puede modificar la asignación de un supervisor.');
+        }
         $max=max(1,min(100,(int)($post['max_active']??5)));
         $on=!empty($post['enabled'])?1:0;
         $q=$pdo->prepare('SELECT id FROM teams WHERE id=? AND tenant_id=? AND active=1');$q->execute([$teamId,$tenantId]);
