@@ -1292,13 +1292,17 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
    keyboardFrame=requestAnimationFrame(()=>{
      keyboardFrame=0;
      const chat=phoneChat(),vv=window.visualViewport;
-     const vkHeight=Math.max(0,window.navigator.virtualKeyboard?.boundingRect?.height||0);
-     const visibleHeight=Math.max(0,(vv?.height||window.innerHeight)-vkHeight);
+     const viewportHeight=Math.max(0,vv?.height||window.innerHeight);
      const visibleTop=vv?.offsetTop||0;
      const focused=keyboardEditorFocused();
-     if(!focused)viewportBaseline=Math.max(viewportBaseline,window.innerHeight,visibleHeight);
+     if(!focused)viewportBaseline=Math.max(viewportBaseline,window.innerHeight,viewportHeight);
+     // Browsers use different keyboard modes: some shrink the visual viewport,
+     // others overlay the keyboard and report its rect. Never subtract both.
+     const viewportShrank=viewportBaseline-viewportHeight>100;
+     const overlayKeyboardHeight=viewportShrank?0:Math.max(0,window.navigator.virtualKeyboard?.boundingRect?.height||0);
+     const visibleHeight=Math.max(0,viewportHeight-overlayKeyboardHeight);
      const smallScreen=window.innerWidth<=600&&mq.matches;
-     const keyboardOpen=smallScreen&&!!chat&&focused&&viewportBaseline-visibleHeight>100;
+     const keyboardOpen=smallScreen&&!!chat&&focused&&(viewportShrank||overlayKeyboardHeight>100);
      document.body.classList.toggle('zynko-phone-keyboard',keyboardOpen);
      if(!chat)return;
      if(!keyboardOpen){
