@@ -6725,6 +6725,27 @@ body.dark #inboxMessageContextMenu button:hover{background:var(--surface2)}
 .inbox-message-info-rows{display:grid;gap:8px;min-width:0}
 .inbox-message-info-row{display:grid;grid-template-columns:minmax(105px,42%) minmax(0,1fr);align-items:start;gap:12px;padding:10px 12px;background:var(--surface2);border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}
 .inbox-message-info-row small{color:var(--muted);font-size:.78rem}.inbox-message-info-row b{font-size:.8rem;line-height:1.45;font-weight:650}
+
+/* Message details only: retain the shared modal design and use meaningful state tokens. */
+#inboxMessageInfoModal .inbox-message-info-row--status{align-items:center}
+#inboxMessageInfoModal .inbox-message-info-value{min-width:0;overflow-wrap:anywhere}
+#inboxMessageInfoModal .inbox-message-info-value>b{display:block;font-size:.8rem;line-height:1.5;font-weight:650;color:var(--text)}
+#inboxMessageInfoModal .inbox-message-status-badge{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:5px 10px;border:1px solid var(--line);border-radius:999px;font-size:.75rem;line-height:1.35;font-weight:750;background:var(--surface);color:var(--text);white-space:normal}
+#inboxMessageInfoModal .inbox-message-status-dot{width:7px;height:7px;flex:0 0 7px;background:currentColor;border-radius:50%}
+#inboxMessageInfoModal .inbox-message-status-badge--success{background:#e5f7ef;border-color:#b6e8d0;color:#117a55}
+#inboxMessageInfoModal .inbox-message-status-badge--danger{background:#fff0f1;border-color:#f2c4ca;color:#b42334}
+#inboxMessageInfoModal .inbox-message-status-badge--warning{background:#fff5e4;border-color:#f0d6a1;color:#946100}
+#inboxMessageInfoModal .inbox-message-status-badge--neutral{background:var(--surface);border-color:var(--line);color:var(--muted)}
+#inboxMessageInfoModal .inbox-message-info-row--provider{background:#fff8f0;border-color:#f0d8bd}
+#inboxMessageInfoModal .inbox-message-info-row--provider .inbox-message-info-value>b{color:#833e16}
+#inboxMessageInfoModal .inbox-message-provider-help{font-size:.77rem;line-height:1.55;color:#865022;margin:9px 0 0;border-top:1px solid #ebd9c4;padding-top:8px}
+#inboxMessageInfoModal .inbox-message-receipt-date{display:block;color:var(--muted);line-height:1.45;margin-top:6px;font-size:.72rem}
+body.dark #inboxMessageInfoModal .inbox-message-status-badge--success{background:#113c32;border-color:#286c56;color:#9ae5c1}
+body.dark #inboxMessageInfoModal .inbox-message-status-badge--danger{background:#43232b;border-color:#74414a;color:#ffb9c2}
+body.dark #inboxMessageInfoModal .inbox-message-status-badge--warning{background:#41351c;border-color:#6b5630;color:#ffe1a3}
+body.dark #inboxMessageInfoModal .inbox-message-info-row--provider{background:#362b22;border-color:#6a4d31}
+body.dark #inboxMessageInfoModal .inbox-message-info-row--provider .inbox-message-info-value>b{color:#f3c9a1}
+body.dark #inboxMessageInfoModal .inbox-message-provider-help{color:#dfbd9c;border-top-color:#65492f}
 .inbox-forward-preview{display:grid;gap:7px;min-width:0;max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface2);font-size:.86rem;max-height:180px;overflow:auto}
 .inbox-forward-preview small{color:var(--muted);font-size:.75rem}
 #inboxMessageForwardModal .select2-container--open{z-index:11000!important}
