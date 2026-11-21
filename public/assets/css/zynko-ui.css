@@ -6840,10 +6840,10 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 
 /* v043 - Excel export and department role controls, using existing modal composition. */
 #zynkoExcelOptionsModal{align-items:center;justify-content:center;padding:16px;z-index:11020}
-#zynkoExcelOptionsModal .zynko-excel-modal{width:min(860px,calc(100vw - 32px));max-width:860px;height:545px;max-height:calc(100dvh - 32px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;margin:auto}
+#zynkoExcelOptionsModal .zynko-excel-modal{width:min(1000px,calc(100vw - 32px));max-width:1000px;height:650px;max-height:calc(100dvh - 32px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;margin:auto}
 #zynkoExcelOptionsModal .zynko-excel-modal>.modal-head{flex:0 0 auto;margin:0;padding:18px 22px;border-bottom:1px solid #deebee}
-#zynkoExcelOptionsModal .zynko-excel-modal-body{flex:1 1 auto;min-height:0;padding:24px 26px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
-#zynkoExcelOptionsModal .zynko-excel-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 22px}
+#zynkoExcelOptionsModal .zynko-excel-modal-body{flex:1 1 auto;min-height:0;padding:22px 28px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+#zynkoExcelOptionsModal .zynko-excel-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 24px}
 #zynkoExcelOptionsModal .zynko-excel-modal-grid>.field:last-child{grid-column:1/-1}
 #zynkoExcelOptionsModal .zynko-excel-modal-body .field{min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
 #zynkoExcelOptionsModal .zynko-excel-modal-body input,#zynkoExcelOptionsModal .zynko-excel-modal-body select{width:100%;min-width:0;box-sizing:border-box}
@@ -6859,7 +6859,7 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 @media(max-width:600px){#zynkoExcelOptionsModal .zynko-excel-modal{height:min(640px,calc(100dvh - 24px));max-height:calc(100dvh - 24px)}#zynkoExcelOptionsModal .zynko-excel-modal-grid{grid-template-columns:1fr;gap:12px}#zynkoExcelOptionsModal .zynko-excel-modal-body{padding:16px}#zynkoExcelOptionsModal .zynko-excel-modal>.modal-head{padding:14px 16px}#zynkoExcelOptionsModal .zynko-excel-modal>.modal-actions{padding:10px 16px}}
 
 /* v044 — Excel sheet protection follows the established ZYNKO checkbox treatment. */
-#zynkoExcelOptionsModal .zynko-excel-protection{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;white-space:normal;cursor:pointer;line-height:1.4;font-size:13px;font-weight:600;color:#102c3b}
+#zynkoExcelOptionsModal .zynko-excel-protection{display:flex;align-items:center;gap:12px;flex-wrap:nowrap;white-space:normal;cursor:pointer;line-height:1.4;font-size:13px;font-weight:600;color:#102c3b}
 #zynkoExcelOptionsModal .zynko-excel-protection input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 #zynkoExcelOptionsModal .zynko-excel-protection-indicator{width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;border:1.5px solid #b6cbd0;border-radius:6px;background:white;color:transparent}
 #zynkoExcelOptionsModal .zynko-excel-protection input:checked+.zynko-excel-protection-indicator{background:#0d9f8c;border-color:#0d9f8c;color:white}
