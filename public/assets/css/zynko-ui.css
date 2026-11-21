@@ -7009,3 +7009,41 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
     margin-bottom:3px!important;
   }
 }
+
+/* v005 · Menú Más realmente compacto en teléfono, sin afectar escritorio. */
+@media (max-width:760px){
+  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
+    display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;align-items:center!important;max-height:none!important;overflow:visible!important;
+    padding:0!important;margin:0!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .chat-actions>button.soft,
+  body.zynko-phone.page-inbox .chat-head .chat-actions>.inbox-more-menu>summary{
+    height:34px!important;min-height:34px!important;padding:5px 6px!important;
+    font-size:11px!important;line-height:1.2!important;border-radius:9px!important;
+  }
+  /* La navegación "Cliente" del teléfono ya reemplaza este botón duplicado. */
+  body.zynko-phone.page-inbox .chat-head .chat-actions>.inbox-client-toggle{display:none!important}
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
+    position:fixed!important;top:var(--zynko-more-top,115px)!important;
+    left:var(--zynko-more-left,12px)!important;right:auto!important;
+    width:var(--zynko-more-width,270px)!important;
+    max-width:calc(100vw - 24px)!important;
+    max-height:var(--zynko-more-height,350px)!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    margin:0!important;padding:5px!important;gap:1px!important;
+    border-radius:12px!important;z-index:10080!important;
+    box-shadow:0 12px 30px rgba(16,40,58,.20)!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
+    min-height:32px!important;padding:3px 7px!important;gap:7px!important;
+    font-size:11px!important;line-height:1.2!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
+    width:25px!important;height:25px!important;flex:0 0 25px!important;font-size:12px!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-search{
+    position:sticky!important;top:0!important;z-index:2!important;
+    min-height:35px!important;padding:4px 7px!important;margin:0 0 3px!important;
+  }
+}

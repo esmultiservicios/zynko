@@ -1322,7 +1322,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
       const normalize=value=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
       const term=normalize(field.value.trim());let found=0;
       menu.querySelectorAll('button.inbox-menu-option').forEach(button=>{
-        const match=!term||normalize(button.textContent).includes(term);
+        const isPhone=document.body.classList.contains('zynko-phone') && window.matchMedia('(max-width:760px)').matches;
+        // En teléfono se muestran primero las siete acciones principales; las demás siguen accesibles al buscarlas.
+        const isSecondary=Array.from(menu.querySelectorAll('button.inbox-menu-option')).indexOf(button)>=7;
+        const match=(!term||normalize(button.textContent).includes(term)) && (!isPhone||!!term||!isSecondary);
         button.hidden=!match;
         // Las reglas antiguas del menú tienen display:flex!important;
         // la propiedad inline important prevalece sin alterar su diseño.
@@ -1341,4 +1344,37 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   document.addEventListener('toggle',event=>{if(event.target.matches?.('.inbox-more-menu')&&event.target.open)setup(event.target.querySelector('.inbox-more-options'))},true);
   document.addEventListener('focusin',event=>{if(event.target.matches?.('.inbox-more-search-input'))setup(event.target.closest('.inbox-more-options'))});
   document.querySelectorAll('.inbox-more-options').forEach(setup);
+})();
+
+/* Menú Más del chat en móvil: ubicarlo respecto a la ventana para evitar el recorte del panel. */
+(()=>{
+  const isPhone=()=>document.body.classList.contains('zynko-phone')&&matchMedia('(max-width:760px)').matches;
+  const position=details=>{
+    if(!details?.open||!isPhone())return;
+    const summary=details.querySelector(':scope > summary');
+    if(!summary)return;
+    const rect=summary.getBoundingClientRect();
+    const width=Math.min(278,window.innerWidth-24);
+    const left=Math.max(12,Math.min(window.innerWidth-width-12,rect.right-width));
+    const below=Math.max(0,window.innerHeight-rect.bottom-12);
+    const above=Math.max(0,rect.top-12);
+    const openAbove=below<220&&above>below;
+    const height=Math.min(350,Math.max(140,openAbove?above-8:below-8));
+    const top=openAbove?Math.max(8,rect.top-height-6):Math.min(window.innerHeight-8,rect.bottom+6);
+    details.style.setProperty('--zynko-more-left',left+'px');
+    details.style.setProperty('--zynko-more-top',top+'px');
+    details.style.setProperty('--zynko-more-width',width+'px');
+    details.style.setProperty('--zynko-more-height',height+'px');
+  };
+  document.addEventListener('toggle',e=>{
+    const details=e.target;
+    if(!details.matches?.('.inbox-more-menu'))return;
+    if(details.open)position(details);
+  },true);
+  window.addEventListener('resize',()=>document.querySelectorAll('.inbox-more-menu[open]').forEach(position),{passive:true});
+  document.addEventListener('scroll',e=>{
+    if(!isPhone())return;
+    if(e.target.closest?.('.inbox-more-options'))return;
+    document.querySelectorAll('.inbox-more-menu[open]').forEach(position);
+  },true);
 })();
