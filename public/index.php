@@ -926,6 +926,19 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    zynkoPlanRequireModule($planCtx,'chatbot');
    if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true)&&!isPlatformOwner())throw new RuntimeException('No autorizado.');$svc=new OpenAIProviderService($pdo,$root);$svc->saveTenant($tid,$_POST,(int)$_SESSION['user']['id'],$planCtx);jsonOut(true,'Preferencias de NIVO IA externa actualizadas.');
   }
+  if($action==='department_transfer') {
+   zynkoPlanRequireModule($planCtx,'inbox');
+   require_once $root.'/app/Support/DepartmentOperations.php';
+   $result=zynkoDepartmentTransfer($pdo,$tid,(int)$_SESSION['user']['id'],(string)($_SESSION['user']['role']??''),$_POST);
+   zynkoRealtimePublish($pdo,$tid,'conversation.assigned',['conversation_id'=>$result['conversation_id'],'agent_id'=>$result['agent_id'],'team_id'=>$result['team_id']],'conversation',(string)$result['conversation_id']);
+   jsonOut(true,$result['message'],$result);
+  }
+  if(in_array($action,['department_save','department_member_save'],true)) {
+   zynkoPlanRequireModule($planCtx,'users');
+   require_once $root.'/app/Support/DepartmentOperations.php';
+   $result=zynkoDepartmentAction($pdo,$tid,(int)$_SESSION['user']['id'],(string)($_SESSION['user']['role']??''),$action,$_POST);
+   jsonOut(true,$result['message'],$result);
+  }
   $moduleActions=['users'=>['user_create','user_update','user_avatar','user_reset_password','user_sessions_list','user_revoke_sessions','user_session_revoke'],'settings'=>['settings_save','env_save','env_full_save','websocket_restart','websocket_control','service_monitor_save','service_monitor_run'],'chatbot'=>['bot_save','nivo_rule_add','nivo_rule_update','nivo_rule_delete','nivo_solution_add','nivo_module_add','knowledge_approve','knowledge_learning_approve','knowledge_learning_answer','knowledge_learning_reject','knowledge_file_add','nivo_suggest','knowledge_delete','knowledge_add','knowledge_site_add','knowledge_site_update','knowledge_site_sync','knowledge_site_delete'],'email'=>['email_test','email_sender_routes_save','email_activate','email_delete'],'integrations'=>['api_key_create','api_key_policy_save','api_key_revoke','integration_save'],'automations'=>['automation_flow_save','automation_flow_status','automation_flow_delete','social_rule_save','social_rule_status','social_rule_delete','campaign_save','campaign_prepare','campaign_dispatch','campaign_delete','ai_call_profile_save','ai_call_profile_status','ai_call_profile_delete']];foreach($moduleActions as $module=>$actions){if(in_array($action,$actions,true))zynkoPlanRequireModule($planCtx,$module);}
   $operationalActions=[
    'channels'=>['channel_save','channel_validate','channel_qr_start','channel_templates_list','channel_template_create','channel_template_update','channel_template_delete','channel_qr_pair','channel_qr_unlink','channel_x_start','channel_metrics','channel_cloud_register','channel_disconnect'],

@@ -147,3 +147,25 @@ SELECT code,name,monthly_price,max_channels-1 AS cupos_externos,distinct_externa
 SELECT code,visible,connector_ready,linkable FROM channel_connector_catalog ORDER BY sort_order;
 -- Revisar cuentas heredadas por encima del nuevo cupo; no se desconectan automáticamente en esta actualización.
 SELECT ts.tenant_id,sp.code,COUNT(ch.id) AS conexiones_externas,sp.max_channels-1 AS cupos FROM tenant_subscriptions ts JOIN subscription_plans sp ON sp.id=ts.plan_id JOIN channels ch ON ch.tenant_id=ts.tenant_id AND ch.type<>'webchat' AND ch.status<>'disconnected' WHERE sp.max_channels IS NOT NULL GROUP BY ts.tenant_id,sp.code,sp.max_channels HAVING COUNT(ch.id)>sp.max_channels-1;
+
+
+-- Gestión departamental: las cuentas existentes conservan su configuración.
+CREATE TABLE IF NOT EXISTS department_members (
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ team_id BIGINT UNSIGNED NOT NULL,
+ user_id BIGINT UNSIGNED NOT NULL,
+ is_supervisor TINYINT(1) NOT NULL DEFAULT 0,
+ max_active SMALLINT UNSIGNED NOT NULL DEFAULT 5,
+ enabled TINYINT(1) NOT NULL DEFAULT 1,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(tenant_id,team_id,user_id),
+ INDEX idx_dm_user(tenant_id,user_id),
+ INDEX idx_dm_team(tenant_id,team_id,enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS department_routes (
+ tenant_id BIGINT UNSIGNED NOT NULL,
+ team_id BIGINT UNSIGNED NOT NULL,
+ routing_mode ENUM('least_load','manual') NOT NULL DEFAULT 'least_load',
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(tenant_id,team_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

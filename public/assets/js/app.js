@@ -1311,3 +1311,10 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
 /* Dismiss only the active format disclosure, without altering editor selection. */
 document.addEventListener('click',e=>{document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{if(!t.contains(e.target)){t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')}})});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.zynko-rte-toolbar.rte-extra-open').forEach(t=>{t.classList.remove('rte-extra-open');t.querySelector('.zynko-rte-more')?.setAttribute('aria-expanded','false')})});
+
+// Transferencia departamental: conserva el modal si falla el servidor y evita recargas intermedias.
+(()=>{const bind=()=>{const form=document.getElementById('departmentTransferForm');if(!form||form.dataset.transferBound)return;form.dataset.transferBound='1';form.addEventListener('submit',async e=>{
+ e.preventDefault();const button=document.querySelector('[form="departmentTransferForm"][type="submit"]');if(button)button.disabled=true;
+ try{const r=await fetch(location.href,{method:'POST',credentials:'same-origin',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});const j=await r.json();if(!r.ok||!j.ok)throw new Error(j.message||'No se pudo transferir');window.showNotify?.('success','Transferencia',j.message);location.reload();}
+ catch(error){window.showNotify?.('error','Transferencia',error.message);if(!window.showNotify)alert(error.message);}finally{if(button)button.disabled=false}
+});};if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bind);else bind();document.addEventListener('zynko:page-loaded',bind);})();
