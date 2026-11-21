@@ -7047,3 +7047,40 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
     min-height:35px!important;padding:4px 7px!important;margin:0 0 3px!important;
   }
 }
+
+/* v006 · Únicamente teléfonos: Acciones abre el mismo menú desplegable de Más.
+   Sin una segunda fila de controles ni cambios en escritorio o tabletas. */
+@media (max-width:600px){
+  body.zynko-phone.page-inbox .chat-head,
+  body.zynko-phone.page-inbox .chat-head .phone-chat-nav{overflow:visible!important}
+  body.zynko-phone.page-inbox .chat-head .chat-actions,
+  body.zynko-phone.page-inbox .chat-head.phone-actions-open .chat-actions{
+    display:block!important;position:static!important;width:0!important;height:0!important;
+    min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;
+    border:0!important;gap:0!important;overflow:visible!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .chat-actions> :not(.inbox-more-menu){display:none!important}
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu{
+    display:block!important;position:static!important;width:0!important;height:0!important;
+    margin:0!important;padding:0!important;min-width:0!important;overflow:visible!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu>summary{display:none!important}
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu[open]>.inbox-more-options{
+    position:absolute!important;top:calc(8px + 42px)!important;right:8px!important;left:auto!important;
+    width:min(260px,calc(100vw - 42px))!important;max-height:min(56dvh,390px)!important;
+    overflow-y:auto!important;overflow-x:hidden!important;z-index:100!important;
+    padding:6px!important;gap:1px!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option{
+    min-height:32px!important;padding:3px 7px!important;gap:7px!important;
+  }
+  body.zynko-phone.page-inbox .chat-head .inbox-more-menu .inbox-more-options button.inbox-menu-option>i{
+    width:26px!important;height:26px!important;flex:0 0 26px!important;
+  }
+  body.zynko-phone.page-inbox .inbox-layout[data-phone-view=chat]>.chat{
+    height:var(--zynko-phone-chat-height,calc(100dvh - 84px))!important;
+  }
+  body.zynko-phone.page-inbox.zynko-phone-keyboard .inbox-layout[data-phone-view=chat]>.chat{
+    min-height:0!important;max-height:100%!important;
+  }
+}
