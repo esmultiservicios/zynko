@@ -23,6 +23,12 @@ final class EmailTemplates
         $support=self::setting($settings,'support_email','');
         $url=self::setting($settings,'app_url','');
         $year=date('Y');
+        // Only the notification accent changes; the original email layout stays intact.
+        $warning=preg_match('/alerta|requiere atención|incidente|rechazad|eliminad|suspendid|desactivad|fallid|error|down/i',$title.' '.$badge)===1;
+        $accent=$warning?'#C83535':self::TEAL;
+        $accentBg=$warning?'#FFF1F0':self::SOFT;
+        $accentBorder=$warning?'#F4CCCA':'#D4EEE8';
+        $accentText=$warning?'#A92323':'#08705C';
         $logoHtml=$logo!==''?'<img src="'.self::e($logo).'" alt="'.self::e($company).'" style="display:block;max-width:150px;max-height:46px;width:auto;height:auto;border:0">':'<div style="width:44px;height:44px;line-height:44px;text-align:center;border-radius:13px;background:'.self::TEAL.';color:#fff;font-weight:900;font-size:15px">ZY</div>';
         $cta='';
         if($url!==''){
@@ -34,24 +40,74 @@ final class EmailTemplates
             }
         }
         $supportHtml=$support!==''?'<div style="margin-top:5px">Soporte: <a href="mailto:'.self::e($support).'" style="color:'.self::TEAL.';text-decoration:none">'.self::e($support).'</a></div>':'';
-        $nivoAsset='';
-        if($url!==''){
-            // Build the public asset URL from APP_URL without query strings (e.g. ?page=dashboard).
+        // CID attachment is included by NotificationService for both Graph and SMTP.
+        // Use an external URL only if the mascot asset cannot be read server-side.
+        $nivoFile=dirname(__DIR__,2).'/public/assets/img/nivo-email-mail.png';
+        $nivoAsset=is_file($nivoFile)&&is_readable($nivoFile)?'cid:zynko-nivo':'';
+        if($nivoAsset===''&&$url!==''){
             $u=parse_url($url);
             if(is_array($u)&&!empty($u['host'])){
                 $scheme=(string)($u['scheme']??'https');
                 $port=isset($u['port'])?':'.(int)$u['port']:'';
                 $path=rtrim((string)($u['path']??''),'/');
                 if(str_ends_with(strtolower($path),'/public'))$path=substr($path,0,-7);
-                $base=$scheme.'://'.$u['host'].$port.$path;
-                $nivoAsset=rtrim($base,'/').'/assets/img/nivo-email.png';
+                $nivoAsset=$scheme.'://'.$u['host'].$port.$path.'/assets/img/nivo-email.png';
             }
         }
         $nivoVisual=$nivoAsset!==''
             ? '<img src="'.self::e($nivoAsset).'" alt="NIVO" width="96" style="display:block;width:96px;max-width:96px;height:auto;border:0;border-radius:14px">'
-            : '<div style="width:54px;height:54px;line-height:54px;text-align:center;border-radius:14px;background:'.self::NAVY.';color:#fff;font-size:14px;font-weight:900">NI</div>';
+            : '<div style="width:54px;height:54px;line-height:54px;text-align:center;border-radius:14px;background:'.self::NAVY.';color:#fff;font-size:14px;font-weight:900">NIVO</div>';
         $nivoHtml='<div style="margin-top:24px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:13px"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td width="96" valign="middle" style="width:96px">'.$nivoVisual.'</td><td valign="middle" style="padding-left:16px"><div style="font-size:14px;line-height:1.35;font-weight:900;color:'.self::NAVY.';white-space:nowrap">NIVO · Asistente inteligente de '.self::e($app).'</div><div style="margin-top:6px;font-size:12px;line-height:1.55;color:'.self::MUTED.'">Atiende por chat, apoya las funciones de IA, organiza conversaciones y facilita la transferencia a una persona cuando sea necesario.</div></td></tr></table></div>';
-        return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>'.self::e($title).'</title><style>@media only screen and (max-width:640px){.z-wrap{width:100%!important}.z-pad{padding-left:22px!important;padding-right:22px!important}.z-title{font-size:27px!important;white-space:normal!important}.z-one-line{white-space:normal!important}.z-meta{display:block!important;text-align:left!important;padding-top:14px!important}}</style></head><body style="margin:0;padding:0;background:'.self::BG.';font-family:Arial,Helvetica,sans-serif;color:'.self::TEXT.'"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:'.self::BG.'"><tr><td align="center" style="padding:34px 14px"><table role="presentation" class="z-wrap" width="760" cellspacing="0" cellpadding="0" border="0" style="width:760px;max-width:760px;background:#fff;border:1px solid '.self::BORDER.';border-radius:18px;border-collapse:separate;overflow:hidden;box-shadow:0 12px 34px rgba(11,22,37,.07)"><tr><td class="z-pad" style="padding:25px 34px;border-top:4px solid '.self::TEAL.';border-bottom:1px solid '.self::BORDER.'"><table role="presentation" width="100%"><tr><td>'.$logoHtml.'</td><td align="right"><div style="font-size:16px;font-weight:900;color:'.self::NAVY.'">'.self::e($company).'</div><div style="margin-top:4px;font-size:12px;color:'.self::MUTED.'">Comunicaciones mediante '.self::e($app).'</div></td></tr></table></td></tr><tr><td class="z-pad" style="padding:34px 34px 10px"><table role="presentation" width="100%"><tr><td><div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:'.self::TEAL.';text-transform:uppercase">'.self::e($eyebrow).'</div><h1 class="z-title z-one-line" style="margin:10px 0 0;font-size:32px;line-height:1.18;white-space:nowrap;color:'.self::NAVY.';letter-spacing:-.5px">'.self::e($title).'</h1></td><td class="z-meta" align="right" valign="top"><span class="z-one-line" style="display:inline-block;padding:7px 14px;border-radius:999px;background:'.self::SOFT.';border:1px solid #D4EEE8;color:#08705C;font-size:10px;font-weight:900;letter-spacing:.7px;white-space:nowrap">'.self::e($badge).'</span></td></tr></table></td></tr><tr><td class="z-pad" style="padding:14px 34px 36px;font-size:15px;line-height:1.7">'.$content.$nivoHtml.$cta.'</td></tr><tr><td class="z-pad" style="padding:22px 34px 26px;background:#F9FBFC;border-top:1px solid '.self::BORDER.'"><div style="font-size:12px;line-height:1.7;color:'.self::MUTED.'"><strong style="color:'.self::NAVY.'">'.self::e($company).'</strong>'.$supportHtml.'<div style="margin-top:12px">Este mensaje fue generado automáticamente por '.self::e($app).'.</div><div style="margin-top:3px">© '.$year.' '.self::e($company).'.</div></div></td></tr></table></td></tr></table></body></html>';
+        return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><title>'.self::e($title).'</title><style>@media only screen and (max-width:640px){.z-wrap{width:100%!important}.z-pad{padding-left:22px!important;padding-right:22px!important}.z-title{font-size:27px!important;white-space:normal!important}.z-one-line{white-space:normal!important}.z-meta{display:block!important;text-align:left!important;padding-top:14px!important}}</style></head><body style="margin:0;padding:0;background:'.self::BG.';font-family:Arial,Helvetica,sans-serif;color:'.self::TEXT.'"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:'.self::BG.'"><tr><td align="center" style="padding:34px 14px"><table role="presentation" class="z-wrap" width="760" cellspacing="0" cellpadding="0" border="0" style="width:760px;max-width:760px;background:#fff;border:1px solid '.self::BORDER.';border-radius:18px;border-collapse:separate;overflow:hidden;box-shadow:0 12px 34px rgba(11,22,37,.07)"><tr><td class="z-pad" style="padding:25px 34px;border-top:4px solid '.$accent.';border-bottom:1px solid '.self::BORDER.'"><table role="presentation" width="100%"><tr><td>'.$logoHtml.'</td><td align="right"><div style="font-size:16px;font-weight:900;color:'.self::NAVY.'">'.self::e($company).'</div><div style="margin-top:4px;font-size:12px;color:'.self::MUTED.'">Comunicaciones mediante '.self::e($app).'</div></td></tr></table></td></tr><tr><td class="z-pad" style="padding:34px 34px 10px"><table role="presentation" width="100%"><tr><td><div style="font-size:11px;font-weight:900;letter-spacing:1.5px;color:'.self::TEAL.';text-transform:uppercase">'.self::e($eyebrow).'</div><h1 class="z-title z-one-line" style="margin:10px 0 0;font-size:32px;line-height:1.18;white-space:normal;overflow-wrap:break-word;color:'.self::NAVY.';letter-spacing:-.5px">'.self::e($title).'</h1></td><td class="z-meta" align="right" valign="top"><span class="z-one-line" style="display:inline-block;padding:7px 14px;border-radius:999px;background:'.$accentBg.';border:1px solid '.$accentBorder.';color:'.$accentText.';font-size:10px;font-weight:900;letter-spacing:.7px;white-space:nowrap">'.self::e($badge).'</span></td></tr></table></td></tr><tr><td class="z-pad" style="padding:14px 34px 36px;font-size:15px;line-height:1.7">'.$content.$nivoHtml.$cta.'</td></tr><tr><td class="z-pad" style="padding:22px 34px 26px;background:#F9FBFC;border-top:1px solid '.self::BORDER.'"><div style="font-size:12px;line-height:1.7;color:'.self::MUTED.'"><strong style="color:'.self::NAVY.'">'.self::e($company).'</strong>'.$supportHtml.'<div style="margin-top:12px">Este mensaje fue generado automáticamente por '.self::e($app).'.</div><div style="margin-top:3px">© '.$year.' '.self::e($company).'.</div></div></td></tr></table></td></tr></table></body></html>';
+    }
+
+    /** Status pill and before/after comparison shared by monitoring and plan notices. */
+    private static function statePill(string $value,bool $isNew=false): string {
+        $v=strtolower(trim($value));
+        $ok=in_array($v,['up','active','activo','activa','enabled','habilitado','aprobado'],true);
+        $bad=in_array($v,['down','inactive','inactivo','inactiva','disabled','deshabilitado','rechazado','suspendido'],true);
+        $bg=$ok?'#E7F7F0':($bad?'#FFF0EF':($isNew?'#E7F7F0':'#F2F5F8'));
+        $fg=$ok?'#08765C':($bad?'#B4232C':($isNew?'#08765C':'#516173'));
+        $bd=$ok?'#C6EBDC':($bad?'#F5CAC8':($isNew?'#C6EBDC':'#DEE5EB'));
+        $text=['up'=>'OPERATIVO','down'=>'FUERA DE SERVICIO','degraded'=>'DEGRADADO','active'=>'ACTIVO','inactive'=>'INACTIVO'][$v]??strtoupper($value);
+        return '<span style="display:inline-block;padding:5px 10px;margin:3px 0;border-radius:7px;background:'.$bg.';color:'.$fg.';border:1px solid '.$bd.';font-size:12px;font-weight:800;line-height:1.4">'.self::e($text).'</span>';
+    }
+    private static function comparison(string $label,string $before,string $after): string {
+        return '<div style="padding:12px 0;border-bottom:1px solid #E3EAF0">'
+            .'<div style="font-weight:800;color:'.self::NAVY.';margin-bottom:7px">'.self::e($label).'</div>'
+            .'<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>'
+            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-right:5px">ANTES<br>'.self::statePill($before).'</td>'
+            .'<td width="4%" align="center" valign="middle" style="font-size:14px;color:'.self::MUTED.'">→</td>'
+            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-left:5px">AHORA<br>'.self::statePill($after,true).'</td>'
+            .'</tr></table></div>';
+    }
+
+    public static function serviceMonitor(string $title,string $message,array $changes,array $settings): string {
+        $failure=false;$recovery=false;$content='';
+        foreach($changes as $change){
+            if(!is_array($change))continue;
+            $old=strtolower((string)($change['old']??''));$new=strtolower((string)($change['new']??''));
+            if(in_array($new,['down','degraded'],true))$failure=true;
+            if($new==='up'&&in_array($old,['down','degraded'],true))$recovery=true;
+            $content.=self::comparison((string)($change['name']??'Servicio'),$old,$new);
+            $detail=trim((string)($change['detail']??''));
+            if($detail!=='')$content.='<div style="margin:0 0 8px;font-size:12px;color:'.self::MUTED.'">'.nl2br(self::e($detail)).'</div>';
+        }
+        $summary=$failure?'Uno o más servicios requieren atención.':($recovery?'Los servicios indicados recuperaron su funcionamiento.':'Se detectaron cambios en la operación de los servicios.');
+        $tone=$failure?'#C83535':'#13A88A';
+        $content='<p style="margin:0 0 14px">'.self::e($summary).'</p>'
+            .'<div style="padding:14px 17px;border:1px solid #E3EAF0;border-left:4px solid '.$tone.';border-radius:11px">'.$content.'</div>';
+        if(preg_match('/Resumen actual:(.*?)(?:Revisión:|$)/su',$message,$m)){
+            $items=preg_split('/\R/u',trim($m[1]))?:[];
+            $content.='<div style="margin-top:16px"><strong>Estado actual de los servicios</strong>';
+            foreach($items as $item){
+                if(!preg_match('/^\s*[•-]\s*(.+?):\s*(UP|DOWN|DEGRADED)\s*$/iu',trim($item),$parts))continue;
+                $content.='<div style="margin-top:8px;font-size:13px">'.self::e($parts[1]).': '.self::statePill($parts[2]).'</div>';
+            }
+            $content.='</div>';
+        }
+        if(preg_match('/Revisión:\s*([^\r\n]+)/u',$message,$m))$content.='<p style="font-size:12px;color:'.self::MUTED.'">Última revisión: '.self::e($m[1]).'</p>';
+        return self::shell('ESTADO DE LOS SERVICIOS',$title,$content,$settings,$failure?'REQUIERE ATENCIÓN':'ESTADO ACTUALIZADO');
     }
 
     public static function test(array $settings): string { return self::shell('CONFIGURACIÓN DE CORREO','Prueba enviada correctamente','<p style="margin:0">Tu configuración de correo está funcionando. ZYNKO ya puede entregar notificaciones transaccionales utilizando el proveedor configurado.</p><div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px"><strong style="color:'.self::NAVY.'">Conexión verificada</strong><div style="margin-top:5px;color:'.self::MUTED.';font-size:13px">No necesitas realizar ninguna acción adicional.</div></div>',$settings,'VERIFICADO'); }
@@ -146,7 +202,7 @@ final class EmailTemplates
             $before=self::planCatalogValues($previousPlan);$changes='';
             foreach($values as $label=>$value){
                 if((string)$before[$label]===(string)$value)continue;
-                $changes.='<div style="padding:8px 0;border-bottom:1px solid #DCEEEA"><strong>'.self::e($label).'</strong><br><span style="color:#6F7F91">Anterior: '.self::e($before[$label]).'</span><br><span style="color:#087f70">Nuevo: '.self::e($value).'</span></div>';
+                $changes.=self::comparison($label,(string)$before[$label],(string)$value);
             }
             $content.='<div style="'.$card.'"><strong>Cambios realizados</strong>'.($changes!==''?$changes:'<p>No se detectaron cambios en la configuración del plan.</p>').'</div>';
         }
@@ -188,6 +244,7 @@ final class EmailTemplates
             .'<div style="font-size:14px;line-height:1.75"><strong>Plan actual:</strong> '.$plan
             .($previous!==''&&$previous!==$plan?'<br><strong>Plan anterior:</strong> '.$previous:'')
             .'<br><strong>Estado:</strong> '.$status.'</div></div>'
+            .($previous!==''&&$previous!==$plan?self::comparison('Cambio de plan',(string)($data['previous_plan_name']??''),(string)($data['plan_name']??'')):'')
             .'<p style="margin:18px 0 0;color:'.self::MUTED.';font-size:13px">Los permisos, canales y límites de ZYNKO ya reflejan esta actualización.</p>';
         return self::shell('TU SUSCRIPCIÓN','Tu plan de ZYNKO fue actualizado',$content,$settings,'SUSCRIPCIÓN');
     }
@@ -203,6 +260,7 @@ final class EmailTemplates
             .'<div style="font-size:14px;line-height:1.75"><strong>Empresa:</strong> '.$company.'<br><strong>Plan:</strong> '.$plan
             .($previous!==''&&$previous!==$plan?'<br><strong>Anterior:</strong> '.$previous:'')
             .'<br><strong>Estado:</strong> '.$status.'<br><strong>Origen:</strong> '.$source.'</div></div>';
+        if($previous!==''&&$previous!==$plan)$content.=self::comparison('Cambio de plan',(string)($data['previous_plan_name']??''),(string)($data['plan_name']??''));
         return self::shell('CONTROL COMERCIAL','Suscripción actualizada',$content,$settings,'SUSCRIPCIÓN');
     }
 

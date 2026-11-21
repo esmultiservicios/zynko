@@ -667,13 +667,9 @@ final class NotificationService
     ): array {
         $page = preg_replace('/[^a-z0-9_-]/i', '', (string)($meta['page'] ?? 'dashboard')) ?: 'dashboard';
         $settings = $this->platformSettings($platformTenantId, '/?page=' . $page);
-        $html = EmailTemplates::generic(
-            'ACTIVIDAD DE CUENTA',
-            $title,
-            $message,
-            $settings,
-            'ACTUALIZACIÓN'
-        );
+        $html = ($meta['event'] ?? '') === 'service_monitor' && !empty($meta['changes']) && is_array($meta['changes'])
+            ? EmailTemplates::serviceMonitor($title, $message, $meta['changes'], $settings)
+            : EmailTemplates::generic('ACTIVIDAD DE CUENTA', $title, $message, $settings, 'ACTUALIZACIÓN');
 
         return $this->directPlatformMail(
             $platformTenantId,
@@ -786,6 +782,13 @@ final class NotificationService
         return $result;
     }
 
+    private function nivoInlineImage(string $html): ?string
+    {
+        if (!str_contains($html, 'cid:zynko-nivo')) return null;
+        $path = $this->root . '/public/assets/img/nivo-email-mail.png';
+        return is_file($path) && is_readable($path) ? (file_get_contents($path) ?: null) : null;
+    }
+
     private function deliver(array $config, string|array $to, string $subject, string $html): array
     {
         if (!empty($config['_sender_route_error'])) return ['success'=>false,'message'=>$config['_sender_route_error'],'sent_recipients'=>[],'rejected_recipients'=>[]];
@@ -889,6 +892,18 @@ final class NotificationService
             ],
             'saveToSentItems' => (bool)($config['save_to_sent_items'] ?? 1),
         ];
+
+        $nivoBytes = $this->nivoInlineImage($html);
+        if ($nivoBytes !== null) {
+            $payload['message']['attachments'] = [[
+                '@odata.type' => '#microsoft.graph.fileAttachment',
+                'name' => 'nivo.png',
+                'contentType' => 'image/png',
+                'contentBytes' => base64_encode($nivoBytes),
+                'contentId' => 'zynko-nivo',
+                'isInline' => true,
+            ]];
+        }
 
         $ch = curl_init(
             'https://graph.microsoft.com/v1.0/users/' . rawurlencode($from) . '/sendMail'
@@ -1045,6 +1060,8 @@ final class NotificationService
             }
 
             $command('DATA', 354);
+            $nivoBytes = $this->nivoInlineImage($html);
+            $boundary = 'zynko_related_' . bin2hex(random_bytes(12));
             $headers = [
                 'From: ZYNKO <' . $user . '>',
                 'To: ' . implode(', ', array_map(
@@ -1053,17 +1070,24 @@ final class NotificationService
                 )),
                 'Subject: =?UTF-8?B?' . base64_encode($subject) . '?=',
                 'MIME-Version: 1.0',
-                'Content-Type: text/html; charset=UTF-8',
-                'Content-Transfer-Encoding: base64',
+                $nivoBytes !== null ? 'Content-Type: multipart/related; boundary="' . $boundary . '"' : 'Content-Type: text/html; charset=UTF-8',
             ];
-
-            fwrite(
-                $fp,
-                implode("\r\n", $headers)
-                    . "\r\n\r\n"
+            if ($nivoBytes === null) $headers[] = 'Content-Transfer-Encoding: base64';
+            $body = chunk_split(base64_encode($html));
+            if ($nivoBytes !== null) {
+                $body = '--' . $boundary . "\r\n"
+                    . "Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n"
                     . chunk_split(base64_encode($html))
-                    . "\r\n.\r\n"
-            );
+                    . "\r\n--" . $boundary . "\r\n"
+                    . "Content-Type: image/png; name=\"nivo.png\"\r\n"
+                    . "Content-ID: <zynko-nivo>\r\nContent-Disposition: inline; filename=\"nivo.png\"\r\n"
+                    . "Content-Transfer-Encoding: base64\r\n\r\n"
+                    . chunk_split(base64_encode($nivoBytes))
+                    . "\r\n--" . $boundary . "--\r\n";
+            }
+            // Dot-stuff for SMTP DATA without modifying the HTML message.
+            $body = preg_replace('/(?<=\n)\./', '..', $body) ?? $body;
+            fwrite($fp, implode("\r\n", $headers) . "\r\n\r\n" . $body . "\r\n.\r\n");
             $dataResponse = $read();
             if ($dataResponse['code'] < 200 || $dataResponse['code'] >= 300) {
                 throw new RuntimeException('SMTP ' . $dataResponse['code']);
