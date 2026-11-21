@@ -7041,3 +7041,8 @@ body.page-inbox .chat-head .inbox-more-search button.inbox-more-search-clear[hid
   body.zynko-phone.page-inbox.zynko-phone-keyboard{overflow:hidden!important}
   body.zynko-phone.page-inbox.zynko-phone-keyboard .main>main{overflow:hidden!important}
 }
+
+/* Opt-in desktop message alerts reuse ZYNKO's existing soft-button design. */
+body.page-inbox .inbox-browser-notification-toggle{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;min-height:32px;padding:6px 10px;font-size:11px}
+body.page-inbox .inbox-browser-notification-toggle[aria-pressed="true"]{color:var(--accent);border-color:var(--accent)}
+@media(max-width:760px){body.page-inbox .inbox-browser-notification-toggle{display:none!important}}

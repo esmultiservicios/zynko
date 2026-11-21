@@ -79,6 +79,73 @@ document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.queryS
   connect();
 })();
 
+// Optional desktop notifications for authenticated, incoming realtime messages.
+// Works while a ZYNKO tab is open. It does not claim background Web Push support.
+(()=>{
+ if(!('Notification' in window)||!window.isSecureContext)return;
+ const key='zynko.inbox.desktopNotifications';
+ const en=document.documentElement.lang==='en';
+ const tr=(es,english)=>en?english:es;
+ let enabled=false;
+ try{enabled=localStorage.getItem(key)==='1'&&Notification.permission==='granted';}catch(_){enabled=false;}
+ const viewed=new Set();
+ let channel=null;
+ try{channel=new BroadcastChannel('zynko.inbox.desktop-notifications');channel.onmessage=e=>{if(e.data?.id)viewed.add(String(e.data.id));};}catch(_){}
+ const permissionButton=document.createElement('button');
+ permissionButton.type='button';
+ permissionButton.className='soft inbox-browser-notification-toggle';
+ const syncButton=()=>{
+   permissionButton.setAttribute('aria-pressed',String(enabled));
+   permissionButton.title=enabled?tr('Desactivar avisos de mensajes en esta PC','Disable message alerts on this PC'):tr('Activar avisos de mensajes en esta PC','Enable message alerts on this PC');
+   permissionButton.innerHTML='<i class="fa-solid '+(enabled?'fa-bell':'fa-bell-slash')+'" aria-hidden="true"></i> <span>'+tr('Avisos','Alerts')+'</span>';
+ };
+ permissionButton.addEventListener('click',async()=>{
+   if(enabled){enabled=false;try{localStorage.setItem(key,'0');}catch(_){}syncButton();return;}
+   let permission=Notification.permission;
+   if(permission==='default')permission=await Notification.requestPermission();
+   if(permission!=='granted'){
+     showNotify?.('warning',tr('Notificaciones','Notifications'),tr('El navegador no concedió permiso. Puedes habilitarlo desde los permisos del sitio.','Browser permission is not granted. Enable it in the site settings.'));
+     return;
+   }
+   enabled=true;try{localStorage.setItem(key,'1');}catch(_){}syncButton();
+   showNotify?.('success',tr('Avisos activados','Alerts enabled'),tr('Se mostrarán avisos de mensajes nuevos mientras ZYNKO esté abierto.','New message notifications will appear while ZYNKO is open.'));
+ });
+ syncButton();
+ const attach=()=>{
+   const actions=document.querySelector('body.page-inbox .inbox-view-title .inbox-view-actions');
+   if(actions&&!actions.contains(permissionButton))actions.prepend(permissionButton);
+ };
+ attach();
+ const seenKey='zynko.inbox.browserMessage.';
+ document.addEventListener('zynko:realtime',e=>{
+   const event=e.detail;
+   if(!enabled||Notification.permission!=='granted'||event?.event!=='message.created')return;
+   const message=event?.data?.message;
+   if(!message||String(message.direction||'').toLowerCase()!=='in')return;
+   const mid=String(message.id||event.data?.message_id||'');
+   const cid=String(message.conversation_id||event.data?.conversation_id||'');
+   if(!mid||!cid)return;
+   const id=cid+':'+mid;
+   if(viewed.has(id))return;
+   viewed.add(id);
+   try{
+     const last=Number(localStorage.getItem(seenKey+id)||0);
+     if(last&&Date.now()-last<86400000)return;
+     localStorage.setItem(seenKey+id,String(Date.now()));
+   }catch(_){}
+   try{channel?.postMessage({id});}catch(_){}
+   // Avoid duplicate OS alerts when the open conversation is already in view.
+   const active=document.querySelector('.chat[data-current-conversation]')?.dataset.currentConversation;
+   if(!document.hidden&&document.hasFocus()&&String(active||'')===cid)return;
+   const contact=String(event.data?.contact_name||event.data?.conversation_name||tr('Nuevo mensaje','New message')).slice(0,90);
+   const body=String(message.body||tr('Tienes un mensaje nuevo en ZYNKO.','You have a new message in ZYNKO.')).replace(/\s+/g,' ').slice(0,140);
+   try{
+     const notice=new Notification('ZYNKO · '+contact,{body,icon:'assets/img/favicon.svg',tag:'zynko-msg-'+id});
+     notice.onclick=()=>{window.focus();location.href='?page=inbox&conversation='+encodeURIComponent(cid);notice.close();};
+   }catch(_){}
+ });
+})();
+
 // ZYNKO premium shell + functional controls
 (()=>{
  const $=(s,c=document)=>c.querySelector(s), $$=(s,c=document)=>[...c.querySelectorAll(s)];
@@ -1210,68 +1277,47 @@ document.addEventListener('keydown',event=>{if(event.key==='Escape'){document.qu
  function setupInbox(){const layout=q('.inbox-layout');if(!layout)return;const toolbar=q('.inbox-premium-toolbar');if(toolbar)toolbar.classList.add('phone-filters-open');const chat=q('.chat-head',layout);if(chat&&!q('.phone-chat-nav',chat)){const nav=document.createElement('div');nav.className='phone-chat-nav phone-only';nav.append(button(t('Conversaciones','Conversations'),'fa-arrow-left',()=>setView('list')),button(t('Cliente','Contact'),'fa-address-card',()=>setView('info')));const a=button(t('Acciones','Actions'),'fa-ellipsis',event=>{event.preventDefault();event.stopPropagation();const dropdown=q('.chat-actions .inbox-more-menu',chat);if(!dropdown)return;dropdown.open=!dropdown.open;a.setAttribute('aria-expanded',String(dropdown.open));if(dropdown.open)dropdown.dispatchEvent(new Event('zynko:phone-menu-open'));});a.setAttribute('aria-expanded','false');const dropdown=q('.chat-actions .inbox-more-menu',chat);dropdown?.addEventListener('toggle',()=>a.setAttribute('aria-expanded',String(dropdown.open)));nav.append(a);chat.prepend(nav);}const info=q('.info',layout);if(info&&!q('.phone-info-back',info)){const b=button(t('Volver al chat','Back to chat'),'fa-arrow-left',()=>setView('chat'));b.classList.add('phone-info-back');info.prepend(b);}lastId=q('.chat',layout)?.dataset.currentConversation||'';setView(view);}
  function sync(){if(!mq.matches){restore();document.body.classList.remove('phone-chat-active');return;}document.body.classList.add('zynko-phone');setupHeader();setupInbox();}
  mq.addEventListener?.('change',sync);sync();
- // En Android el viewport visual se mueve al enfocar el editor.
- // Mantener el chat dentro del área realmente visible, sin dejar el fondo gris
- // ni depender de un mínimo fijo de altura que oculte la barra de enviar.
- let phoneKeyboardFrame=0;
- let phoneViewportBaseline=Math.max(window.innerHeight,window.visualViewport?.height||0);
+ // Phone keyboard: a single viewport measurement. The previous controller
+ // accumulated positional corrections against its own last measured rectangle.
+ // The chat is fixed only while the editor has focus and the usable area shrinks.
+ let keyboardFrame=0;
+ let viewportBaseline=Math.max(window.innerHeight,window.visualViewport?.height||0);
+ const phoneChat=()=>q('.inbox-layout[data-phone-view="chat"]>.chat');
+ const keyboardEditorFocused=()=>{
+   const el=document.activeElement;
+   return !!el?.closest?.('.composer')&&!!el.matches?.('textarea,input,[contenteditable="true"], [contenteditable=""]');
+ };
  function syncPhoneKeyboard(){
-   if(phoneKeyboardFrame)cancelAnimationFrame(phoneKeyboardFrame);
-   phoneKeyboardFrame=requestAnimationFrame(()=>{
-     phoneKeyboardFrame=0;
-     const chat=q('.inbox-layout[data-phone-view="chat"]>.chat');
-     const vv=window.visualViewport;
-     const focus=document.activeElement;
-     const editorFocus=!!focus?.closest?.('.composer')&&focus.matches?.('textarea,input,[contenteditable="true"]');
-     if(!editorFocus&&vv)phoneViewportBaseline=Math.max(phoneViewportBaseline,window.innerHeight,vv.height);
-     const active=!!chat&&mq.matches&&window.innerWidth<=600&&!!vv&&editorFocus&&(Math.max(phoneViewportBaseline,window.innerHeight)-vv.height>110);
-     document.body.classList.toggle('zynko-phone-keyboard',active);
+   if(keyboardFrame)cancelAnimationFrame(keyboardFrame);
+   keyboardFrame=requestAnimationFrame(()=>{
+     keyboardFrame=0;
+     const chat=phoneChat(),vv=window.visualViewport;
+     const vkHeight=Math.max(0,window.navigator.virtualKeyboard?.boundingRect?.height||0);
+     const visibleHeight=Math.max(0,(vv?.height||window.innerHeight)-vkHeight);
+     const visibleTop=vv?.offsetTop||0;
+     const focused=keyboardEditorFocused();
+     if(!focused)viewportBaseline=Math.max(viewportBaseline,window.innerHeight,visibleHeight);
+     const smallScreen=window.innerWidth<=600&&mq.matches;
+     const keyboardOpen=smallScreen&&!!chat&&focused&&viewportBaseline-visibleHeight>100;
+     document.body.classList.toggle('zynko-phone-keyboard',keyboardOpen);
      if(!chat)return;
-     if(!active){
+     if(!keyboardOpen){
        chat.style.removeProperty('--zynko-phone-keyboard-top');
        chat.style.removeProperty('--zynko-phone-keyboard-height');
        return;
      }
-     // La ventana visible puede desplazarse cuando Edge abre el teclado.
-     // Alinear la tarjeta con el borde inferior real del viewport visual:
-     // una altura teórica sola deja un hueco si algún ancestro altera el
-     // bloque de posicionamiento o si Edge realiza un segundo desplazamiento.
+     // No delta from previous layout, no second pass that changes its own base.
      const inset=4;
-     const targetTop=vv.offsetTop+inset;
-     const targetBottom=vv.offsetTop+vv.height-inset;
-     const rect=chat.getBoundingClientRect();
-     const currentTop=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-top'));
-     const currentHeight=Number.parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'));
-     const baseTop=Number.isFinite(currentTop)?currentTop:targetTop;
-     const baseHeight=Number.isFinite(currentHeight)?currentHeight:Math.max(0,vv.height-inset*2);
-     // Ajustar el borde medido, no sumar repetidamente correcciones.
-     const top=Math.round(baseTop+(targetTop-rect.top));
-     const height=Math.max(0,Math.round(baseHeight+(targetBottom-rect.bottom)+(rect.top-targetTop)));
-     chat.style.setProperty('--zynko-phone-keyboard-top',top+'px');
-     chat.style.setProperty('--zynko-phone-keyboard-height',height+'px');
-     // Edge a veces desplaza el viewport después del primer resize.
-     // La siguiente medición se limita a rectificar el borde restante.
-     if(Math.abs(targetBottom-rect.bottom)>3 || Math.abs(targetTop-rect.top)>3){
-       requestAnimationFrame(()=>{
-         if(!document.body.classList.contains('zynko-phone-keyboard'))return;
-         const bounds=chat.getBoundingClientRect();
-         const viewport=window.visualViewport;
-         if(!viewport)return;
-         const bottom=viewport.offsetTop+viewport.height-inset;
-         const delta=bottom-bounds.bottom;
-         if(Math.abs(delta)>3){
-           const current=parseFloat(chat.style.getPropertyValue('--zynko-phone-keyboard-height'))||0;
-           chat.style.setProperty('--zynko-phone-keyboard-height',Math.max(0,Math.round(current+delta))+'px');
-         }
-       });
-     }
+     chat.style.setProperty('--zynko-phone-keyboard-top',Math.round(visibleTop+inset)+'px');
+     chat.style.setProperty('--zynko-phone-keyboard-height',Math.max(0,Math.round(visibleHeight-2*inset))+'px');
    });
  }
  window.visualViewport?.addEventListener('resize',syncPhoneKeyboard,{passive:true});
  window.visualViewport?.addEventListener('scroll',syncPhoneKeyboard,{passive:true});
  window.addEventListener('resize',syncPhoneKeyboard,{passive:true});
- document.addEventListener('focusin',event=>{if(event.target.closest?.('.composer'))syncPhoneKeyboard()});
+ document.addEventListener('focusin',event=>{if(event.target.closest?.('.composer')){syncPhoneKeyboard();setTimeout(syncPhoneKeyboard,180);setTimeout(syncPhoneKeyboard,450);}});
  document.addEventListener('focusout',event=>{if(event.target.closest?.('.composer'))requestAnimationFrame(syncPhoneKeyboard)});
+ document.addEventListener('zynko:inbox-conversation-changed',syncPhoneKeyboard);
 
  document.addEventListener('click',e=>{if(!mq.matches)return;const link=e.target.closest('#sidebar nav a,#flyout a');if(link){if(!e.defaultPrevented)closeSide();}else if(!e.target.closest('#sidebar,#flyout,#menu'))closeSide();if(menu&&!menu.contains(e.target))menu.open=false;if(e.target.closest('.phone-header-items button')){if(menu)menu.open=false;}},false);
  document.addEventListener('keydown',e=>{if(mq.matches&&e.key==='Escape'){closeSide();if(menu)menu.open=false;}});
