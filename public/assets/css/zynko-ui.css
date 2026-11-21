@@ -6834,3 +6834,30 @@ body.page-inbox .chat-head .inbox-more-options button.inbox-menu-option i{font-s
 .dashboard-attention-count .select2-container--open .select2-dropdown{min-width:170px!important}
 @media(max-width:700px){#zynkoReportPreviewModal .zynko-report-modal>.modal-head{padding:14px 16px!important}#zynkoReportPreviewModal .zynko-report-modal-body{padding:12px 16px!important}#zynkoReportPreviewModal .zynko-report-modal>.modal-actions{padding:10px 16px!important}#zynkoReportPreviewModal .zynko-report-modal iframe{height:49dvh!important;max-height:49dvh}.zynko-department-content:has(.zynko-department-empty) .zynko-department-empty{min-height:300px!important;height:auto}}
 @media(max-width:480px){#zynkoReportPreviewModal .zynko-report-controls{grid-template-columns:1fr;gap:8px}#zynkoReportPreviewModal .zynko-report-modal>.modal-actions{flex-wrap:wrap!important}}
+
+/* v043 - Excel export and department role controls, using existing modal composition. */
+#zynkoExcelOptionsModal{align-items:center;justify-content:center;padding:16px;z-index:11020}
+#zynkoExcelOptionsModal .zynko-excel-modal{width:min(740px,calc(100vw - 32px));max-width:740px;height:460px;max-height:calc(100dvh - 32px);min-height:0;padding:0;display:flex;flex-direction:column;overflow:hidden;margin:auto}
+#zynkoExcelOptionsModal .zynko-excel-modal>.modal-head{flex:0 0 auto;margin:0;padding:18px 22px;border-bottom:1px solid #deebee}
+#zynkoExcelOptionsModal .zynko-excel-modal-body{flex:1 1 auto;min-height:0;padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px}
+#zynkoExcelOptionsModal .zynko-excel-modal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#zynkoExcelOptionsModal .zynko-excel-modal-body .field{min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
+#zynkoExcelOptionsModal .zynko-excel-modal-body input,#zynkoExcelOptionsModal .zynko-excel-modal-body select{width:100%;min-width:0;box-sizing:border-box}
+#zynkoExcelOptionsModal .zynko-excel-summary{display:flex;align-items:flex-start;gap:10px;color:#4e697a;background:#f3f8f8;border:1px solid #dbeaed;border-radius:11px;padding:12px;font-size:12px;line-height:1.5;min-height:42px}
+#zynkoExcelOptionsModal .zynko-excel-summary i{color:#07977f;padding-top:2px}
+#zynkoExcelOptionsModal .zynko-excel-modal>.modal-actions{flex:0 0 auto;height:auto;min-height:62px;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:10px 22px;margin:0;border-top:1px solid #deebee}
+#zynkoExcelOptionsModal .zynko-excel-modal>.modal-actions>*{flex:none;width:auto;min-height:40px}
+.zynko-department-supervisor{display:inline-flex!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;cursor:pointer;min-height:44px;color:#142b3b;font-weight:600}
+.zynko-department-supervisor>input[type="checkbox"]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+.zynko-department-supervisor-check{width:21px;height:21px;flex:none;border:1.5px solid #b5c8d2;border-radius:6px;background:#fff;display:inline-flex;align-items:center;justify-content:center;color:transparent;transition:background .15s,border-color .15s}
+.zynko-department-supervisor input:checked+.zynko-department-supervisor-check{background:#0d9f8c;border-color:#0d9f8c;color:white}
+.zynko-department-supervisor input:focus-visible+.zynko-department-supervisor-check{outline:3px solid #a9e4da;outline-offset:3px}
+@media(max-width:600px){#zynkoExcelOptionsModal .zynko-excel-modal{height:min(500px,calc(100dvh - 24px));max-height:calc(100dvh - 24px)}#zynkoExcelOptionsModal .zynko-excel-modal-grid{grid-template-columns:1fr;gap:12px}#zynkoExcelOptionsModal .zynko-excel-modal-body{padding:16px}#zynkoExcelOptionsModal .zynko-excel-modal>.modal-head{padding:14px 16px}#zynkoExcelOptionsModal .zynko-excel-modal>.modal-actions{padding:10px 16px}}
+
+/* v044 — Excel sheet protection follows the established ZYNKO checkbox treatment. */
+#zynkoExcelOptionsModal .zynko-excel-protection{display:flex;align-items:center;gap:10px;cursor:pointer;line-height:1.4;font-size:13px;font-weight:600;color:#102c3b}
+#zynkoExcelOptionsModal .zynko-excel-protection input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+#zynkoExcelOptionsModal .zynko-excel-protection-indicator{width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;border:1.5px solid #b6cbd0;border-radius:6px;background:white;color:transparent}
+#zynkoExcelOptionsModal .zynko-excel-protection input:checked+.zynko-excel-protection-indicator{background:#0d9f8c;border-color:#0d9f8c;color:white}
+#zynkoExcelOptionsModal .zynko-excel-protection input:focus-visible+.zynko-excel-protection-indicator{outline:3px solid #a9e4da;outline-offset:3px}
+#zynkoExcelOptionsModal .zynko-excel-protection small{display:block;font-weight:400;color:#627b8d;margin-top:2px}
