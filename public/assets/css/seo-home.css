@@ -1309,3 +1309,19 @@ dialog.zc-dialog.faq-answer-dialog>.zc-dialog-frame{display:flex;flex-direction:
 .faq-answer-dialog .zc-dialog-body{flex:1 1 0;min-height:0;overflow-y:auto;overflow-x:hidden;align-content:start}
 .faq-answer-dialog .faq-answer-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.75;color:var(--zc-ink)}
 @media(max-width:600px){.faq-grid .faq-trigger{padding:14px;gap:10px}.faq-trigger .faq-label{gap:9px}}
+
+/* v032 — Shared API documentation search adopts ZYNKO's existing input-group vocabulary. */
+.wa-api-public .wa-api-doc-search{display:flex;align-items:center;gap:10px;position:relative;width:100%;min-height:44px;margin:0;padding:0 12px;border:1px solid #d4e4e6;border-radius:12px;background:#fff;color:#0f766e;box-sizing:border-box;transition:border-color .15s,box-shadow .15s}
+.wa-api-public .wa-api-doc-search>i{display:inline-flex;align-items:center;justify-content:center;flex:0 0 18px;font-size:15px;color:#0f766e}
+.wa-api-public .wa-api-doc-search input[type=search]{display:block;flex:1 1 auto;min-width:0;width:100%;margin:0!important;padding:10px 0!important;min-height:42px;border:0!important;border-radius:0!important;background:transparent!important;outline:0!important;box-shadow:none!important;color:#10283a!important;font:inherit;font-size:13px}
+.wa-api-public .wa-api-doc-search input[type=search]:focus{outline:0!important;box-shadow:none!important;border:0!important}
+.wa-api-public .wa-api-doc-search:focus-within{border-color:#0da88c;box-shadow:0 0 0 3px rgba(13,168,140,.13);border-radius:12px}
+.wa-api-public .wa-api-doc-search input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
+.wa-api-public .wa-api-doc-search .wa-api-doc-clear{position:static!important;display:inline-flex;align-items:center;justify-content:center;flex:0 0 28px;width:28px;height:28px;min-height:28px;margin:0;padding:0;border:0;border-radius:8px;background:#e9f7f4;color:#087c69;cursor:pointer}
+.wa-api-public .wa-api-doc-search .wa-api-doc-clear:hover{background:#d6f0ea}
+.wa-api-public .wa-api-doc-search .wa-api-doc-clear[hidden],.wa-api-public .wa-api-doc-empty[hidden],.wa-api-public .wa-api-example[hidden],.wa-api-public .wa-api-guide-note[hidden],.wa-api-public .wa-api-steps article[hidden]{display:none!important}
+.integration-docs-section .docs-note{margin-bottom:20px!important;align-items:flex-start}
+.integration-docs-section .docs-note+.docs-steps{margin-top:0!important}
+/* Hide the underlying native select after the shared Select2 control has been installed. */
+select.select2-hidden-accessible{display:none!important}
+

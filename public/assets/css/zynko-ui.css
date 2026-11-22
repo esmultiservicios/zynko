@@ -7118,3 +7118,8 @@ body.page-inbox .conv-list .conversation[hidden]{display:none!important}
 .wa-api-doc-empty{padding:18px;text-align:center;color:var(--muted,#64748b);border:1px dashed var(--line,#dce5ea);border-radius:10px}
 .wa-api-example pre,.wa-api-example pre code,.nivo-install-doc-panel pre,.nivo-install-doc-panel pre code{opacity:1!important;filter:none!important;text-shadow:none!important;letter-spacing:normal!important;-webkit-font-smoothing:auto!important}
 @media(max-width:760px){#mail-history .mail-history-search{max-width:none}#mail-history .mail-history-filter{width:100%}#planModal .modal-card{height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important}}
+
+/* v032 — A single visible dropdown: Select2 replaces, never overlaps, the browser's native menu. */
+select.select2-hidden-accessible{display:none!important}
+#api-history #apiHistorySize.select2-hidden-accessible,#mail-history #mailHistorySize.select2-hidden-accessible{display:none!important}
+

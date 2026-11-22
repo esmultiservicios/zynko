@@ -349,11 +349,17 @@ function zynkoPlanDisplayFeatures(array $plan): array {
 function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canales elegibles',string $language='es'): string {
     $esc=fn($x)=>htmlspecialchars((string)$x,ENT_QUOTES,'UTF-8');$stats=zynkoPlanChannelStats($plan,$catalog);
     $html='<div class="plan-channel-list"><b class="plan-channel-list-title">'.$esc($label).'</b><div class="plan-channel-capacity"><strong>'.$esc(zynkoPlanChannelHeading($stats,$language)).'</strong><small>'.$esc(zynkoPlanChannelDetail($stats,$language)).'</small></div><div class="plan-channel-items">';
+    $apiExclusive=($plan['code']??'')==='api_only';
     foreach($stats['codes'] as $code){
         $item=zynkoPlanChannelDisplay($catalog,$code);$ready=$code==='webchat'||!empty($catalog[$code]['available']);
-        $html.='<span class="plan-channel-chip '.($ready?'is-ready':'is-upcoming').'">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.zynkoPlanChannelStatus($catalog,$code,$language).'</span>';
+        // The API-only plan includes WhatsApp as an entitlement. The plan's
+        // commercial availability and the customer's Meta approval are separate.
+        $includedWhatsApp=$apiExclusive&&$code==='whatsapp';
+        $status=$includedWhatsApp?'<span class="plan-channel-availability is-ready"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> '.$esc($language==='en'?'Included':'Incluido').'</span>':zynkoPlanChannelStatus($catalog,$code,$language);
+        $html.='<span class="plan-channel-chip '.(($ready||$includedWhatsApp)?'is-ready':'is-upcoming').'">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.$status.'</span>';
     }
-    $html.='</div><small class="plan-channel-current">'.$esc(zynkoPlanChannelCountText($stats,$language)).'</small>';
+    $countText=$apiExclusive?($language==='en'?'WhatsApp API included · connection requires Meta authorization.':'WhatsApp API incluida · la conexión requiere autorización de Meta.'):zynkoPlanChannelCountText($stats,$language);
+    $html.='</div><small class="plan-channel-current">'.$esc($countText).'</small>';
     return $html.'</div>';
 }
 
