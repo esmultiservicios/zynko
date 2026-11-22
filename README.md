@@ -516,3 +516,13 @@ El manifiesto `bin/zynko-schedules.conf` incluye frecuencias **de ejemplo, desha
 
 **Precaución:** el respaldo administrativo puede contener un crontab con tareas de otros sistemas. No restaurarlo íntegramente sin comparar la programación actual. El archivo de respaldo no incluye `.env`, credenciales, mensajes ni base de datos.
 
+
+### ZYNKO v035 — Plan gratuito independiente y NIVO IA local
+
+- **Planes:** `is_free_plan` identifica cualquier plan sin mensualidad, con nombre y límites propios. `is_default_free` sigue identificando únicamente el plan otorgado por defecto a nuevos registros. El importe de otros planes no se modifica durante la migración. El campo nuevo se incorpora mediante `database/upgrade-omnichannel.sql` (MySQL 8 y MariaDB).
+- **Interfaz:** NIVO IA y Configuración incluyen navegación y búsqueda por secciones; los formularios y acciones originales se reutilizan sin duplicación.
+- **Horario humano:** el sábado puede usar un rango independiente (`saturday_start` y `saturday_end`, por defecto 08:00–12:00); el horario de lunes a viernes permanece separado. El horario no se activa ni marca automáticamente para empresas existentes.
+- **Conocimiento:** NIVO conserva la prioridad de reglas y fuentes aprobadas. Cuando una consulta no se resuelve, puede generar una sugerencia basada exclusivamente en conocimiento aprobado, siempre pendiente de revisión humana antes de publicarse. No aprende de mensajes de visitantes sin aprobación.
+- **Canales:** el selector NIVO consulta el catálogo conectado a la plataforma, respetando códigos anteriores; no convierte automáticamente un canal pendiente en operativo.
+- **Proveedores externos:** Meta Business Agent no es un endpoint de inferencia equivalente a OpenAI o Claude. Su habilitación y transferencia de control de hilos WhatsApp requieren autorización real de Meta, configuración del número y pruebas de handover. Esta entrega **no activa** Meta Business Agent ni Claude como proveedores de respuestas. Tampoco habilita cargos adicionales de tokens.
+- **Despliegue:** instalar primero en un entorno de pruebas, respaldar la base, ejecutar el upgrade en `database/upgrade-omnichannel.sql` una sola vez y comprobar la creación/edición de planes, fechas y el flujo de NIVO antes de publicar. La v035 no incluye credenciales.

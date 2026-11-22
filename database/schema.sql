@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS subscription_plans (
  external_ai_monthly_tokens BIGINT UNSIGNED NULL,
  external_ai_channels_json JSON NULL,
  is_default_free TINYINT(1) NOT NULL DEFAULT 0,
+ is_free_plan TINYINT(1) NOT NULL DEFAULT 0,
  is_featured TINYINT(1) NOT NULL DEFAULT 0,
  featured_label VARCHAR(60) NULL,
  is_available TINYINT(1) NOT NULL DEFAULT 0,

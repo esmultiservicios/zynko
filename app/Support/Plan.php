@@ -25,6 +25,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         external_ai_monthly_tokens BIGINT UNSIGNED NULL,
         external_ai_channels_json JSON NULL,
         is_default_free TINYINT(1) NOT NULL DEFAULT 0,
+        is_free_plan TINYINT(1) NOT NULL DEFAULT 0,
         is_featured TINYINT(1) NOT NULL DEFAULT 0,
         featured_label VARCHAR(60) NULL,
         is_available TINYINT(1) NOT NULL DEFAULT 0,
@@ -44,6 +45,8 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
     zynkoPlanColumn($pdo,'subscription_plans','external_ai_monthly_tokens','external_ai_monthly_tokens BIGINT UNSIGNED NULL AFTER external_ai_included');
     zynkoPlanColumn($pdo,'subscription_plans','external_ai_channels_json','external_ai_channels_json JSON NULL AFTER external_ai_monthly_tokens');
     zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER external_ai_channels_json');
+    zynkoPlanColumn($pdo,'subscription_plans','is_free_plan','is_free_plan TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
+    $pdo->exec('UPDATE subscription_plans SET is_free_plan=1 WHERE is_default_free=1 AND is_free_plan=0');
     zynkoPlanColumn($pdo,'subscription_plans','is_featured','is_featured TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
     zynkoPlanColumn($pdo,'subscription_plans','featured_label','featured_label VARCHAR(60) NULL AFTER is_featured');
     zynkoPlanColumn($pdo,'subscription_plans','is_available','is_available TINYINT(1) NOT NULL DEFAULT 0 AFTER featured_label');
@@ -391,7 +394,7 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
             'unrestricted'=>false,'has_plan'=>true,'plan_id'=>(int)$p['id'],'plan_code'=>(string)($p['code']??''),'plan_name'=>(string)$p['name'],'subscription_status'=>$status,
             'max_users'=>$p['max_users']!==null?(int)$p['max_users']:null,'max_channels'=>$p['max_channels']!==null?(int)$p['max_channels']:null,'distinct_external_types'=>(int)($p['distinct_external_types']??(($p['code']??'')==='pro')), 
             'max_webchat_sites'=>$p['max_webchat_sites']!==null?(int)$p['max_webchat_sites']:null,'max_daily_chats'=>$p['max_daily_chats']!==null?(int)$p['max_daily_chats']:null,'max_monthly_chats'=>$p['max_monthly_chats']!==null?(int)$p['max_monthly_chats']:null,
-            'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active,
+            'allowed_channels'=>$channels,'modules'=>$mods,'is_free'=>((int)($p['is_free_plan']??0)===1)||((int)($p['is_default_free']??0)===1)||(($p['code']??'')==='free'),'active'=>$active,
             'external_ai_included'=>(int)($p['external_ai_included']??0)===1,'external_ai_monthly_tokens'=>$p['external_ai_monthly_tokens']!==null?(int)$p['external_ai_monthly_tokens']:null,'external_ai_channels'=>$externalAiChannels
         ];
     }catch(Throwable $e){
@@ -404,7 +407,7 @@ function zynkoPlanAllowsModule(array $ctx,string $module): bool{
     if(!empty($ctx['unrestricted']))return true;
     if(($ctx['plan_code']??'')==='api_only')return !empty($ctx['active']) && in_array($module,['dashboard','channels','integrations','api','billing'],true) && !empty($ctx['modules'][$module]);
     if(empty($ctx['active']))return $module==='billing';
-    if(!empty($ctx['is_free'])&&in_array($module,['chatbot','automations','integrations','api','email'],true))return false;
+    if(($ctx['plan_code']??'')==='free'&&in_array($module,['chatbot','automations','integrations','api','email'],true))return false;
     if(in_array($module,['dashboard','inbox','channels','webchat','billing','onboarding','surveys','documentation','logs'],true))return true;
     $mods=$ctx['modules']??[];
     return !empty($mods[$module]);
@@ -417,7 +420,7 @@ function zynkoPlanAllowsPage(array $ctx,string $page): bool{
 function zynkoPlanAllowsChannel(array $ctx,string $channel): bool{
     if(!empty($ctx['unrestricted']))return true;
     if(empty($ctx['active']))return false;
-    if(!empty($ctx['is_free']))return $channel==='webchat';
+    if(!empty($ctx['is_default_free'])||($ctx['plan_code']??'')==='free')return $channel==='webchat';
     $allowed=$ctx['allowed_channels']??[];
     if(!$allowed)return true; // legacy paid plan without explicit channel matrix
     return in_array($channel,$allowed,true);
@@ -433,7 +436,7 @@ function zynkoPlanLimit(array $ctx,string $key): ?int{
 
 function zynkoPlanExternalConnectionLimit(array $ctx): ?int{
     if(!empty($ctx['unrestricted']))return null;
-    if(!empty($ctx['is_free'])||!empty($ctx['is_default_free'])||($ctx['plan_code']??$ctx['code']??'')==='free')return 0;
+    if(!empty($ctx['is_default_free'])||($ctx['plan_code']??$ctx['code']??'')==='free')return 0;
     $total=zynkoPlanLimit($ctx,'max_channels');
     // The API-only plan does not include a Web Chat slot.
     if(($ctx['plan_code']??$ctx['code']??'')==='api_only')return $total;

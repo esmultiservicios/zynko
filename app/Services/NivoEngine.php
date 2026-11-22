@@ -39,7 +39,7 @@ final class NivoEngine
         $n=self::intentNorm($message);
         if(preg_match('/\b(quiero|necesito|deseo|puedes|podrias|quiero que|necesito que)\s+(hablar|comunicarme|contactar|pasar|transferir|conectar)\w*\s+(con\s+)?(una\s+)?(persona|humano|agente|asesor|representante)\b/u',$n))return true;
         if(preg_match('/\b(pasame|transfiereme|conectame|comunícame|comunicarme)\s+(con\s+)?(una\s+)?(persona|humano|agente|asesor|representante)\b/u',$n))return true;
-        if(preg_match('/\b(hablar con un humano|hablar con una persona|hablar con un agente|atencion humana|asesor humano)\b/u',$n))return true;
+        if(preg_match('/\b(hablar con un humano|hablar con una persona|hablar con un agente|atencion humana|asesor humano|quiero hablar con alguien|necesito hablar con alguien|quiero que me atienda alguien|me puede atender alguien|me comunicas con alguien|hablar con un encargado|hablar con alguien del equipo)\b/u',$n))return true;
         // Si el mensaje es muy corto y consiste prácticamente en la palabra de handoff, también cuenta.
         foreach($keywords as $kw){if($kw!==''&&preg_match('/^(quiero\s+)?'.preg_quote($kw,'/').'$/u',$n))return true;}
         return false;
@@ -141,8 +141,22 @@ final class NivoEngine
                 $pdo->prepare("UPDATE nivo_learning_queue SET occurrences=occurrences+1,last_seen_at=NOW(),conversation_id=?,channel_type=?,source_hint=COALESCE(?,source_hint) WHERE id=? AND tenant_id=?")
                     ->execute([$conversationId?:null,$channelType,$sourceHint,$id,$tenantId]);
             }else{
-                $pdo->prepare("INSERT INTO nivo_learning_queue(tenant_id,conversation_id,channel_type,question,normalized_question,source_hint,status) VALUES(?,?,?,?,?,?,'pending')")
-                    ->execute([$tenantId,$conversationId?:null,$channelType,mb_substr($question,0,1200),$normalized,$sourceHint]);
+                // Sugiere aprendizaje solo a partir de fuentes YA aprobadas del tenant.
+                // No publica respuestas de usuarios ni convierte conjeturas en conocimiento.
+                $suggestion=null;$approvedSource=$sourceHint;
+                if($sourceHint==='low-confidence'){
+                    $words=self::words($question);
+                    if(count($words)>=2){
+                        $matches=self::rankedKnowledge($pdo,$tenantId,$question,$words,1);
+                        $top=$matches[0]??null;
+                        if($top&&(int)($top['_score']??0)>=2){
+                            $suggestion=mb_substr(self::relevantExcerpt((string)($top['content']??''),$words,450),0,450);
+                            $approvedSource='Borrador para revisión: '.mb_substr((string)($top['name']??'Fuente aprobada'),0,350);
+                        }
+                    }
+                }
+                $pdo->prepare("INSERT INTO nivo_learning_queue(tenant_id,conversation_id,channel_type,question,normalized_question,suggested_answer,source_hint,status) VALUES(?,?,?,?,?,?,?,'pending')")
+                    ->execute([$tenantId,$conversationId?:null,$channelType,mb_substr($question,0,1200),$normalized,$suggestion,$approvedSource]);
             }
         } catch (Throwable $ignore) {
         }
@@ -561,6 +575,6 @@ final class NivoEngine
 
     private static function inBusinessHours(array $hours): bool
     {
-        if(empty($hours['enabled']))return true;$now=new DateTimeImmutable('now');$day=(int)$now->format('N');$hm=$now->format('H:i');$days=array_map('intval',$hours['days']??[]);$ok=in_array($day,$days,true)&&$hm>=($hours['start']??'08:00')&&$hm<=($hours['end']??'17:00');$today=$now->format('Y-m-d');foreach(($hours['special_dates']??[]) as $special){if(($special['date']??'')!==$today)continue;if(($special['type']??'closed')==='closed')return false;$ss=$special['start']??'';$se=$special['end']??'';return $ss!==''&&$se!==''&&$hm>=$ss&&$hm<=$se;}return $ok;
+        if(empty($hours['enabled']))return true;$now=new DateTimeImmutable('now');$day=(int)$now->format('N');$hm=$now->format('H:i');$days=array_map('intval',$hours['days']??[]);$start=$day===6?($hours['saturday_start']??($hours['start']??'08:00')):($hours['start']??'08:00');$end=$day===6?($hours['saturday_end']??($hours['end']??'17:00')):($hours['end']??'17:00');$ok=in_array($day,$days,true)&&$hm>=$start&&$hm<=$end;$today=$now->format('Y-m-d');foreach(($hours['special_dates']??[]) as $special){if(($special['date']??'')!==$today)continue;if(($special['type']??'closed')==='closed')return false;$ss=$special['start']??'';$se=$special['end']??'';return $ss!==''&&$se!==''&&$hm>=$ss&&$hm<=$se;}return $ok;
     }
 }

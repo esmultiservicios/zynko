@@ -171,13 +171,25 @@ CREATE TABLE IF NOT EXISTS department_routes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ZYNKO 2.31.155 — Plan API y registro separado de envíos (aditivo; no borra registros)
--- MariaDB 10.11+: ejecutar sobre la base ZYNKO, una vez; seguro ante reejecución.
-ALTER TABLE api_keys
-  ADD COLUMN IF NOT EXISTS channel_id BIGINT UNSIGNED NULL,
-  ADD COLUMN IF NOT EXISTS delivery_mode VARCHAR(20) NOT NULL DEFAULT 'inbox';
-ALTER TABLE conversations
-  ADD COLUMN IF NOT EXISTS api_only TINYINT(1) NOT NULL DEFAULT 0;
-CREATE INDEX IF NOT EXISTS idx_conv_api_visibility ON conversations(tenant_id,api_only);
+-- Compatibilidad: MySQL 8.x (local) y MariaDB 10.11+ (producción).
+-- Cada ALTER / CREATE INDEX se ejecuta solamente cuando falta el objeto.
+-- El mismo archivo se puede reejecutar sin duplicar columnas ni índices.
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='api_keys' AND COLUMN_NAME='channel_id'), 'SELECT 1', 'ALTER TABLE `api_keys` ADD COLUMN `channel_id` BIGINT UNSIGNED NULL');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='api_keys' AND COLUMN_NAME='delivery_mode'), 'SELECT 1', "ALTER TABLE `api_keys` ADD COLUMN `delivery_mode` VARCHAR(20) NOT NULL DEFAULT 'inbox'");
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversations' AND COLUMN_NAME='api_only'), 'SELECT 1', 'ALTER TABLE `conversations` ADD COLUMN `api_only` TINYINT(1) NOT NULL DEFAULT 0');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='conversations' AND INDEX_NAME='idx_conv_api_visibility'), 'SELECT 1', 'CREATE INDEX `idx_conv_api_visibility` ON `conversations` (`tenant_id`,`api_only`)');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
 CREATE TABLE IF NOT EXISTS api_message_history (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   tenant_id BIGINT UNSIGNED NOT NULL,
@@ -199,3 +211,10 @@ SELECT 'api_only','ZYNKO API',0,'USD',1,1,1,0,NULL,NULL,
   JSON_ARRAY('API de WhatsApp individual y masiva','Vinculación de número propio','Claves API por canal','Historial de envíos independiente','Sin bandeja omnicanal'),
   0,0,0,'Próximamente',1
 WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE code='api_only');
+
+-- v035: Plan gratuito independiente del plan predeterminado; conserva precios existentes.
+SET @zynko_ddl = IF(EXISTS(SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='subscription_plans' AND COLUMN_NAME='is_free_plan'), 'SELECT 1', 'ALTER TABLE `subscription_plans` ADD COLUMN `is_free_plan` TINYINT(1) NOT NULL DEFAULT 0 AFTER `is_default_free`');
+PREPARE zynko_stmt FROM @zynko_ddl;
+EXECUTE zynko_stmt;
+DEALLOCATE PREPARE zynko_stmt;
+UPDATE subscription_plans SET is_free_plan=1 WHERE is_default_free=1 AND is_free_plan=0;
