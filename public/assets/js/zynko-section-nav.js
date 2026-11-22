@@ -9,36 +9,49 @@
   const data=panels.map((el,index)=>({el,index,name:title(el)}));
   nav.innerHTML='<div class="panel-head premium-card-head"><span class="premium-card-head-icon"><i class="fa-solid fa-layer-group"></i></span><div><b>Explorar secciones</b><small>Busca o selecciona qué configuración deseas consultar. No se pierden los cambios de los formularios.</small></div></div><div class="zynko-section-nav-controls"><div class="zynko-section-search"><i class="fa-solid fa-magnifying-glass"></i><input id="zynkoSectionSearch" type="text" placeholder="Buscar sección o configuración…" autocomplete="off" aria-label="Buscar secciones"><button type="button" id="zynkoSectionClear" title="Borrar búsqueda" aria-label="Borrar búsqueda" hidden><i class="fa-solid fa-xmark"></i></button></div><div class="field"><label for="zynkoSectionSelect">Sección</label><select id="zynkoSectionSelect" class="no-select2" aria-label="Seleccionar sección"></select></div></div><div id="zynkoSectionCount" class="field-help" role="status" aria-live="polite"></div>';
   const search=nav.querySelector('#zynkoSectionSearch'),select=nav.querySelector('#zynkoSectionSelect'),clear=nav.querySelector('#zynkoSectionClear'),counter=nav.querySelector('#zynkoSectionCount');
-  let current=0;
+  let current=-1;
+  const $=window.jQuery;
+  const refreshSelect=()=>{if($&&$.fn.select2&&$(select).data('select2'))$(select).trigger('change.select2');};
   const activate=index=>{
-   const item=data.find(x=>x.index===index)||data[0];if(!item)return;
-   current=item.index;select.value=String(current);
-   data.forEach(x=>{const hidden=x.index!==current;x.el.hidden=hidden;x.el.classList.toggle('zynko-section-hidden',hidden)});
-   const count=select.options.length;
-   counter.textContent=count?`${count} sección(es) encontrada(s) · ${item.name}`:'No se encontraron secciones. Prueba con otra palabra.';
-   if(window.jQuery&&jQuery.fn.select2&&jQuery(select).data('select2'))jQuery(select).trigger('change.select2');
+    const item=data.find(x=>x.index===Number(index))||data[0];if(!item)return;
+    current=item.index;
+    // Update the original select only AFTER receiving the user's choice.
+    if(select.value!==String(current))select.value=String(current);
+    data.forEach(x=>{const hide=x.index!==current;x.el.hidden=hide;x.el.classList.toggle('zynko-section-hidden',hide);});
+    counter.textContent=select.options.length+' sección(es) encontrada(s) · '+item.name;
+    refreshSelect();
   };
   const render=()=>{
-   const f=search.value.toLocaleLowerCase('es').trim();const matches=data.filter(x=>!f||x.name.toLocaleLowerCase('es').includes(f)||x.el.textContent.toLocaleLowerCase('es').includes(f));
-   select.replaceChildren();matches.forEach(x=>{const option=document.createElement('option');option.value=String(x.index);option.textContent=x.name;select.appendChild(option)});
-   clear.hidden=!search.value;
-   if(matches.length)activate(matches.some(x=>x.index===current)?current:matches[0].index);
-   else {data.forEach(x=>{x.el.hidden=true;x.el.classList.add('zynko-section-hidden')});counter.textContent='No se encontraron secciones. Prueba con otra palabra.';}
+    const query=search.value.toLocaleLowerCase('es').trim();
+    const matched=data.filter(x=>!query||x.name.toLocaleLowerCase('es').includes(query)||x.el.textContent.toLocaleLowerCase('es').includes(query));
+    select.replaceChildren();
+    matched.forEach(x=>select.add(new Option(x.name,String(x.index))));
+    clear.hidden=!query;
+    if(matched.length)activate(matched.some(x=>x.index===current)?current:matched[0].index);
+    else{data.forEach(x=>{x.el.hidden=true;x.el.classList.add('zynko-section-hidden');});counter.textContent='No se encontraron secciones. Prueba otra palabra.';refreshSelect();}
   };
-  // The Select2 widget may fire its own selection event before a native change.
-  // Listen to both, always read the selected option, and keep the actual panel in sync.
-  const choose=value=>{if(value==null||value==='')return;const next=Number(value);if(!Number.isInteger(next)||!data.some(x=>x.index===next))return;if(next!==current)activate(next)};
+  const choose=value=>{
+    const index=Number(value);
+    if(value==null||value===''||!Number.isInteger(index)||!data.some(x=>x.index===index))return;
+    activate(index);
+  };
+  // Listen to native AND Select2 change. Other scripts can reset the widget's displayed state;
+  // the selected value remains authoritative and no form gets rebuilt.
   select.addEventListener('change',()=>choose(select.value));
-
+  if($){$(select).on('change.zynkoSectionNav select2:select.zynkoSectionNav',e=>{
+      const selected=e.params?.data?.id ?? $(select).val();choose(selected);
+    });}
   search.addEventListener('input',render);
-  clear.addEventListener('click',()=>{search.value='';render();search.focus()});
-  current=0;
+  clear.addEventListener('click',()=>{search.value='';render();search.focus();});
   render();
-  if(window.jQuery&&jQuery.fn.select2){
-    // Build only one Select2 instance, with a dropdown aligned to this field.
-    const $select=jQuery(select);
-    if(!$select.data('select2'))$select.select2({width:'100%',minimumResultsForSearch:0,dropdownParent:jQuery(nav)});
-    $select.on('select2:select.zynkoSections',event=>choose(event.params?.data?.id??select.value));
+  if($&&$.fn.select2){
+    const $select=$(select);
+    if($select.data('select2'))$select.select2('destroy');
+    // Body positioning avoids the right-clipped dropdown produced by nested panels.
+    $select.removeClass('no-select2').addClass('select2');
+    $select.select2({width:'100%',dropdownParent:$(document.body),minimumResultsForSearch:0,dropdownCssClass:'zynko-section-dropdown'});
+    $select.on('select2:close.zynkoSectionNav',()=>choose($select.val()));
+    refreshSelect();
   }
   document.body.classList.add('zynko-section-ready');
  };
