@@ -7071,3 +7071,23 @@ body.page-inbox .conv-list .inbox-conversation-page-nav{justify-content:center!i
 body.page-inbox .conv-list .inbox-conversation-page-nav .company-page-btn{min-width:31px;height:34px;padding:0 8px;font-size:11px;white-space:nowrap}
 body.page-inbox .conv-list .conversation[hidden]{display:none!important}
 @media(max-width:760px){body.page-inbox .conv-list .inbox-conversation-pagination{padding:12px 4px 6px}body.page-inbox .conv-list .inbox-conversation-page-nav{justify-content:center!important}}
+
+/* v030: restore consistent settings action alignment without changing shared buttons */
+.zynko-settings-save-actions{display:flex!important;flex-direction:row!important;justify-content:flex-end!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;width:100%!important;grid-column:1/-1!important}
+.zynko-settings-save-actions>button{width:auto!important;max-width:100%!important;flex:0 0 auto!important;margin:0!important;min-height:40px!important}
+/* Notification switches: prevent inherited compact field rules from collapsing text */
+.notification-settings-grid>.field:not(.notification-cooldown){display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;min-width:0!important}
+.notification-settings-grid>.field>.switch-line{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;gap:10px!important;width:100%!important;min-width:0!important;white-space:normal!important;line-height:1.5!important;margin:0!important}
+.notification-settings-grid>.field>.switch-line>span{flex-shrink:0!important}
+.notification-settings-grid>.field>.switch-line+.hint{display:block!important;position:static!important;width:auto!important;max-width:100%!important;line-height:1.5!important;white-space:normal!important;overflow-wrap:normal!important;margin:0!important}
+/* Email delivery status uses the existing neutral/success/danger vocabulary */
+.mail-delivery-badge{display:inline-flex!important;align-items:center!important;gap:6px!important;padding:5px 10px!important;border-radius:999px!important;font-size:11px!important;font-weight:700!important;line-height:1.25!important;white-space:nowrap!important;border:1px solid var(--line,#dce6e9)!important;background:var(--surface2,#f4f7f9)!important;color:var(--text,#122033)!important}
+.mail-delivery-badge.is-accepted{color:#087763!important;background:#e7f8f1!important;border-color:#b6e7d4!important}
+.mail-delivery-badge.is-failed{color:#b42338!important;background:#fff0f1!important;border-color:#f2c8cf!important}
+.mail-delivery-badge.is-pending{color:#946500!important;background:#fff8e7!important;border-color:#eedda6!important}
+/* API exports stay compact in one row, using existing export button structure */
+#api-history .api-history-downloads{display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-end!important;flex-wrap:wrap!important;gap:8px!important;margin-left:auto!important}
+#api-history .api-history-downloads .company-export-btn{display:inline-flex!important;flex:0 0 auto!important;width:auto!important;min-width:0!important;min-height:40px!important;padding:6px 12px!important;gap:8px!important}
+#api-history .api-history-downloads .company-export-icon{width:27px!important;height:27px!important;flex:0 0 27px!important}
+#api-history .api-history-downloads .company-export-copy small{display:none!important}
+@media(max-width:760px){.zynko-settings-save-actions{justify-content:flex-end!important}.notification-settings-grid>.field>.switch-line{white-space:normal!important}#api-history .api-history-downloads{justify-content:flex-start!important}}

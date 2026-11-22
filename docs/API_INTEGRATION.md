@@ -212,3 +212,10 @@ Las nuevas claves se ligan a un único canal y pueden incluir `messages:send` (i
 ```
 
 El `channel_id` debe pertenecer a la empresa y coincidir con la clave; la conexión debe estar activa y autorizada por el proveedor. Para Meta, los destinatarios son los identificadores propios del canal, no números telefónicos. Los mensajes quedan `queued` (HTTP 202) hasta el despacho real. La API **no elimina las restricciones de ventana de mensajería y uso comercial del proveedor**; una solicitud aceptada puede fallar al despacharse. El estado se consulta con `GET /api.php?r=v1/messages/status&message_uuid=UUID`. Los envíos WhatsApp conservan sus endpoints específicos `v1/whatsapp/send` y `v1/whatsapp/status`.
+
+
+### Historial de envíos API por credencial (v030)
+
+`GET /api.php?r=v1/whatsapp/history&page=1&per_page=20&q=` con `Authorization: Bearer <API_KEY>` y permiso `whatsapp:status`.
+Devuelve únicamente los mensajes generados mediante **esa misma API Key**, dentro de su empresa y del canal asociado a la clave. Admite hasta 100 registros por página e incluye UUID, destinatario, contenido, estado de cola, último error y modalidad de entrega. No incluye conversaciones normales de la bandeja.
+El modo independiente mantiene el historial sin publicar la conversación en la bandeja; el modo integrado también conserva este historial. Las aplicaciones cliente deben mantener su API Key únicamente en el servidor.

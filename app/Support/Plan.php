@@ -294,6 +294,7 @@ function zynkoPlanChannelStatus(array $catalog,string $code,string $language='es
 function zynkoPlanDisplayChannels(array $plan,array $catalog): array {
     // The free plan has a server-side restriction; legacy paid plans with no
     // explicit matrix allow the visible catalog, as zynkoPlanAllowsChannel does.
+    if(($plan['code']??'')==='api_only')return array_values(array_filter(zynkoDecodeList($plan['allowed_channels_json']??null),fn($code)=>$code!=='webchat'));
     if(!empty($plan['is_default_free'])||($plan['code']??'')==='free')return ['webchat'];
     $codes=zynkoDecodeList($plan['allowed_channels_json']??null);
     if(!$codes)$codes=array_keys(array_filter($catalog,fn($entry)=>!empty($entry['visible'])));
@@ -327,6 +328,8 @@ function zynkoPlanChannelHeading(array $stats,string $language='es'): string {
 }
 function zynkoPlanChannelDetail(array $stats,string $language='es'): string {
     $en=$language==='en';$count=$stats['count'];$limit=$stats['limit'];
+    if(($stats['visible_total']??0)===0)return $en?'No channels selected.':'Sin canales seleccionados.';
+    if(!in_array('webchat',$stats['codes'],true))return $en?'WhatsApp API only; no inbox or NIVO Web Chat.':'Solo API WhatsApp, sin bandeja ni NIVO Web Chat.';
     if(!$count||$limit===0)return $en?'NIVO Web Chat included.':'NIVO Web Chat incluido.';
     $rule=$stats['distinct']&&$count>1?($en?'One account per channel type. ':'Una cuenta por tipo de canal. '):(!$stats['distinct']&&$count>1?($en?'Multiple accounts per eligible type allowed. ':'Se permiten varias cuentas por tipo elegible. '):'');
     return $rule.($en?'NIVO Web Chat is included separately; it does not use an external slot.':'NIVO Web Chat se incluye por separado; no consume un cupo externo.');
@@ -426,6 +429,8 @@ function zynkoPlanExternalConnectionLimit(array $ctx): ?int{
     if(!empty($ctx['unrestricted']))return null;
     if(!empty($ctx['is_free'])||!empty($ctx['is_default_free'])||($ctx['plan_code']??$ctx['code']??'')==='free')return 0;
     $total=zynkoPlanLimit($ctx,'max_channels');
+    // The API-only plan does not include a Web Chat slot.
+    if(($ctx['plan_code']??$ctx['code']??'')==='api_only')return $total;
     return $total===null?null:max(0,$total-1);
 }
 function zynkoPlanDistinctExternalTypes(array $ctx): bool {

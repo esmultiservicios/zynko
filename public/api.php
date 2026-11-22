@@ -43,6 +43,22 @@ try{
   if(!$record)out(404,false,'Mensaje no disponible para esta clave.');
   out(200,true,'Estado consultado.',$record);
  }
+ if($method==='GET'&&$path==='v1/whatsapp/history'){
+  hasScope($key,'whatsapp:status');
+  ZynkoAccessPolicy::ensureTables(db());
+  $page=max(1,min(100000,(int)($_GET['page']??1)));
+  $per=max(1,min(100,(int)($_GET['per_page']??20)));
+  $search=mb_substr(trim((string)($_GET['q']??'')),0,80);
+  $where=' WHERE h.tenant_id=? AND h.api_key_id=? AND ch.type=\'whatsapp\'';
+  $args=[$tid,(int)$key['id']];
+  if(!empty($key['channel_id'])){$where.=' AND h.channel_id=?';$args[]=(int)$key['channel_id'];}
+  if($search!==''){$where.=' AND (h.destination LIKE ? OR m.uuid LIKE ?)';$like='%'.$search.'%';$args[]=$like;$args[]=$like;}
+  $join=' FROM api_message_history h JOIN messages m ON m.id=h.message_id AND m.tenant_id=h.tenant_id JOIN channels ch ON ch.id=h.channel_id AND ch.tenant_id=h.tenant_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=h.tenant_id';
+  $cq=db()->prepare('SELECT COUNT(*)'.$join.$where);$cq->execute($args);$total=(int)$cq->fetchColumn();
+  $query=db()->prepare('SELECT h.created_at,h.destination,h.delivery_mode,ch.name channel_name,m.uuid message_uuid,m.body,m.status,o.state queue_state,o.last_error'.$join.$where.' ORDER BY h.id DESC LIMIT '.(int)$per.' OFFSET '.(int)(($page-1)*$per));
+  $query->execute($args);
+  out(200,true,'Historial de WhatsApp API.',['page'=>$page,'per_page'=>$per,'total'=>$total,'pages'=>max(1,(int)ceil($total/$per)),'messages'=>$query->fetchAll()]);
+ }
  if($method==='GET'&&$path==='v1/whatsapp/status'){
   hasScope($key,'whatsapp:status');$uuid=(string)($_GET['message_uuid']??'');if(!preg_match('/^[a-f0-9-]{36}$/D',$uuid))out(422,false,'message_uuid inválido.');
   $q=db()->prepare("SELECT m.uuid message_uuid,m.status,o.state queue_state,o.last_error FROM messages m JOIN conversations c ON c.id=m.conversation_id AND c.tenant_id=m.tenant_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id WHERE m.uuid=? AND m.tenant_id=? AND m.direction='out' AND ch.type='whatsapp'");$q->execute([$uuid,$tid]);$r=$q->fetch();if(!$r)out(404,false,'Mensaje no encontrado.');if($keyChannel>0){$verify=db()->prepare('SELECT h.channel_id FROM api_message_history h JOIN messages m ON m.id=h.message_id AND m.tenant_id=h.tenant_id WHERE m.uuid=? AND h.tenant_id=? LIMIT 1');$verify->execute([$uuid,$tid]);$recordChannel=(int)$verify->fetchColumn();if($recordChannel!==$keyChannel)out(404,false,'Mensaje no encontrado para esta clave.');}out(200,true,'Estado consultado.',$r);
