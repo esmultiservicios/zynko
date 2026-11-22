@@ -7123,3 +7123,19 @@ body.page-inbox .conv-list .conversation[hidden]{display:none!important}
 select.select2-hidden-accessible{display:none!important}
 #api-history #apiHistorySize.select2-hidden-accessible,#mail-history #mailHistorySize.select2-hidden-accessible{display:none!important}
 
+
+/* v034 — Tableros de actividad y selección de categorías: reutiliza la paleta ZYNKO. */
+.zynko-insight .insight-kpi{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;min-height:84px;background:var(--surface,#fff)}
+.zynko-insight .insight-kpi:hover{transform:translateY(-2px);border-color:var(--accent,#10a58a);box-shadow:0 8px 24px rgba(13,49,66,.09)}
+.zynko-insight .insight-kpi b{font-variant-numeric:tabular-nums}
+.insight-data-grid{display:grid;gap:0;overflow-x:auto;border:1px solid var(--line,#dbe4ea);border-radius:12px;max-height:290px;overflow-y:auto;background:var(--surface,#fff)}
+.insight-data-row{display:grid;grid-template-columns:repeat(var(--insight-cols,9),minmax(90px,1fr));min-width:max-content;align-items:center;border-bottom:1px solid var(--line,#dbe4ea);transition:background .18s ease}
+.insight-data-row:last-child{border-bottom:0}.insight-data-row:not(.insight-data-head):hover{background:rgba(16,165,138,.055)}
+.insight-data-row>span{padding:11px 13px;font-size:12px;min-width:0;overflow-wrap:anywhere}
+.insight-data-head{position:sticky;top:0;z-index:1;background:var(--surface-secondary,#f5f9fa);font-weight:750;color:var(--text,#142238)}
+.insight-data-head>span{white-space:nowrap}
+.insight-data-empty{padding:20px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted,#64748b)}
+#contactCategoriesForm .select2-container{width:100%!important}
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:44px;border-radius:11px;border:1px solid var(--line,#dbe4ea);padding:4px 8px}
+#contactCategoriesForm .select2-container--default.select2-container--focus .select2-selection--multiple{border-color:#10a58a;box-shadow:0 0 0 3px rgba(16,165,138,.12)}
+@media(max-width:680px){.zynko-insight .insight-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-data-row>span{padding:10px}}
