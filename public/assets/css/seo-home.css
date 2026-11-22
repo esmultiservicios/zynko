@@ -1325,3 +1325,12 @@ dialog.zc-dialog.faq-answer-dialog>.zc-dialog-frame{display:flex;flex-direction:
 /* Hide the underlying native select after the shared Select2 control has been installed. */
 select.select2-hidden-accessible{display:none!important}
 
+
+/* v042 · Contact columns share the same top and bottom edges without altering the form. */
+@media(min-width:1000px){
+ .contact-shell{align-items:stretch!important}
+ .contact-shell>.contact-intro{position:static!important;top:auto!important;align-self:stretch;grid-template-rows:auto auto 1fr auto;align-content:stretch;min-height:100%}
+ .contact-shell>.contact-intro>.contact-benefits{align-content:start}
+ .contact-shell>.contact-intro>.contact-nivo{min-height:150px;align-self:stretch}
+ .contact-shell>.contact-form{align-self:stretch}
+}

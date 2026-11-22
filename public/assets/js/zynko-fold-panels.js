@@ -72,49 +72,42 @@
     // El explorador de secciones existente conserva su propia navegación y guardado.
   }
   if(page==='webchat'){
-    choose('.webchat-kpis','webchat-kpis','Indicadores de NIVO Web Chat','Sitios, visitantes y mensajes.','chart-column',true);
-    internal(document.querySelector('.webchat-layout > section.panel'),'webchat-design',true);
-    internal(document.querySelector('#installations'),'webchat-installations',false);
-    // Navegación por secciones sobre los mismos paneles sin desplazar la vista previa.
+    // Single section navigator; the fixed right preview/operations rail is never hidden.
     const root=document.querySelector('.nivo-webchat-page');
-    const first=root?.querySelector('.webchat-layout');
-    if(root&&first&&!root.querySelector('.zynko-webchat-nav')){
+    const layout=root?.querySelector('.webchat-layout');
+    if(root&&layout&&!root.querySelector('.zynko-webchat-nav')){
+      const sections={design:layout.querySelector(':scope > section.panel'),installations:root.querySelector('#installations'),kpis:root.querySelector('.webchat-kpis')};
+      const entries=[['design','Diseño y comportamiento'],['installations','Instalación en sitios web'],['kpis','Indicadores de uso']].filter(([key])=>sections[key]);
       const navigator=el('div','panel zynko-webchat-nav');
-      navigator.innerHTML='<div class="panel-head premium-card-head"><span class="premium-card-head-icon"><i class="fa-solid fa-layer-group"></i></span><div><b>Explorar secciones</b><small>Abre únicamente las opciones que necesitas configurar.</small></div></div><div class="zynko-section-nav-controls"><div class="zynko-section-search"><i class="fa-solid fa-magnifying-glass"></i><input id="zynkoWebchatSectionSearch" placeholder="Buscar sección…" autocomplete="off"><button type="button" id="zynkoWebchatSectionClear" hidden aria-label="Borrar búsqueda"><i class="fa-solid fa-xmark"></i></button></div><div class="field"><label for="zynkoWebchatSectionSelect">Sección</label><select id="zynkoWebchatSectionSelect" class="no-select2"><option value="design">Diseño y comportamiento</option><option value="installations">Instalación en sitios web</option><option value="kpis">Indicadores de uso</option></select></div></div>';
-      first.before(navigator);
-      const search=navigator.querySelector('#zynkoWebchatSectionSearch'),sel=navigator.querySelector('#zynkoWebchatSectionSelect'),clear=navigator.querySelector('#zynkoWebchatSectionClear');
-      const sections={design:document.querySelector('.webchat-layout > section.panel'),installations:document.querySelector('#installations'),kpis:document.querySelector('.webchat-kpis')};
-      const keys=Object.keys(sections).filter(key=>sections[key]);
-      const selectSection=key=>{
+      navigator.innerHTML='<div class="panel-head premium-card-head"><span class="premium-card-head-icon"><i class="fa-solid fa-layer-group"></i></span><div><b>Explorar secciones</b><small>Selecciona una sección para configurar; la vista previa permanece visible.</small></div></div><div class="zynko-section-nav-controls"><div class="zynko-section-search"><i class="fa-solid fa-magnifying-glass"></i><input id="zynkoWebchatSectionSearch" placeholder="Buscar sección…" autocomplete="off"><button type="button" id="zynkoWebchatSectionClear" hidden aria-label="Borrar búsqueda"><i class="fa-solid fa-xmark"></i></button></div><div class="field"><label for="zynkoWebchatSectionSelect">Sección</label><select id="zynkoWebchatSectionSelect" class="no-select2"></select></div></div>';
+      const select=navigator.querySelector('#zynkoWebchatSectionSelect');
+      entries.forEach(([id,title])=>{const option=el('option','',title);option.value=id;select.append(option)});
+      layout.before(navigator);
+      // The original installations and KPI panels were below the two-column layout,
+      // leaving a tall empty area whenever the design panel was hidden. Put the
+      // original nodes (not clones) into the left column, leaving the preview intact.
+      const left=el('div','zynko-webchat-config-column');
+      const preview=layout.querySelector(':scope > .nivo-webchat-rail');
+      layout.insertBefore(left,preview);
+      entries.forEach(([id])=>left.append(sections[id]));
+      const search=navigator.querySelector('#zynkoWebchatSectionSearch');
+      const clear=navigator.querySelector('#zynkoWebchatSectionClear');
+      const show=key=>{
         if(!sections[key])return;
-        keys.forEach(k=>{const card=sections[k];const btn=card.closest('.zynko-fold-shell')?.querySelector('.zynko-fold-button')||card.querySelector('.zynko-fold-button');if(btn&&btn.getAttribute('aria-expanded')!==String(k===key))btn.click();});
-        sel.value=key;
+        entries.forEach(([id])=>sections[id].classList.toggle('zynko-webchat-section-hidden',id!==key));
+        select.value=key;
       };
-      sel.addEventListener('change',()=>selectSection(sel.value));
-      search.addEventListener('input',()=>{const query=search.value.toLowerCase().trim();[...sel.options].forEach(option=>{option.hidden=!!query&&!option.text.toLowerCase().includes(query)});clear.hidden=!query});
+      select.addEventListener('change',()=>show(select.value));
+      search.addEventListener('input',()=>{
+        const q=search.value.trim().toLocaleLowerCase();
+        entries.forEach(([id,title])=>{const option=[...select.options].find(o=>o.value===id);if(option)option.hidden=!!q&&!title.toLocaleLowerCase().includes(q)});
+        clear.hidden=!q;
+        const matches=entries.filter(([,title])=>title.toLocaleLowerCase().includes(q));
+        if(q&&matches.length&&!matches.some(([id])=>id===select.value))show(matches[0][0]);
+      });
       clear.addEventListener('click',()=>{search.value='';search.dispatchEvent(new Event('input'));search.focus()});
-      // Keep Select2 styling consistent with the standard ZYNKO selector.
-      if(window.jQuery&&jQuery.fn.select2){
-        const $sel=jQuery(sel);
-        // Attach the dropdown to the viewport, not the card: the card may clip/offset it.
-        $sel.removeClass('no-select2').select2({width:'100%',dropdownParent:jQuery(document.body),minimumResultsForSearch:0});
-        $sel.on('change',()=>selectSection(sel.value));
-        const keepInsideViewport=()=>{
-          const container=document.querySelector('body > .select2-container--open');
-          const dropdown=container?.querySelector('.select2-dropdown');
-          const trigger=$sel.next('.select2-container')[0];
-          if(!container||!dropdown||!trigger)return;
-          const r=trigger.getBoundingClientRect(),g=12;
-          const width=Math.min(Math.max(200,r.width),window.innerWidth-g*2);
-          const left=Math.max(g,Math.min(r.left,window.innerWidth-width-g));
-          // Select2 positions its portalled container by page coordinates.
-          container.style.setProperty('left',left+window.scrollX+'px','important');
-          container.style.setProperty('width',width+'px','important');
-          dropdown.style.setProperty('width','100%','important');
-          dropdown.style.setProperty('min-width','0','important');
-        };
-        $sel.on('select2:open',()=>requestAnimationFrame(keepInsideViewport));
-      }
+      // Native styled select: no portalled Select2 dropdown to escape the viewport.
+      show(entries[0]?.[0]||'design');
     }
   }
  };

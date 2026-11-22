@@ -7267,3 +7267,23 @@ body>.select2-container--open .select2-dropdown.zynko-section-dropdown .select2-
 body>.select2-container--open:has(.select2-dropdown){max-width:calc(100vw - 24px)!important;box-sizing:border-box}
 body>.select2-container--open .select2-dropdown{box-sizing:border-box;max-width:100%!important;min-width:0!important}
 @media(max-width:780px){.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid{grid-template-columns:minmax(0,1fr)!important}.billing-plan-directory .plan-card.plan-price-pending .plan-price{font-size:17px}}
+
+/* v042 · NIVO Web Chat: only the section navigator chooses visible panels. */
+.nivo-webchat-page .zynko-webchat-section-hidden{display:none!important}
+.nivo-webchat-page .webchat-layout{align-items:start!important;min-height:0!important}
+.nivo-webchat-page .webchat-layout>.zynko-webchat-config-column{min-width:0;display:grid;align-content:start;gap:16px}
+.nivo-webchat-page .webchat-layout>.zynko-webchat-config-column>section{min-width:0;height:auto!important;align-self:start!important}
+.nivo-webchat-page .webchat-layout>.nivo-webchat-rail{align-self:start!important;min-width:0}
+.nivo-webchat-page .webchat-layout>.nivo-webchat-rail{grid-column:2;grid-row:1;position:relative!important}
+@media(max-width:850px){.nivo-webchat-page .webchat-layout>.nivo-webchat-rail{grid-column:auto;grid-row:auto}}
+/* Standard input-group focus and Select2 page-size: dropdown must not be clipped. */
+.api-key-toolbar,.api-key-page-control{overflow:visible!important;position:relative}
+.api-key-toolbar .api-key-search-wrap{border:1px solid var(--line)!important;border-radius:11px!important;background:var(--surface)!important;min-height:44px}
+.api-key-toolbar .api-key-search-wrap:focus-within{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
+.api-key-toolbar .api-key-search-wrap input{border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important;background:transparent!important}
+.api-key-page-control>.select2-container{width:176px!important;min-width:176px!important;flex:0 0 176px}
+.api-key-page-control .select2-selection--single{min-height:43px!important;display:flex!important;align-items:center!important}
+.api-key-page-control .select2-selection__rendered{white-space:nowrap!important;padding-right:28px!important}
+.api-key-page-control select.select2-hidden-accessible{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important}
+body>.select2-container--open.zynko-api-size-dropdown{z-index:13000!important;max-width:calc(100vw - 20px)!important}
+body>.select2-container--open.zynko-api-size-dropdown .select2-dropdown{max-width:100%!important;min-width:0!important}

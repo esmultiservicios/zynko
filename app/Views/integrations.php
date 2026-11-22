@@ -68,6 +68,24 @@ document.addEventListener('DOMContentLoaded',()=>{
   const keySearch=document.getElementById('apiKeySearch'),keyCount=document.getElementById('apiKeySearchCount');
   const keyRows=[...document.querySelectorAll('.api-key-row')];
   const pageSize=document.getElementById('apiKeyPageSize'),pageSummary=document.getElementById('apiKeyPageSummary'),pageButtons=document.getElementById('apiKeyPagination');
+  if(pageSize&&window.jQuery&&jQuery.fn.select2){
+    const $size=jQuery(pageSize);
+    const install=()=>{
+      if($size.hasClass('select2-hidden-accessible'))$size.select2('destroy');
+      $size.select2({width:'176px',minimumResultsForSearch:Infinity,dropdownParent:jQuery(document.body),dropdownAutoWidth:false});
+      $size.on('select2:open.zynkoApiSize',()=>requestAnimationFrame(()=>{
+        const trigger=$size.next('.select2-container')[0];
+        const popup=document.querySelector('body > .select2-container--open');
+        if(!trigger||!popup)return;
+        popup.classList.add('zynko-api-size-dropdown');
+        const r=trigger.getBoundingClientRect(),gap=10,width=Math.min(Math.max(176,r.width),window.innerWidth-gap*2);
+        popup.style.setProperty('left',(Math.max(gap,Math.min(r.left,window.innerWidth-width-gap))+window.scrollX)+'px','important');
+        popup.style.setProperty('width',width+'px','important');
+      }));
+    };
+    install();
+  }
+
   let currentKeyPage=1;
   const filterKeys=(reset=false)=>{
     if(reset)currentKeyPage=1;
