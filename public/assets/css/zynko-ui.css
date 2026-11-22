@@ -7167,3 +7167,14 @@ body>.select2-container--open .select2-results__options{max-height:min(280px,45v
 #contactCategoriesForm .select2-container{min-width:0;max-width:100%}
 #contactCategoriesForm .select2-selection--multiple{box-sizing:border-box;min-height:44px}
 #client360DetailsModal .select2-dropdown{max-width:calc(100vw - 30px)!important}
+
+/* v037 · Solo la sección activa debe ser visible desde el primer pintado. */
+body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:not(.zynko-section-nav){visibility:hidden!important}
+.zynko-section-hidden,[hidden].zynko-section-hidden{display:none!important}
+/* Select2 múltiple de categorías: una sola superficie de entrada, sin cajas anidadas. */
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:44px!important;height:auto!important;padding:5px 9px!important;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:4px;border-radius:11px!important}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px;width:100%!important;margin:0!important;padding:0!important;min-height:28px!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline{flex:1 1 170px!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{height:28px!important;min-height:28px!important;width:100%!important;max-width:100%!important;margin:0!important;padding:2px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:0!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field:focus{box-shadow:none!important;outline:0!important}
+#contactCategoriesForm .select2-container--focus .select2-selection--multiple{border-color:#10a58a!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
