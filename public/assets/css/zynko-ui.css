@@ -7091,3 +7091,30 @@ body.page-inbox .conv-list .conversation[hidden]{display:none!important}
 #api-history .api-history-downloads .company-export-icon{width:27px!important;height:27px!important;flex:0 0 27px!important}
 #api-history .api-history-downloads .company-export-copy small{display:none!important}
 @media(max-width:760px){.zynko-settings-save-actions{justify-content:flex-end!important}.notification-settings-grid>.field>.switch-line{white-space:normal!important}#api-history .api-history-downloads{justify-content:flex-start!important}}
+
+/* v031 — Reutiliza el estilo de búsqueda, exportación, modales y selectores existente. */
+#mail-history .mail-history-filter{flex:1 1 420px}
+#mail-history .mail-history-search{max-width:none;min-width:min(260px,100%)}
+#mail-history .users-show-count{white-space:nowrap;flex:0 0 auto}
+#mail-history #mailHistorySize.select2-hidden-accessible{position:absolute!important;width:1px!important;height:1px!important;min-width:0!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important}
+#mail-history .users-show-count .select2-container{width:185px!important;min-width:185px!important;max-width:185px!important}
+#api-history .api-search-wrap:focus-within,.wa-api-doc-search:focus-within{border-color:var(--accent,#10a88f)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#10a88f) 16%,transparent)!important;border-radius:10px!important}
+#api-history .api-history-search input[type=search]:focus,.wa-api-doc-search input[type=search]:focus{border:0!important;outline:0!important;box-shadow:none!important}
+#api-history .api-history-search input[type=search]::-webkit-search-cancel-button,.wa-api-doc-search input::-webkit-search-cancel-button{display:none!important;-webkit-appearance:none}
+#api-history .api-history-downloads .company-export-copy small{display:block!important;font-size:10px!important}
+#api-history .api-history-downloads .company-export-btn{min-width:165px!important}
+#api-history .api-history-downloads .company-export-arrow{display:block!important;margin-left:auto}
+#planModal .modal-card{height:min(900px,calc(100dvh - 30px))!important;max-height:calc(100dvh - 30px)!important;display:flex!important;flex-direction:column!important;overflow:hidden!important}
+#planModal .modal-card>.modal-head{flex:0 0 auto}
+#planModal .modal-card>form{flex:1 1 auto;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+#planModal .modal-card>form>.settings-grid{flex:1 0 auto}
+#planModal .modal-card>form>.modal-actions{position:sticky;bottom:0;z-index:2;flex:0 0 auto;background:var(--surface,#fff)}
+#planModal .plan-state-row .field-help{display:flex;align-items:center;gap:7px;line-height:1.5;color:var(--muted,#64748b);font-size:11px}
+#planModal .plan-state-row .field-help i{color:var(--accent,#0b957f);font-size:13px;flex:0 0 16px}
+.wa-api-doc-search{display:flex;align-items:center;position:relative;gap:10px;max-width:100%;min-height:44px;padding:0 12px;border:1px solid var(--line,#dce5ea);border-radius:10px;background:var(--surface,#fff);color:var(--muted,#64748b)}
+.wa-api-doc-search input{border:0!important;outline:0!important;box-shadow:none!important;min-width:0;width:100%;flex:1;padding:10px 0!important;background:transparent!important;color:var(--text,#10283a)!important}
+.wa-api-doc-search .clear-search{position:static;flex:0 0 28px;min-height:28px;padding:0;display:grid;place-items:center}
+.wa-api-doc-search .clear-search[hidden],.wa-api-guide [hidden]{display:none!important}
+.wa-api-doc-empty{padding:18px;text-align:center;color:var(--muted,#64748b);border:1px dashed var(--line,#dce5ea);border-radius:10px}
+.wa-api-example pre,.wa-api-example pre code,.nivo-install-doc-panel pre,.nivo-install-doc-panel pre code{opacity:1!important;filter:none!important;text-shadow:none!important;letter-spacing:normal!important;-webkit-font-smoothing:auto!important}
+@media(max-width:760px){#mail-history .mail-history-search{max-width:none}#mail-history .mail-history-filter{width:100%}#planModal .modal-card{height:calc(100dvh - 16px)!important;max-height:calc(100dvh - 16px)!important}}

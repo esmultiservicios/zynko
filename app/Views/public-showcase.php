@@ -33,7 +33,7 @@ $defaults=[];foreach(zynkoShowcaseDefaults() as $d)$defaults[$d['key']]=$d;
 <script>
 (()=>{
  const cards=[...document.querySelectorAll('[data-showcase-card]')];let activeCard=null;
- const notify=(type,title,msg)=>window.showNotify?showNotify(type,title,msg):alert(msg||title);
+ const notify=(type,title,msg)=>window.showNotify?.(type,title,msg);
  const post=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});const j=await r.json();if(!j.ok)throw new Error(j.message||'No se pudo completar la operación.');return j};
  const setFile=(card,file)=>{if(!file||!file.type?.startsWith('image/')){notify('warning','Archivo no válido','Selecciona una imagen JPG, PNG o WEBP.');return;}if(file.size>12*1024*1024){notify('warning','Imagen demasiado grande','El máximo permitido es 12 MB.');return;}const input=card.querySelector('input[type=file]');const dt=new DataTransfer();dt.items.add(file);input.files=dt.files;const box=card.querySelector('.public-showcase-file-preview');const url=URL.createObjectURL(file);box.innerHTML=`<img src="${url}" alt="Vista previa"><div><b>${file.name.replace(/[<>]/g,'')}</b><small>${Math.max(1,Math.round(file.size/1024))} KB · lista para guardar</small></div><button type="button" aria-label="Quitar"><i class="fa-solid fa-xmark"></i></button>`;box.hidden=false;box.querySelector('button').onclick=()=>{input.value='';box.hidden=true;box.innerHTML=''};activeCard=card;};
  cards.forEach(card=>{const zone=card.querySelector('.public-showcase-dropzone'),input=card.querySelector('input[type=file]'),select=card.querySelector('.public-showcase-select'),form=card.querySelector('form');

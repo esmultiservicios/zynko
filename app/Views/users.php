@@ -79,7 +79,7 @@ foreach($departmentMemberships as $member){if((int)$member['user_id']===(int)$_S
  const form=document.getElementById(id);if(!form||form.dataset.bound)return;form.dataset.bound='1';
  form.addEventListener('submit',async e=>{e.preventDefault();const btn=form.querySelector('[type=submit]');if(btn)btn.disabled=true;
  try{const response=await fetch(location.href,{method:'POST',credentials:'same-origin',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});const j=await response.json();if(!response.ok||!j.ok)throw Error(j.message||'No se pudo guardar');window.showNotify?.('success','Departamentos',j.message);location.reload();}
- catch(err){window.showNotify?.('error','Departamentos',err.message);if(!window.showNotify)alert(err.message)}finally{if(btn)btn.disabled=false}
+ catch(err){window.showNotify?.('error','Departamentos',err.message)}finally{if(btn)btn.disabled=false}
  });
 }})();
 </script>
