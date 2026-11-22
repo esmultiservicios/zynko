@@ -179,3 +179,36 @@ curl "https://zynkocloud.app/api.php?r=v1/channels" -H "Authorization: Bearer TU
 ```
 
 Las solicitudes deben salir de un servidor seguro y las claves no deben publicarse en el navegador. En el sitio público la documentación se expande en bloques y conserva los botones de copia.
+
+
+## ZYNKO 2.31.155 — Plan exclusivamente API y trazabilidad por empresa
+
+**Plan `api_only` (ZYNKO API):** se crea dentro del catálogo de planes ya existente, sin modificar los precios ni las capacidades de otros planes. Su precio inicial es **pendiente de definir** y se publica con etiqueta **Próximamente**; la administración debe fijar precio y disponibilidad antes de ofrecer contrataciones. Solo admite Dashboard reducido, Canales (WhatsApp propio), Integraciones API y Suscripción. Sin Bandeja, NIVO Web Chat, NIVO IA, automatizaciones ni CRM. La gestión de altas y cambios de plan sigue utilizando el motor existente.
+
+**Nueva clave API:** Canales → Integraciones → Crear clave API. Debe indicar **un canal exclusivo** (ID existente de la empresa) y seleccionar:
+
+- **Historial independiente, sin Bandeja** (predeterminado): los envíos API se registran en una conversación técnica oculta (`conversations.api_only=1`) para reutilizar la cola, la entrega y los estados ya implementados. No se muestran en la Bandeja ni en sus consultas visibles. Se anotan en `api_message_history`.
+- **Historial y Bandeja:** disponible solo si el plan permite Bandeja. El mensaje también aparece como conversación normal. Se registra igualmente en `api_message_history`.
+
+Las claves antiguas mantienen su modo original (`inbox`) y alcance heredado (sin canal fijado) para evitar incompatibilidades. **Si una empresa entra en el plan `api_only`, el API impone el modo independiente aun sobre claves heredadas; jamás se habilita la bandeja para dicho plan.** Las nuevas quedan ligadas a un `channel_id`, verificado en servidor. El modo es editable posteriormente desde **Permisos**, sin alterar mensajes antiguos. Cambios de plan superiores conservan las claves y configuraciones cuando no se revocan por la política vigente.
+
+**Historial de envíos API:** visible desde Integraciones para el tenant autenticado. Incluye búsqueda por destino, canal, integración o UUID, tamaño 10/25/50/100/Todos (n), paginación numérica, estados reales desde la tabla de mensajes/cola y exportadores Excel/PDF con los modales estándar. Se registran los nuevos envíos a partir de la actualización; los envíos históricos sin relación de clave verificable no se atribuyen retroactivamente.
+
+**Seguridad:** los orígenes permitidos (HTTP `Origin`) controlan principalmente solicitudes desde navegador y pueden ser falsificados por clientes no navegadores; **no sustituyen una clave secreta ni la lista de IP/CIDR**. Para IZZY, usar una clave exclusiva, el backend de IZZY como consumidor y restringir la IP pública fija de salida del servidor, validando su dirección real en ZYNKO. Nunca entregar la clave al navegador ni a un cliente final. Una IP autorizada no impide que un atacante utilice una clave robada desde el mismo servidor comprometido: revocar inmediatamente si hay sospecha.
+
+**Webhook:** «Nuevo webhook» registra la URL HTTPS de otro sistema para recibir eventos que ZYNKO emite; **no se necesita para enviar WhatsApp**. Se puede agregar en el futuro un webhook de estados o respuestas entrantes específicamente para el API, con firma y validación, antes de habilitar recepción fuera de la Bandeja. No se debe prometer recepción automática por API en esta entrega.
+
+**SQL:** las tres variantes existentes `ZYNKO_UPDATE_DB_COMPLETO*.sql` incorporan la migración aditiva de la versión 2.31.155. El runtime también crea las columnas/tablas necesarias. No ejecutar simultáneamente las tres variantes sobre una misma base.
+
+
+### API por canal no WhatsApp (Messenger / Instagram)
+
+Las nuevas claves se ligan a un único canal y pueden incluir `messages:send` (individual), `messages:bulk` (2–100 destinatarios con consentimiento) y `channels:read`.
+
+`POST /api.php?r=v1/messages/bulk` requiere Bearer, `Idempotency-Key` y JSON:
+
+```json
+{"channel_id":14,"to":["IDENTIFICADOR_DESTINATARIO_1","IDENTIFICADOR_DESTINATARIO_2"],"message":"Mensaje autorizado","consent_confirmed":true}
+```
+
+El `channel_id` debe pertenecer a la empresa y coincidir con la clave; la conexión debe estar activa y autorizada por el proveedor. Para Meta, los destinatarios son los identificadores propios del canal, no números telefónicos. Los mensajes quedan `queued` (HTTP 202) hasta el despacho real. La API **no elimina las restricciones de ventana de mensajería y uso comercial del proveedor**; una solicitud aceptada puede fallar al despacharse. El estado se consulta con `GET /api.php?r=v1/messages/status&message_uuid=UUID`. Los envíos WhatsApp conservan sus endpoints específicos `v1/whatsapp/send` y `v1/whatsapp/status`.

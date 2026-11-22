@@ -99,6 +99,15 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
         $pdo->prepare("UPDATE subscription_plans SET is_default_free=0,code=NULL WHERE id<>? AND (is_default_free=1 OR code='free')")->execute([$free]);
         $pdo->prepare("UPDATE subscription_plans SET code='free',name='Gratis',monthly_price=0,currency='USD',max_users=NULL,max_channels=1,max_webchat_sites=1,max_daily_chats=5,max_monthly_chats=NULL,allowed_channels_json=?,module_access_json=?,features_json=?,external_ai_included=0,external_ai_monthly_tokens=NULL,external_ai_channels_json=JSON_ARRAY(),is_default_free=1,is_featured=0,featured_label=NULL,is_available=1,availability_label='Disponible',availability_message=NULL,active=1 WHERE id=?")->execute([$channels,$modules,$features,$free]);
     }
+    // Plan API: additive only; preserve the pricing and entitlement matrices of all existing plans.
+    $q=$pdo->query("SELECT id FROM subscription_plans WHERE code='api_only' LIMIT 1");
+    if(!$q->fetchColumn()){
+        $apiModules=['dashboard'=>1,'channels'=>1,'integrations'=>1,'api'=>1,'billing'=>1];
+        $apiFeatures=['API de WhatsApp individual y masiva','Vinculación de número propio','Claves API por canal','Historial de envíos independiente','Sin bandeja omnicanal'];
+        $pdo->prepare("INSERT INTO subscription_plans(code,name,monthly_price,currency,max_users,max_channels,distinct_external_types,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,is_default_free,is_featured,is_available,availability_label,active) VALUES('api_only','ZYNKO API',0,'USD',1,1,1,0,NULL,NULL,?,?,?,0,0,0,'Próximamente',1)")
+            ->execute([json_encode(['whatsapp']),json_encode($apiModules),json_encode($apiFeatures,JSON_UNESCAPED_UNICODE)]);
+    }
+
 }
 
 /** Commercial catalog revision. Prices and availability remain administrable. */
@@ -384,6 +393,7 @@ function zynkoPlanContext(PDO $pdo,int $tenantId,bool $platformOwner=false): arr
 
 function zynkoPlanAllowsModule(array $ctx,string $module): bool{
     if(!empty($ctx['unrestricted']))return true;
+    if(($ctx['plan_code']??'')==='api_only')return !empty($ctx['active']) && in_array($module,['dashboard','channels','integrations','api','billing'],true) && !empty($ctx['modules'][$module]);
     if(empty($ctx['active']))return $module==='billing';
     if(!empty($ctx['is_free'])&&in_array($module,['chatbot','automations','integrations','api','email'],true))return false;
     if(in_array($module,['dashboard','inbox','channels','webchat','billing','onboarding','surveys','documentation','logs'],true))return true;
@@ -483,11 +493,11 @@ function zynkoPlanRequireModule(array $ctx,string $module): void{
 }
 
 function zynkoPlanDailyChatUsage(PDO $pdo,int $tenantId): int{
-    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=CURDATE() AND created_at<DATE_ADD(CURDATE(),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
+    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND api_only=0 AND created_at>=CURDATE() AND created_at<DATE_ADD(CURDATE(),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
 }
 
 function zynkoPlanMonthlyChatUsage(PDO $pdo,int $tenantId): int{
-    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND created_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND created_at<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
+    $q=$pdo->prepare("SELECT COUNT(*) FROM conversations WHERE tenant_id=? AND api_only=0 AND created_at>=DATE_FORMAT(CURDATE(),'%Y-%m-01') AND created_at<DATE_ADD(LAST_DAY(CURDATE()),INTERVAL 1 DAY)");$q->execute([$tenantId]);return (int)$q->fetchColumn();
 }
 
 function zynkoPlanRequireChatCapacity(PDO $pdo,int $tenantId,array $ctx,string $type): void {
@@ -498,12 +508,12 @@ function zynkoPlanRequireChatCapacity(PDO $pdo,int $tenantId,array $ctx,string $
     if($monthly!==null&&zynkoPlanMonthlyChatUsage($pdo,$tenantId)>=$monthly)throw new OverflowException('Límite de '.$monthly.' chats nuevos por mes alcanzado.');
 }
 /** For legacy API callers without a transaction, serialize the admission and insert atomically. */
-function zynkoPlanCreateChat(PDO $pdo,int $tenantId,int $channelId,int $contactId,string $type,string $uuid,bool $platformOwner=false): int {
+function zynkoPlanCreateChat(PDO $pdo,int $tenantId,int $channelId,int $contactId,string $type,string $uuid,bool $platformOwner=false,bool $technicalApi=false): int {
     $own=!$pdo->inTransaction();if($own)$pdo->beginTransaction();
     try{
         $pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tenantId]);
-        zynkoPlanRequireChatCapacity($pdo,$tenantId,zynkoPlanContext($pdo,$tenantId,$platformOwner),$type);
-        $pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,'open',NOW())")->execute([$tenantId,$uuid,$channelId,$contactId]);$id=(int)$pdo->lastInsertId();
+        if(!$technicalApi)zynkoPlanRequireChatCapacity($pdo,$tenantId,zynkoPlanContext($pdo,$tenantId,$platformOwner),$type);
+        $pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at,api_only) VALUES(?,?,?,?,'open',NOW(),?)")->execute([$tenantId,$uuid,$channelId,$contactId,$technicalApi?1:0]);$id=(int)$pdo->lastInsertId();
         if($own)$pdo->commit();return $id;
     }catch(Throwable $e){if($own&&$pdo->inTransaction())$pdo->rollBack();throw $e;}
 }

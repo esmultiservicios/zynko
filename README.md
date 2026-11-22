@@ -1,3 +1,7 @@
+# Convención de base de datos — entrega API v029
+
+Para esta entrega, **únicamente** se modifica `database/schema.sql` y se agrega la migración de plan API a `database/upgrade-omnichannel.sql`. No publicar SQL acumulativos en la raíz. En el repositorio, eliminar los tres SQL históricos de raíz mediante `git rm` antes del commit. La integración de mensajería y los demás archivos de v029 no cambian respecto del ZIP original.
+
 # ZYNKO v2.31.141
 
 - Refuerza la persistencia del WebSocket con arranque desacoplado y verificación extendida.
@@ -35,7 +39,7 @@
 - Handoff humano requiere intención explícita o una causa real; mencionar “persona/agente/humano” dentro de una pregunta no transfiere por sí solo.
 - La Bandeja muestra un bloque **Contexto NIVO** con resumen, producto, ciudad, negocio, usuarios, sucursales, plan, estado, demo y seguimiento sugerido cuando esos datos existen.
 - Incluye `bin/nivo-rag-sync.php` para regenerar los fragmentos del conocimiento por tenant.
-- **Requiere ejecutar `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql` o `ZYNKO_UPDATE_DB_COMPLETO.sql` una vez en el servidor.**
+- **Requiere ejecutar `database/upgrade-omnichannel.sql` una vez en el servidor.**
 
 ## V2.31.129 · Mensajes humanos limpios y emojis corregidos
 - Corrige los saludos automáticos al asignar una conversación para que no guarden Markdown ni secuencias `\n` literales.
@@ -255,29 +259,14 @@ Los conectores externos continúan respetando el principio de no simular estados
 - Se conserva el aislamiento por tenant y no se comparte conocimiento entre empresas distintas.
 - No requiere cambios estructurales de base de datos ni ejecutar UPDATE SQL.
 
-## V2.31.98 · Compatibilidad de actualización Local + Servidor
+## Base de datos — convención vigente de actualización
 
-Esta entrega separa el update acumulativo de base de datos por entorno porque MariaDB/phpMyAdmin local puede devolver el error **#1295** al ejecutar `PREPARE/EXECUTE` con DDL, mientras el servidor de producción ya ejecuta correctamente ese método.
+- `database/schema.sql`: definición completa del esquema para instalaciones nuevas; **no ejecutar sobre bases existentes**.
+- `database/upgrade-omnichannel.sql`: único archivo de actualizaciones (CREATE/ALTER/INSERT/UPDATE) para una instalación existente. La actualización ZYNKO API v029 está al final, es aditiva y preserva los datos anteriores.
+- Antes de actualizar: respaldar la base, seleccionar explícitamente la base ZYNKO correcta y validar el motor SQL. La sección API v029 utiliza `ADD COLUMN IF NOT EXISTS` y `CREATE INDEX IF NOT EXISTS` propios de MariaDB; comprobar compatibilidad antes de ejecutarla en MySQL.
+- Los archivos históricos `ZYNKO_UPDATE_DB_COMPLETO.sql`, `ZYNKO_UPDATE_DB_COMPLETO_LOCAL.sql` y `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql` se retiran de la raíz y **no deben ejecutarse junto con el upgrade vigente**. Si una instalación antigua requiere recuperar migraciones anteriores, verificar previamente el historial aplicado en su base y no asumir que schema.sql es un migrador.
+- Solo el archivo del esquema y el upgrade dentro de `database/` serán mantenidos en futuras entregas. Las credenciales y datos reales no van al repositorio.
 
-### Qué archivo ejecutar
-
-- **Servidor / producción (el que ya te funcionó):** `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql`
-- **Local / XAMPP / MariaDB / phpMyAdmin:** `ZYNKO_UPDATE_DB_COMPLETO_LOCAL.sql`
-- `ZYNKO_UPDATE_DB_COMPLETO.sql` se conserva como copia del update de servidor para mantener compatibilidad con el flujo existente.
-
-### Importante
-
-Los dos archivos son acumulativos y terminan en la misma versión objetivo **2.31.98**. No debes ejecutar ambos sobre la misma base. Selecciona la base correcta antes de correr el archivo correspondiente.
-
-El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF EXISTS` / `IF NOT EXISTS`) para que pueda ejecutarse desde phpMyAdmin local.
-
-
-- Las fuentes web, reglas y conocimiento aprobado se comparten entre todos los sitios autorizados que pertenecen al mismo `tenant_id`.
-- ES MULTISERVICIOS puede responder sobre IZZY, ZYNKO, NIVO y CAMI desde cualquiera de sus sitios autorizados, sin copiar conocimiento por dominio.
-- Los tenants de clientes continúan totalmente aislados: nunca reciben conocimiento de ES MULTISERVICIOS ni de otros clientes.
-- Se agregan reglas base y catálogo de soluciones para el tenant principal ES MULTISERVICIOS mediante `ZYNKO_UPDATE_DB_COMPLETO.sql`.
-- `WS_PUBLIC_URL` queda administrable desde Configuración y tiene prioridad cuando existe un reverse proxy/TLS para WebSocket.
-- `.env.example` es solo una plantilla. El `.env` real nunca se incluye en los ZIP y el instalador lo crea en cada servidor.
 
 ## V2.31.96 · NIVO Web Chat + NIVO IA: comunicación bilateral y handoff real
 - Cada mensaje del visitante se persiste en la Bandeja antes de ejecutar NIVO y los eventos WebSocket son aceleradores: si el realtime falla, el chat sigue operativo mediante polling.
@@ -408,7 +397,7 @@ El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF
 - Corrige `knowledge_sources` para contenido web Unicode/emoji con `utf8mb4`.
 - Refuerza la sincronización web en instalaciones antiguas.
 - Al guardar una fuente web, el modal se cierra y el formulario se limpia antes de recargar.
-- Mantiene `ZYNKO_UPDATE_DB_COMPLETO.sql` acumulativo para producción.
+- Mantiene `database/upgrade-omnichannel.sql` acumulativo para producción.
 
 ## V2.31.83 · UTF-8/emoji seguro en NIVO Web Chat
 
@@ -416,7 +405,7 @@ El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF
 - NIVO puede guardar saludos y mensajes con emojis sin lanzar `SQLSTATE[22007]/1366 Incorrect string value`.
 - `webchat-api.php` verifica defensivamente la columna `messages.body` y la migra a `utf8mb4` si detecta una instalación antigua.
 - Todas las conexiones principales fuerzan `SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci`.
-- El paquete acumulativo `ZYNKO_UPDATE_DB_COMPLETO.sql` normaliza las columnas de texto críticas de chat y conocimiento.
+- El historial de actualizaciones de `database/upgrade-omnichannel.sql` contempla las columnas de texto críticas de chat y conocimiento.
 - No se eliminan mensajes ni conversaciones existentes.
 
 ## V2.31.82 · NIVO continuo y controles premium del widget
@@ -439,7 +428,7 @@ El archivo LOCAL elimina `PREPARE/EXECUTE` y usa DDL idempotente de MariaDB (`IF
 - El visitante puede **Finalizar chat**, calificar la atención de 1 a 5 estrellas, dejar comentario e iniciar una conversación nueva.
 - Desde Bandeja, **Finalizar chat** conserva el historial y solicita encuesta automáticamente para conversaciones Web Chat.
 - Cliente 360° muestra el estado/resultado de satisfacción cuando existe.
-- Requiere ejecutar `ZYNKO_UPDATE_DB_COMPLETO.sql` una vez para crear `conversation_surveys`.
+- Requiere aplicar la migración correspondiente de `database/upgrade-omnichannel.sql` para crear `conversation_surveys`.
 
 ## V2.31.78 · Emoji picker estable
 

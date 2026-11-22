@@ -15,4 +15,4 @@ Evolucionar NIVO desde respuestas por coincidencia hacia un asistente conversaci
 - Fallback seguro: una pregunta no comprendida nunca debe cerrar ni romper la conversación.
 
 ## Base de datos
-Sí requiere actualización. Ejecutar el paquete acumulativo `ZYNKO_UPDATE_DB_COMPLETO_SERVER.sql` o `ZYNKO_UPDATE_DB_COMPLETO.sql`.
+Sí requiere actualización. Ejecutar el paquete acumulativo `database/upgrade-omnichannel.sql` (confirmar previamente las migraciones históricas pendientes).

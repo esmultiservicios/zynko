@@ -6,6 +6,7 @@ require_once __DIR__.'/AutomationEngine.php';
 require_once __DIR__.'/NivoEngine.php';
 require_once __DIR__.'/../Support/ChannelSecurity.php';
 require_once __DIR__.'/../Support/ChannelIdentity.php';
+require_once __DIR__.'/../Support/AccessPolicy.php';
 
 final class ChannelIngress
 {
@@ -34,7 +35,7 @@ final class ChannelIngress
     }
     public function handle(array $ch,array $events): int
     {
-        $count=0;$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$type=(string)$ch['type'];$plan=zynkoPlanContext($this->pdo,$tid,false);
+        ZynkoAccessPolicy::ensureTables($this->pdo);$count=0;$tid=(int)$ch['tenant_id'];$id=(int)$ch['id'];$type=(string)$ch['type'];$plan=zynkoPlanContext($this->pdo,$tid,false);$apiOnlyTenant=($plan['plan_code']??'')==='api_only';
         foreach($events as $ev){$kind=(string)($ev['kind']??'');if(!empty(ChannelSecurity::settings($ch)['phone_conflict']))continue;if($kind==='watermark'){$this->gateway->applyWatermark($ch,(string)($ev['from']??''),(int)($ev['watermark']??0),(string)($ev['status']??'read'));$count++;continue;}if($kind==='status'){$this->gateway->applyStatus($ch,(string)($ev['external']??''),(string)($ev['status']??''),(string)($ev['from']??''),(int)($ev['error_code']??0));$count++;continue;}
             if(!zynkoPlanAllowsChannel($plan,$type))continue;
             $from=trim((string)($ev['from']??''));if($from===''||strlen($from)>190)continue;$external=trim((string)($ev['external']??''));if($kind!=='contact'&&$external==='')continue;
@@ -55,9 +56,9 @@ final class ChannelIngress
                 if($kind==='comment'){$this->pdo->commit();if($type==='instagram'&&!$historical&&!$echo)$this->comment($ch,$from,$text,$external);$count++;continue;}
                 $contact=$this->contact($ch,$from,$name);if($kind==='contact'){$this->pdo->commit();$count++;continue;}
                 if($text===''){$this->pdo->commit();continue;}
-                $q=$this->pdo->prepare("SELECT id,assigned_user_id FROM conversations WHERE tenant_id=? AND channel_id=? AND contact_id=? AND deleted_at IS NULL AND (status IN ('open','pending') OR ?=1) ORDER BY id DESC LIMIT 1");$q->execute([$tid,$id,$contact,$historical?1:0]);$conv=$q->fetch();$cid=(int)($conv['id']??0);
+                $lookupSql="SELECT id,assigned_user_id FROM conversations WHERE tenant_id=? AND channel_id=? AND contact_id=? AND deleted_at IS NULL AND (status IN ('open','pending') OR ?=1)".($apiOnlyTenant?' AND api_only=1':'')." ORDER BY COALESCE(last_message_at,created_at) DESC,id DESC LIMIT 1";$q=$this->pdo->prepare($lookupSql);$q->execute([$tid,$id,$contact,$historical?1:0]);$conv=$q->fetch();$cid=(int)($conv['id']??0);
                 $stamp=(int)($ev['timestamp']??0);$sentAt=$stamp>0&&$stamp<=time()+300?date('Y-m-d H:i:s',$stamp):date('Y-m-d H:i:s');
-                if(!$cid){zynkoPlanRequireChatCapacity($this->pdo,$tid,$plan,$type);$this->pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at) VALUES(?,?,?,?,?,?)")->execute([$tid,self::uuid(),$id,$contact,$historical?'resolved':'open',$sentAt]);$cid=(int)$this->pdo->lastInsertId();}
+                if(!$cid){zynkoPlanRequireChatCapacity($this->pdo,$tid,$plan,$type);$this->pdo->prepare("INSERT INTO conversations(tenant_id,uuid,channel_id,contact_id,status,last_message_at,api_only) VALUES(?,?,?,?,?,?,?)")->execute([$tid,self::uuid(),$id,$contact,$historical?'resolved':'open',$sentAt,$apiOnlyTenant?1:0]);$cid=(int)$this->pdo->lastInsertId();}
                 $media=$ev['media']??[];if(in_array($type,['messenger','instagram'],true)){
                     $env=@parse_ini_file($this->root.'/.env',false,INI_SCANNER_RAW)?:[];
                     foreach($media as $i=>&$f){$url=(string)($f['source_url']??'');unset($f['source_url']);if(!ChannelSecurity::metaMediaUrl($url))continue;$key=hash('sha256',$external.'|'.$i);$cipher=ChannelSecurity::encrypt($url,$env);$this->pdo->prepare('INSERT IGNORE INTO channel_media_assets(channel_id,tenant_id,asset_key,source_ciphertext) VALUES(?,?,?,?)')->execute([$id,$tid,$key,$cipher]);$f['provider_id']=$key;}unset($f);
@@ -71,7 +72,7 @@ final class ChannelIngress
             }catch(Throwable $e){if($this->pdo->inTransaction())$this->pdo->rollBack();throw $e;}
             // Never respond to a historical message, an echo, a reaction, or media without a text caption.
             if($echo||$historical||!$mid||$kind!=='message'||in_array($ev['message_type']??'text',['reaction','location','contacts'],true)||(!empty($ev['media'])&&preg_match('/^\[[^\]]+\]$/D',$text)))continue;
-            $this->automate($ch,$cid,$text,$name);
+            if(!$apiOnlyTenant)$this->automate($ch,$cid,$text,$name);
         }
         $this->pdo->prepare('UPDATE channels SET last_event_at=NOW() WHERE id=? AND tenant_id=?')->execute([$id,$tid]);return $count;
     }

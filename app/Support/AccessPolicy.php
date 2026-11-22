@@ -11,6 +11,7 @@ final class ZynkoAccessPolicy
             'whatsapp:bulk'=>['WhatsApp masivo','Envíe a varios contactos autorizados en una solicitud.','fa-solid fa-users'],
             'whatsapp:status'=>['Estados de WhatsApp','Consulte el UUID, la entrega y el motivo de fallo.','fa-solid fa-list-check'],
             'messages:send'=>['Mensajes generales','Conserve el endpoint individual de mensajería anterior.','fa-solid fa-paper-plane'],
+            'messages:bulk'=>['Envío masivo por canal','Envía texto a 2–100 destinatarios autorizados de Messenger, Instagram y otros canales compatibles.','fa-solid fa-people-group'],
             'messages:receive'=>['Recibir mensajes','Ingrese mensajes y active el flujo de NIVO.','fa-solid fa-inbox'],
             'nivo:context'=>['Consultar NIVO','Consulte el contexto autorizado de NIVO.','fa-solid fa-robot'],
         ];
@@ -91,6 +92,27 @@ final class ZynkoAccessPolicy
 
     public static function ensureTables(PDO $pdo): void
     {
+        static $checked=[];
+        $connectionId=spl_object_id($pdo);
+        if(isset($checked[$connectionId]))return;
+        // Preserve existing keys and make the new per-channel policy opt-in.
+        foreach(['channel_id'=>'channel_id BIGINT UNSIGNED NULL','delivery_mode'=>"delivery_mode VARCHAR(20) NOT NULL DEFAULT 'inbox'"] as $column=>$ddl){
+            $q=$pdo->query("SHOW COLUMNS FROM api_keys LIKE ".$pdo->quote($column));
+            if(!$q->fetch())$pdo->exec("ALTER TABLE api_keys ADD ".$ddl);
+        }
+        $q=$pdo->query("SHOW COLUMNS FROM conversations LIKE 'api_only'");
+        if(!$q->fetch())$pdo->exec("ALTER TABLE conversations ADD api_only TINYINT(1) NOT NULL DEFAULT 0, ADD INDEX idx_conv_api_visibility(tenant_id,api_only)");
+        elseif(!$pdo->query("SHOW INDEX FROM conversations WHERE Key_name='idx_conv_api_visibility'")->fetch())$pdo->exec('CREATE INDEX idx_conv_api_visibility ON conversations(tenant_id,api_only)');
+        $pdo->exec("CREATE TABLE IF NOT EXISTS api_message_history(
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY, tenant_id BIGINT UNSIGNED NOT NULL,
+            api_key_id BIGINT UNSIGNED NOT NULL, channel_id BIGINT UNSIGNED NOT NULL,
+            message_id BIGINT UNSIGNED NOT NULL, destination VARCHAR(80) NOT NULL,
+            delivery_mode VARCHAR(20) NOT NULL DEFAULT 'independent',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_api_history_message(message_id),
+            INDEX idx_api_history_tenant(tenant_id,created_at),
+            INDEX idx_api_history_key(tenant_id,api_key_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         $pdo->exec("CREATE TABLE IF NOT EXISTS api_client_policies(
             api_key_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,
             tenant_id BIGINT UNSIGNED NOT NULL,
@@ -109,6 +131,7 @@ final class ZynkoAccessPolicy
             updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             PRIMARY KEY(api_key_id,bucket_minute)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $checked[$connectionId]=true;
     }
 
     public static function policyForKey(PDO $pdo,int $keyId,int $tenantId): array

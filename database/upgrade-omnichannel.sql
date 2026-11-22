@@ -169,3 +169,33 @@ CREATE TABLE IF NOT EXISTS department_routes (
  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
  PRIMARY KEY(tenant_id,team_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ZYNKO 2.31.155 — Plan API y registro separado de envíos (aditivo; no borra registros)
+-- MariaDB 10.11+: ejecutar sobre la base ZYNKO, una vez; seguro ante reejecución.
+ALTER TABLE api_keys
+  ADD COLUMN IF NOT EXISTS channel_id BIGINT UNSIGNED NULL,
+  ADD COLUMN IF NOT EXISTS delivery_mode VARCHAR(20) NOT NULL DEFAULT 'inbox';
+ALTER TABLE conversations
+  ADD COLUMN IF NOT EXISTS api_only TINYINT(1) NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS idx_conv_api_visibility ON conversations(tenant_id,api_only);
+CREATE TABLE IF NOT EXISTS api_message_history (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  tenant_id BIGINT UNSIGNED NOT NULL,
+  api_key_id BIGINT UNSIGNED NOT NULL,
+  channel_id BIGINT UNSIGNED NOT NULL,
+  message_id BIGINT UNSIGNED NOT NULL,
+  destination VARCHAR(80) NOT NULL,
+  delivery_mode VARCHAR(20) NOT NULL DEFAULT 'independent',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_api_history_message(message_id),
+  INDEX idx_api_history_tenant(tenant_id,created_at),
+  INDEX idx_api_history_key(tenant_id,api_key_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+INSERT INTO subscription_plans
+  (code,name,monthly_price,currency,max_users,max_channels,distinct_external_types,max_webchat_sites,max_daily_chats,max_monthly_chats,allowed_channels_json,module_access_json,features_json,is_default_free,is_featured,is_available,availability_label,active)
+SELECT 'api_only','ZYNKO API',0,'USD',1,1,1,0,NULL,NULL,
+  JSON_ARRAY('whatsapp'),
+  JSON_OBJECT('dashboard',1,'channels',1,'integrations',1,'api',1,'billing',1),
+  JSON_ARRAY('API de WhatsApp individual y masiva','Vinculación de número propio','Claves API por canal','Historial de envíos independiente','Sin bandeja omnicanal'),
+  0,0,0,'Próximamente',1
+WHERE NOT EXISTS (SELECT 1 FROM subscription_plans WHERE code='api_only');
