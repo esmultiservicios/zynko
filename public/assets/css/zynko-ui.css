@@ -7209,3 +7209,61 @@ body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:no
 body>.select2-container--open .select2-dropdown.zynko-section-dropdown{max-width:calc(100vw - 24px)!important;box-sizing:border-box;overflow:hidden}
 body>.select2-container--open .select2-dropdown.zynko-section-dropdown .select2-results__options{max-height:min(280px,45vh)!important;overflow-y:auto}
 @media(max-width:680px){.api-key-page-control{width:100%;justify-content:flex-end}.api-key-pagination{justify-content:center}.api-key-pagination .field-help{width:100%;text-align:center}}
+
+/* v040 · Paneles plegables — reaprovecha las tarjetas, colores, espaciados y botones ZYNKO. */
+.zynko-fold-shell{padding:15px!important;min-width:0;max-width:100%;border-radius:16px;margin-block:16px!important}
+.zynko-fold-head{display:flex!important;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;min-width:0}
+.zynko-fold-head .premium-card-head-icon{flex:0 0 44px}
+.zynko-fold-head-copy{flex:1 1 160px;min-width:0;display:grid;gap:4px}
+.zynko-fold-head-copy b{color:var(--text);font-size:15px;font-weight:850}
+.zynko-fold-head-copy small{color:var(--muted);font-size:12px;line-height:1.45}
+.zynko-fold-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:0 0 auto;padding:8px 12px!important;min-height:36px;border:1px solid var(--line)!important;border-radius:10px!important;color:var(--text)!important;background:var(--surface)!important;font-weight:750;cursor:pointer;white-space:nowrap;margin-left:auto;transition:background .15s,border-color .15s}
+.zynko-fold-button:hover,.zynko-fold-button:focus-visible{background:var(--surface2,#edf8f5)!important;border-color:var(--accent)!important}
+.zynko-fold-button i{color:var(--accent2,var(--accent));font-size:13px}
+.zynko-fold-shell>.zynko-fold-content{min-width:0;width:100%}
+.zynko-fold-content[hidden]{display:none!important}
+.zynko-fold-shell.zynko-fold-closed>.zynko-fold-head{margin-bottom:0}
+.zynko-fold-existing-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.zynko-fold-existing-head .zynko-fold-button{margin-left:auto}
+.zynko-fold-shell .premium-kpis,.zynko-fold-shell .company-kpis,.zynko-fold-shell .webchat-kpis{margin-bottom:0!important}
+.zynko-fold-shell>.zynko-fold-content>.dashboard-grid{margin:0!important}
+.zynko-fold-shell>.zynko-fold-content>.dashboard-summary-kpis,.zynko-fold-shell .dashboard-summary-kpis{margin:0!important}
+@media(max-width:720px){.zynko-fold-shell{padding:12px!important}.zynko-fold-head{gap:9px}.zynko-fold-button{margin-left:auto;padding:7px 10px!important}.zynko-fold-head-copy{flex-basis:130px}}
+@media(prefers-reduced-motion:reduce){.zynko-fold-button{transition:none}}
+/* Cliente 360º: Select2 múltiple compacto; la búsqueda va dentro del control al desplegar, no es otro editor. */
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:43px!important;padding:5px 34px 5px 11px!important;border-radius:11px!important;box-shadow:none!important}
+#contactCategoriesForm .select2-selection__rendered{align-items:center!important}
+#contactCategoriesForm .select2-container--default:not(.select2-container--open) .select2-search--inline{height:28px!important}
+#contactCategoriesForm .select2-container--default:not(.select2-container--open) .select2-search--inline input{height:28px!important;min-height:28px!important;margin:0!important;padding:0!important}
+#contactCategoriesForm .select2-container--open .select2-selection--multiple{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
+
+.zynko-webchat-nav{padding:16px!important;margin-bottom:16px!important;min-width:0;max-width:100%}
+.zynko-webchat-nav .zynko-section-nav-controls{margin-top:14px}
+.zynko-webchat-nav .field{margin:0;min-width:0}
+.zynko-webchat-nav .select2-container{width:100%!important;max-width:100%}
+.zynko-webchat-nav .select2-dropdown{max-width:100%;box-sizing:border-box}
+
+/* v041 · Correcciones acumulativas sobre v040; conservar tarjetas, datos y eventos existentes. */
+/* Los paneles hijos del dashboard deben determinar su alto natural; height:100% producía desbordamiento. */
+.zynko-fold-shell[data-zynko-fold="activity-channels"]{height:auto!important;min-height:0!important;overflow:visible!important}
+.zynko-fold-shell[data-zynko-fold="activity-channels"]>.zynko-fold-content{display:block;min-height:0;overflow:visible}
+.zynko-fold-shell[data-zynko-fold="activity-channels"]>.zynko-fold-content[hidden]{display:none!important}
+.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid{height:auto!important;min-height:0!important;grid-auto-rows:auto;align-items:stretch!important}
+.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid>.panel{height:auto!important;min-height:220px;align-self:stretch!important;margin:0!important}
+.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid .bars{min-height:175px;max-width:100%}
+/* El encabezado y los controles de filtros comparten un único espacio plegable. */
+.users-filter-panel.zynko-fold-shell,.company-control-panel.zynko-fold-shell,.billing-filter-panel.zynko-fold-shell{height:auto!important}
+.users-filter-panel .zynko-fold-existing-head,.company-control-panel .zynko-fold-existing-head,.billing-filter-panel .zynko-fold-existing-head{margin-bottom:12px;min-width:0}
+.users-filter-panel .zynko-fold-content,.company-control-panel .zynko-fold-content,.billing-filter-panel .zynko-fold-content{min-width:0}
+.users-filter-panel.zynko-fold-closed .zynko-fold-existing-head,.company-control-panel.zynko-fold-closed .zynko-fold-existing-head,.billing-filter-panel.zynko-fold-closed .zynko-fold-existing-head{margin-bottom:0}
+/* Precio pendiente ocupa una segunda fila: nunca se superpone con nombre ni distintivos. */
+.billing-plan-directory .plan-card.plan-price-pending .plan-card-identity{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;align-content:start}
+.billing-plan-directory .plan-card.plan-price-pending .plan-card-name{min-width:0;max-width:100%}
+.billing-plan-directory .plan-card.plan-price-pending .plan-price{display:block!important;position:static!important;justify-self:start;max-width:100%;white-space:normal!important;overflow-wrap:anywhere;line-height:1.3;font-size:clamp(15px,1.4vw,19px);margin:0!important}
+.billing-plan-directory .plan-card.plan-price-pending .plan-coming-soon-note{margin-top:4px!important}
+/* NIVO: the existing explainer is now a standard, collapsible group. */
+.zynko-fold-shell[data-zynko-fold="nivo-flow"] .nivo-ai-explainer{margin:0!important;min-width:0;max-width:100%}
+/* Web Chat Select2 is portalled to body; keep its width within the viewport. */
+body>.select2-container--open:has(.select2-dropdown){max-width:calc(100vw - 24px)!important;box-sizing:border-box}
+body>.select2-container--open .select2-dropdown{box-sizing:border-box;max-width:100%!important;min-width:0!important}
+@media(max-width:780px){.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid{grid-template-columns:minmax(0,1fr)!important}.billing-plan-directory .plan-card.plan-price-pending .plan-price{font-size:17px}}
