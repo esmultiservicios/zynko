@@ -163,10 +163,10 @@
 
 /* ZYNKO · RTE universal seguro: conserva el valor plano de backend para no romper lógica existente. */
 (()=>{
- const EXCLUDE='[hidden],.legal-html-source,[data-no-rte],.swal2-textarea';
+ const EXCLUDE='[hidden],.legal-html-source,[data-no-rte],.swal2-textarea,.select2-search__field,.select2-search textarea';
  const esc=s=>String(s??'').replace(/[&<>\"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[m]||m));
  const enhance=ta=>{
-  if(!ta||ta.dataset.zynkoRteReady==='1'||ta.matches(EXCLUDE)||ta.closest('.legal-rich-editor-shell,.zynko-rte-shell'))return;
+  if(!ta||ta.dataset.zynkoRteReady==='1'||ta.matches(EXCLUDE)||ta.closest('.legal-rich-editor-shell,.zynko-rte-shell,.select2-container,.select2-dropdown,.select2-search'))return;
   if(ta.type==='hidden'||getComputedStyle(ta).display==='none')return;
   ta.dataset.zynkoRteReady='1';
   const shell=document.createElement('div');shell.className='zynko-rte-shell';

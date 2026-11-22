@@ -7152,3 +7152,18 @@ select.select2-hidden-accessible{display:none!important}
 .zynko-section-nav #zynkoSectionCount{display:block;margin-top:8px}
 .nivo-weekend-hours{margin-top:12px}
 @media(max-width:720px){.zynko-section-nav-controls{grid-template-columns:1fr}}
+
+/* v036 · Navegador de secciones: dropdown visible y controles dentro del ancho útil. */
+.zynko-section-nav{min-width:0;max-width:100%;overflow:visible!important}
+.zynko-section-nav-controls{min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,300px)}
+.zynko-section-nav-controls>.field,.zynko-section-search{min-width:0;max-width:100%}
+.zynko-section-nav-controls .select2-container{width:100%!important;max-width:100%!important;min-width:0}
+.zynko-section-nav #zynkoSectionCount{margin-top:15px!important;padding-top:3px;line-height:1.5}
+.zynko-section-nav .select2-selection{max-width:100%;box-sizing:border-box}
+body>.select2-container--open .select2-dropdown{max-width:calc(100vw - 24px)!important;box-sizing:border-box}
+body>.select2-container--open .select2-results__options{max-height:min(280px,45vh)!important;overflow-y:auto!important}
+@media(max-width:720px){.zynko-section-nav-controls{grid-template-columns:minmax(0,1fr)}}
+/* El selector de categorías nunca contiene un editor: solo el campo de búsqueda de Select2. */
+#contactCategoriesForm .select2-container{min-width:0;max-width:100%}
+#contactCategoriesForm .select2-selection--multiple{box-sizing:border-box;min-height:44px}
+#client360DetailsModal .select2-dropdown{max-width:calc(100vw - 30px)!important}

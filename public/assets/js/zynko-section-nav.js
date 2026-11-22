@@ -18,13 +18,13 @@
     matches.forEach(x=>{const option=document.createElement('option');option.value=String(x.index);option.textContent=x.name;select.appendChild(option)});
     const active=matches.find(x=>x.index===prev)||matches[0];if(active)select.value=String(active.index);
     data.forEach(x=>{x.el.hidden=!active||x.index!==active.index;x.el.classList.toggle('zynko-section-hidden',!active||x.index!==active.index)});
-    counter.textContent=matches.length?`${matches.length} sección(es) encontrada(s) · ${active?.name||''}`:'No se encontraron secciones. Prueba con otra palabra.';
+    counter.textContent=matches.length?`${matches.length} sección(es) encontrada(s) · ${active?.name||''}`:'No se encontraron secciones. Prueba con otra palabra.';counter.setAttribute('role','status');
     clear.hidden=!search.value;if(window.jQuery&&jQuery.fn.select2&&jQuery(select).data('select2'))jQuery(select).trigger('change.select2');
   };
   select.addEventListener('change',()=>{const active=Number(select.value);data.forEach(x=>{x.el.hidden=x.index!==active;x.el.classList.toggle('zynko-section-hidden',x.index!==active)})});
   search.addEventListener('input',()=>render(search.value));clear.addEventListener('click',()=>{search.value='';render();search.focus()});
   const target=location.hash.slice(1);let initial=data.find(x=>x.el.id===target);if(initial){render();select.value=String(initial.index);select.dispatchEvent(new Event('change'));}else render();
-  if(window.jQuery&&jQuery.fn.select2&&!jQuery(select).data('select2'))jQuery(select).select2({width:'100%',dropdownParent:jQuery(nav),minimumResultsForSearch:0});
+  if(window.jQuery&&jQuery.fn.select2&&!jQuery(select).data('select2'))jQuery(select).select2({width:'100%',dropdownParent:jQuery(document.body),dropdownAutoWidth:false,minimumResultsForSearch:0});
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
