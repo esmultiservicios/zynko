@@ -7178,3 +7178,16 @@ body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:no
 #contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{height:28px!important;min-height:28px!important;width:100%!important;max-width:100%!important;margin:0!important;padding:2px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:0!important}
 #contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field:focus{box-shadow:none!important;outline:0!important}
 #contactCategoriesForm .select2-container--focus .select2-selection--multiple{border-color:#10a58a!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
+
+/* v038 · Explorador: el selector muestra el panel elegido, sin abrir un segundo control. */
+.zynko-section-nav .select2-container--open .select2-dropdown{max-width:100%;box-sizing:border-box}
+/* Cliente 360°: Select2 múltiple con aspecto del selector estándar del proyecto. */
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{position:relative;padding-right:32px!important;background:var(--surface)!important;cursor:pointer}
+#contactCategoriesForm .select2-container--default .select2-selection--multiple:after{content:'';position:absolute;right:15px;top:calc(50% - 2px);border:4px solid transparent;border-top-color:var(--muted);pointer-events:none}
+#contactCategoriesForm .select2-selection--multiple .select2-search__field{color:var(--text)!important;font:inherit!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search__field:focus{outline:0!important;box-shadow:none!important}
+#contactCategoriesForm .select2-container--default .select2-selection--multiple:focus-within{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(13,155,131,.10)!important}
+/* Clave recién creada: mostrar el resultado delante del formulario intacto. */
+#apiKeyModal.open{z-index:1100!important}
+#apiKeyResultModal.open{z-index:1120!important}
+@media(max-width:760px){body.zynko-phone #apiKeyResultModal.open{z-index:1150!important}}
