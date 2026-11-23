@@ -7135,9 +7135,9 @@ select.select2-hidden-accessible{display:none!important}
 .insight-data-head{position:sticky;top:0;z-index:1;background:var(--surface-secondary,#f5f9fa);font-weight:750;color:var(--text,#142238)}
 .insight-data-head>span{white-space:nowrap}
 .insight-data-empty{padding:20px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--muted,#64748b)}
-#contactCategoriesForm .select2-container{width:100%!important}
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:44px;border-radius:11px;border:1px solid var(--line,#dbe4ea);padding:4px 8px}
-#contactCategoriesForm .select2-container--default.select2-container--focus .select2-selection--multiple{border-color:#10a58a;box-shadow:0 0 0 3px rgba(16,165,138,.12)}
+
+
+
 @media(max-width:680px){.zynko-insight .insight-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-data-row>span{padding:10px}}
 
 /* v035: indexador de secciones; mantiene la paleta y radios actuales. */
@@ -7164,29 +7164,28 @@ body>.select2-container--open .select2-dropdown{max-width:calc(100vw - 24px)!imp
 body>.select2-container--open .select2-results__options{max-height:min(280px,45vh)!important;overflow-y:auto!important}
 @media(max-width:720px){.zynko-section-nav-controls{grid-template-columns:minmax(0,1fr)}}
 /* El selector de categorías nunca contiene un editor: solo el campo de búsqueda de Select2. */
-#contactCategoriesForm .select2-container{min-width:0;max-width:100%}
-#contactCategoriesForm .select2-selection--multiple{box-sizing:border-box;min-height:44px}
+
+
 #client360DetailsModal .select2-dropdown{max-width:calc(100vw - 30px)!important}
 
 /* v037 · Solo la sección activa debe ser visible desde el primer pintado. */
 body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:not(.zynko-section-nav){visibility:hidden!important}
 .zynko-section-hidden,[hidden].zynko-section-hidden{display:none!important}
 /* Select2 múltiple de categorías: una sola superficie de entrada, sin cajas anidadas. */
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:44px!important;height:auto!important;padding:5px 9px!important;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:4px;border-radius:11px!important}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px;width:100%!important;margin:0!important;padding:0!important;min-height:28px!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline{flex:1 1 170px!important;max-width:100%!important;min-width:0!important;margin:0!important;padding:0!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{height:28px!important;min-height:28px!important;width:100%!important;max-width:100%!important;margin:0!important;padding:2px 3px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;outline:0!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field:focus{box-shadow:none!important;outline:0!important}
-#contactCategoriesForm .select2-container--focus .select2-selection--multiple{border-color:#10a58a!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
+
+
+
+
+
+
 
 /* v038 · Explorador: el selector muestra el panel elegido, sin abrir un segundo control. */
 .zynko-section-nav .select2-container--open .select2-dropdown{max-width:100%;box-sizing:border-box}
-/* Cliente 360°: Select2 múltiple con aspecto del selector estándar del proyecto. */
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{position:relative;padding-right:32px!important;background:var(--surface)!important;cursor:pointer}
-#contactCategoriesForm .select2-container--default .select2-selection--multiple:after{content:'';position:absolute;right:15px;top:calc(50% - 2px);border:4px solid transparent;border-top-color:var(--muted);pointer-events:none}
-#contactCategoriesForm .select2-selection--multiple .select2-search__field{color:var(--text)!important;font:inherit!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search__field:focus{outline:0!important;box-shadow:none!important}
-#contactCategoriesForm .select2-container--default .select2-selection--multiple:focus-within{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(13,155,131,.10)!important}
+
+
+
+
+
 /* Clave recién creada: mostrar el resultado delante del formulario intacto. */
 #apiKeyModal.open{z-index:1100!important}
 #apiKeyResultModal.open{z-index:1120!important}
@@ -7230,12 +7229,11 @@ body>.select2-container--open .select2-dropdown.zynko-section-dropdown .select2-
 .zynko-fold-shell>.zynko-fold-content>.dashboard-summary-kpis,.zynko-fold-shell .dashboard-summary-kpis{margin:0!important}
 @media(max-width:720px){.zynko-fold-shell{padding:12px!important}.zynko-fold-head{gap:9px}.zynko-fold-button{margin-left:auto;padding:7px 10px!important}.zynko-fold-head-copy{flex-basis:130px}}
 @media(prefers-reduced-motion:reduce){.zynko-fold-button{transition:none}}
-/* Cliente 360º: Select2 múltiple compacto; la búsqueda va dentro del control al desplegar, no es otro editor. */
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:43px!important;padding:5px 34px 5px 11px!important;border-radius:11px!important;box-shadow:none!important}
-#contactCategoriesForm .select2-selection__rendered{align-items:center!important}
-#contactCategoriesForm .select2-container--default:not(.select2-container--open) .select2-search--inline{height:28px!important}
-#contactCategoriesForm .select2-container--default:not(.select2-container--open) .select2-search--inline input{height:28px!important;min-height:28px!important;margin:0!important;padding:0!important}
-#contactCategoriesForm .select2-container--open .select2-selection--multiple{border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(16,165,138,.12)!important}
+
+
+
+
+
 
 .zynko-webchat-nav{padding:16px!important;margin-bottom:16px!important;min-width:0;max-width:100%}
 .zynko-webchat-nav .zynko-section-nav-controls{margin-top:14px}
@@ -7298,12 +7296,12 @@ body>.select2-container--open.zynko-api-size-dropdown .select2-dropdown{max-widt
 .nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{margin:0!important;width:100%;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:stretch}
 .nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpi{height:auto!important;min-height:86px}
 /* Cliente 360°: a compact Select2 multi-selection, same height and radius as regular selects. */
-#contactCategoriesForm .select2-container{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important}
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{box-sizing:border-box!important;min-height:43px!important;height:auto!important;padding:5px 34px 5px 11px!important;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px!important;border:1px solid var(--line)!important;border-radius:11px!important}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px!important;min-height:30px!important;padding:0!important;margin:0!important;width:100%!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline{height:30px!important;min-height:30px!important;max-height:30px!important;line-height:30px!important;flex:1 1 130px!important;width:auto!important;max-width:100%!important;margin:0!important;padding:0!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{display:block!important;box-sizing:border-box!important;height:30px!important;min-height:30px!important;max-height:30px!important;line-height:30px!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;outline:none!important}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__choice{margin-top:2px!important;margin-bottom:2px!important}
+
+
+
+
+
+
 #client360DetailsModal .select2-container--open .select2-dropdown{box-sizing:border-box!important;max-width:100%!important}
 @media(max-width:720px){.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
@@ -7331,28 +7329,16 @@ body:has(.nivo-webchat-page):not(.page-inbox) .main>main{
 }
 .nivo-webchat-page .nivo-webchat-rail{grid-template-rows:auto!important;align-content:start!important}
 .nivo-webchat-page .nivo-webchat-rail>.nivo-rail-tools-card{min-height:0!important;align-self:start!important}
-/* v046 — El Select2 múltiple de Cliente 360° debe tener el alto de los demás selectores.
-   Las categorías elegidas se mantienen en una fila, sin agrandar el control. */
-#contactCategoriesForm .select2-container--default .select2-selection--multiple{
-  height:43px!important;min-height:43px!important;max-height:43px!important;
-  padding:5px 32px 5px 10px!important;display:flex!important;align-items:center!important;
-  flex-wrap:nowrap!important;overflow:hidden!important;
-}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{
-  min-height:30px!important;height:30px!important;max-height:30px!important;
-  display:flex!important;align-items:center!important;flex-wrap:nowrap!important;
-  overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;
-}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered::-webkit-scrollbar{display:none}
-#contactCategoriesForm .select2-selection--multiple .select2-selection__choice{flex:0 0 auto!important;max-width:185px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline{
-  flex:1 0 120px!important;width:auto!important;min-width:90px!important;max-width:none!important;
-  height:28px!important;min-height:28px!important;max-height:28px!important;
-}
-#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{
-  width:100%!important;height:28px!important;min-height:28px!important;max-height:28px!important;
-  line-height:28px!important;box-shadow:none!important;border:0!important;
-}
 /* Tarjeta de indicadores NIVO: presente desde el HTML, no aparece después por JS. */
 .zynko-server-fold[data-zynko-fold="nivo-kpis"]{margin-bottom:16px!important}
 .zynko-server-fold[data-zynko-fold="nivo-kpis"] .nivo-kpis{margin:0!important}
+
+/* Cliente 360°: Select2 estándar de selección única, como los demás controles.
+   Las categorías seleccionadas se muestran aparte para mantener la asignación múltiple. */
+#contactCategoriesForm .select2-container{width:100%!important;max-width:100%;min-width:0}
+#client360CategoryChips:empty{display:none}
+.client360-category-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.client360-category-chip{display:inline-flex;align-items:center;gap:7px;max-width:100%;padding:5px 8px 5px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-secondary,#f4f9f8);color:var(--text);font-size:12px}
+.client360-category-chip>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.client360-category-remove{display:inline-flex;align-items:center;justify-content:center;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:3px;border-radius:6px}
+.client360-category-remove:hover,.client360-category-remove:focus-visible{color:var(--text);background:var(--surface)}
