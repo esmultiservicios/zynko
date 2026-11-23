@@ -7287,3 +7287,22 @@ body>.select2-container--open .select2-dropdown{box-sizing:border-box;max-width:
 .api-key-page-control select.select2-hidden-accessible{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;overflow:hidden!important}
 body>.select2-container--open.zynko-api-size-dropdown{z-index:13000!important;max-width:calc(100vw - 20px)!important}
 body>.select2-container--open.zynko-api-size-dropdown .select2-dropdown{max-width:100%!important;min-width:0!important}
+
+/* v043 — Web Chat: reusable Select2 and a full-width KPI parent below navigation. */
+.nivo-webchat-page .zynko-webchat-nav{position:relative!important;overflow:visible!important}
+.nivo-webchat-page .zynko-webchat-nav .select2-container{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important}
+.nivo-webchat-page .zynko-webchat-nav .select2-selection--single{height:43px!important;min-height:43px!important;border-radius:11px!important}
+.nivo-webchat-page .zynko-webchat-nav .select2-selection__rendered{line-height:41px!important}
+.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"]{margin:15px 0 17px!important;min-width:0;max-width:100%;height:auto!important}
+.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"]>.zynko-fold-content{width:100%;min-width:0}
+.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{margin:0!important;width:100%;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));align-items:stretch}
+.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpi{height:auto!important;min-height:86px}
+/* Cliente 360°: a compact Select2 multi-selection, same height and radius as regular selects. */
+#contactCategoriesForm .select2-container{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important}
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{box-sizing:border-box!important;min-height:43px!important;height:auto!important;padding:5px 34px 5px 11px!important;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px!important;border:1px solid var(--line)!important;border-radius:11px!important}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:3px!important;min-height:30px!important;padding:0!important;margin:0!important;width:100%!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline{height:30px!important;min-height:30px!important;max-height:30px!important;line-height:30px!important;flex:1 1 130px!important;width:auto!important;max-width:100%!important;margin:0!important;padding:0!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{display:block!important;box-sizing:border-box!important;height:30px!important;min-height:30px!important;max-height:30px!important;line-height:30px!important;width:100%!important;max-width:100%!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;outline:none!important}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__choice{margin-top:2px!important;margin-bottom:2px!important}
+#client360DetailsModal .select2-container--open .select2-dropdown{box-sizing:border-box!important;max-width:100%!important}
+@media(max-width:720px){.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
