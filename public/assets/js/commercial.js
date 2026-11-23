@@ -6,7 +6,30 @@
  const tr=(es,english)=>en()?english:es;
  const notify=(type,title,message)=>{if(typeof window.showNotify==='function')window.showNotify(type,title,message);else console.warn(title,message);};
  const enhance=d=>{window.ZynkoSearchSelects?.(d);if(window.jQuery?.fn?.select2){qa('select.zc-select',d).forEach(el=>{const j=window.jQuery(el);if(!j.hasClass('select2-hidden-accessible')){j.select2({dropdownParent:window.jQuery(d),width:'100%',minimumResultsForSearch:0});j.on('select2:select',()=>el.dispatchEvent(new Event('change',{bubbles:true})));}});}};
- const open=(id,trigger)=>{const d=document.getElementById(id);if(!(d instanceof HTMLDialogElement)||d.open)return false;d.showModal();d._zcTrigger=trigger;enhance(d);return true;};
+ // The commercial tracking status Select2 must stay inside the native dialog.
+ // The global initializer runs first, so replace just this one instance with
+ // the same ZYNKO Select2 configured for the dialog's available height.
+ const setupActivationStatus=d=>{
+  if(!d?.matches?.('#zc-activation-center')||!window.jQuery?.fn?.select2)return;
+  const el=q('select[name="act_status"]',d);
+  if(!el)return;
+  const $el=window.jQuery(el);
+  if($el.hasClass('select2-hidden-accessible'))$el.select2('destroy');
+  $el.select2({width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,
+   dropdownParent:window.jQuery(d),dropdownCssClass:'zc-activation-status-dropdown'});
+  $el.off('.zcActivationStatus').on('select2:open.zcActivationStatus',()=>{
+   const selection=$el.next('.select2-container').find('.select2-selection')[0];
+   const results=d.querySelector('.zc-activation-status-dropdown .select2-results__options');
+   const footer=q('.zc-dialog-foot',d);
+   if(!selection||!results||!footer)return;
+   const below=footer.getBoundingClientRect().top-selection.getBoundingClientRect().bottom;
+   // Allow room for the search field, dropdown borders and padding.
+   const height=Math.max(56,Math.min(200,Math.floor(below-64)));
+   results.style.setProperty('max-height',height+'px','important');
+   results.style.setProperty('overflow-y','auto','important');
+  }).on('select2:select.zcActivationStatus',()=>el.dispatchEvent(new Event('change',{bubbles:true})));
+ };
+ const open=(id,trigger)=>{const d=document.getElementById(id);if(!(d instanceof HTMLDialogElement)||d.open)return false;d.showModal();d._zcTrigger=trigger;enhance(d);setupActivationStatus(d);return true;};
  document.addEventListener('click',e=>{
   const hide=e.target.closest?.('[data-zc-hide-comparison]');if(hide){const details=hide.closest('.zc-compare details');if(details){details.open=false;const summary=q('summary',details);summary?.focus({preventScroll:true});summary?.scrollIntoView({block:'center',behavior:'instant'});}return;}
   const b=e.target.closest?.('[data-zc-open]');if(b){e.preventDefault();open(b.dataset.zcOpen,b);return;}
@@ -30,7 +53,7 @@
    const doc=new DOMParser().parseFromString(await res.text(),'text/html'),center=q('#zc-activation-center'),fresh=q('#zc-activation-center',doc);
    if(!center||!fresh)throw new Error('Activation view unavailable');
    const body=q('.zc-dialog-body',center),replacement=q('.zc-dialog-body',fresh),pos=body.scrollTop;
-   destroySelects(body);body.replaceChildren(...replacement.childNodes);enhance(center);body.scrollTop=pos;
+   destroySelects(body);body.replaceChildren(...replacement.childNodes);enhance(center);setupActivationStatus(center);body.scrollTop=pos;
    const current=qa('dialog[id^="zc-track-"],#zc-activation-wizard');
    const incoming=qa('dialog[id^="zc-track-"],#zc-activation-wizard',doc);
    for(const d of current){const next=incoming.find(x=>x.id===d.id);if(d.open){const history=q('[data-zc-track-history]',d),updated=next&&q('[data-zc-track-history]',next);if(history&&updated)history.replaceChildren(...updated.childNodes);continue;}destroySelects(d);if(next)d.replaceWith(next);else d.remove();}

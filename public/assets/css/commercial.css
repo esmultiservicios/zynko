@@ -44,10 +44,14 @@ body.page-channels dialog.zc-dialog{box-sizing:border-box!important;margin:auto!
 @media(max-width:600px){.zc-dialog.zc-activation-center{width:calc(100vw - 20px);max-height:calc(100dvh - 20px)}.zc-activation-center>.zc-dialog-frame{max-height:calc(100dvh - 22px)}.zc-activation-center .zc-dialog-head{padding:13px 14px;gap:8px}.zc-activation-center .zc-dialog-body{padding:14px}.zc-activation-center .zc-dialog-foot{padding:12px 14px}#activationGuide .zc-activation-launch{grid-template-columns:auto minmax(0,1fr)}#activationGuide .zc-activation-launch .zc-actions{grid-column:1/-1}body.page-channels dialog.zc-dialog .zc-dialog-head{padding:12px 14px!important;gap:8px!important}body.page-channels dialog.zc-dialog .zc-dialog-foot{padding:10px 14px!important}.zc-comparison{gap:12px;padding:10px}.zc-comparison-group{padding:10px}.zc-comparison-row{padding:9px}.zc-comparison-value{padding:9px}.zc-comparison-group>h3{font-size:15px}}
 
 /* Keep Select2 in the native dialog top layer, outside the scrolling body. */
-dialog.zc-dialog:has(>.select2-container--open),body.page-channels dialog.zc-dialog:has(>.select2-container--open){overflow:visible!important}
+/* Keep the rounded dialog clipped while Select2 is open; do not expose its outer corners. */
 dialog.zc-dialog>.select2-container--open{z-index:100500!important}
 dialog.zc-dialog>.select2-container--open .select2-dropdown{max-width:calc(100vw - 24px)!important;z-index:100501!important}
 .zc-dialog .zc-button{text-decoration:none!important}
 .zc-dialog .zc-mini-card .zc-actions{margin:0;justify-content:flex-end}
 /* On short displays keep search and choices inside the visible viewport. */
 dialog.zc-dialog>.select2-container--open .select2-results>.select2-results__options{max-height:min(260px,max(72px,calc(45dvh - 70px)))!important;overflow-y:auto!important}
+
+/* Tracking status dropdown: searchable, bounded by the modal body and footer. */
+#zc-activation-center .zc-activation-status-dropdown{border-radius:10px!important;overflow:hidden!important;max-width:calc(100% - 24px)!important}
+#zc-activation-center .zc-activation-status-dropdown .select2-results__options{overscroll-behavior:contain!important;overflow-y:auto!important}
