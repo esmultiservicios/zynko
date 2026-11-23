@@ -96,8 +96,13 @@
         entries.forEach(([id])=>sections[id].classList.toggle('zynko-webchat-section-hidden',id!==key));
         if(select.value!==key){select.value=key;if(window.jQuery&&jQuery.fn.select2&&jQuery(select).hasClass('select2-hidden-accessible'))jQuery(select).trigger('change.select2')}
       };
+      // Select2 emits change through jQuery; addEventListener alone does not observe that event.
+      // Bind both event systems without changing the original select, its options or existing handlers.
       select.addEventListener('change',()=>show(select.value));
-      // Reuse the application's existing Select2 initializer and its searchable dropdown.
+      if(window.jQuery){
+        jQuery(select).on('change.zynkoWebchatSections',()=>show(select.value));
+      }
+      // Reuse Select2 with its searchable dropdown. The plugin remains the single visible selector.
       if(window.jQuery&&jQuery.fn.select2){
         jQuery(select).select2({width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,dropdownParent:jQuery(navigator)});
       }else if(typeof window.ZynkoSearchSelects==='function')window.ZynkoSearchSelects(navigator);
