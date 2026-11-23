@@ -579,7 +579,7 @@ $$('.alias-delete').forEach(b=>b.onclick=async()=>{const r=await Swal.fire({titl
 (()=>{
  const $=(s,c=document)=>c.querySelector(s),send=async fd=>{const r=await fetch(location.href,{method:'POST',headers:{'X-ZYNKO-AJAX':'1'},body:fd});return r.json()};
  const bind=(id,reload=false)=>$(id)?.addEventListener('submit',async e=>{e.preventDefault();const j=await send(new FormData(e.currentTarget));showNotify(j.ok?'success':'error',j.ok?'Listo':'Error',j.message);if(j.ok&&reload)setTimeout(()=>location.reload(),300)});
- bind('#contactProfileForm',true);bind('#contactCategoriesForm',true);bind('#followupForm',true);bind('#noteForm',true);bind('#categoryForm',true);
+ bind('#contactProfileForm',true);bind('#followupForm',true);bind('#noteForm',true);
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let busy=false,last='',lastCid='',listBusy=false,listQueued=false;
  const current=()=>{const form=$('#messageForm'),box=$('#messages'),cid=form?.querySelector('[name=conversation_id]')?.value||document.querySelector('.chat[data-current-conversation]')?.dataset.currentConversation||'';return{form,box,cid}};
@@ -1007,7 +1007,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
  document.addEventListener('submit',e=>{
    if(document.body.dataset.inboxAjaxReady!=='1')return;
    const form=e.target;
-   const ajaxForms=['messageForm','assignForm','contactProfileForm','contactCategoriesForm','followupForm','noteForm'];
+   const ajaxForms=['messageForm','assignForm','contactProfileForm','followupForm','noteForm'];
    if(!ajaxForms.includes(form.id))return;
    e.preventDefault();
    (async()=>{
@@ -1552,6 +1552,49 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   },true);
 })();
 
+
+// Cliente 360° — crear y guardar categorías sin recargar ni cerrar el modal padre.
+// Se escucha en captura porque la bandeja usa formularios y modales dinámicos.
+(()=>{
+  let sending=false;
+  document.addEventListener('submit',async event=>{
+    const form=event.target;
+    if(!form||!['categoryForm','contactCategoriesForm'].includes(form.id))return;
+    event.preventDefault();event.stopImmediatePropagation();
+    if(sending)return;
+    sending=true;
+    const submit=document.querySelector('button[form="'+form.id+'"]');
+    if(submit)submit.disabled=true;
+    try{
+      const response=await fetch(location.href,{method:'POST',credentials:'same-origin',headers:{'X-ZYNKO-AJAX':'1'},body:new FormData(form)});
+      const result=await response.json();
+      if(!response.ok||!result.ok){showNotify('error','Categorías',result.message||'No se pudo guardar.');return;}
+      if(form.id==='categoryForm'){
+        const id=String(result.data?.category_id||'');
+        const name=String(result.data?.category_name||form.elements.category_name?.value||'').trim();
+        if(id&&name){
+          // El selector puede haberse vuelto a crear por la navegación AJAX.
+          const select=document.getElementById('client360CategorySelect');
+          if(select){
+            let option=Array.from(select.options).find(item=>item.value===id);
+            if(!option){option=new Option(name,id,false,false);select.add(option);}
+            else option.textContent=name;
+            if(window.jQuery&&jQuery.fn.select2&&jQuery(select).data('select2'))jQuery(select).trigger('change.select2');
+          }
+          const filter=document.querySelector('#inboxFilters select[name="category"]');
+          if(filter&&!Array.from(filter.options).some(item=>item.value===id))filter.add(new Option(name,id));
+        }
+        const modal=form.closest('.modal-shell');
+        if(modal){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');}
+        if(document.querySelector('.modal-shell.open'))document.body.classList.add('modal-open');
+        form.reset();
+      }
+      showNotify('success','Categorías',result.message||'Cambios guardados.');
+      // Guardar categorías no cierra Cliente 360° ni vuelve a cargar la bandeja.
+    }catch(error){showNotify('error','Categorías','No se pudo completar la solicitud.');}
+    finally{sending=false;if(submit)submit.disabled=false;}
+  },true);
+})();
 
 // Cliente 360°: selector Select2 estándar de una opción; las categorías ya asignadas
 // se mantienen como elementos independientes del selector para no perder selección múltiple.
