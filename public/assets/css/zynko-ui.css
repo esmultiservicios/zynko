@@ -7356,3 +7356,14 @@ body:has(.nivo-webchat-page):not(.page-inbox) .main>main{
 /* Tarjeta de indicadores NIVO: presente desde el HTML, no aparece después por JS. */
 .zynko-server-fold[data-zynko-fold="nivo-kpis"]{margin-bottom:16px!important}
 .zynko-server-fold[data-zynko-fold="nivo-kpis"] .nivo-kpis{margin:0!important}
+
+/* v055 · Select2 de Cliente 360° — el menú comparte la superficie del campo.
+   No afecta dropdowns de otros modales ni altera el scroll del diálogo. */
+#client360DetailsModal .client360-category-field{position:relative!important;isolation:isolate;z-index:2}
+#client360DetailsModal .client360-category-field>.select2-container--open{z-index:15!important}
+#client360DetailsModal .client360-category-field>.select2-container--open .select2-dropdown{
+  width:100%!important;min-width:0!important;max-width:100%!important;
+  box-sizing:border-box!important;z-index:15!important
+}
+#client360DetailsModal .client360-category-field .select2-selection--single{height:42px!important;min-height:42px!important}
+#client360DetailsModal .client360-category-field .select2-results__options{max-height:220px!important;overflow-y:auto!important}
