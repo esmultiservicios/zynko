@@ -57,7 +57,7 @@ document.querySelector('#globalSearch')?.addEventListener('click',openSearch); d
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openSearch()} if(e.key==='Escape')closeSearch()});
 const fly=document.querySelector('#flyout'); document.querySelector('aside')?.addEventListener('mouseleave',()=>{if(document.body.classList.contains('zynko-phone'))return;setTimeout(()=>{if(!fly?.matches(':hover'))fly?.classList.remove('open')},120)}); fly?.addEventListener('mouseleave',()=>{if(!document.body.classList.contains('zynko-phone'))fly.classList.remove('open')});
 document.querySelector('#language')?.addEventListener('change',e=>{location.href='?action=lang&lang='+encodeURIComponent(e.target.value)});
-window.ZynkoSearchSelects=(root=document)=>{if(!window.jQuery||!jQuery.fn.select2)return;jQuery(root).find('select:not(.no-select2):not(.zynko-rte-format)').each(function(){const $el=jQuery(this);if(this.closest('.zynko-rte-toolbar,.legal-editor-toolbar,.quick-rte-toolbar')||$el.hasClass('select2-hidden-accessible'))return;const parent=this.closest('.modal-shell,.zynko-dialog-overlay,dialog');const flagTemplate=item=>{if(!item.element?.dataset.flag)return item.text;const code=item.element.dataset.flag;if(!/^[A-Z]{2}$/.test(code))return item.text;const row=document.createElement('span');row.className='zynko-country-option';const flag=document.createElement('span');flag.className='zynko-country-flag flag-'+code;flag.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=item.text;row.append(flag,label);return jQuery(row)};$el.select2({...(this.classList.contains('inbox-country-select')?{templateResult:flagTemplate,templateSelection:item=>{const row=flagTemplate(item);if(this.id==='inboxNewCountry'&&item.element?.dataset.dial&&typeof row!=='string'){row.find('span').last().text(item.element.value+' +'+item.element.dataset.dial);}return row;}}:{}),width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,...(this.id==='client360CategorySelect'?{placeholder:this.dataset.placeholder||'Buscar y seleccionar categoría',language:{noResults:()=>"No se encontraron categorías.",searching:()=>"Buscando categorías…"}}:{}),...(parent?{dropdownParent:jQuery(parent)}:{})});$el.on('select2:select.zynkoNative select2:unselect.zynkoNative',()=>this.dispatchEvent(new Event('change',{bubbles:true})));});};window.ZynkoSearchSelects();document.documentElement.classList.remove('select2-preload');if(window.jQuery&&jQuery.fn.select2){new MutationObserver(records=>{for(const rec of records){for(const node of rec.addedNodes){if(!(node instanceof Element))continue;if(node.matches('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node.parentElement);else if(node.querySelector('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node);}}}).observe(document.body,{childList:true,subtree:true});}
+window.ZynkoSearchSelects=(root=document)=>{if(!window.jQuery||!jQuery.fn.select2)return;jQuery(root).find('select:not(.no-select2):not(.zynko-rte-format)').each(function(){const $el=jQuery(this);if(this.closest('.zynko-rte-toolbar,.legal-editor-toolbar,.quick-rte-toolbar')||$el.hasClass('select2-hidden-accessible'))return;const parent=this.closest('.modal-shell,.zynko-dialog-overlay,dialog');const flagTemplate=item=>{if(!item.element?.dataset.flag)return item.text;const code=item.element.dataset.flag;if(!/^[A-Z]{2}$/.test(code))return item.text;const row=document.createElement('span');row.className='zynko-country-option';const flag=document.createElement('span');flag.className='zynko-country-flag flag-'+code;flag.setAttribute('aria-hidden','true');const label=document.createElement('span');label.textContent=item.text;row.append(flag,label);return jQuery(row)};$el.select2({...(this.classList.contains('inbox-country-select')?{templateResult:flagTemplate,templateSelection:item=>{const row=flagTemplate(item);if(this.id==='inboxNewCountry'&&item.element?.dataset.dial&&typeof row!=='string'){row.find('span').last().text(item.element.value+' +'+item.element.dataset.dial);}return row;}}:{}),width:'100%',minimumResultsForSearch:0,dropdownAutoWidth:false,...(parent?{dropdownParent:jQuery(parent)}:{})});$el.on('select2:select.zynkoNative select2:unselect.zynkoNative',()=>this.dispatchEvent(new Event('change',{bubbles:true})));});};window.ZynkoSearchSelects();document.documentElement.classList.remove('select2-preload');if(window.jQuery&&jQuery.fn.select2){new MutationObserver(records=>{for(const rec of records){for(const node of rec.addedNodes){if(!(node instanceof Element))continue;if(node.matches('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node.parentElement);else if(node.querySelector('select:not(.no-select2):not(.zynko-rte-format):not(.select2-hidden-accessible)'))window.ZynkoSearchSelects(node);}}}).observe(document.body,{childList:true,subtree:true});}
 document.querySelectorAll('.upload-zone').forEach(zone=>{const input=zone.querySelector('input[type=file]'); if(!input)return; zone.addEventListener('click',e=>{if(e.target!==input)input.click()}); zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')}); zone.addEventListener('dragleave',()=>zone.classList.remove('drag')); zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files.length){input.files=e.dataTransfer.files;zone.querySelector('small').textContent=e.dataTransfer.files[0].name}}); zone.addEventListener('paste',e=>{const f=[...e.clipboardData.files];if(f.length){const dt=new DataTransfer();f.forEach(x=>dt.items.add(x));input.files=dt.files;zone.querySelector('small').textContent=f[0].name}}); input.addEventListener('change',()=>{if(input.files[0])zone.querySelector('small').textContent=input.files[0].name});});
 // ZYNKO navigation preference: double click the menu button to hide/show the sidebar completely.
 (()=>{const b=document.getElementById('menu');if(!b)return;const prefKey='sidebar.hidden';const apply=()=>document.body.classList.toggle('sidebar-hidden',zynkoUiPrefs.get(prefKey,'0')==='1');apply();b.addEventListener('dblclick',e=>{e.preventDefault();const next=document.body.classList.contains('sidebar-hidden')?'0':'1';zynkoUiPrefs.set(prefKey,next);apply();});})();
@@ -1573,6 +1573,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
             if(!option){option=new Option(name,id,false,false);select.add(option);}
             else option.textContent=name;
             if(window.jQuery&&jQuery.fn.select2&&jQuery(select).data('select2'))jQuery(select).trigger('change.select2');
+            window.ZynkoRefreshClientCategories?.();
           }
           const filter=document.querySelector('#inboxFilters select[name="category"]');
           if(filter&&!Array.from(filter.options).some(item=>item.value===id))filter.add(new Option(name,id));
@@ -1589,12 +1590,40 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
   },true);
 })();
 
-// Cliente 360°: selector Select2 estándar de una opción; las categorías ya asignadas
-// se mantienen como elementos independientes del selector para no perder selección múltiple.
+// Cliente 360°: la misma inicialización Select2 compartida con «Iniciar conversación».
+// Las opciones se obtienen de las categorías ACTIVAS de la empresa y no de una copia vieja del modal.
 (()=>{
-  const selectId='client360CategorySelect';
+  let refreshCounter=0;
+  const getSelect=()=>document.getElementById('client360CategorySelect');
+  const syncCategories=async()=>{
+    const select=getSelect();if(!select)return;
+    const version=++refreshCounter;
+    const fd=new FormData();fd.append('action','contact_categories_list');
+    try{
+      const response=await fetch(location.href,{method:'POST',credentials:'same-origin',headers:{'X-ZYNKO-AJAX':'1'},body:fd});
+      const result=await response.json();
+      if(!response.ok||!result.ok||!Array.isArray(result.data?.categories))return;
+      if(version!==refreshCounter||select!==getSelect())return;
+      const wanted=String(select.value||'');
+      const items=result.data.categories;
+      select.replaceChildren(new Option('Buscar y seleccionar categoría',''));
+      items.forEach(cat=>select.add(new Option(String(cat.name),String(cat.id))));
+      select.value=items.some(cat=>String(cat.id)===wanted)?wanted:'';
+      if(window.jQuery&&jQuery.fn.select2){
+        const $select=jQuery(select);
+        if(!$select.data('select2'))window.ZynkoSearchSelects?.(select.parentElement);
+        $select.trigger('change.select2');
+      }
+    }catch(_){/* Se conservan las opciones precargadas si falla una consulta. */}
+  };
+  window.ZynkoRefreshClientCategories=syncCategories;
+  document.addEventListener('click',event=>{
+    if(event.target.closest?.('[data-open="client360DetailsModal"]'))syncCategories();
+    const remove=event.target.closest?.('.client360-category-remove');
+    if(remove?.closest('#contactCategoriesForm'))remove.closest('.client360-category-chip')?.remove();
+  });
   document.addEventListener('change',event=>{
-    if(event.target?.id!==selectId)return;
+    if(event.target?.id!=='client360CategorySelect')return;
     const select=event.target,form=select.closest('#contactCategoriesForm');
     const list=form?.querySelector('#client360CategoryChips'),id=select.value;
     if(!list||!id)return;
@@ -1610,9 +1639,5 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
     }
     select.value='';
     if(window.jQuery&&jQuery.fn.select2&&jQuery(select).data('select2'))jQuery(select).trigger('change.select2');
-  });
-  document.addEventListener('click',event=>{
-    const remove=event.target.closest?.('.client360-category-remove');
-    if(remove?.closest('#contactCategoriesForm'))remove.closest('.client360-category-chip')?.remove();
   });
 })();
