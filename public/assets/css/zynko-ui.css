@@ -7316,3 +7316,43 @@ body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-sectio
 .nivo-webchat-page .webchat-layout,.nivo-webchat-page .zynko-webchat-config-column,.nivo-webchat-page .nivo-webchat-rail{overflow-y:visible!important;max-height:none!important}
 .nivo-webchat-page .nivo-webchat-rail{height:auto!important;overflow:visible!important}
 .nivo-webchat-page .webchat-layout{overflow:visible!important}
+
+/* v046 — Un solo desplazamiento vertical para la vista NIVO Web Chat.
+   No limitar la altura de la columna derecha a la sección izquierda. */
+body:has(.nivo-webchat-page):not(.page-inbox),
+body:has(.nivo-webchat-page):not(.page-inbox) .main,
+body:has(.nivo-webchat-page):not(.page-inbox) .main>main{
+  height:auto!important;max-height:none!important;overflow-y:visible!important;
+}
+.nivo-webchat-page .nivo-webchat-rail,
+.nivo-webchat-page .nivo-webchat-rail>.nivo-rail-tools-card{
+  height:auto!important;max-height:none!important;overflow-y:visible!important;
+  align-self:start!important;
+}
+.nivo-webchat-page .nivo-webchat-rail{grid-template-rows:auto!important;align-content:start!important}
+.nivo-webchat-page .nivo-webchat-rail>.nivo-rail-tools-card{min-height:0!important;align-self:start!important}
+/* v046 — El Select2 múltiple de Cliente 360° debe tener el alto de los demás selectores.
+   Las categorías elegidas se mantienen en una fila, sin agrandar el control. */
+#contactCategoriesForm .select2-container--default .select2-selection--multiple{
+  height:43px!important;min-height:43px!important;max-height:43px!important;
+  padding:5px 32px 5px 10px!important;display:flex!important;align-items:center!important;
+  flex-wrap:nowrap!important;overflow:hidden!important;
+}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered{
+  min-height:30px!important;height:30px!important;max-height:30px!important;
+  display:flex!important;align-items:center!important;flex-wrap:nowrap!important;
+  overflow-x:auto!important;overflow-y:hidden!important;scrollbar-width:none;
+}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__rendered::-webkit-scrollbar{display:none}
+#contactCategoriesForm .select2-selection--multiple .select2-selection__choice{flex:0 0 auto!important;max-width:185px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline{
+  flex:1 0 120px!important;width:auto!important;min-width:90px!important;max-width:none!important;
+  height:28px!important;min-height:28px!important;max-height:28px!important;
+}
+#contactCategoriesForm .select2-selection--multiple .select2-search--inline .select2-search__field{
+  width:100%!important;height:28px!important;min-height:28px!important;max-height:28px!important;
+  line-height:28px!important;box-shadow:none!important;border:0!important;
+}
+/* Tarjeta de indicadores NIVO: presente desde el HTML, no aparece después por JS. */
+.zynko-server-fold[data-zynko-fold="nivo-kpis"]{margin-bottom:16px!important}
+.zynko-server-fold[data-zynko-fold="nivo-kpis"] .nivo-kpis{margin:0!important}

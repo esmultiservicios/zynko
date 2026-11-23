@@ -46,7 +46,17 @@
     section.classList.add('zynko-fold-shell');head.classList.add('zynko-fold-existing-head');section.dataset.zynkoFolded='1';
     toggle(head,body,id,defaultOpen);
   };
-  const choose=(selector,id,title,description,fa,defaultOpen)=>shell(document.querySelector(selector),id,title,description,fa,defaultOpen);
+  const choose=(selector,id,title,description,fa,defaultOpen)=>{
+    const target=document.querySelector(selector);
+    if(!target)return;
+    const prerendered=target.closest('.zynko-server-fold[data-zynko-fold="'+id+'"]');
+    if(prerendered){
+      const head=prerendered.querySelector(':scope > .zynko-fold-head');
+      const body=prerendered.querySelector(':scope > .zynko-fold-content');
+      if(head&&body){target.dataset.zynkoFolded='1';toggle(head,body,id,defaultOpen);return prerendered;}
+    }
+    return shell(target,id,title,description,fa,defaultOpen);
+  };
   if(page==='dashboard'){
     internal(document.querySelector('.dashboard-quick-actions'),'quick-actions',true);
     internal(document.querySelector('.service-center'),'critical-services',true);
