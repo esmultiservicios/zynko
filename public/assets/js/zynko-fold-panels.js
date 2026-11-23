@@ -76,15 +76,15 @@
     // The original preview stays in the right column; never clone form elements.
     const root=document.querySelector('.nivo-webchat-page');
     const layout=root?.querySelector('.webchat-layout');
-    if(root&&layout&&!root.querySelector('.zynko-webchat-nav')){
+    if(root&&layout){
       const sections={design:layout.querySelector(':scope > section.panel'),installations:root.querySelector('#installations')};
       const kpis=root.querySelector('.webchat-kpis');
       const entries=[['design','Diseño y comportamiento'],['installations','Instalación en sitios web']].filter(([key])=>sections[key]);
-      const navigator=el('div','panel zynko-webchat-nav');
-      navigator.innerHTML='<div class="panel-head premium-card-head"><span class="premium-card-head-icon"><i class="fa-solid fa-layer-group"></i></span><div><b>Explorar secciones</b><small>Selecciona la sección que deseas configurar; la vista previa permanece visible.</small></div></div><div class="zynko-section-nav-controls"><div class="zynko-section-search"><i class="fa-solid fa-magnifying-glass"></i><input id="zynkoWebchatSectionSearch" placeholder="Buscar sección…" autocomplete="off"><button type="button" id="zynkoWebchatSectionClear" hidden aria-label="Borrar búsqueda"><i class="fa-solid fa-xmark"></i></button></div><div class="field"><label for="zynkoWebchatSectionSelect">Sección</label><select id="zynkoWebchatSectionSelect" aria-label="Seleccionar sección"></select></div></div>';
+      const navigator=root.querySelector('.zynko-webchat-nav')||el('div','panel zynko-webchat-nav');
+      if(!navigator.querySelector('#zynkoWebchatSectionSelect'))navigator.innerHTML='<div class="panel-head premium-card-head"><span class="premium-card-head-icon"><i class="fa-solid fa-layer-group"></i></span><div><b>Explorar secciones</b><small>Selecciona la sección que deseas configurar; la vista previa permanece visible.</small></div></div><div class="zynko-section-nav-controls"><div class="zynko-section-search"><i class="fa-solid fa-magnifying-glass"></i><input id="zynkoWebchatSectionSearch" placeholder="Buscar sección…" autocomplete="off"><button type="button" id="zynkoWebchatSectionClear" hidden aria-label="Borrar búsqueda"><i class="fa-solid fa-xmark"></i></button></div><div class="field"><label for="zynkoWebchatSectionSelect">Sección</label><select id="zynkoWebchatSectionSelect" aria-label="Seleccionar sección"></select></div></div>';
       const select=navigator.querySelector('#zynkoWebchatSectionSelect');
-      entries.forEach(([id,title])=>{const option=el('option','',title);option.value=id;select.append(option)});
-      layout.before(navigator);
+      if(!select.options.length)entries.forEach(([id,title])=>{const option=el('option','',title);option.value=id;select.append(option)});
+      if(!navigator.isConnected)layout.before(navigator);
       // Indicators always appear directly below the section picker, independently of the chosen section.
       if(kpis){navigator.after(kpis);shell(kpis,'webchat-usage','Indicadores de uso','Sitios registrados, visitantes y mensajes.','chart-column',true)}
       const left=el('div','zynko-webchat-config-column');
@@ -116,6 +116,7 @@
       });
       clear.addEventListener('click',()=>{search.value='';clear.hidden=true;search.focus()});
       show(entries[0]?.[0]||'design');
+      root.classList.add('zynko-webchat-ready');
     }
   }
  };

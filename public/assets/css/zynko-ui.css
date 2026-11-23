@@ -7306,3 +7306,13 @@ body>.select2-container--open.zynko-api-size-dropdown .select2-dropdown{max-widt
 #contactCategoriesForm .select2-selection--multiple .select2-selection__choice{margin-top:2px!important;margin-bottom:2px!important}
 #client360DetailsModal .select2-container--open .select2-dropdown{box-sizing:border-box!important;max-width:100%!important}
 @media(max-width:720px){.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v045 — Navegación sin parpadeo: cabecera dibujada desde PHP, primera sección visible antes de JS. */
+body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:not(.zynko-section-nav){visibility:visible!important}
+body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main .nivo-section:not(#behavior){display:none!important}
+body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm > section.panel:not(:first-of-type){display:none!important}
+/* En Web Chat el explorador se entrega desde el servidor, no se añade tarde. */
+.nivo-webchat-page:not(.zynko-webchat-ready) #installations{display:none!important}
+.nivo-webchat-page .webchat-layout,.nivo-webchat-page .zynko-webchat-config-column,.nivo-webchat-page .nivo-webchat-rail{overflow-y:visible!important;max-height:none!important}
+.nivo-webchat-page .nivo-webchat-rail{height:auto!important;overflow:visible!important}
+.nivo-webchat-page .webchat-layout{overflow:visible!important}
