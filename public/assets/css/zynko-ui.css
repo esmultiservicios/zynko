@@ -7380,5 +7380,17 @@ body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){
   }
 }
 
-/* v061: menú Acciones de las credenciales, reutiliza user-dropdown y colores existentes. */
-.api-key-action-wrap{position:relative;flex:0 0 auto}.api-key-action-wrap .api-key-action-menu{top:calc(100% + 6px);right:0;width:min(260px,calc(100vw - 36px));z-index:1002}.api-key-action-menu button{width:100%;font:inherit;cursor:pointer}.api-key-action-menu .api-key-revoke{color:var(--danger,#c43643)}.api-key-row.api-menu-open{position:relative;z-index:1001;transform:none!important}.api-key-detail-body{padding:16px 22px;overflow-y:auto;min-height:0;flex:1}.api-key-detail-value{white-space:pre-wrap;overflow-wrap:anywhere;min-height:40px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px}.api-key-action-wrap .api-key-actions-toggle{white-space:nowrap;display:flex;gap:8px;align-items:center}.api-key-action-menu button:hover{background:var(--surface2)}@media(max-width:900px){.api-key-action-wrap{align-self:flex-end}}
+/* v062: Acciones de API con posición inteligente (mismo user-dropdown de ZYNKO). */
+.api-key-action-wrap{position:relative;flex:0 0 auto}
+.api-key-action-wrap .api-key-actions-toggle{white-space:nowrap;display:flex;gap:8px;align-items:center}
+.api-key-action-menu{position:fixed!important;right:auto!important;bottom:auto!important;z-index:10050!important;width:min(310px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 20px 55px rgba(15,23,42,.18)}
+.api-key-action-menu button{width:100%;font:inherit;cursor:pointer}
+.api-key-action-menu button:hover{background:var(--surface2)}
+.api-key-action-menu .api-key-view>i{color:var(--accent2,#0d806b)!important}
+.api-key-action-menu .api-policy-edit>i{color:#3478c8!important}
+.api-key-action-menu .api-key-rotate>i{color:#c28117!important}
+.api-key-action-menu .api-key-revoke,.api-key-action-menu .api-key-revoke>i{color:var(--danger,#c43643)!important}
+.api-key-row.api-menu-open{position:relative;transform:none!important}
+.api-key-detail-body{padding:16px 22px;overflow-y:auto;min-height:0;flex:1}
+.api-key-detail-value{white-space:pre-wrap;overflow-wrap:anywhere;min-height:40px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px}
+@media(max-width:900px){.api-key-action-wrap{align-self:flex-end}}

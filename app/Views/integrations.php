@@ -111,11 +111,58 @@ document.addEventListener('DOMContentLoaded',()=>{
     }
   };
   keySearch?.addEventListener('input',()=>filterKeys(true));pageSize?.addEventListener('change',()=>filterKeys(true));filterKeys(true);
-  // Usar el mismo menú desplegable de ZYNKO y sus modales existentes.
-  const closeActionMenus=()=>document.querySelectorAll('.api-key-action-menu.open').forEach(menu=>{menu.classList.remove('open');menu.previousElementSibling?.setAttribute('aria-expanded','false');menu.closest('.api-key-row')?.classList.remove('api-menu-open')});
-  document.querySelectorAll('.api-key-actions-toggle').forEach(btn=>btn.addEventListener('click',e=>{e.stopPropagation();const menu=btn.nextElementSibling,opening=!menu.classList.contains('open');closeActionMenus();if(opening){menu.classList.add('open');btn.setAttribute('aria-expanded','true');btn.closest('.api-key-row')?.classList.add('api-menu-open')}}));
-  document.addEventListener('click',e=>{if(!e.target.closest('.api-key-action-wrap'))closeActionMenus()});
+  // Menú Acciones: reutiliza user-dropdown, portado al body para evitar recortes por tarjetas y paneles.
+  let activeActionMenu=null, activeActionButton=null, activeActionParent=null;
+  const closeActionMenus=()=>{
+    if(!activeActionMenu)return;
+    activeActionMenu.classList.remove('open');
+    activeActionMenu.style.removeProperty('left');activeActionMenu.style.removeProperty('top');
+    activeActionMenu.style.removeProperty('max-height');activeActionMenu.style.removeProperty('width');
+    activeActionButton?.setAttribute('aria-expanded','false');
+    activeActionButton?.closest('.api-key-row')?.classList.remove('api-menu-open');
+    if(activeActionParent)activeActionParent.appendChild(activeActionMenu);
+    activeActionMenu=null;activeActionButton=null;activeActionParent=null;
+  };
+  const positionActionMenu=()=>{
+    if(!activeActionMenu||!activeActionButton)return;
+    const r=activeActionButton.getBoundingClientRect(),gap=8,edge=12;
+    const width=Math.min(310,window.innerWidth-edge*2);
+    activeActionMenu.style.width=width+'px';
+    activeActionMenu.style.maxHeight=Math.max(90,window.innerHeight-edge*2)+'px';
+    const availableBelow=window.innerHeight-r.bottom-edge-gap;
+    const availableAbove=r.top-edge-gap;
+    const contentHeight=Math.min(activeActionMenu.scrollHeight,window.innerHeight-edge*2);
+    const openAbove=availableBelow<contentHeight&&availableAbove>availableBelow;
+    const available=Math.max(90,openAbove?availableAbove:availableBelow);
+    activeActionMenu.style.maxHeight=Math.min(available,window.innerHeight-edge*2)+'px';
+    const h=activeActionMenu.getBoundingClientRect().height;
+    const x=Math.max(edge,Math.min(r.right-width,window.innerWidth-width-edge));
+    const y=openAbove?Math.max(edge,r.top-gap-h):Math.min(window.innerHeight-edge-h,r.bottom+gap);
+    activeActionMenu.style.left=Math.round(x)+'px';
+    activeActionMenu.style.top=Math.round(y)+'px';
+    activeActionMenu.classList.toggle('open-up',openAbove);
+  };
+  document.querySelectorAll('.api-key-actions-toggle').forEach(btn=>btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    const menu=btn.nextElementSibling;
+    if(activeActionButton===btn){closeActionMenus();return;}
+    closeActionMenus();
+    if(!menu||!menu.classList.contains('api-key-action-menu'))return;
+    activeActionButton=btn;activeActionMenu=menu;activeActionParent=menu.parentElement;
+    document.body.appendChild(menu);
+    menu.classList.add('open');btn.setAttribute('aria-expanded','true');
+    btn.closest('.api-key-row')?.classList.add('api-menu-open');
+    positionActionMenu();
+  }));
+  document.addEventListener('click',e=>{
+    if(activeActionMenu&&!activeActionMenu.contains(e.target)&&!activeActionButton?.contains(e.target))closeActionMenus();
+  });
   document.addEventListener('keydown',e=>{if(e.key==='Escape')closeActionMenus()});
+  // El menú anclado a la ventana se cierra ante scroll/resize para evitar posiciones obsoletas.
+  window.addEventListener('resize',()=>{if(activeActionMenu)positionActionMenu()});
+  document.addEventListener('scroll',e=>{
+    if(activeActionMenu&&!activeActionMenu.contains(e.target))closeActionMenus();
+  },true);
   document.querySelectorAll('.api-key-action-menu > button').forEach(btn=>btn.addEventListener('click',closeActionMenus));
   document.querySelectorAll('.api-key-view').forEach(btn=>btn.addEventListener('click',()=>{
     const box=document.getElementById('apiKeyDetails'),dialog=document.getElementById('apiKeyViewModal');if(!box||!dialog)return;
