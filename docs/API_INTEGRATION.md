@@ -1,3 +1,122 @@
+# ZYNKO API v1 — Guía de integración y diagnóstico (v060)
+
+> Esta documentación describe los endpoints del archivo `public/api.php` del proyecto incluido. Las pruebas estáticas no reemplazan la verificación autenticada contra la instalación de producción, la base de datos ni los servicios de Meta.
+
+## A. Lista de verificación ANTES de programar el cliente
+
+1. **URL exacta:** `https://zynkocloud.app/api.php?r=v1/channels`. El parámetro `r` selecciona la ruta; `api.php` no es una API que se consuma mediante `/api.php/v1/channels` en esta instalación. No invente otras URLs.
+2. **Una API Key por integración y ambiente.** La administra el titular en **Canales → Integraciones**. Guarde el secreto en el backend, cifrado o en un almacén de secretos. No en navegador, APK, repositorio ni logs.
+3. **Scopes:** para descubrir canales `channels:read`; envíos WhatsApp individuales `whatsapp:send`, lotes `whatsapp:bulk`, historial/estados `whatsapp:status`. Otros endpoints tienen scopes diferentes (tabla abajo).
+4. **Canal autorizado:** seleccione el canal WhatsApp real vinculado a la API Key. Si la clave está restringida a un canal, otros `channel_id` no funcionarán.
+5. **IP/CIDR:** la IP permitida es la **IP pública de salida del proceso que hace HTTP**, no la IP del sitio web ni la IP del servidor destino. Un PHP que se ejecuta en Laragon (`newizzy.test`) sale por la conexión del equipo/red local; NO necesariamente por WEB01 (`13.140.230.254`). Si el cliente es desplegado después a WEB01, puede cambiar su IP de salida. Pregunte al responsable de infraestructura o confirme mediante la respuesta de diagnóstico del servidor. No cambie la allowlist automáticamente.
+6. **Origen vs. IP:** la allowlist de orígenes (`Origin`) se aplica si se recibe el encabezado `Origin` (típico de navegadores). Un PHP/cURL backend normalmente no lo envía. Configurar `https://newizzy.test` como origen NO equivale a permitir la IP de Laragon. Para llamadas servidor-a-servidor se recomienda no enviar `Origin` salvo que realmente aplique.
+7. **HTTPS y permisos:** confirme plan con API habilitada, clave activa/no vencida, canal conectado, salida HTTPS y cuota disponible. **No** coloque `Authorization` en un parámetro de URL.
+8. **Redirecciones:** `CURLOPT_FOLLOWLOCATION=false`; usar siempre el endpoint HTTPS final. Compruebe que cURL prepara `Authorization: Bearer TU_CLAVE_API`.
+
+## B. Primera prueba real, sin enviar WhatsApp
+
+```bash
+curl --fail-with-body --silent --show-error --request GET \
+  'https://zynkocloud.app/api.php?r=v1/channels' \
+  --header 'Authorization: Bearer TU_CLAVE_API' \
+  --header 'Accept: application/json'
+```
+
+La respuesta correcta es HTTP **200** con `ok:true` y `data.channels`. Si la lista queda vacía, significa que la clave autenticó pero no tiene canales visibles; no invente un `channel_id`.
+
+**Ejemplo de PHP/cURL (servidor, no JavaScript):**
+
+```php
+<?php
+$token = getenv('ZYNKO_API_KEY'); // cargar desde almacén seguro
+$url = 'https://zynkocloud.app/api.php?r=v1/channels';
+$ch = curl_init($url);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_FOLLOWLOCATION => false,
+    CURLOPT_CONNECTTIMEOUT => 10,
+    CURLOPT_TIMEOUT => 30,
+    CURLOPT_HTTPHEADER => [
+        'Authorization: Bearer ' . $token,
+        'Accept: application/json',
+    ],
+]);
+$body = curl_exec($ch);
+$http = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+$transportError = curl_error($ch);
+curl_close($ch);
+if ($body === false) { throw new RuntimeException('Error de transporte cURL: ' . $transportError); }
+$response = json_decode($body, true);
+if (!is_array($response)) { throw new RuntimeException('El servidor no respondió JSON. HTTP ' . $http); }
+if ($http >= 400) {
+    // No imprimir el Bearer. Mostrar solo código, mensaje y datos no secretos.
+    throw new RuntimeException('ZYNKO HTTP ' . $http . ' / ' . ($response['error']['code'] ?? 'UNKNOWN') . ': ' . ($response['message'] ?? 'Error'));
+}
+```
+
+## C. Error 403 por IP: diagnóstico definitivo
+
+Si **el Bearer es válido** pero la petición procede de una IP no incluida en la política, ZYNKO v060 responde:
+
+```json
+{
+  "ok": false,
+  "message": "La IP pública de salida no está autorizada para esta clave API.",
+  "data": {
+    "received_ip": "198.51.100.23",
+    "allowed_ips": ["13.140.230.254"],
+    "source": "REMOTE_ADDR",
+    "next_step": "Autorice la IP/CIDR real en la política de esta clave o ejecute desde un servidor previamente autorizado."
+  },
+  "error": {"code": "IP_NOT_ALLOWED", "http_status": 403}
+}
+```
+
+**Las IP de este ejemplo son ilustrativas**, no observaciones de su petición. Para conocer la IP real de IZZY, consulte el `data.received_ip` que devuelve ZYNKO tras desplegar v060. La allowlist autorizada se devuelve en `data.allowed_ips` solo cuando el Bearer ya fue validado. Para IP se usa `REMOTE_ADDR`: no se confía en `X-Forwarded-For`, `X-Real-IP` ni `CF-Connecting-IP` enviados por solicitantes externos, porque pueden falsificarse. Si la instalación usa un proxy inverso **administrado y confiable**, el administrador debe configurar el módulo de IP real en el servidor; no se corrige tomando ciegamente encabezados en PHP.
+
+Si su entorno local cambia de IP pública, deberá autorizarla de forma deliberada o ejecutar la prueba desde un servidor con IP estable. No desactive restricciones ni use `0.0.0.0/0` como solución provisional.
+
+## D. Endpoints y permisos disponibles
+
+| Método | `r=` | Scope requerido | Uso / claves principales |
+|---|---|---|---|
+| GET | `v1/health` | Bearer válido y política permitida | Salud de la API autenticada; no es pública |
+| GET | `v1/channels` | `channels:read` (o scopes genéricos compatibles) | IDs y estado de canales visibles |
+| GET | `v1/whatsapp/history` | `whatsapp:status` | `page`, `per_page` (1-100), `q`; historial limitado a esa API Key |
+| GET | `v1/whatsapp/status` | `whatsapp:status` | `message_uuid` retornado por **esa misma API Key** |
+| POST | `v1/whatsapp/send` | `whatsapp:send` individual / `whatsapp:bulk` lote | `channel_id`, `to`, `message`/`template_id`/`attachments`, `Idempotency-Key` |
+| GET | `v1/messages/status` | `messages:send` o `messages:bulk` | `message_uuid`; ruta genérica heredada |
+| POST | `v1/messages/send` | `messages:send` | `channel_id`, `to`, `message` |
+| POST | `v1/messages/bulk` | `messages:bulk` | `channel_id`, `to[]` (2–100), `message`, `consent_confirmed`, `Idempotency-Key` |
+| POST | `v1/messages/receive` | `messages:receive` o compatibilidad `messages:send` | `channel_id`, `from`, `message`, `contact_name` opcional |
+| POST | `v1/nivo/context` | `nivo:context` | `query`; consulta contexto autorizado, no garantiza generación IA |
+
+**Para POST**: `Content-Type: application/json`, JSON válido, Bearer y los scopes necesarios. Para `v1/whatsapp/send`, `Idempotency-Key` es obligatorio y debe ser diferente para cada operación; reintentar la *misma* operación con la misma clave/payload evita duplicados. HTTP **202** significa **en cola**, NO entregado. Consulte `status` y `history` posteriormente; el resultado real depende del proveedor, plantillas aprobadas, consentimiento y ventana de Meta.
+
+## E. Contrato de errores para integradores
+
+Las respuestas de error normales devuelven **`ok:false`, `message` legible, `data` y `error.code` + `error.http_status`**. No muestre mensajes HTTP genéricos si hay un error específico de ZYNKO.
+
+| HTTP | Código de error | Qué debe hacer el cliente |
+|---|---|---|
+| 400 | `BAD_REQUEST` | Corregir JSON inválido |
+| 401 | `UNAUTHORIZED` | Revisar Bearer faltante/inválido, clave vencida o revocada; no generar otra sin diagnosticar |
+| 403 | `IP_NOT_ALLOWED` | Comparar `data.received_ip` con `data.allowed_ips`; solicitar autorización manual |
+| 403 | `ORIGIN_NOT_ALLOWED` | Revisar `Origin` recibido y orígenes de la clave |
+| 403 | `API_KEY_POLICY_DISABLED` | Reactivar política de clave solo con autorización administrativa |
+| 403 | `HTTPS_REQUIRED` | Utilizar HTTPS en la integración del navegador |
+| 403 | `FORBIDDEN` | Consultar mensaje: scope, canal, plan u otra política insuficiente |
+| 404 | `NOT_FOUND` | Revisar ruta, UUID o pertenencia a clave/canal |
+| 409 | `CONFLICT` | Revisar estado del canal o `Idempotency-Key` reutilizada con distinto contenido |
+| 413 | `PAYLOAD_TOO_LARGE` | Reducir solicitud/adjuntos |
+| 422 | `VALIDATION_ERROR` | Corregir los parámetros indicados en `message` |
+| 429 | `RATE_LIMITED` | Reducir frecuencia y aplicar reintento con backoff |
+| 500 | `INTERNAL_ERROR` | Registrar referencia de error sin capturar secretos; investigar servidor |
+
+No reintente automáticamente respuestas 401/403/409/422. No pruebe la ruta de envío hasta obtener HTTP 200 en canales y, si corresponde, HTTP 200 en historial. Nunca pida ni registre la clave completa en soporte o capturas.
+
+---
+
 # ZYNKO API v1 — integración segura de sistemas externos
 
 ZYNKO permite que IZZY, CAMI u otro sistema consuma la API sin conocer las credenciales privadas de Meta ni compartir secretos entre empresas. Cada credencial pertenece a un tenant y puede tener su propia política de seguridad.

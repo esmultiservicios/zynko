@@ -14,7 +14,16 @@ if ($apiCorsOrigin !== '') {
     );
 }
 
-function out(int $status,bool $ok,string $message,array $data=[]): never { http_response_code($status); echo json_encode(['ok'=>$ok,'message'=>$message,'data'=>$data],JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES); exit; }
+function out(int $status,bool $ok,string $message,array $data=[],?string $errorCode=null): never {
+    http_response_code($status);
+    $response=['ok'=>$ok,'message'=>$message,'data'=>$data];
+    if(!$ok){
+        $codes=[400=>'BAD_REQUEST',401=>'UNAUTHORIZED',403=>'FORBIDDEN',404=>'NOT_FOUND',405=>'METHOD_NOT_ALLOWED',409=>'CONFLICT',413=>'PAYLOAD_TOO_LARGE',422=>'VALIDATION_ERROR',429=>'RATE_LIMITED',500=>'INTERNAL_ERROR'];
+        $response['error']=['code'=>$errorCode??($codes[$status]??'REQUEST_FAILED'),'http_status'=>$status];
+    }
+    echo json_encode($response,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+    exit;
+}
 function envCfg(string $p): array { $v=@parse_ini_file($p,false,INI_SCANNER_RAW); return is_array($v)?$v:[]; }
 function db(): PDO { static $pdo; global $root; if($pdo)return $pdo;$e=envCfg($root.'/.env');$dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4';$pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);$pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");return $pdo; }
 function uuid4(): string {$d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}
@@ -54,7 +63,7 @@ function bearer(): string {
     out(401, false, 'Falta Authorization: Bearer <API_KEY>.');
 }
 
-function auth(): array { ZynkoAccessPolicy::ensureTables(db()); $key=bearer();$prefix=explode('.',$key,2)[0]??'';if(!str_starts_with($prefix,'zk_'))out(401,false,'Clave API inválida.');$q=db()->prepare('SELECT * FROM api_keys WHERE key_prefix=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())');$q->execute([$prefix]);$r=$q->fetch();if(!$r||!hash_equals($r['key_hash'],hash('sha256',$key)))out(401,false,'Clave API inválida o revocada.');try{ZynkoAccessPolicy::enforce(db(),$r);}catch(OverflowException $e){out(429,false,$e->getMessage());}catch(RuntimeException $e){out(403,false,$e->getMessage());}db()->prepare('UPDATE api_keys SET last_used_at=NOW() WHERE id=?')->execute([$r['id']]);return $r; }
+function auth(): array { $key=bearer(); ZynkoAccessPolicy::ensureTables(db());$prefix=explode('.',$key,2)[0]??'';if(!str_starts_with($prefix,'zk_'))out(401,false,'Clave API inválida.');$q=db()->prepare('SELECT * FROM api_keys WHERE key_prefix=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())');$q->execute([$prefix]);$r=$q->fetch();if(!$r||!hash_equals($r['key_hash'],hash('sha256',$key)))out(401,false,'Clave API inválida o revocada.');try{ZynkoAccessPolicy::enforce(db(),$r);}catch(OverflowException $e){out(429,false,$e->getMessage(),[],'RATE_LIMITED');}catch(ZynkoApiPolicyException $e){out(403,false,$e->getMessage(),$e->details,$e->errorCode);}catch(RuntimeException $e){out(403,false,$e->getMessage());}db()->prepare('UPDATE api_keys SET last_used_at=NOW() WHERE id=?')->execute([$r['id']]);return $r; }
 function hasScope(array $k,string $scope): void {$s=json_decode($k['scopes_json']??'[]',true)?:[];if(!in_array($scope,$s,true))out(403,false,'La clave no tiene el permiso '.$scope.'.');}
 function hasAnyScope(array $k,array $scopes): void {$s=json_decode($k['scopes_json']??'[]',true)?:[];foreach($scopes as $scope)if(in_array($scope,$s,true))return;out(403,false,'La clave no tiene ninguno de los permisos requeridos.');}
 function body(): array {$raw=file_get_contents('php://input')?:'';$j=json_decode($raw,true);if(!is_array($j))out(400,false,'JSON inválido.');return $j;}
@@ -96,7 +105,8 @@ try{
  }
  if($method==='GET'&&$path==='v1/whatsapp/status'){
   hasScope($key,'whatsapp:status');$uuid=(string)($_GET['message_uuid']??'');if(!preg_match('/^[a-f0-9-]{36}$/D',$uuid))out(422,false,'message_uuid inválido.');
-  $q=db()->prepare("SELECT m.uuid message_uuid,m.status,o.state queue_state,o.last_error FROM messages m JOIN conversations c ON c.id=m.conversation_id AND c.tenant_id=m.tenant_id JOIN channels ch ON ch.id=c.channel_id AND ch.tenant_id=c.tenant_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id WHERE m.uuid=? AND m.tenant_id=? AND m.direction='out' AND ch.type='whatsapp'");$q->execute([$uuid,$tid]);$r=$q->fetch();if(!$r)out(404,false,'Mensaje no encontrado.');if($keyChannel>0){$verify=db()->prepare('SELECT h.channel_id FROM api_message_history h JOIN messages m ON m.id=h.message_id AND m.tenant_id=h.tenant_id WHERE m.uuid=? AND h.tenant_id=? LIMIT 1');$verify->execute([$uuid,$tid]);$recordChannel=(int)$verify->fetchColumn();if($recordChannel!==$keyChannel)out(404,false,'Mensaje no encontrado para esta clave.');}out(200,true,'Estado consultado.',$r);
+  $sql="SELECT m.uuid message_uuid,m.status,o.state queue_state,o.last_error FROM api_message_history h JOIN messages m ON m.id=h.message_id AND m.tenant_id=h.tenant_id JOIN channels ch ON ch.id=h.channel_id AND ch.tenant_id=h.tenant_id LEFT JOIN channel_outbox o ON o.message_id=m.id AND o.tenant_id=m.tenant_id WHERE m.uuid=? AND h.tenant_id=? AND h.api_key_id=? AND m.direction='out' AND ch.type='whatsapp'".($keyChannel>0?' AND h.channel_id=?':'')." LIMIT 1";
+  $q=db()->prepare($sql);$args=[$uuid,$tid,(int)$key['id']];if($keyChannel>0)$args[]=$keyChannel;$q->execute($args);$r=$q->fetch();if(!$r)out(404,false,'Mensaje no encontrado para esta clave API.');out(200,true,'Estado consultado.',$r);
  }
  if($method==='POST'&&$path==='v1/whatsapp/send'){
   hasAnyScope($key,['whatsapp:send','whatsapp:bulk']);if((int)($_SERVER['CONTENT_LENGTH']??0)>30*1024*1024)out(413,false,'Solicitud superior a 30 MB.');$j=body();$idem=trim($_SERVER['HTTP_IDEMPOTENCY_KEY']??'');if($idem===''||strlen($idem)>150)out(422,false,'Idempotency-Key obligatorio (máximo 150 caracteres).');

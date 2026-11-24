@@ -1,6 +1,14 @@
 <?php
 declare(strict_types=1);
 
+final class ZynkoApiPolicyException extends RuntimeException
+{
+    public function __construct(string $message, public readonly string $errorCode, public readonly array $details = [])
+    {
+        parent::__construct($message);
+    }
+}
+
 final class ZynkoAccessPolicy
 {
     public static function scopeCatalog(): array
@@ -150,11 +158,20 @@ final class ZynkoAccessPolicy
     public static function enforce(PDO $pdo,array $key): array
     {
         $policy=self::policyForKey($pdo,(int)$key['id'],(int)$key['tenant_id']);
-        if(!$policy['active'])throw new RuntimeException('La política de acceso de esta clave API está desactivada.');
+        if(!$policy['active'])throw new ZynkoApiPolicyException('La política de acceso de esta clave API está desactivada.','API_KEY_POLICY_DISABLED');
         $origin=self::requestOrigin();
-        if($origin!==''&&!self::originAllowed($origin,$policy['allowed_origins']))throw new RuntimeException('El origen web no está autorizado para esta clave API.');
-        if($origin!==''&&$policy['require_https']&&!str_starts_with($origin,'https://')&&!str_starts_with($origin,'http://localhost')&&!str_contains($origin,'.test'))throw new RuntimeException('Esta clave API exige HTTPS para solicitudes desde navegador.');
-        $ip=self::requestIp();if(!self::ipAllowed($ip,$policy['allowed_ips']))throw new RuntimeException('La dirección IP no está autorizada para esta clave API.');
+        if($origin!==''&&!self::originAllowed($origin,$policy['allowed_origins']))throw new ZynkoApiPolicyException('El origen web no está autorizado para esta clave API.','ORIGIN_NOT_ALLOWED',['received_origin'=>$origin]);
+        if($origin!==''&&$policy['require_https']&&!str_starts_with($origin,'https://')&&!str_starts_with($origin,'http://localhost')&&!str_contains($origin,'.test'))throw new ZynkoApiPolicyException('Esta clave API exige HTTPS para solicitudes desde navegador.','HTTPS_REQUIRED');
+        $ip=self::requestIp();
+        if(!self::ipAllowed($ip,$policy['allowed_ips'])){
+            // Only reached after successful Bearer validation. Never trust client-supplied
+            // X-Forwarded-For / X-Real-IP: a remote caller could forge them.
+            throw new ZynkoApiPolicyException(
+                'La IP pública de salida no está autorizada para esta clave API.',
+                'IP_NOT_ALLOWED',
+                ['received_ip'=>$ip, 'allowed_ips'=>$policy['allowed_ips'], 'source'=>'REMOTE_ADDR', 'next_step'=>'Autorice la IP/CIDR real en la política de esta clave o ejecute desde un servidor previamente autorizado.']
+            );
+        }
         $bucket=gmdate('YmdHi');
         $pdo->prepare('INSERT INTO api_rate_limits(api_key_id,bucket_minute,request_count) VALUES(?,?,1) ON DUPLICATE KEY UPDATE request_count=request_count+1')->execute([(int)$key['id'],$bucket]);
         $q=$pdo->prepare('SELECT request_count FROM api_rate_limits WHERE api_key_id=? AND bucket_minute=?');$q->execute([(int)$key['id'],$bucket]);
