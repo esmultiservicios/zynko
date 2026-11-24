@@ -1,3 +1,13 @@
+# Preserve Bearer Authorization for PHP during Apache internal rewrites.
+# Necessary for external API clients (IZZY); does not weaken key/IP/scope checks.
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase Authorization "^(.+)$" HTTP_AUTHORIZATION=$1
+</IfModule>
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
+
 Options -Indexes
 DirectoryIndex index.php
 <IfModule mod_rewrite.c>

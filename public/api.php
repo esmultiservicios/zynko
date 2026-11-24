@@ -19,17 +19,41 @@ function envCfg(string $p): array { $v=@parse_ini_file($p,false,INI_SCANNER_RAW)
 function db(): PDO { static $pdo; global $root; if($pdo)return $pdo;$e=envCfg($root.'/.env');$dsn='mysql:host='.($e['DB_HOST']??'127.0.0.1').';port='.($e['DB_PORT']??'3306').';dbname='.($e['DB_DATABASE']??'zynko').';charset=utf8mb4';$pdo=new PDO($dsn,$e['DB_USERNAME']??'root',$e['DB_PASSWORD']??'',[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC]);$pdo->exec("SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci");return $pdo; }
 function uuid4(): string {$d=random_bytes(16);$d[6]=chr((ord($d[6])&15)|64);$d[8]=chr((ord($d[8])&63)|128);return vsprintf('%s%s-%s-%s-%s-%s%s%s',str_split(bin2hex($d),4));}
 function bearer(): string {
- // Apache/cPanel puede exponer Authorization como REDIRECT_HTTP_AUTHORIZATION.
- $h=trim((string)($_SERVER['HTTP_AUTHORIZATION']??''));
- if($h==='')$h=trim((string)($_SERVER['REDIRECT_HTTP_AUTHORIZATION']??''));
- if($h===''){
-  foreach(function_exists('getallheaders')?(getallheaders()?:[]):[] as $name=>$value){
-   if(strcasecmp((string)$name,'Authorization')===0){$h=trim((string)$value);break;}
-  }
- }
- if(!preg_match('/^Bearer\s+([^\s]+)\s*$/i',$h,$m))out(401,false,'Falta Authorization: Bearer <API_KEY>.');
- return $m[1];
+    // Apache rewrite/CGI/FastCGI may expose Authorization under different names.
+    // Never log or include bearer values in responses.
+    $candidates = [
+        $_SERVER['HTTP_AUTHORIZATION'] ?? '',
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '',
+        $_SERVER['REDIRECT_REDIRECT_HTTP_AUTHORIZATION'] ?? '',
+        $_SERVER['Authorization'] ?? '',
+    ];
+    if (function_exists('getallheaders')) {
+        foreach ((array) getallheaders() as $name => $value) {
+            if (strcasecmp((string) $name, 'Authorization') === 0) {
+                $candidates[] = $value;
+                break;
+            }
+        }
+    }
+    if (function_exists('apache_request_headers')) {
+        foreach ((array) apache_request_headers() as $name => $value) {
+            if (strcasecmp((string) $name, 'Authorization') === 0) {
+                $candidates[] = $value;
+                break;
+            }
+        }
+    }
+    foreach ($candidates as $candidate) {
+        if (!is_string($candidate) || trim($candidate) === '') continue;
+        $header = trim($candidate);
+        if (!preg_match('/^Bearer[ \t]+([^\s]+)$/iD', $header, $matches)) {
+            out(401, false, 'Falta Authorization: Bearer <API_KEY>.');
+        }
+        return $matches[1];
+    }
+    out(401, false, 'Falta Authorization: Bearer <API_KEY>.');
 }
+
 function auth(): array { ZynkoAccessPolicy::ensureTables(db()); $key=bearer();$prefix=explode('.',$key,2)[0]??'';if(!str_starts_with($prefix,'zk_'))out(401,false,'Clave API inválida.');$q=db()->prepare('SELECT * FROM api_keys WHERE key_prefix=? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at>NOW())');$q->execute([$prefix]);$r=$q->fetch();if(!$r||!hash_equals($r['key_hash'],hash('sha256',$key)))out(401,false,'Clave API inválida o revocada.');try{ZynkoAccessPolicy::enforce(db(),$r);}catch(OverflowException $e){out(429,false,$e->getMessage());}catch(RuntimeException $e){out(403,false,$e->getMessage());}db()->prepare('UPDATE api_keys SET last_used_at=NOW() WHERE id=?')->execute([$r['id']]);return $r; }
 function hasScope(array $k,string $scope): void {$s=json_decode($k['scopes_json']??'[]',true)?:[];if(!in_array($scope,$s,true))out(403,false,'La clave no tiene el permiso '.$scope.'.');}
 function hasAnyScope(array $k,array $scopes): void {$s=json_decode($k['scopes_json']??'[]',true)?:[];foreach($scopes as $scope)if(in_array($scope,$s,true))return;out(403,false,'La clave no tiene ninguno de los permisos requeridos.');}
