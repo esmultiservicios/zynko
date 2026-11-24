@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
 
 /* ZYNKO V2.31.25 · Menús de acciones inteligentes portales (Usuarios + Empresas + Suscripciones) */
 (()=>{
- const selector='.user-action-wrap,.company-action-wrap,.plan-action-wrap,.company-user-action-wrap';
+ const selector='.user-action-wrap,.company-action-wrap,.plan-action-wrap,.company-user-action-wrap,.api-key-action-wrap';
  let active=null;
  const restore=()=>{
    if(!active)return;
@@ -884,18 +884,18 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
    menu.style.left=x+'px';menu.style.top=y+'px';menu.style.maxHeight=Math.min(440,window.innerHeight-pad*2)+'px';menu.style.overflow='auto';menu.dataset.placement=placement;menu.style.visibility='visible';
  };
  document.addEventListener('click',e=>{
-   const toggle=e.target.closest('.user-action-toggle,.company-action-toggle,.plan-action-toggle,.company-user-action-toggle');
+   const toggle=e.target.closest('.user-action-toggle,.company-action-toggle,.plan-action-toggle,.company-user-action-toggle,.api-key-actions-toggle');
    if(toggle){
      e.preventDefault();e.stopImmediatePropagation();
      const wrap=toggle.closest(selector);if(!wrap)return;
      if(active?.wrap===wrap){restore();return;}
      restore();
-     const menu=wrap.querySelector('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu');if(!menu)return;
+     const menu=wrap.querySelector('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu');if(!menu)return;
      const next=menu.nextSibling;active={wrap,toggle,menu,next};wrap.classList.add('open');toggle.setAttribute('aria-expanded','true');place(toggle,menu);return;
    }
-   if(active && !e.target.closest('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu'))restore();
+   if(active && !e.target.closest('.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu'))restore();
  },true);
- document.addEventListener('click',e=>{if(active&&e.target.closest('.user-action-menu button,.company-action-menu button,.plan-action-menu button,.company-user-action-menu button'))setTimeout(restore,0)},false);
+ document.addEventListener('click',e=>{if(active&&e.target.closest('.user-action-menu button,.company-action-menu button,.plan-action-menu button,.company-user-action-menu button,.api-key-action-menu button'))setTimeout(restore,0)},false);
  window.addEventListener('resize',restore,{passive:true});window.addEventListener('scroll',restore,true);window.addEventListener('blur',restore);
  document.addEventListener('keydown',e=>{if(e.key==='Escape')restore()});
 })();

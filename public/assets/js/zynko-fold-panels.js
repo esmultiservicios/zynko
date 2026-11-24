@@ -96,7 +96,7 @@
       if(!select.options.length)entries.forEach(([id,title])=>{const option=el('option','',title);option.value=id;select.append(option)});
       if(!navigator.isConnected)layout.before(navigator);
       // Indicators always appear directly below the section picker, independently of the chosen section.
-      if(kpis){navigator.after(kpis);shell(kpis,'webchat-usage','Indicadores de uso','Sitios registrados, visitantes y mensajes.','chart-column',true)}
+      if(kpis){if(!kpis.closest('.zynko-server-fold'))navigator.after(kpis);choose('.webchat-kpis','webchat-usage','Indicadores de uso','Sitios registrados, visitantes y mensajes.','chart-column',true)}
       const left=el('div','zynko-webchat-config-column');
       const preview=layout.querySelector(':scope > .nivo-webchat-rail');
       if(preview)layout.insertBefore(left,preview);else layout.prepend(left);

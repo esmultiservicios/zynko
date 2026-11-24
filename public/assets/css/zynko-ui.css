@@ -3515,38 +3515,38 @@ button>i:first-child,a>i:first-child,.primary>i:first-child,.soft>i:first-child,
 
 /* ZYNKO V2.31.25 FINAL · Directorios uniformes: Usuarios, Empresas y Suscripciones */
 /* Botón Acciones idéntico en detalle y miniatura */
-.user-action-toggle,.company-action-toggle,.plan-action-toggle{
+.user-action-toggle,.company-action-toggle,.plan-action-toggle,.api-key-actions-toggle{
   width:148px!important;min-width:148px!important;max-width:148px!important;height:40px!important;min-height:40px!important;
   display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
   padding:0 14px!important;border-radius:11px!important;background:#0e2a3d!important;color:#fff!important;border:1px solid #0e2a3d!important;
   font-size:12px!important;font-weight:800!important;white-space:nowrap!important;cursor:pointer!important;
 }
-.user-action-toggle:hover,.company-action-toggle:hover,.plan-action-toggle:hover{background:#12364e!important;border-color:#12364e!important;transform:translateY(-1px)!important}
-.user-action-wrap,.company-action-wrap,.plan-action-wrap{position:relative!important;overflow:visible!important}
+.user-action-toggle:hover,.company-action-toggle:hover,.plan-action-toggle:hover,.api-key-actions-toggle:hover{background:#12364e!important;border-color:#12364e!important;transform:translateY(-1px)!important}
+.user-action-wrap,.company-action-wrap,.plan-action-wrap,.api-key-action-wrap{position:relative!important;overflow:visible!important}
 .users-directory-list.view-mini .user-action-wrap,.company-grid.view-mini .company-card-actions{width:auto!important;margin-top:6px!important;justify-self:start!important}
 .users-directory-list.view-mini .user-action-toggle,.company-grid.view-mini .company-action-toggle{width:148px!important;min-width:148px!important;max-width:148px!important}
 
 /* Menú flotante real: nunca aumenta el alto del directorio ni crea scroll interno */
-.user-action-menu.zynko-action-portal,.company-action-menu.zynko-action-portal,.plan-action-menu.zynko-action-portal{
+.user-action-menu.zynko-action-portal,.company-action-menu.zynko-action-portal,.plan-action-menu.zynko-action-portal,.api-key-action-menu.zynko-action-portal{
   position:fixed!important;display:grid!important;gap:5px!important;width:310px!important;max-width:calc(100vw - 24px)!important;
   max-height:min(440px,calc(100vh - 24px))!important;overflow:auto!important;z-index:2147483000!important;
   padding:9px!important;border:1px solid #dce7e4!important;border-radius:16px!important;background:#fff!important;
   box-shadow:0 24px 60px rgba(15,23,42,.24)!important;
 }
-.user-action-menu.zynko-action-portal button,.company-action-menu.zynko-action-portal button,.plan-action-menu.zynko-action-portal button{
+.user-action-menu.zynko-action-portal button,.company-action-menu.zynko-action-portal button,.plan-action-menu.zynko-action-portal button,.api-key-action-menu.zynko-action-portal button{
   width:100%!important;min-height:54px!important;border:0!important;background:transparent!important;color:var(--text,#122033)!important;
   padding:10px 11px!important;border-radius:11px!important;display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;
   gap:10px!important;text-align:left!important;align-items:center!important;cursor:pointer!important;
 }
-.user-action-menu.zynko-action-portal button:hover,.company-action-menu.zynko-action-portal button:hover,.plan-action-menu.zynko-action-portal button:hover{background:#f3f8f7!important;transform:none!important}
-.user-action-menu.zynko-action-portal button>i,.company-action-menu.zynko-action-portal button>i,.plan-action-menu.zynko-action-portal button>i{
+.user-action-menu.zynko-action-portal button:hover,.company-action-menu.zynko-action-portal button:hover,.plan-action-menu.zynko-action-portal button:hover,.api-key-action-menu.zynko-action-portal button:hover{background:#f3f8f7!important;transform:none!important}
+.user-action-menu.zynko-action-portal button>i,.company-action-menu.zynko-action-portal button>i,.plan-action-menu.zynko-action-portal button>i,.api-key-action-menu.zynko-action-portal button>i{
   width:32px;height:32px;border-radius:9px;background:#eaf8f4;color:#078b76;display:grid;place-items:center;font-size:13px!important;
 }
-.user-action-menu.zynko-action-portal button span,.company-action-menu.zynko-action-portal button span,.plan-action-menu.zynko-action-portal button span,
-.user-action-menu.zynko-action-portal button b,.company-action-menu.zynko-action-portal button b,.plan-action-menu.zynko-action-portal button b,
-.user-action-menu.zynko-action-portal button small,.company-action-menu.zynko-action-portal button small,.plan-action-menu.zynko-action-portal button small{display:block!important;min-width:0!important}
-.user-action-menu.zynko-action-portal button small,.company-action-menu.zynko-action-portal button small,.plan-action-menu.zynko-action-portal button small{margin-top:2px;color:#64748b;font-size:11px;font-weight:500;line-height:1.35}
-.theme-dark .user-action-menu.zynko-action-portal,.theme-dark .company-action-menu.zynko-action-portal,.theme-dark .plan-action-menu.zynko-action-portal{background:#0f1d2b!important;border-color:#284054!important}
+.user-action-menu.zynko-action-portal button span,.company-action-menu.zynko-action-portal button span,.plan-action-menu.zynko-action-portal button span,.api-key-action-menu.zynko-action-portal button span,
+.user-action-menu.zynko-action-portal button b,.company-action-menu.zynko-action-portal button b,.plan-action-menu.zynko-action-portal button b,.api-key-action-menu.zynko-action-portal button b,
+.user-action-menu.zynko-action-portal button small,.company-action-menu.zynko-action-portal button small,.plan-action-menu.zynko-action-portal button small,.api-key-action-menu.zynko-action-portal button small{display:block!important;min-width:0!important}
+.user-action-menu.zynko-action-portal button small,.company-action-menu.zynko-action-portal button small,.plan-action-menu.zynko-action-portal button small,.api-key-action-menu.zynko-action-portal button small{margin-top:2px;color:#64748b;font-size:11px;font-weight:500;line-height:1.35}
+.theme-dark .user-action-menu.zynko-action-portal,.theme-dark .company-action-menu.zynko-action-portal,.theme-dark .plan-action-menu.zynko-action-portal,.theme-dark .api-key-action-menu.zynko-action-portal{background:#0f1d2b!important;border-color:#284054!important}
 
 /* EMPRESAS · Detalle realmente horizontal y completo, no una miniatura grande */
 .company-grid.view-detail{display:flex!important;flex-direction:column!important;gap:12px!important}
@@ -3609,7 +3609,7 @@ button>i:first-child,a>i:first-child,.primary>i:first-child,.soft>i:first-child,
   .billing-plan-directory.view-detail .plan-card{grid-template-columns:1fr!important;grid-template-areas:'head' 'limits' 'features' 'actions'!important}
   .billing-plan-directory.view-detail .plan-card-head{border-right:0!important}.billing-plan-directory.view-detail .plan-limits{border-bottom:0!important}
   .company-grid.view-mini,.billing-plan-directory.view-mini{grid-template-columns:1fr!important}
-  .user-action-toggle,.company-action-toggle,.plan-action-toggle{width:148px!important;min-width:148px!important;max-width:148px!important}
+  .user-action-toggle,.company-action-toggle,.plan-action-toggle,.api-key-actions-toggle{width:148px!important;min-width:148px!important;max-width:148px!important}
 }
 
 
@@ -3646,7 +3646,7 @@ button>i:first-child,a>i:first-child,.primary>i:first-child,.soft>i:first-child,
 @media(max-width:720px){.launcher-label-toolbar{gap:8px!important}.launcher-label-toolbar button span{display:none}.launcher-label-toolbar button{width:36px!important;padding:0!important;justify-content:center!important}.launcher-rte-actions{width:auto!important}}
 
 /* ZYNKO V2.31.31 · Botones y acciones totalmente responsive en Admin */
-button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-toggle,.company-action-toggle,.plan-action-toggle{
+button,.soft,.primary,.danger-btn,.icon-btn,.company-export-btn,.user-action-toggle,.company-action-toggle,.plan-action-toggle,.api-key-actions-toggle{
   max-width:100%;
 }
 .api-doc-title>div,
@@ -7169,7 +7169,7 @@ body>.select2-container--open .select2-results__options{max-height:min(280px,45v
 #client360DetailsModal .select2-dropdown{max-width:calc(100vw - 30px)!important}
 
 /* v037 · Solo la sección activa debe ser visible desde el primer pintado. */
-body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:not(.zynko-section-nav){visibility:hidden!important}
+/* Inicio estable: la primera sección se entrega desde PHP y las demás se ocultan hasta la navegación. */
 .zynko-section-hidden,[hidden].zynko-section-hidden{display:none!important}
 /* Select2 múltiple de categorías: una sola superficie de entrada, sin cajas anidadas. */
 #contactCategoriesForm .select2-container--default .select2-selection--multiple{min-height:44px!important;height:auto!important;padding:5px 9px!important;display:flex!important;align-items:center!important;flex-wrap:wrap!important;gap:4px;border-radius:11px!important}
@@ -7308,7 +7308,7 @@ body>.select2-container--open.zynko-api-size-dropdown .select2-dropdown{max-widt
 @media(max-width:720px){.nivo-webchat-page .zynko-fold-shell[data-zynko-fold="webchat-usage"] .webchat-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 /* v045 — Navegación sin parpadeo: cabecera dibujada desde PHP, primera sección visible antes de JS. */
-body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main section.panel:not(.zynko-section-nav){visibility:visible!important}
+/* La visibilidad inicial depende de las secciones reales de cada página, no de todos los paneles. */
 body:has(#zynkoSectionNavigator):not(.zynko-section-ready) main .nivo-section:not(#behavior){display:none!important}
 body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm > section.panel:not(:first-of-type){display:none!important}
 /* En Web Chat el explorador se entrega desde el servidor, no se añade tarde. */
@@ -7380,17 +7380,31 @@ body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){
   }
 }
 
-/* v062: Acciones de API con posición inteligente (mismo user-dropdown de ZYNKO). */
-.api-key-action-wrap{position:relative;flex:0 0 auto}
-.api-key-action-wrap .api-key-actions-toggle{white-space:nowrap;display:flex;gap:8px;align-items:center}
-.api-key-action-menu{position:fixed!important;right:auto!important;bottom:auto!important;z-index:10050!important;width:min(310px,calc(100vw - 24px))!important;max-width:calc(100vw - 24px);overflow-y:auto;overscroll-behavior:contain;box-shadow:0 20px 55px rgba(15,23,42,.18)}
-.api-key-action-menu button{width:100%;font:inherit;cursor:pointer}
-.api-key-action-menu button:hover{background:var(--surface2)}
-.api-key-action-menu .api-key-view>i{color:var(--accent2,#0d806b)!important}
-.api-key-action-menu .api-policy-edit>i{color:#3478c8!important}
-.api-key-action-menu .api-key-rotate>i{color:#c28117!important}
-.api-key-action-menu .api-key-revoke,.api-key-action-menu .api-key-revoke>i{color:var(--danger,#c43643)!important}
+/* Acciones API: mismo menú único flotante que Empresas. Estilos activos solo al abrir. */
+.api-key-action-menu{display:none}
+.api-key-action-menu.zynko-action-portal{display:grid!important}
+.api-key-action-menu.zynko-action-portal .api-key-view>i{background:#e5f6ee!important;color:#078b76!important}
+.api-key-action-menu.zynko-action-portal .api-policy-edit>i{background:#e9f1ff!important;color:#2563eb!important}
+.api-key-action-menu.zynko-action-portal .api-key-rotate>i{background:#fff2d9!important;color:#ac720e!important}
+.api-key-action-menu.zynko-action-portal .api-key-revoke>i{background:#ffe7e9!important;color:#b42338!important}
+.api-key-action-wrap .api-key-actions-toggle .action-chevron{transition:transform .18s ease}
+.api-key-action-wrap.open .action-chevron{transform:rotate(180deg)}
 .api-key-row.api-menu-open{position:relative;transform:none!important}
 .api-key-detail-body{padding:16px 22px;overflow-y:auto;min-height:0;flex:1}
 .api-key-detail-value{white-space:pre-wrap;overflow-wrap:anywhere;min-height:40px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px}
 @media(max-width:900px){.api-key-action-wrap{align-self:flex-end}}
+
+/* v063 · Un solo alineamiento de iconos y textos en todos los menús Acciones. */
+:is(.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu).zynko-action-portal button{display:grid!important;grid-template-columns:32px minmax(0,1fr)!important;align-items:center!important;column-gap:10px!important;text-align:left!important}
+:is(.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu).zynko-action-portal button>i{display:grid!important;place-items:center!important;text-align:center!important;width:32px!important;height:32px!important;min-width:32px!important;margin:0!important;padding:0!important;line-height:1!important;font-size:13px!important}
+:is(.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu).zynko-action-portal button>span{display:block!important;min-width:0!important}
+:is(.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu).zynko-action-portal button b{font-weight:800!important;line-height:1.4!important}
+:is(.user-action-menu,.company-action-menu,.plan-action-menu,.company-user-action-menu,.api-key-action-menu).zynko-action-portal button small{display:block!important;font-weight:500!important;line-height:1.4!important;margin-top:2px!important}
+/* Primer render: el explorador de secciones no debe mostrar paneles distintos al inicial. */
+body:has(#zynkoSectionNavigator[data-section-page="chatbot"]):not(.zynko-section-ready) main .nivo-section:not(#behavior){display:none!important}
+body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm > section.panel:not(:first-of-type){display:none!important}
+/* Reservar el espacio real del editor de Bandeja durante hidratación; nunca mostrar textarea grande. */
+body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){min-height:202px!important;visibility:hidden!important}
+body.page-inbox #messageForm .composer-line:has(> .zynko-rte-shell){visibility:visible!important}
+body.page-inbox #messageForm .composer-line>.zynko-rte-shell{width:100%;box-sizing:border-box}
+@media(max-width:760px){body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){min-height:180px!important}}
