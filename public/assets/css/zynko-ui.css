@@ -7367,3 +7367,15 @@ body:has(.nivo-webchat-page):not(.page-inbox) .main>main{
 }
 #client360DetailsModal .client360-category-field .select2-selection--single{height:42px!important;min-height:42px!important}
 #client360DetailsModal .client360-category-field .select2-results__options{max-height:220px!important;overflow-y:auto!important}
+
+/* v058 · Bandeja: no mostrar el textarea temporal antes de montar el editor
+   enriquecido existente. Se conserva su espacio para evitar saltos de altura.
+   Alcance exclusivo al compositor de mensajes de Bandeja. */
+body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){
+  visibility:hidden!important;
+}
+@media (min-width:761px){
+  body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){
+    min-height:202px;
+  }
+}
