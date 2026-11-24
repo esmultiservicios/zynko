@@ -59,6 +59,48 @@ final class ZynkoAccessPolicy
         return array_slice($out,0,50);
     }
 
+    /** Validate every entered network: never silently discard an administrator's rule. */
+    public static function validatedIpList(string|array $raw): array
+    {
+        $entries=is_array($raw)?$raw:preg_split('/[\r\n,;]+/',(string)$raw);
+        $result=[];
+        foreach($entries?:[] as $value){
+            $entry=trim((string)$value);
+            if($entry==='')continue;
+            if(str_contains($entry,'/')){
+                $parts=explode('/',$entry);
+                if(count($parts)!==2||!filter_var($parts[0],FILTER_VALIDATE_IP)||!ctype_digit($parts[1])){
+                    throw new InvalidArgumentException('IP/CIDR no válido: '.$entry.'. Ingrese una IP o una red como 203.0.113.0/24.');
+                }
+                $max=str_contains($parts[0],':')?128:32;
+                if((int)$parts[1]>$max){
+                    throw new InvalidArgumentException('Máscara CIDR fuera de rango en '.$entry.'. Máximo /'.$max.'.');
+                }
+            }elseif(!filter_var($entry,FILTER_VALIDATE_IP)){
+                throw new InvalidArgumentException('IP no válida: '.$entry.'. No escriba dominios en el campo IP/CIDR.');
+            }
+            if(!in_array($entry,$result,true))$result[]=$entry;
+            if(count($result)>50)throw new InvalidArgumentException('Se permiten como máximo 50 direcciones o redes IP por clave.');
+        }
+        return $result;
+    }
+
+    /** Validate web origins separately; domains never grant IP access. */
+    public static function validatedOriginList(string|array $raw): array
+    {
+        $entries=is_array($raw)?$raw:preg_split('/[\r\n,;]+/',(string)$raw);
+        $result=[];
+        foreach($entries?:[] as $value){
+            $entry=trim((string)$value);
+            if($entry==='')continue;
+            $origin=self::normalizeOrigin($entry);
+            if($origin==='')throw new InvalidArgumentException('Origen no válido: '.$entry.'. Use https://dominio.com[:puerto].');
+            if(!in_array($origin,$result,true))$result[]=$origin;
+            if(count($result)>50)throw new InvalidArgumentException('Se permiten como máximo 50 orígenes por clave.');
+        }
+        return $result;
+    }
+
     public static function requestOrigin(): string
     {
         return self::normalizeOrigin((string)($_SERVER['HTTP_ORIGIN']??''));

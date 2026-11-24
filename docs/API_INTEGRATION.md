@@ -338,3 +338,19 @@ El `channel_id` debe pertenecer a la empresa y coincidir con la clave; la conexi
 `GET /api.php?r=v1/whatsapp/history&page=1&per_page=20&q=` con `Authorization: Bearer <API_KEY>` y permiso `whatsapp:status`.
 Devuelve únicamente los mensajes generados mediante **esa misma API Key**, dentro de su empresa y del canal asociado a la clave. Admite hasta 100 registros por página e incluye UUID, destinatario, contenido, estado de cola, último error y modalidad de entrega. No incluye conversaciones normales de la bandeja.
 El modo independiente mantiene el historial sin publicar la conversación en la bandeja; el modo integrado también conserva este historial. Las aplicaciones cliente deben mantener su API Key únicamente en el servidor.
+
+
+## F. Configurar varios sitios y varias IP de salida (ZYNKO v064)
+
+Los campos del formulario **no son equivalentes**:
+
+- **Sitios / orígenes permitidos**: agregue una URL de origen por línea, como `https://sistema.izzycloud.app` y `https://demo.izzycloud.app`. Los orígenes aplican cuando el cliente envía la cabecera HTTP `Origin` (habitual en navegadores). No conceden acceso de red por IP; la URL no debe incluir rutas.
+- **IP / CIDR permitidos**: agregue una dirección **pública de salida** por línea. Se admiten IPv4 (`13.140.230.254`), IPv6 (`2605:a144:2370:6446::`) o CIDR válidos (`203.0.113.0/24`, `2001:db8::/64`). Se permiten varias IP y redes simultáneamente, hasta 50 entradas únicas. También admite entradas separadas por comas o punto y coma.
+
+La API verifica `REMOTE_ADDR`, la IP observada al recibir la conexión HTTPS. No confía en cabeceras `X-Forwarded-For` aportadas por el cliente. **Si `GET ?r=v1/channels` responde `403 IP_NOT_ALLOWED`, compare `data.received_ip` con `data.allowed_ips`.** La IP de salida observada desde Laragon, demo alojado y producción puede ser distinta (también puede alternar IPv4/IPv6).
+
+En la prueba reportada por IZZY, `received_ip` fue `2605:a144:2370:6446::` y la política solo contenía `13.140.230.254`; por ello el rechazo es esperado. Verifique que la IPv6 pertenece a su entorno autorizado antes de incorporarla. Para producción, autorice únicamente las IP estables o el CIDR mínimo asignado oficialmente, nunca `0.0.0.0/0` ni `::/0`. Si usa un proveedor/proxy inverso, configure la IP del servidor/proxy de confianza de forma explícita; no copie sin validar una IP informada por un encabezado del cliente.
+
+**Procedimiento de comprobación**: 1) En Integraciones → Acciones → Editar, conserve la entrada existente y añada la IP validada en una línea nueva; 2) Guardar permisos y recargar «Consultar» para comprobar la lista; 3) en IZZY, «Probar conexión» otra vez; 4) exigir HTTP 200 antes de consultar historial; 5) no enviar WhatsApp en esta prueba. Guardar el sitio demo por sí solo NO corrige `IP_NOT_ALLOWED`.
+
+Las nuevas validaciones de administrador devuelven un error explícito con la entrada mal escrita en lugar de ignorarla silenciosamente; aceptan IPv4, IPv6 y máscaras CIDR del rango correspondiente. Cambiar IP/origen no exige regenerar la clave API.
