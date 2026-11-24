@@ -4,8 +4,15 @@
   const nav=document.getElementById('zynkoSectionNavigator');if(!nav)return;
   const root=nav.closest('main')||document;
   const sectionPage=nav.dataset.sectionPage||'';
-  const panelSelector=sectionPage==='chatbot' ? 'form#botForm > .nivo-section, main .nivo-section' : sectionPage==='settings' ? '#settingsForm > section.panel' : 'section.panel';
-  const panels=[...new Set(root.querySelectorAll(panelSelector))].filter(el=>el!==nav&&!el.closest('.modal-shell')&&!el.closest('section.panel section.panel'));
+  const panelSelector=sectionPage==='chatbot' ? 'form#botForm > .nivo-section, main .nivo-section' : sectionPage==='settings' ? '#settingsForm > section.panel, section.panel' : 'section.panel';
+  const settingsForm=sectionPage==='settings'?root.querySelector('#settingsForm'):null;
+  // Settings has first panels inside the main form, but owner/server/SEO panels
+  // are direct siblings of that form. All of them must be part of ONE navigator.
+  const panels=[...new Set(root.querySelectorAll(panelSelector))].filter(el=>{
+    if(el===nav||el.closest('.modal-shell'))return false;
+    if(sectionPage==='settings')return (settingsForm&&el.parentElement===settingsForm)||el.parentElement===nav.parentElement;
+    return !el.closest('section.panel section.panel');
+  });
   if(panels.length<2){nav.remove();document.body.classList.add('zynko-section-ready');return;}
   const title=panel=>{const heading=panel.querySelector('.panel-head b,.panel-head strong,.premium-card-head b,.nivo-section-title,h2,h3');return (heading?.textContent||panel.id||'Sección').trim().replace(/\s+/g,' ').slice(0,90)};
   const data=panels.map((el,index)=>({el,index,name:title(el)}));

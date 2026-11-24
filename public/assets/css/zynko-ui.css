@@ -7408,3 +7408,9 @@ body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){min-he
 body.page-inbox #messageForm .composer-line:has(> .zynko-rte-shell){visibility:visible!important}
 body.page-inbox #messageForm .composer-line>.zynko-rte-shell{width:100%;box-sizing:border-box}
 @media(max-width:760px){body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){min-height:180px!important}}
+
+/* v065 · API detail: separate the protected-secret notice from the final field. */
+#apiKeyViewModal .api-key-detail-body > .security-note{margin-top:24px;margin-bottom:8px}
+/* v065 · Settings: owner-only sections after the main form must never flash
+   before the section navigator selects the initial panel. */
+body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm ~ section.panel{display:none!important}
