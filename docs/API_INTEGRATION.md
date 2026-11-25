@@ -13,6 +13,20 @@
 7. **HTTPS y permisos:** confirme plan con API habilitada, clave activa/no vencida, canal conectado, salida HTTPS y cuota disponible. **No** coloque `Authorization` en un parámetro de URL.
 8. **Redirecciones:** `CURLOPT_FOLLOWLOCATION=false`; usar siempre el endpoint HTTPS final. Compruebe que cURL prepara `Authorization: Bearer TU_CLAVE_API`.
 
+### Si ZYNKO responde HTTP 403 al consultar canales
+
+La política de la API Key (IP/CIDR, origen y vigencia) y la suscripción se validan en ZYNKO. Revise la empresa a la que pertenece la clave antes de editar su plan.
+
+- `IP_NOT_ALLOWED`: compare `data.received_ip` con `data.allowed_ips` desde el servidor que ejecutará la integración.
+- `API_SUBSCRIPTION_REQUIRED`: un administrador debe asignar a la empresa una suscripción que incluya API.
+- `API_SUBSCRIPTION_INACTIVE`: revise la vigencia de la suscripción. Se admiten los estados activo, de gracia o de prueba.
+- `API_PLAN_INACTIVE`: revise que el plan asignado exista y esté activo.
+- `API_PLAN_REQUIRED`: revise que el plan asignado tenga habilitado el módulo API. Un scope de la clave no habilita un módulo del plan.
+- `API_SCOPE_REQUIRED`: verifique los scopes del endpoint. Para la prueba de IZZY, use `channels:read` y `whatsapp:status`.
+- HTTP 503 / `API_PLAN_LOOKUP_FAILED`: ZYNKO no pudo consultar el estado comercial. Revise los registros del servidor y reintente la lectura.
+
+Valide primero Canales con HTTP 200 y `ok: true`. Luego pruebe Historial con la misma clave. Mantenga los envíos desactivados durante estas comprobaciones.
+
 ## B. Primera prueba real, sin enviar WhatsApp
 
 ```bash
