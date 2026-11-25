@@ -124,13 +124,23 @@ final class ZynkoAccessPolicy
     {
         if(!$allowed)return true;
         if(!filter_var($ip,FILTER_VALIDATE_IP))return false;
-        foreach($allowed as $candidate){$candidate=trim((string)$candidate);if($candidate===$ip)return true;if(str_contains($candidate,'/')&&self::ipInCidr($ip,$candidate))return true;}
+        $ipBin=inet_pton($ip);
+        foreach($allowed as $candidate){
+            $candidate=trim((string)$candidate);
+            if(str_contains($candidate,'/')){
+                if(self::ipInCidr($ip,$candidate))return true;
+            }elseif(filter_var($candidate,FILTER_VALIDATE_IP) && inet_pton($candidate)===$ipBin){
+                return true;
+            }
+        }
         return false;
     }
 
     private static function ipInCidr(string $ip,string $cidr): bool
     {
-        [$subnet,$bits]=array_pad(explode('/',$cidr,2),2,null);$bits=(int)$bits;
+        [$subnet,$prefix]=explode('/',$cidr,2);
+        if(!ctype_digit($prefix))return false;
+        $bits=(int)$prefix;
         $ipBin=@inet_pton($ip);$subnetBin=@inet_pton((string)$subnet);
         if($ipBin===false||$subnetBin===false||strlen($ipBin)!==strlen($subnetBin))return false;
         $max=strlen($ipBin)*8;if($bits<0||$bits>$max)return false;
