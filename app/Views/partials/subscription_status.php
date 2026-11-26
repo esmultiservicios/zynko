@@ -20,12 +20,10 @@ $selectedSubscriptionStatus = isset($subscriptionStatusOptions[$subscriptionStat
       <label><input type="radio" name="status" value="<?=$value?>" <?=$selectedSubscriptionStatus === $value ? 'checked' : ''?>> <span><?=$label?></span></label>
     <?php endforeach; ?>
   </div>
-  <details class="subscription-status-help">
-    <summary>Qué significa cada estado</summary>
-    <dl>
+  <button type="button" class="subscription-status-help" aria-haspopup="dialog"><i class="fa-solid fa-circle-question" aria-hidden="true"></i> Qué significa cada estado</button><template class="subscription-status-guide"><dl class="record-detail-grid">
       <?php foreach ($subscriptionStatusOptions as $value => $label): ?>
-        <div><dt><?=$label?></dt><dd><?=$subscriptionStatusDescriptions[$value]?></dd></div>
+        <div class="record-detail-section"><dt><b><?=$label?></b></dt><dd><?=$subscriptionStatusDescriptions[$value]?></dd></div>
       <?php endforeach; ?>
     </dl>
-  </details>
+  </template>
 </fieldset>

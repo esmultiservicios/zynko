@@ -7477,12 +7477,13 @@ fieldset.billing-status-control {
 .record-detail-section dd{margin-top:3px;overflow-wrap:anywhere}
 .record-detail-chips{display:flex;flex-wrap:wrap;gap:5px;list-style:none;padding:0;margin:0}
 .record-detail-chips .ui-badge{max-width:100%;white-space:normal;overflow-wrap:anywhere}
-.context-help-content ul{display:grid;gap:10px;margin:0 0 16px;padding-inline-start:20px}
-.subscription-status-help{color:var(--muted);font-size:12px;line-height:1.4}
-.subscription-status-help summary{width:fit-content;cursor:pointer;font-weight:650;color:var(--accent2)}
-.subscription-status-help dl{margin:8px 0 0;display:grid;gap:6px}
-.subscription-status-help dt{font-weight:700;color:var(--text)}
-.subscription-status-help dd{margin:0;overflow-wrap:anywhere}
+.context-help-content ul{display:grid;gap:10px;margin:0;padding-inline-start:20px}
+.context-help-content + .context-help-actions{margin-block-start:16px}
+.subscription-status-help{justify-self:start;display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;color:var(--accent2);font-size:12px;font-weight:650;text-align:start}
+.subscription-status-help:hover{text-decoration:underline}
+.subscription-status-guide-dialog .record-detail-grid{margin:0}
+.subscription-status-guide-dialog dt{color:var(--text);font-size:14px}
+.subscription-status-guide-dialog dd{font-size:13px;line-height:1.5}
 .billing-assignment-panel .tenant-plan-row{grid-template-columns:minmax(210px,.65fr) minmax(0,1.35fr)!important;gap:18px!important;padding:16px!important}
 .billing-assignment-panel .tenant-company-summary{min-width:0!important}
 .billing-assignment-panel .billing-assign-form{min-width:0!important;grid-template-columns:minmax(0,1fr) minmax(185px,1fr) auto!important;align-items:start!important}

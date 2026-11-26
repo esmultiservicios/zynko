@@ -680,7 +680,7 @@
     composer?.addEventListener('dragleave',()=>composer.classList.remove('dragging'));
     composer?.addEventListener('drop',e=>{e.preventDefault();composer.classList.remove('dragging');addFiles(e.dataTransfer?.files||[]);});
     mediaLightbox?.querySelector('button')?.addEventListener('click',()=>mediaLightbox.hidden=true);
-    mediaLightbox?.addEventListener('click',e=>{if(e.target===mediaLightbox)mediaLightbox.hidden=true});
+
     shadow.addEventListener('click',e=>{const preview=e.target.closest('[data-media-preview]');if(preview&&mediaLightbox){mediaLightbox.querySelector('img').src=preview.dataset.mediaPreview;mediaLightbox.hidden=false;}});
     try{state.expanded=localStorage.getItem(`${storagePrefix}.expanded`)==='1'}catch(_){}
     box.classList.toggle('expanded',state.expanded);
