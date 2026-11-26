@@ -104,8 +104,8 @@ final class EmailTemplates
     private static function statePill(string $value,bool $isNew=false): string {
         $v=strtolower(trim($value));
         $ok=in_array($v,['up','active','activo','activa','enabled','habilitado','aprobado'],true);
-        $bad=in_array($v,['down','error','failed','fallido','rechazado','suspendido'],true);
-        $warn=in_array($v,['degraded','degradado','warning','advertencia','pending','pendiente'],true);
+        $bad=in_array($v,['down','error','failed','fallido','rechazado','suspendido','cancelado'],true);
+        $warn=in_array($v,['degraded','degradado','warning','advertencia','pending','pendiente','gracia','período de gracia'],true);
         $neutral=in_array($v,['inactive','inactivo','inactiva','disabled','deshabilitado'],true);
         $bg=$ok?'#E7F7F0':($bad?'#FFF0EF':($warn?'#FFF8E9':($neutral?'#F2F5F8':($isNew?'#E7F7F0':'#F2F5F8'))));
         $fg=$ok?'#08765C':($bad?'#B4232C':($warn?'#865000':($neutral?'#516173':($isNew?'#08765C':'#516173'))));
@@ -113,13 +113,13 @@ final class EmailTemplates
         $text=['up'=>'OPERATIVO','down'=>'FUERA DE SERVICIO','degraded'=>'DEGRADADO','active'=>'ACTIVO','inactive'=>'INACTIVO'][$v]??strtoupper($value);
         return '<span style="display:inline-block;padding:5px 10px;margin:3px 0;border-radius:7px;background:'.$bg.';color:'.$fg.';border:1px solid '.$bd.';font-size:12px;font-weight:800;line-height:1.4">'.self::e($text).'</span>';
     }
-    private static function comparison(string $label,string $before,string $after): string {
+    private static function comparison(string $label,string $before,string $after,string $beforeLabel='ANTES',string $afterLabel='AHORA'): string {
         return '<div style="padding:12px 0;border-bottom:1px solid #E3EAF0">'
             .'<div style="font-weight:800;color:'.self::NAVY.';margin-bottom:7px">'.self::e($label).'</div>'
             .'<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr>'
-            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-right:5px">ANTES<br>'.self::statePill($before).'</td>'
+            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-right:5px">'.self::e($beforeLabel).'<br>'.self::statePill($before).'</td>'
             .'<td width="4%" align="center" valign="middle" style="font-size:14px;color:'.self::MUTED.'">→</td>'
-            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-left:5px">AHORA<br>'.self::statePill($after,true).'</td>'
+            .'<td width="48%" valign="top" style="font-size:12px;color:'.self::MUTED.';padding-left:5px">'.self::e($afterLabel).'<br>'.self::statePill($after,true).'</td>'
             .'</tr></table></div>';
     }
 
@@ -299,6 +299,12 @@ final class EmailTemplates
         return self::shell('PLANES Y SUSCRIPCIONES','Plan '.$verb,$content,$settings,'PLAN '.strtoupper($verb));
     }
 
+    private static function requestedPlanComparison(array $data): string {
+        $current = trim((string)($data['previous_plan_name'] ?? ''));
+        return self::comparison('Planes de la empresa', $current !== '' ? $current : 'Sin plan registrado',
+            (string)($data['plan_name'] ?? 'Plan'), 'PLAN ACTUAL', 'PLAN SOLICITADO');
+    }
+
     public static function planRequestCustomer(array $data,array $settings): string {
         $plan=self::e($data['plan_name']??'Plan');
         $company=self::e($data['company_name']??'Tu empresa');
@@ -306,7 +312,7 @@ final class EmailTemplates
         $content='<p style="margin:0">Recibimos la solicitud de <strong>'.$company.'</strong> para cambiar al plan <strong>'.$plan.'</strong>.</p>'
             .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
             .'<strong style="color:'.self::NAVY.'">Solicitud recibida</strong><div style="margin-top:7px;color:'.self::MUTED.';font-size:13px;line-height:1.6">Plan solicitado: <strong>'.$plan.'</strong> · '.$price.'/mes. Tu plan actual no cambia hasta que la solicitud sea aprobada.</div></div>';
-        return self::shell('SOLICITUD DE PLAN','Recibimos tu solicitud de plan',$content,$settings,'SOLICITUD RECIBIDA');
+        return self::shell('SOLICITUD DE PLAN','Recibimos tu solicitud de plan',$content.self::requestedPlanComparison($data),$settings,'SOLICITUD RECIBIDA');
     }
 
     public static function planRequestAdmin(array $data,array $settings): string {
@@ -318,36 +324,32 @@ final class EmailTemplates
             .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
             .'<div style="font-size:14px;line-height:1.75"><strong>Empresa:</strong> '.$company.'<br><strong>Solicitó:</strong> '.$plan
             .($owner!==''?'<br><strong>Propietario:</strong> '.$owner:'').($email!==''?'<br><strong>Correo:</strong> '.$email:'').'</div></div>';
-        return self::shell('SOLICITUD COMERCIAL','Nueva solicitud de plan',$content,$settings,'REQUIERE ATENCIÓN');
+        return self::shell('SOLICITUD COMERCIAL','Nueva solicitud de plan',$content.self::requestedPlanComparison($data),$settings,'REQUIERE ATENCIÓN');
+    }
+
+    private static function subscriptionComparison(array $data): string {
+        $previousPlan = trim((string)($data['previous_plan_name'] ?? ''));
+        $previousStatus = trim((string)($data['previous_status_label'] ?? ''));
+        $plan = (string)($data['plan_name'] ?? 'Plan');
+        $status = (string)($data['status_label'] ?? $data['status'] ?? 'Activo');
+        return self::comparison('Plan de la empresa', $previousPlan !== '' ? $previousPlan : 'Sin plan anterior registrado', $plan)
+            . self::comparison('Estado de suscripción', $previousStatus !== '' ? $previousStatus : 'Sin estado anterior registrado', $status);
     }
 
     public static function subscriptionChangedCustomer(array $data,array $settings): string {
-        $company=self::e($data['company_name']??'Tu empresa');
-        $plan=self::e($data['plan_name']??'Plan');
-        $previous=self::e($data['previous_plan_name']??'');
-        $status=self::e($data['status_label']??($data['status']??'Activo'));
-        $content='<p style="margin:0">La suscripción de <strong>'.$company.'</strong> fue actualizada.</p>'
-            .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
-            .'<div style="font-size:14px;line-height:1.75"><strong>Plan actual:</strong> '.$plan
-            .($previous!==''&&$previous!==$plan?'<br><strong>Plan anterior:</strong> '.$previous:'')
-            .'<br><strong>Estado:</strong> '.$status.'</div></div>'
-            .($previous!==''&&$previous!==$plan?self::comparison('Cambio de plan',(string)($data['previous_plan_name']??''),(string)($data['plan_name']??'')):'')
-            .'<p style="margin:18px 0 0;color:'.self::MUTED.';font-size:13px">Los permisos, canales y límites de ZYNKO ya reflejan esta actualización.</p>';
-        return self::shell('TU SUSCRIPCIÓN','Tu plan de ZYNKO fue actualizado',$content,$settings,'SUSCRIPCIÓN');
+        $company = self::e($data['company_name'] ?? 'Tu empresa');
+        $content = '<p style="margin:0">La suscripción de <strong>'.$company.'</strong> fue actualizada.</p>'
+            . self::subscriptionComparison($data)
+            . '<p style="margin:18px 0 0;color:'.self::MUTED.';font-size:13px">Consulta en Suscripción los canales, módulos y límites disponibles para tu empresa.</p>';
+        return self::shell('TU SUSCRIPCIÓN','Tu suscripción de ZYNKO fue actualizada',$content,$settings,'SUSCRIPCIÓN');
     }
 
     public static function subscriptionChangedAdmin(array $data,array $settings): string {
-        $company=self::e($data['company_name']??'Empresa');
-        $plan=self::e($data['plan_name']??'Plan');
-        $previous=self::e($data['previous_plan_name']??'');
-        $status=self::e($data['status_label']??($data['status']??'Activo'));
-        $source=self::e($data['source_label']??'Asignación manual');
-        $content='<p style="margin:0">Se actualizó una suscripción en ZYNKO.</p>'
-            .'<div style="margin-top:20px;padding:16px 18px;background:#F7FBFA;border:1px solid #DCEEEA;border-radius:12px">'
-            .'<div style="font-size:14px;line-height:1.75"><strong>Empresa:</strong> '.$company.'<br><strong>Plan:</strong> '.$plan
-            .($previous!==''&&$previous!==$plan?'<br><strong>Anterior:</strong> '.$previous:'')
-            .'<br><strong>Estado:</strong> '.$status.'<br><strong>Origen:</strong> '.$source.'</div></div>';
-        if($previous!==''&&$previous!==$plan)$content.=self::comparison('Cambio de plan',(string)($data['previous_plan_name']??''),(string)($data['plan_name']??''));
+        $company = self::e($data['company_name'] ?? 'Empresa');
+        $source = self::e($data['source_label'] ?? 'Asignación manual');
+        $content = '<p style="margin:0">Se actualizó la suscripción de <strong>'.$company.'</strong>.</p>'
+            . self::subscriptionComparison($data)
+            . '<p style="margin:18px 0 0"><strong>Origen:</strong> '.$source.'</p>';
         return self::shell('CONTROL COMERCIAL','Suscripción actualizada',$content,$settings,'SUSCRIPCIÓN');
     }
 
@@ -356,7 +358,7 @@ final class EmailTemplates
         $plan=self::e($data['plan_name']??'Plan');
         $note=self::e($data['note']??'');
         $content='<p style="margin:0">Tu solicitud para el plan <strong>'.$plan.'</strong> fue <strong>'.($approved?'aprobada':'rechazada').'</strong>.</p>'
-            .($approved?'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px"><strong style="color:'.self::NAVY.'">Plan activado</strong><div style="margin-top:7px;color:'.self::MUTED.';font-size:13px">Tus permisos y límites ya fueron actualizados.</div></div>':'')
+            .($approved ? self::subscriptionComparison($data) : '<p style="margin:18px 0 0">La suscripción actual se mantiene.</p>'.self::requestedPlanComparison($data))
             .($note!==''?'<p style="margin:18px 0 0"><strong>Comentario:</strong> '.$note.'</p>':'');
         return self::shell('SOLICITUD DE PLAN',$approved?'Tu solicitud fue aprobada':'Actualización de tu solicitud',$content,$settings,$approved?'APROBADA':'RECHAZADA');
     }

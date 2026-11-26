@@ -7391,7 +7391,6 @@ body.page-inbox #messageForm .composer-line:not(:has(> .zynko-rte-shell)){
 .api-key-action-wrap.open .action-chevron{transform:rotate(180deg)}
 .api-key-row.api-menu-open{position:relative;transform:none!important}
 .api-key-detail-body{padding:16px 22px;overflow-y:auto;min-height:0;flex:1}
-.api-key-detail-value{white-space:pre-wrap;overflow-wrap:anywhere;min-height:40px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--text);font-size:13px}
 @media(max-width:900px){.api-key-action-wrap{align-self:flex-end}}
 
 /* v063 · Un solo alineamiento de iconos y textos en todos los menús Acciones. */
@@ -7465,4 +7464,22 @@ fieldset.billing-status-control {
   height: 14px;
   margin: 0;
   accent-color: var(--accent);
+}
+
+.record-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:14px;margin-bottom:16px}
+.record-detail-section{min-width:0;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface2)}
+.record-detail-section h3{margin:0 0 10px;font-size:14px}
+.record-detail-section dl,.record-detail-section dd{margin:0}
+.record-detail-section dl>div{padding:8px 0;border-top:1px solid var(--line)}
+.record-detail-section dt{color:var(--muted);font-size:12px;font-weight:650}
+.record-detail-section dd{margin-top:3px;overflow-wrap:anywhere}
+.record-detail-chips{display:flex;flex-wrap:wrap;gap:5px;list-style:none;padding:0;margin:0}
+.record-detail-chips .ui-badge{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+.billing-status-options label{align-items:flex-start}
+.billing-status-options label input[type="radio"]{margin-top:3px}
+.billing-status-options label small{display:block;color:var(--muted);line-height:1.4;margin-top:2px}
+.context-help-content ul{display:grid;gap:10px;margin:0 0 16px;padding-inline-start:20px}
+@media(max-width:480px){
+ .billing-status-options{grid-template-columns:minmax(0,1fr)}
+ .api-key-detail-body{padding-inline:14px}
 }

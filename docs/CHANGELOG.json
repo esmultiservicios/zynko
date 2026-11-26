@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.31.158",
+    "date": "2026-11-25",
+    "title": "Ayuda de suscripción y ficha de integración API",
+    "changes": [
+      "Presenta credenciales API, permisos y política de acceso en una ficha adaptable.",
+      "Explica estados de suscripción y amplía la ayuda de Empresas, Suscripción e Integraciones.",
+      "Compara el plan y estado anterior y actual en correos de suscripción y aprobación.",
+      "Orienta a las empresas sin plan para habilitar el acceso API."
+    ]
+  },
+  {
     "version": "2.31.157",
     "date": "2026-11-25",
     "title": "Estado de suscripción en Empresas y Suscripciones",

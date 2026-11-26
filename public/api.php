@@ -79,7 +79,7 @@ function requireApiPlan(int $tenantId): void {
         out(503,false,'No se pudo verificar la suscripción. Intente nuevamente.',[],'API_PLAN_LOOKUP_FAILED');
     }
 
-    if (!$plan) out(403,false,'La empresa asociada a la API Key no tiene una suscripción asignada.',[],'API_SUBSCRIPTION_REQUIRED');
+    if (!$plan) out(403,false,'La empresa asociada a esta clave API no tiene un plan asignado. Contacte a ES MULTISERVICIOS para contratar un plan con acceso API.',[],'API_SUBSCRIPTION_REQUIRED');
     if (!in_array($plan['status'],['active','grace','trial'],true)) {
         out(403,false,'La suscripción de la empresa asociada a la API Key no está vigente.',[],'API_SUBSCRIPTION_INACTIVE');
     }
