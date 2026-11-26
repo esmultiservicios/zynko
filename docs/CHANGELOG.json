@@ -1,5 +1,14 @@
 [
   {
+    "version": "2.31.157",
+    "date": "2026-11-25",
+    "title": "Estado de suscripción en Empresas y Suscripciones",
+    "changes": [
+      "Unifica las opciones visibles de estado al asignar un plan.",
+      "Selecciona el estado guardado al abrir el modal de cada empresa."
+    ]
+  },
+  {
     "version": "2.31.156",
     "date": "2026-11-25",
     "title": "Referencia de API externa y activación por empresa",

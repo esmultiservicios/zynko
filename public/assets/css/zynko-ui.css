@@ -7416,7 +7416,7 @@ body.page-inbox #messageForm .composer-line>.zynko-rte-shell{width:100%;box-sizi
 body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm ~ section.panel{display:none!important}
 
 
-.billing-assign-form .billing-status-control {
+fieldset.billing-status-control {
   min-width: 0 !important;
   margin: 0;
   padding: 0;
