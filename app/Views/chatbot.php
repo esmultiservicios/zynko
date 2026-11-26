@@ -145,7 +145,7 @@ $monthTokens=(int)($openAiUsage['input_tokens']??0)+(int)($openAiUsage['output_t
  <div class="nivo-web-source-info">
   <span><i class="fa-solid fa-building-shield"></i><b>Aislado por tenant</b><small>Estas preguntas pertenecen únicamente a <?=htmlspecialchars($_SESSION['user']['company']??'esta empresa')?>.</small></span>
   <span><i class="fa-solid fa-user-check"></i><b>Revisión humana</b><small>NIVO propone; un administrador decide qué conocimiento se publica.</small></span>
-  <span><i class="fa-solid fa-arrow-trend-up"></i><b>Mejora continua</b><small>Las preguntas repetidas suben de prioridad por número de ocurrencias.</small></span>
+  <span><i class="fa-solid fa-arrow-trend-up"></i><b>Mejora continua</b><small>NIVO prioriza las dudas repetidas y vuelve a buscar respaldo en fuentes aprobadas cuando siguen sin borrador. Para ampliar sus respuestas, sincroniza documentación propia actualizada y aprueba respuestas útiles del equipo.</small></span>
  </div>
  <?php if(!$learningQueue):?>
   <div class="empty-compact"><i class="fa-solid fa-circle-check"></i><b>Sin preguntas pendientes</b><span>Cuando NIVO encuentre una duda sin respuesta segura, aparecerá aquí para revisión.</span></div>

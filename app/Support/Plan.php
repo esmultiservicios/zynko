@@ -361,8 +361,14 @@ function zynkoPlanChannelBadges(array $plan,array $catalog,string $label='Canale
         $status=$includedWhatsApp?'<span class="plan-channel-availability is-ready"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> '.$esc($language==='en'?'Included':'Incluido').'</span>':zynkoPlanChannelStatus($catalog,$code,$language);
         $html.='<span class="plan-channel-chip '.(($ready||$includedWhatsApp)?'is-ready':'is-upcoming').'">'.zynkoPlanChannelIcon($catalog,$code).'<span class="plan-channel-name">'.$esc($item['name']).'</span>'.$status.'</span>';
     }
-    $countText=$apiExclusive?($language==='en'?'WhatsApp API included · connection requires Meta authorization.':'WhatsApp API incluida · la conexión requiere autorización de Meta.'):zynkoPlanChannelCountText($stats,$language);
-    $html.='</div><small class="plan-channel-current">'.$esc($countText).'</small>';
+    $html.='</div>';
+    if(!$apiExclusive)$html.='<small class="plan-channel-current">'.$esc(zynkoPlanChannelCountText($stats,$language)).'</small>';
+    if(in_array('whatsapp',$stats['codes'],true)){
+        $requirement=$language==='en'
+            ? 'Connect your own WhatsApp Business number with Meta authorization. Meta bills WhatsApp usage separately.'
+            : 'Conecta tu propio número de WhatsApp Business con autorización de Meta. Meta factura el consumo de WhatsApp por separado.';
+        $html.='<small class="plan-channel-current plan-whatsapp-requirement"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> '.$esc($requirement).'</small>';
+    }
     return $html.'</div>';
 }
 

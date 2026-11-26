@@ -7495,3 +7495,13 @@ fieldset.billing-status-control {
  .billing-assignment-panel .billing-assign-form{grid-template-columns:minmax(0,1fr)!important}
  .billing-assignment-panel .billing-assign-button{width:100%;margin-top:0!important}
 }
+
+.plan-payment-confirmation{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface2)}
+.plan-payment-confirmation input{flex:0 0 auto;accent-color:var(--accent)}
+.users-welcome-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+#departments{scroll-margin-block-start:clamp(88px,10vh,108px)}
+.zynko-action-portal button>i:is(.fa-user-pen,.fa-pen-to-square,.fa-pen,.fa-laptop,.fa-users){background:#e9f1ff!important;color:#2453ac!important}
+.zynko-action-portal button>i:is(.fa-key,.fa-rotate,.fa-arrows-rotate,.fa-clock){background:#fff2d9!important;color:#875400!important}
+.zynko-action-portal button>i:is(.fa-gem,.fa-shield-halved,.fa-user-shield,.fa-layer-group){background:#f0eaff!important;color:#6238a2!important}
+.zynko-action-portal button>i:is(.fa-right-from-bracket,.fa-ban,.fa-trash,.fa-trash-can,.fa-building-circle-xmark,.fa-user-slash){background:#ffe7e9!important;color:#a12136!important}
+@media(max-width:640px){.users-welcome-actions{justify-content:flex-start}}

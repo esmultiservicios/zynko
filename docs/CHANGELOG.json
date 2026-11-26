@@ -1,5 +1,26 @@
 [
   {
+    "version": "2.31.163",
+    "date": "2026-11-25",
+    "title": "Precios y comparativa pública de planes",
+    "changes": [
+      "Actualiza los precios base mensuales en USD de ZYNKO API, Starter, Pro y Business a 15, 25, 59 y 119, respectivamente; conserva los precios personalizados.",
+      "Aclara el uso del número propio, la autorización de Meta y el cobro separado del consumo de WhatsApp.",
+      "Reorganiza la comparativa con precios, límites, funcionalidades y canales a partir del catálogo vigente."
+    ]
+  },
+  {
+    "version": "2.31.162",
+    "date": "2026-11-25",
+    "title": "Acciones, aprendizaje, solicitudes de plan y equipos",
+    "changes": [
+      "Diferencia los iconos de los menús de Acciones y agrupa el acceso directo a Departamentos con Nuevo usuario.",
+      "Alinea la disponibilidad de solicitudes con el servidor y exige confirmar el pago externo antes de aprobar un plan de pago.",
+      "NIVO revisa fuentes aprobadas para dudas recurrentes sin borrador, manteniendo la revisión de respuestas.",
+      "Mantiene consistente la creación de usuarios y protege las transferencias de conversaciones de Bandeja."
+    ]
+  },
+  {
     "version": "2.31.161",
     "date": "2026-11-25",
     "title": "Enlaces y acciones sin subrayado",

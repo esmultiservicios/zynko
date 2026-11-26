@@ -406,7 +406,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.161';
+$releaseVersion='2.31.163';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -496,6 +496,20 @@ try{$t=$pdo->query("SHOW COLUMNS FROM tenant_channel_entitlements LIKE 'channel_
 $pdo->exec("INSERT IGNORE INTO channel_connector_catalog(code,name,icon_class,icon_style,description,connector_ready,visible,linkable,sort_order) VALUES ('threads','Threads','fa-brands fa-threads','instagram','Canal previsto; requiere un conector real y autorización del proveedor.',0,1,0,80)");
 if(!$planConfig154Applied)zynkoUpgradeCommercialCatalog152($pdo);
 zynkoUpgradePlanConfiguration154($pdo);
+if(!$pdo->query("SELECT 1 FROM system_settings WHERE setting_key='commercial_api_price_2_31_163'")->fetchColumn()){
+    $pdo->beginTransaction();
+    try{
+        $marker=$pdo->prepare("INSERT IGNORE INTO system_settings(setting_key,setting_value) VALUES('commercial_api_price_2_31_163','1')");
+        $marker->execute();
+        if($marker->rowCount()){
+            $price=$pdo->prepare("UPDATE subscription_plans SET monthly_price=? WHERE code=? AND currency='USD' AND monthly_price=? AND is_free_plan=0 AND is_default_free=0");
+            foreach(['api_only'=>[0,15],'starter'=>[19,25],'pro'=>[49,59],'business'=>[99,119]] as $code=>[$before,$after]){
+                $price->execute([$after,$code,$before]);
+            }
+        }
+        $pdo->commit();
+    }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+}
 try{ZynkoAccessPolicy::ensureTables($pdo);}catch(Throwable $policyError){error_log('ZYNKO API schema: '.get_class($policyError));}
 
 } catch(Throwable $e){} }
@@ -971,7 +985,8 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   if($action==='plan_request_resolve'){
    if(!isPlatformOwner())throw new RuntimeException('No autorizado.');
    $requestId=(int)($_POST['request_id']??0);$resolution=in_array($_POST['resolution']??'',['approved','rejected'],true)?$_POST['resolution']:'';$note=mb_substr(trim((string)($_POST['note']??'')),0,500);if(!$requestId||$resolution==='')throw new RuntimeException('Solicitud inválida.');
-   $q=$pdo->prepare("SELECT r.*,t.name company_name,sp.name plan_name,sp.active plan_active,sp.is_available plan_available,sp.monthly_price,sp.currency,u.name requester_name,u.email requester_email,cur.name previous_plan_name,ts.status previous_subscription_status FROM plan_upgrade_requests r JOIN tenants t ON t.id=r.tenant_id JOIN subscription_plans sp ON sp.id=r.plan_id JOIN users u ON u.id=r.requested_by LEFT JOIN tenant_subscriptions ts ON ts.tenant_id=r.tenant_id LEFT JOIN subscription_plans cur ON cur.id=ts.plan_id WHERE r.id=? AND r.status='pending' LIMIT 1");$q->execute([$requestId]);$req=$q->fetch();if(!$req)throw new RuntimeException('La solicitud ya fue atendida o no existe.');
+   $q=$pdo->prepare("SELECT r.*,t.name company_name,sp.name plan_name,sp.active plan_active,sp.is_available plan_available,sp.is_free_plan,sp.monthly_price,sp.currency,u.name requester_name,u.email requester_email,cur.name previous_plan_name,ts.status previous_subscription_status FROM plan_upgrade_requests r JOIN tenants t ON t.id=r.tenant_id JOIN subscription_plans sp ON sp.id=r.plan_id JOIN users u ON u.id=r.requested_by LEFT JOIN tenant_subscriptions ts ON ts.tenant_id=r.tenant_id LEFT JOIN subscription_plans cur ON cur.id=ts.plan_id WHERE r.id=? AND r.status='pending' LIMIT 1");$q->execute([$requestId]);$req=$q->fetch();if(!$req)throw new RuntimeException('La solicitud ya fue atendida o no existe.');
+   if($resolution==='approved' && empty($req['is_free_plan']) && (float)$req['monthly_price']>0 && ($_POST['payment_verified']??'')!=='1')throw new RuntimeException('Confirma que verificaste el pago fuera de ZYNKO antes de aprobar.');
    if($resolution==='approved' && (int)$req['plan_active']!==1)throw new RuntimeException('El plan solicitado ya no está activo.');if($resolution==='approved' && (int)($req['plan_available']??0)!==1)throw new RuntimeException('El plan solicitado todavía está marcado como Próximamente y no puede aprobarse.');
    if($resolution==='approved'){$a=$pdo->prepare("SELECT plan_json,documents_json FROM commercial_acceptances WHERE context='plan_request' AND reference_id=? AND tenant_id=?");$a->execute([$requestId,(int)$req['tenant_id']]);$accepted=$a->fetch();$p=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=?');$p->execute([(int)$req['plan_id']]);$current=$p->fetch();if(!$accepted||!$current||json_decode((string)$accepted['plan_json'],true)!=zynkoCommercialPlanSnapshot($current))throw new RuntimeException('La solicitud no tiene aceptación vigente del plan. Recházala y solicita al cliente una nueva confirmación.');foreach(zynkoCommercialDocs($pdo) as $key=>$doc){$snapshot=json_decode((string)$accepted['documents_json'],true);if(($snapshot[$key]['version']??0)!==(int)$doc['version'])throw new RuntimeException('Las condiciones cambiaron. Solicita una nueva aceptación.');}}
    $pdo->beginTransaction();
@@ -1001,7 +1016,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    zynkoPlanRequireModule($planCtx,'inbox');
    require_once $root.'/app/Support/DepartmentOperations.php';
    $result=zynkoDepartmentTransfer($pdo,$tid,(int)$_SESSION['user']['id'],(string)($_SESSION['user']['role']??''),$_POST);
-   zynkoRealtimePublish($pdo,$tid,'conversation.assigned',['conversation_id'=>$result['conversation_id'],'agent_id'=>$result['agent_id'],'team_id'=>$result['team_id']],'conversation',(string)$result['conversation_id']);
+   zynkoRealtimePublishSafe($pdo,$tid,'conversation.assigned',['conversation_id'=>$result['conversation_id'],'agent_id'=>$result['agent_id'],'team_id'=>$result['team_id']],'conversation',(string)$result['conversation_id']);
    jsonOut(true,$result['message'],$result);
   }
   if(in_array($action,['department_save','department_member_save'],true)) {
@@ -1409,10 +1424,15 @@ $settings['meta_app_id']=$appId;$settings['business_id']=$waba;$settings['embedd
   if($action==='ai_call_profile_status'){$id=max(1,(int)($_POST['id']??0));$enabled=!empty($_POST['enabled'])?1:0;$q=$pdo->prepare('UPDATE whatsapp_ai_call_profiles SET enabled=? WHERE id=? AND tenant_id=?');$q->execute([$enabled,$id,$tid]);if(!$q->rowCount())throw new RuntimeException('Perfil no encontrado.');jsonOut(true,$enabled?'Perfil activado.':'Perfil desactivado.');}
   if($action==='ai_call_profile_delete'){$id=max(1,(int)($_POST['id']??0));$q=$pdo->prepare('DELETE FROM whatsapp_ai_call_profiles WHERE id=? AND tenant_id=?');$q->execute([$id,$tid]);if(!$q->rowCount())throw new RuntimeException('Perfil no encontrado.');jsonOut(true,'Perfil eliminado.');}
   if($action==='user_create'){
-   $name=trim($_POST['name']??'');$email=strtolower(trim($_POST['email']??''));$pass=$_POST['password']??'';$role=$_POST['role']??'agent';if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($pass)<8)throw new RuntimeException('Revisa nombre, correo y contraseña (mínimo 8 caracteres).');if(!in_array($role,['agent','supervisor','admin'],true))$role='agent';
+   if(!in_array($_SESSION['user']['role']??'',['owner','admin'],true))throw new RuntimeException('Solo el propietario o un administrador puede crear usuarios.');
+   $name=trim($_POST['name']??'');$email=strtolower(trim($_POST['email']??''));$pass=$_POST['password']??'';$role=$_POST['role']??'agent';if($name===''||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($pass)<8)throw new RuntimeException('Revisa nombre, correo y contraseña (mínimo 8 caracteres).');if(!in_array($role,['agent','supervisor','admin'],true))throw new RuntimeException('Selecciona un rol válido.');
+   $existing=$pdo->prepare('SELECT 1 FROM users WHERE email=? LIMIT 1');$existing->execute([$email]);if($existing->fetchColumn())throw new RuntimeException('Ese correo ya está registrado en ZYNKO.');
+   $avatarFile=null;
    $pdo->beginTransaction();try{$pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE')->execute([$tid]);$pc=zynkoPlanContext($pdo,$tid,isPlatformOwner());zynkoPlanRequireModule($pc,'users');$max=zynkoPlanLimit($pc,'max_users');if($max!==null){$c=$pdo->prepare('SELECT COUNT(*) FROM tenant_users WHERE tenant_id=?');$c->execute([$tid]);if((int)$c->fetchColumn()>=$max)throw new RuntimeException('Tu plan alcanzó el máximo de usuarios permitido.');}
-   $pdo->prepare("INSERT INTO users(uuid,name,email,password_hash,status) VALUES(?,?,?,?, 'active')")->execute([uuid4(),$name,$email,password_hash($pass,PASSWORD_DEFAULT)]);$uid=(int)$pdo->lastInsertId();$pdo->prepare('INSERT INTO tenant_users(tenant_id,user_id,role_code,is_owner) VALUES(?,?,?,0)')->execute([$tid,$uid,$role]);$pdo->commit(); }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
-   if(!empty($_FILES['avatar']['tmp_name'])){$f=$_FILES['avatar'];if($f['size']>3*1024*1024)throw new RuntimeException('La imagen no puede superar 3 MB.');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]??null;if(!$ext)throw new RuntimeException('Usa JPG, PNG o WEBP.');$dir=__DIR__.'/uploads/avatars/'.$tid;if(!is_dir($dir))mkdir($dir,0775,true);$fn='u'.$uid.'_'.bin2hex(random_bytes(5)).'.'.$ext;$dest=$dir.'/'.$fn;if(!move_uploaded_file($f['tmp_name'],$dest))throw new RuntimeException('No se pudo guardar la foto.');$url='uploads/avatars/'.$tid.'/'.$fn;$pdo->prepare('UPDATE users SET avatar_path=? WHERE id=?')->execute([$url,$uid]);}
+   $pdo->prepare("INSERT INTO users(uuid,name,email,password_hash,status) VALUES(?,?,?,?, 'active')")->execute([uuid4(),$name,$email,password_hash($pass,PASSWORD_DEFAULT)]);$uid=(int)$pdo->lastInsertId();$pdo->prepare('INSERT INTO tenant_users(tenant_id,user_id,role_code,is_owner) VALUES(?,?,?,0)')->execute([$tid,$uid,$role]);
+   if(!empty($_FILES['avatar']['tmp_name'])){$f=$_FILES['avatar'];if($f['size']>3*1024*1024)throw new RuntimeException('La imagen no puede superar 3 MB.');$mime=(new finfo(FILEINFO_MIME_TYPE))->file($f['tmp_name']);$ext=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'][$mime]??null;if(!$ext)throw new RuntimeException('Usa JPG, PNG o WEBP.');$dir=__DIR__.'/uploads/avatars/'.$tid;if(!is_dir($dir))mkdir($dir,0775,true);$fn='u'.$uid.'_'.bin2hex(random_bytes(5)).'.'.$ext;$dest=$dir.'/'.$fn;if(!move_uploaded_file($f['tmp_name'],$dest))throw new RuntimeException('No se pudo guardar la foto.');$avatarFile=$dest;$url='uploads/avatars/'.$tid.'/'.$fn;$pdo->prepare('UPDATE users SET avatar_path=? WHERE id=?')->execute([$url,$uid]);}
+    $pdo->commit();
+   }catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();if($avatarFile!==null&&is_file($avatarFile))unlink($avatarFile);throw $e;}
    try{$company=(string)($_SESSION['user']['company']??'tu empresa');require_once $root.'/app/Services/NotificationService.php';$msg='Hola '.$name.'. Fuiste agregado al equipo de '.$company.' en ZYNKO con el rol '.ucfirst($role).'. Ya puedes ingresar con este correo. Por seguridad, ZYNKO nunca incluye contraseñas en los correos.';(new NotificationService($pdo,$root))->sendUserLifecycle(mainTenantId(),$email,'Te agregaron al equipo de '.$company,$msg,['tenant_id'=>$tid,'user_id'=>$uid,'role'=>$role]);}catch(Throwable $mailError){}
    jsonOut(true,'Usuario creado. Consulte el historial de correo para confirmar la notificación.');
   }

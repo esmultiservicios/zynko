@@ -61,7 +61,7 @@ function zynkoDepartmentTransfer(PDO $pdo,int $tenantId,int $actorId,string $rol
  if(!in_array($mode,['queue','auto'],true))throw new RuntimeException('Modo de transferencia inválido.');
  $pdo->beginTransaction();
  try {
-  $q=$pdo->prepare('SELECT id,assigned_user_id,team_id FROM conversations WHERE id=? AND tenant_id=? AND deleted_at IS NULL FOR UPDATE');
+  $q=$pdo->prepare('SELECT id,assigned_user_id,team_id FROM conversations WHERE id=? AND tenant_id=? AND deleted_at IS NULL AND archived_at IS NULL AND api_only=0 FOR UPDATE');
   $q->execute([$cid,$tenantId]);$conv=$q->fetch(PDO::FETCH_ASSOC);
   if(!$conv)throw new RuntimeException('Conversación no encontrada.');
   if($role==='supervisor' && (int)$conv['assigned_user_id']!==$actorId) {

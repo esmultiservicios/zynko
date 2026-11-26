@@ -134,29 +134,32 @@ final class NivoEngine
         if($question==='')return;
         $normalized=mb_substr(self::norm($question),0,1200);
         try {
-            $q=$pdo->prepare("SELECT id FROM nivo_learning_queue WHERE tenant_id=? AND normalized_question=? AND status IN ('pending','review') ORDER BY id DESC LIMIT 1");
+            $q=$pdo->prepare("SELECT id,occurrences,suggested_answer FROM nivo_learning_queue WHERE tenant_id=? AND normalized_question=? AND status IN ('pending','review') ORDER BY id DESC LIMIT 1");
             $q->execute([$tenantId,$normalized]);
-            $id=(int)($q->fetchColumn()?:0);
-            if($id){
-                $pdo->prepare("UPDATE nivo_learning_queue SET occurrences=occurrences+1,last_seen_at=NOW(),conversation_id=?,channel_type=?,source_hint=COALESCE(?,source_hint) WHERE id=? AND tenant_id=?")
-                    ->execute([$conversationId?:null,$channelType,$sourceHint,$id,$tenantId]);
-            }else{
-                // Sugiere aprendizaje solo a partir de fuentes YA aprobadas del tenant.
-                // No publica respuestas de usuarios ni convierte conjeturas en conocimiento.
-                $suggestion=null;$approvedSource=$sourceHint;
-                if($sourceHint==='low-confidence'){
-                    $words=self::words($question);
-                    if(count($words)>=2){
-                        $matches=self::rankedKnowledge($pdo,$tenantId,$question,$words,1);
-                        $top=$matches[0]??null;
-                        if($top&&(int)($top['_score']??0)>=2){
-                            $suggestion=mb_substr(self::relevantExcerpt((string)($top['content']??''),$words,450),0,450);
-                            $approvedSource='Borrador para revisión: '.mb_substr((string)($top['name']??'Fuente aprobada'),0,350);
+            $pending=$q->fetch(PDO::FETCH_ASSOC);
+            $suggestion=null;
+            $source=$sourceHint;
+            // Retry blank drafts after several new occurrences so refreshed sources can help.
+            $canSuggest=!$pending || (trim((string)$pending['suggested_answer'])==='' && (int)$pending['occurrences']%5===0);
+            if($sourceHint==='low-confidence' && $canSuggest){
+                $words=self::words($question);
+                if(count($words)>=2){
+                    $top=self::rankedKnowledge($pdo,$tenantId,$question,$words,1)[0]??null;
+                    if($top&&(int)($top['_score']??0)>=2){
+                        $excerpt=trim(self::relevantExcerpt((string)($top['content']??''),$words,450));
+                        if($excerpt!==''){
+                            $suggestion=mb_substr($excerpt,0,450);
+                            $source='Borrador para revisión: '.mb_substr((string)($top['name']??'Fuente aprobada'),0,350);
                         }
                     }
                 }
+            }
+            if($pending){
+                $pdo->prepare("UPDATE nivo_learning_queue SET occurrences=occurrences+1,last_seen_at=NOW(),conversation_id=?,channel_type=?,source_hint=CASE WHEN NULLIF(TRIM(suggested_answer),'') IS NULL THEN COALESCE(?,source_hint) ELSE source_hint END,suggested_answer=CASE WHEN NULLIF(TRIM(suggested_answer),'') IS NULL THEN ? ELSE suggested_answer END WHERE id=? AND tenant_id=? AND status IN ('pending','review')")
+                    ->execute([$conversationId?:null,$channelType,$source,$suggestion,(int)$pending['id'],$tenantId]);
+            }else{
                 $pdo->prepare("INSERT INTO nivo_learning_queue(tenant_id,conversation_id,channel_type,question,normalized_question,suggested_answer,source_hint,status) VALUES(?,?,?,?,?,?,?,'pending')")
-                    ->execute([$tenantId,$conversationId?:null,$channelType,mb_substr($question,0,1200),$normalized,$suggestion,$approvedSource]);
+                    ->execute([$tenantId,$conversationId?:null,$channelType,mb_substr($question,0,1200),$normalized,$suggestion,$source]);
             }
         } catch (Throwable $ignore) {
         }

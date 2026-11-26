@@ -55,3 +55,34 @@ dialog.zc-dialog>.select2-container--open .select2-results>.select2-results__opt
 /* Tracking status dropdown: searchable, bounded by the modal body and footer. */
 #zc-activation-center .zc-activation-status-dropdown{border-radius:10px!important;overflow:hidden!important;max-width:calc(100% - 24px)!important}
 #zc-activation-center .zc-activation-status-dropdown .select2-results__options{overscroll-behavior:contain!important;overflow-y:auto!important}
+/* Public plan comparison uses the same catalog and visual tokens as the plan cards. */
+.zc-compare .plan-matrix-card{background:var(--surface,#fff);border:1px solid var(--line,#d5e3e8);border-radius:20px;box-shadow:0 12px 34px rgba(13,44,56,.07)}
+.zc-compare .plan-matrix-summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:clamp(16px,3vw,26px);color:var(--text,#102d3e);border-radius:inherit}
+.plan-matrix-summary strong,.plan-matrix-summary small{display:block}
+.plan-matrix-summary strong{font-size:clamp(17px,2vw,21px)}
+.plan-matrix-summary small{margin-top:3px;color:var(--muted,#52697a);font-size:13px;font-weight:400}
+.plan-matrix-body{padding:0 clamp(12px,3vw,26px) clamp(16px,3vw,26px)}
+.plan-matrix-requirements{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;padding:16px;background:var(--soft,#eff7f6);border-radius:12px;margin-bottom:16px}
+.plan-matrix-requirements>div{flex:1 1 350px}
+.plan-matrix-requirements p{margin:4px 0 0;color:var(--muted,#52697a);font-size:13px}
+.plan-matrix{border:1px solid var(--line,#d5e3e8);border-radius:14px;overflow:hidden}
+.plan-matrix-row{display:grid;grid-template-columns:minmax(145px,1.3fr) repeat(var(--plan-count),minmax(0,1fr));border-bottom:1px solid var(--line,#d5e3e8)}
+.plan-matrix-row>div{min-width:0;padding:10px;overflow-wrap:anywhere}
+.plan-matrix-label{font-weight:700}
+.plan-matrix-cell{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:6px;border-inline-start:1px solid var(--line,#d5e3e8);font-size:13px}
+.plan-matrix-cell.is-featured{background:#eef8f6;color:#173f43}
+.plan-matrix-cell.is-excluded{color:var(--muted,#52697a)}
+.plan-matrix-head{background:var(--soft,#eff7f6)}
+.plan-matrix-head .plan-matrix-label{align-self:center}
+.plan-matrix-head .plan-matrix-cell{justify-content:flex-start}
+.plan-matrix-head .plan-matrix-cell strong{font-size:15px}
+.plan-matrix-head .zc-button{min-height:32px;margin-top:auto;padding:5px 10px}
+.plan-matrix-group h3{margin:0;padding:10px;background:var(--soft,#eff7f6);font-size:14px}
+.plan-matrix-mobile-name{display:none}
+.plan-whatsapp-requirement{display:block;line-height:1.5}
+@media(max-width:850px){
+ .plan-matrix-row{grid-template-columns:repeat(auto-fit,minmax(min(100%,135px),1fr));gap:5px;padding:8px}
+ .plan-matrix-row>.plan-matrix-label{grid-column:1/-1;padding:2px 4px}
+ .plan-matrix-row>.plan-matrix-cell{border:1px solid var(--line,#d5e3e8);border-radius:8px}
+ .plan-matrix-mobile-name{display:inline;font-weight:700}
+}
