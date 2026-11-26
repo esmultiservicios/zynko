@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.31.156",
+    "date": "2026-11-25",
+    "title": "Referencia de API externa y activación por empresa",
+    "changes": [
+      "Catálogo compartido de las diez rutas REST para documentación pública, Documentación del panel e Integraciones.",
+      "Distingue envío directo, cola persistente, permisos de WhatsApp y condiciones para ingresar mensajes a Bandeja. El acceso a contexto NIVO respeta el plan ZYNKO API también en claves existentes.",
+      "Documenta la asignación de ZYNKO API a una empresa existente y genera ejemplos para Bash con JSON íntegro aunque ZYNKO se ejecute en Windows."
+    ]
+  },
+  {
     "version": "2.31.153",
     "date": "2026-11-19",
     "title": "Inbox: contactos, envíos sin agenda y multimedia",

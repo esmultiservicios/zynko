@@ -92,6 +92,10 @@ Si su entorno local cambia de IP pública, deberá autorizarla de forma delibera
 
 ## D. Endpoints y permisos disponibles
 
+Para habilitar la prueba de una empresa ya creada, la cuenta administradora de la plataforma abre **Suscripciones → Asignación de planes por empresa**, selecciona **ZYNKO API** y **Activo**, y confirma con **Asignar**. Desde el contexto de esa misma empresa, conecte WhatsApp y cree una clave por sistema en **Canales → Integraciones**, con el canal, los permisos y la IP de salida correspondientes. Guarde la clave en el servidor de la integración. Compruebe primero `v1/health` y `v1/channels`. Para WhatsApp consulte además `v1/whatsapp/history`.
+
+El perfil de plan ZYNKO API opera con envíos independientes. Para ingresar mensajes a Bandeja con `v1/messages/receive`, use un plan compatible y una clave que opere en Bandeja. El envío genérico `v1/messages/send` devuelve HTTP 202 con el resultado del intento de despacho. Evalúe `ok` y `data.status`. La cola persistente de envíos nuevos a WhatsApp se utiliza con `v1/whatsapp/send`.
+
 | Método | `r=` | Scope requerido | Uso / claves principales |
 |---|---|---|---|
 | GET | `v1/health` | Bearer válido y política permitida | Salud de la API autenticada; no es pública |
@@ -103,7 +107,7 @@ Si su entorno local cambia de IP pública, deberá autorizarla de forma delibera
 | POST | `v1/messages/send` | `messages:send` | `channel_id`, `to`, `message` |
 | POST | `v1/messages/bulk` | `messages:bulk` | `channel_id`, `to[]` (2–100), `message`, `consent_confirmed`, `Idempotency-Key` |
 | POST | `v1/messages/receive` | `messages:receive` o compatibilidad `messages:send` | `channel_id`, `from`, `message`, `contact_name` opcional |
-| POST | `v1/nivo/context` | `nivo:context` | `query`; consulta contexto autorizado, no garantiza generación IA |
+| POST | `v1/nivo/context` | `nivo:context` | `query`; consulta contexto autorizado sin generar una respuesta conversacional; excluido en ZYNKO API |
 
 **Para POST**: `Content-Type: application/json`, JSON válido, Bearer y los scopes necesarios. Para `v1/whatsapp/send`, `Idempotency-Key` es obligatorio y debe ser diferente para cada operación; reintentar la *misma* operación con la misma clave/payload evita duplicados. HTTP **202** significa **en cola**, NO entregado. Consulte `status` y `history` posteriormente; el resultado real depende del proveedor, plantillas aprobadas, consentimiento y ventana de Meta.
 
@@ -185,7 +189,7 @@ Requiere scope `channels:read`. La respuesta contiene únicamente canales de la 
 }
 ```
 
-Requiere scope `messages:send`. El canal debe pertenecer al tenant autenticado y estar disponible/conectado. ZYNKO registra el mensaje y responde HTTP 202 cuando queda aceptado en cola. La entrega final depende del conector oficial del proveedor.
+Requiere scope `messages:send`. El canal debe pertenecer al tenant autenticado y estar disponible/conectado. ZYNKO registra el mensaje e intenta despacharlo durante la solicitud. Revise ok y data.status en la respuesta HTTP 202. Para encolar WhatsApp use la ruta especializada.
 
 ## 5. Recibir mensaje hacia ZYNKO
 

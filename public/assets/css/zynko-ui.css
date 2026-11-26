@@ -7265,7 +7265,7 @@ body>.select2-container--open .select2-dropdown.zynko-section-dropdown .select2-
 .zynko-fold-shell[data-zynko-fold="nivo-flow"] .nivo-ai-explainer{margin:0!important;min-width:0;max-width:100%}
 /* Web Chat Select2 is portalled to body; keep its width within the viewport. */
 body>.select2-container--open:has(.select2-dropdown){max-width:calc(100vw - 24px)!important;box-sizing:border-box}
-body>.select2-container--open .select2-dropdown{box-sizing:border-box;max-width:100%!important;min-width:0!important}
+body>.select2-container--open .select2-dropdown{box-sizing:border-box;max-width:calc(100vw - 24px)!important;min-width:0!important}
 @media(max-width:780px){.zynko-fold-shell[data-zynko-fold="activity-channels"] .dashboard-grid{grid-template-columns:minmax(0,1fr)!important}.billing-plan-directory .plan-card.plan-price-pending .plan-price{font-size:17px}}
 
 /* v042 · NIVO Web Chat: only the section navigator chooses visible panels. */
@@ -7414,3 +7414,55 @@ body.page-inbox #messageForm .composer-line>.zynko-rte-shell{width:100%;box-sizi
 /* v065 · Settings: owner-only sections after the main form must never flash
    before the section navigator selects the initial panel. */
 body:has(#zynkoSectionNavigator[data-section-page="settings"]):not(.zynko-section-ready) #settingsForm ~ section.panel{display:none!important}
+
+
+.billing-assign-form .billing-status-control {
+  min-width: 0 !important;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.billing-status-control legend {
+  width: auto;
+  margin: 0 0 6px;
+  padding: 0;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.billing-status-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.billing-status-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.billing-status-options label:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--surface2);
+}
+
+.billing-status-options input[type="radio"] {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent);
+}

@@ -406,7 +406,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.155';
+$releaseVersion='2.31.156';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -937,7 +937,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
   }
   if($action==='subscription_assign'){
    if(!isPlatformOwner())throw new RuntimeException('No autorizado.');
-   $tenant=(int)($_POST['tenant_id']??0);$plan=(int)($_POST['plan_id']??0);$status=in_array($_POST['status']??'active',['active','grace','suspended','cancelled'],true)?$_POST['status']:'active';
+   $tenant=(int)($_POST['tenant_id']??0);$plan=(int)($_POST['plan_id']??0);$status=$_POST['status']??'active'; if(!in_array($status,['active','grace','suspended','cancelled'],true))throw new RuntimeException('Selecciona un estado de suscripción válido.');
    $q=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=? AND active=1');$q->execute([$plan]);$targetPlan=$q->fetch();if(!$targetPlan)throw new RuntimeException('Selecciona un plan activo.');
    $q=$pdo->prepare('SELECT ts.plan_id,ts.status,sp.name plan_name FROM tenant_subscriptions ts LEFT JOIN subscription_plans sp ON sp.id=ts.plan_id WHERE ts.tenant_id=? LIMIT 1');$q->execute([$tenant]);$previous=$q->fetch()?:[];
    if($previous && (int)$previous['plan_id']===$plan && (string)$previous['status']===$status)jsonOut(true,'La empresa ya tiene ese plan y estado. No se realizaron cambios.');
