@@ -47,6 +47,7 @@ function zynkoEnsurePlanSchema(PDO $pdo): void{
     zynkoPlanColumn($pdo,'subscription_plans','is_default_free','is_default_free TINYINT(1) NOT NULL DEFAULT 0 AFTER external_ai_channels_json');
     zynkoPlanColumn($pdo,'subscription_plans','is_free_plan','is_free_plan TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
     $pdo->exec('UPDATE subscription_plans SET is_free_plan=1 WHERE is_default_free=1 AND is_free_plan=0');
+    zynkoPlanColumn($pdo,'subscription_plans','promotion_json','promotion_json JSON NULL');
     zynkoPlanColumn($pdo,'subscription_plans','is_featured','is_featured TINYINT(1) NOT NULL DEFAULT 0 AFTER is_default_free');
     zynkoPlanColumn($pdo,'subscription_plans','featured_label','featured_label VARCHAR(60) NULL AFTER is_featured');
     zynkoPlanColumn($pdo,'subscription_plans','is_available','is_available TINYINT(1) NOT NULL DEFAULT 0 AFTER featured_label');

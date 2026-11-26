@@ -10,6 +10,14 @@ $limit=fn($v)=>$v===null||$v===''||((int)$v===0)?$unlimited:number_format((int)$
 $isFreePlan=static fn($p)=>!empty($p['is_default_free'])||!empty($p['is_free_plan'])||(($p['code']??'')==='free');
 $pricePending=static fn($p)=>!$isFreePlan($p) && (!isset($p['monthly_price']) || (float)$p['monthly_price']<=0);
 $priceText=fn($p)=>$isFreePlan($p)?$ct('Gratis','Free'):($pricePending($p)?$ct('Precio por anunciar','Price to be announced'):strtoupper((string)($p['currency']??'USD')).' '.number_format((float)($p['monthly_price']??0),2));
+$renderPromotion=static function(array $plan,array $offer) use ($ce,$ct): void { ?>
+    <div class="zc-plan-offer">
+        <span class="zc-offer-badge"><i class="fa-solid fa-tag" aria-hidden="true"></i> <?=$ct('Oferta','Offer')?></span>
+        <strong><?=$ce($plan['currency'].' '.$offer['price'])?> <small><?=$ct('primer mes','first month')?></small></strong>
+        <span><?=$ct('Después','Then')?> <?=$ce($plan['currency'].' '.number_format((float)$plan['monthly_price'],2))?> <?=$ct('/mes','/month')?></span>
+        <small><?=$ct('Hasta el','Through')?> <time datetime="<?=$ce($offer['ends'])?>"><?=$ce($offer['ends'])?></time></small>
+    </div>
+<?php };
 $cards=$publicPlans;usort($cards,fn($a,$b)=>[!$isFreePlan($a),(float)$a['monthly_price'],(int)$a['id']]<=>[!$isFreePlan($b),(float)$b['monthly_price'],(int)$b['id']]);
 ?>
 <section class="section soft public-plans-section zc-public" id="plan"><div class="wrap">
@@ -24,8 +32,8 @@ $cards=$publicPlans;usort($cards,fn($a,$b)=>[!$isFreePlan($a),(float)$a['monthly
  <article class="zc-plan-card <?=$featured?'zc-featured':''?>" data-reveal>
   <header class="zc-plan-head"><div><h3><?=$ce($plan['name'])?></h3><p><?=$ce(zynkoCommercialPlanSummary($plan,$copy,$publicLang))?></p></div><span class="zc-icon"><i class="fa-solid <?=$icon?>"></i></span></header>
   <div class="zc-plan-badges"><?php if($featured):?><span class="zc-plan-badge"><i class="fa-solid fa-star"></i> <?=$ce(zynkoCommercialFeatureText(trim((string)($plan['featured_label']??''))?:'Más popular',$publicLang,$copy))?></span><?php endif?><span class="zc-plan-badge <?=$available?'':'zc-warning'?>"><i class="fa-solid <?=$available?'fa-circle-check':'fa-clock'?>"></i> <?=$available?$ct('Disponible','Available'):$ce(zynkoCommercialFeatureText(trim((string)($plan['availability_label']??''))?:'Próximamente',$publicLang,$copy))?></span></div>
-  <div class="zc-price"><?php if($free):?><b><?=$ct('Gratis','Free')?></b><?php elseif($pricePending($plan)):?><b><?=$ct('Precio por anunciar','Price to be announced')?></b><?php else:?><span><?=$ce(strtoupper((string)$plan['currency']))?></span><b><?=number_format((float)$plan['monthly_price'],2)?></b><small><?=$ct('/mes','/month')?></small><?php endif?></div>
-  <div class="zc-plan-rule"></div>
+  <?php $offer=zynkoCommercialPromotion($plan);if($offer):$renderPromotion($plan,$offer);else:?><div class="zc-price"><?php if($free):?><b><?=$ct('Gratis','Free')?></b><?php elseif($pricePending($plan)):?><b><?=$ct('Precio por anunciar','Price to be announced')?></b><?php else:?><span><?=$ce(strtoupper((string)$plan['currency']))?></span><b><?=number_format((float)$plan['monthly_price'],2)?></b><small><?=$ct('/mes','/month')?></small><?php endif?></div>
+  <?php endif?><div class="zc-plan-rule"></div>
   <?=zynkoPlanChannelBadges($plan,$publicChannelCatalog,$ct('Canales elegibles','Eligible channels'),$publicLang)?>
   <?php if($free&&!$whatsapp):?><small class="plan-whatsapp-requirement"><?=$ct('WhatsApp Business está disponible en planes compatibles.','WhatsApp Business is available on eligible plans.')?></small><?php endif?>
   <ul class="zc-benefits"><?php foreach($mainFeatures as $feature):?><li><i class="fa-solid fa-circle-check"></i><span><?=$ce($feature)?></span></li><?php endforeach?><li><i class="fa-solid fa-circle-check"></i><span><?=$ct('Usuarios','Users')?>: <?=$ce($limit($plan['max_users']??null))?></span></li><?php if(($plan['code']??'')!=='api_only'):?><li><i class="fa-solid fa-circle-check"></i><span><?=$ct('Sitios NIVO Web Chat','NIVO Web Chat sites')?>: <?=$ce($limit($plan['max_webchat_sites']??null))?></span></li><?php endif?><li><i class="fa-solid fa-circle-check"></i><span><?=$ct('Conexiones externas','External connections')?>: <?=$ce(zynkoPlanExternalConnectionLimit($plan)??$unlimited)?></span></li>
@@ -36,6 +44,7 @@ $cards=$publicPlans;usort($cards,fn($a,$b)=>[!$isFreePlan($a),(float)$a['monthly
  <dialog class="zc-dialog" id="<?=$dialog?>" aria-labelledby="<?=$dialog?>-title"><div class="zc-dialog-frame">
   <header class="zc-dialog-head"><span class="zc-icon"><i class="fa-solid <?=$icon?>"></i></span><div><h3 id="<?=$dialog?>-title"><?=$ce($plan['name'])?> · <?=$ce($priceText($plan))?><?= $pricePending($plan)?'':' '.$ct('/mes','/month')?></h3><p><?=$ct('Qué incluye, qué paga por separado y cómo comenzar.','What is included, what you pay separately and how to start.')?></p></div><button type="button" class="zc-close" data-zc-close aria-label="<?=$ct('Cerrar','Close')?>"><i class="fa-solid fa-xmark"></i></button></header>
   <div class="zc-dialog-body">
+   <?php if($offer)$renderPromotion($plan,$offer);?>
    <?php if(!$available):?><div class="zc-notice zc-warning"><i class="fa-solid fa-clock"></i><div><b><?=$ce(zynkoCommercialFeatureText(trim((string)($plan['availability_label']??''))?:'Próximamente',$publicLang,$copy))?></b><p><?=$ce(zynkoCommercialFeatureText(trim((string)($plan['availability_message']??''))?:'Estamos trabajando para habilitar todos los canales y capacidades de este plan. Estará disponible muy pronto.',$publicLang,$copy))?></p></div></div><?php endif?>
    <div class="zc-section-head"><span class="zc-icon"><i class="fa-solid fa-layer-group"></i></span><div><b><?=$ct('Lo que incluye ZYNKO','What ZYNKO includes')?></b><small><?=$ct('Infraestructura, mantenimiento y herramientas del plan; no es saldo para Meta.','Infrastructure, maintenance and plan tools; this is not Meta messaging credit.')?></small></div></div>
    <?=zynkoPlanChannelBadges($plan,$publicChannelCatalog,$ct('Canales elegibles','Eligible channels'),$publicLang)?>

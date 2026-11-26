@@ -308,7 +308,9 @@ final class EmailTemplates
     public static function planRequestCustomer(array $data,array $settings): string {
         $plan=self::e($data['plan_name']??'Plan');
         $company=self::e($data['company_name']??'Tu empresa');
-        $price=self::e(($data['currency']??'HNL').' '.number_format((float)($data['monthly_price']??0),2));
+        $currency=$data['currency']??'HNL';
+        $price=self::e($currency.' '.number_format((float)($data['monthly_price']??0),2));
+        if(!empty($data['promotion']['price']))$price=self::e($currency.' '.$data['promotion']['price'].' el primer mes. Después, '.$currency.' '.number_format((float)$data['monthly_price'],2));
         $content='<p style="margin:0">Recibimos la solicitud de <strong>'.$company.'</strong> para cambiar al plan <strong>'.$plan.'</strong>.</p>'
             .'<div style="margin-top:20px;padding:16px 18px;background:'.self::SOFT.';border:1px solid #D4EEE8;border-left:4px solid '.self::TEAL.';border-radius:11px">'
             .'<strong style="color:'.self::NAVY.'">Solicitud recibida</strong><div style="margin-top:7px;color:'.self::MUTED.';font-size:13px;line-height:1.6">Plan solicitado: <strong>'.$plan.'</strong> · '.$price.'/mes. Tu plan actual no cambia hasta que la solicitud sea aprobada.</div></div>';

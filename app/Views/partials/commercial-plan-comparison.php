@@ -71,7 +71,9 @@ $renderRow = static function (string $label, callable $value, bool $rich = false
                     <?php foreach ($cards as $plan): ?>
                         <div class="plan-matrix-cell <?=!empty($plan['is_featured'])?'is-featured':''?>">
                             <strong><?=$ce($plan['name'])?></strong>
+                            <?php $promotion=zynkoCommercialPromotion($plan);if($promotion):$renderPromotion($plan,$promotion);else:?>
                             <span><?=$ce($priceText($plan))?><?=!$isFreePlan($plan)&&!$pricePending($plan)?' '.$ct('/mes','/month'):''?></span>
+                            <?php endif?>
                             <button type="button" class="zc-button zc-outline" data-zc-open="zc-plan-<?=(int)$plan['id']?>"><?=$ct('Detalles','Details')?></button>
                         </div>
                     <?php endforeach; ?>

@@ -406,7 +406,7 @@ function zynkoVerifyPublicTurnstile(PDO $pdo,string $token,string $ip=''): void 
 }
 function userAvatarUrl(array $u): string { $v=trim((string)($u['avatar_path']??'')); return $v!==''?$v:''; }
 function ensureRuntimeSchema(): void { try{$pdo=appDb();ChannelSchema::ensure($pdo);zynkoEnsurePlanSchema($pdo);OpenAIProviderService::ensureSchema($pdo);$cols=$pdo->query("SHOW COLUMNS FROM users LIKE 'avatar_path'")->fetch();if(!$cols)$pdo->exec("ALTER TABLE users ADD avatar_path VARCHAR(500) NULL AFTER email");
-$releaseVersion='2.31.163';
+$releaseVersion='2.31.164';
 // Compatibilidad de instalaciones existentes: Empresas requiere estos metadatos.
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'business_id'")->fetch())$pdo->exec("ALTER TABLE tenants ADD business_id VARCHAR(80) NULL AFTER name");}catch(Throwable $e){}
 try{if(!$pdo->query("SHOW COLUMNS FROM tenants LIKE 'contact_phone'")->fetch())$pdo->exec("ALTER TABLE tenants ADD contact_phone VARCHAR(50) NULL AFTER business_id");}catch(Throwable $e){}
@@ -965,6 +965,35 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    jsonOut(true,'Plan asignado correctamente y notificaciones enviadas.');
   }
 
+  if($action==='plan_promotion_save'){
+   if(!isPlatformOwner()||zynkoIsImpersonating())throw new RuntimeException('Solo el administrador principal puede gestionar promociones.');
+   assertAuthCsrf();
+   $id=(int)($_POST['plan_id']??0);
+   $pdo->beginTransaction();
+   try{
+    $q=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=? FOR UPDATE');
+    $q->execute([$id]);$plan=$q->fetch();
+    if(!$plan)throw new RuntimeException('Plan no encontrado.');
+    $enabled=isset($_POST['promotion_enabled']);
+    $offer=null;
+    if($enabled){
+     $raw=(string)($_POST['promotion_price']??'');
+     $start=(string)($_POST['promotion_starts']??'');
+     $end=(string)($_POST['promotion_ends']??'');
+     $validDate=static function(string $value):bool{
+      $date=DateTimeImmutable::createFromFormat('!Y-m-d',$value);
+      return $date!==false&&$date->format('Y-m-d')===$value;
+     };
+     if(!preg_match('/^\\d{1,10}(?:\\.\\d{1,2})?$/D',$raw)||(float)$raw<=0||(float)$raw>=(float)$plan['monthly_price']||!empty($plan['is_free_plan'])||!empty($plan['is_default_free']))throw new RuntimeException('El precio de oferta debe ser mayor que cero y menor que la mensualidad.');
+     if(!$validDate($start)||!$validDate($end)||$end<$start)throw new RuntimeException('Indica una vigencia válida para la promoción.');
+     $offer=json_encode(['enabled'=>true,'price'=>number_format((float)$raw,2,'.',''),'starts'=>$start,'ends'=>$end],JSON_THROW_ON_ERROR);
+    }
+    $pdo->prepare('UPDATE subscription_plans SET promotion_json=? WHERE id=?')->execute([$offer,$id]);
+    $pdo->commit();
+   }catch(Throwable $error){if($pdo->inTransaction())$pdo->rollBack();throw $error;}
+   jsonOut(true,$enabled?'Promoción guardada.':'Promoción desactivada.');
+  }
+
   if($action==='plan_request'){
    if(zynkoIsImpersonating())throw new RuntimeException('El cliente debe aceptar las condiciones con su propia sesión.');
    if(isPlatformOwner())throw new RuntimeException('La cuenta principal administra los planes directamente.');
@@ -972,12 +1001,17 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $plan=(int)($_POST['plan_id']??0);$note=mb_substr(trim((string)($_POST['note']??'')),0,500);
    $q=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=? AND active=1 AND is_default_free=0 AND is_available=1');$q->execute([$plan]);$targetPlan=$q->fetch();if(!$targetPlan)throw new RuntimeException('El plan solicitado no está disponible.');
    if(empty($targetPlan['is_free_plan'])&&(float)$targetPlan['monthly_price']<=0)throw new RuntimeException('Este plan todavía no tiene precio configurado.');
-   assertAuthCsrf();$acceptedDocs=zynkoCommercialValidate($pdo,$_POST);if(!hash_equals(zynkoCommercialPlanHash($targetPlan),(string)($_POST['plan_revision']??'')))throw new RuntimeException('El plan cambió. Actualiza la página y revisa sus condiciones.');
+   assertAuthCsrf();$acceptedDocs=zynkoCommercialValidate($pdo,$_POST);$acceptedRevision=(string)($_POST['plan_revision']??'');
    $q=$pdo->prepare('SELECT ts.plan_id,sp.name plan_name FROM tenant_subscriptions ts LEFT JOIN subscription_plans sp ON sp.id=ts.plan_id WHERE ts.tenant_id=? LIMIT 1');$q->execute([$tid]);$currentSubscription=$q->fetch()?:[];if((int)($currentSubscription['plan_id']??0)===$plan)throw new RuntimeException('Este ya es tu plan actual.');
    $q=$pdo->prepare("SELECT id FROM plan_upgrade_requests WHERE tenant_id=? AND plan_id=? AND status='pending' LIMIT 1");$q->execute([$tid,$plan]);if($q->fetchColumn())throw new RuntimeException('Ya tienes una solicitud pendiente para este plan.');
    $pdo->beginTransaction();try{$lock=$pdo->prepare('SELECT id FROM tenants WHERE id=? FOR UPDATE');$lock->execute([$tid]);$pending=$pdo->prepare("SELECT id FROM plan_upgrade_requests WHERE tenant_id=? AND plan_id=? AND status='pending' LIMIT 1");$pending->execute([$tid,$plan]);if($pending->fetchColumn())throw new RuntimeException('Ya tienes una solicitud pendiente para este plan.');
-   $pdo->prepare("INSERT INTO plan_upgrade_requests(tenant_id,plan_id,requested_by,status,note) VALUES(?,?,?,'pending',?)")->execute([$tid,$plan,(int)$_SESSION['user']['id'],$note?:null]);$requestId=(int)$pdo->lastInsertId();zynkoCommercialRecord($pdo,'plan_request',$requestId,$acceptedDocs,$tid,(int)$_SESSION['user']['id'],zynkoCommercialPlanSnapshot($targetPlan));$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
-   $ownerContact=zynkoTenantOwner($pdo,$tid);$requestData=['request_id'=>$requestId,'tenant_id'=>$tid,'company_name'=>$ownerContact['company']??($_SESSION['user']['company']??'Empresa'),'owner_name'=>$ownerContact['name']??($_SESSION['user']['name']??''),'email'=>$ownerContact['email']??($_SESSION['user']['email']??''),'plan_id'=>$plan,'plan_name'=>$targetPlan['name'],'previous_plan_name'=>$currentSubscription['plan_name']??'','monthly_price'=>$targetPlan['monthly_price'],'currency'=>$targetPlan['currency'],'note'=>$note];
+   $lockedPlan=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=? AND active=1 AND is_default_free=0 AND is_available=1 FOR UPDATE');
+   $lockedPlan->execute([$plan]);$targetPlan=$lockedPlan->fetch();
+   if(!$targetPlan)throw new RuntimeException('El plan solicitado ya no está disponible.');
+   $quote=zynkoCommercialPlanQuote($targetPlan);
+   if(!hash_equals(zynkoCommercialPlanHash($quote),$acceptedRevision))throw new RuntimeException('El precio o las condiciones cambiaron. Actualiza la página y revisa el plan.');
+   $pdo->prepare("INSERT INTO plan_upgrade_requests(tenant_id,plan_id,requested_by,status,note) VALUES(?,?,?,'pending',?)")->execute([$tid,$plan,(int)$_SESSION['user']['id'],$note?:null]);$requestId=(int)$pdo->lastInsertId();zynkoCommercialRecord($pdo,'plan_request',$requestId,$acceptedDocs,$tid,(int)$_SESSION['user']['id'],$quote);$pdo->commit();}catch(Throwable $e){if($pdo->inTransaction())$pdo->rollBack();throw $e;}
+   $ownerContact=zynkoTenantOwner($pdo,$tid);$requestData=['request_id'=>$requestId,'tenant_id'=>$tid,'company_name'=>$ownerContact['company']??($_SESSION['user']['company']??'Empresa'),'owner_name'=>$ownerContact['name']??($_SESSION['user']['name']??''),'email'=>$ownerContact['email']??($_SESSION['user']['email']??''),'plan_id'=>$plan,'plan_name'=>$targetPlan['name'],'previous_plan_name'=>$currentSubscription['plan_name']??'','monthly_price'=>$targetPlan['monthly_price'],'promotion'=>$quote['promotion']??null,'currency'=>$targetPlan['currency'],'note'=>$note];
    try{require_once $root.'/app/Services/NotificationService.php';$ns=new NotificationService($pdo,$root);$platformTid=mainTenantId();if(!empty($requestData['email']))$ns->sendPlanRequestCustomer($platformTid,(string)$requestData['email'],$requestData);$adminMail=zynkoPlatformAdminEmail($pdo);if($adminMail!=='')$ns->sendPlanRequestAdmin($platformTid,$adminMail,$requestData);}catch(Throwable $mailError){}
    jsonOut(true,'Solicitud enviada. Te avisaremos por correo cuando sea revisada.',['request_id'=>$requestId]);
   }
@@ -988,7 +1022,7 @@ if($_SERVER['REQUEST_METHOD']==='POST' && isset($_SESSION['user']) && str_starts
    $q=$pdo->prepare("SELECT r.*,t.name company_name,sp.name plan_name,sp.active plan_active,sp.is_available plan_available,sp.is_free_plan,sp.monthly_price,sp.currency,u.name requester_name,u.email requester_email,cur.name previous_plan_name,ts.status previous_subscription_status FROM plan_upgrade_requests r JOIN tenants t ON t.id=r.tenant_id JOIN subscription_plans sp ON sp.id=r.plan_id JOIN users u ON u.id=r.requested_by LEFT JOIN tenant_subscriptions ts ON ts.tenant_id=r.tenant_id LEFT JOIN subscription_plans cur ON cur.id=ts.plan_id WHERE r.id=? AND r.status='pending' LIMIT 1");$q->execute([$requestId]);$req=$q->fetch();if(!$req)throw new RuntimeException('La solicitud ya fue atendida o no existe.');
    if($resolution==='approved' && empty($req['is_free_plan']) && (float)$req['monthly_price']>0 && ($_POST['payment_verified']??'')!=='1')throw new RuntimeException('Confirma que verificaste el pago fuera de ZYNKO antes de aprobar.');
    if($resolution==='approved' && (int)$req['plan_active']!==1)throw new RuntimeException('El plan solicitado ya no está activo.');if($resolution==='approved' && (int)($req['plan_available']??0)!==1)throw new RuntimeException('El plan solicitado todavía está marcado como Próximamente y no puede aprobarse.');
-   if($resolution==='approved'){$a=$pdo->prepare("SELECT plan_json,documents_json FROM commercial_acceptances WHERE context='plan_request' AND reference_id=? AND tenant_id=?");$a->execute([$requestId,(int)$req['tenant_id']]);$accepted=$a->fetch();$p=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=?');$p->execute([(int)$req['plan_id']]);$current=$p->fetch();if(!$accepted||!$current||json_decode((string)$accepted['plan_json'],true)!=zynkoCommercialPlanSnapshot($current))throw new RuntimeException('La solicitud no tiene aceptación vigente del plan. Recházala y solicita al cliente una nueva confirmación.');foreach(zynkoCommercialDocs($pdo) as $key=>$doc){$snapshot=json_decode((string)$accepted['documents_json'],true);if(($snapshot[$key]['version']??0)!==(int)$doc['version'])throw new RuntimeException('Las condiciones cambiaron. Solicita una nueva aceptación.');}}
+   if($resolution==='approved'){$a=$pdo->prepare("SELECT plan_json,documents_json FROM commercial_acceptances WHERE context='plan_request' AND reference_id=? AND tenant_id=?");$a->execute([$requestId,(int)$req['tenant_id']]);$accepted=$a->fetch();$p=$pdo->prepare('SELECT * FROM subscription_plans WHERE id=?');$p->execute([(int)$req['plan_id']]);$current=$p->fetch();$acceptedPlan=json_decode((string)($accepted['plan_json']??''),true);$acceptedBase=$acceptedPlan;unset($acceptedBase['promotion']);if(!$accepted||!$current||$acceptedBase!=zynkoCommercialPlanSnapshot($current))throw new RuntimeException('La solicitud no tiene aceptación vigente del plan. Recházala y solicita al cliente una nueva confirmación.');foreach(zynkoCommercialDocs($pdo) as $key=>$doc){$snapshot=json_decode((string)$accepted['documents_json'],true);if(($snapshot[$key]['version']??0)!==(int)$doc['version'])throw new RuntimeException('Las condiciones cambiaron. Solicita una nueva aceptación.');}}
    $pdo->beginTransaction();
    try{
     if($resolution==='approved'){$pdo->prepare("INSERT INTO tenant_subscriptions(tenant_id,plan_id,status,starts_at) VALUES(?,?,'active',NOW()) ON DUPLICATE KEY UPDATE plan_id=VALUES(plan_id),status='active',starts_at=IF(plan_id<>VALUES(plan_id),NOW(),starts_at)")->execute([(int)$req['tenant_id'],(int)$req['plan_id']]);zynkoApplyPlanEntitlements($pdo,(int)$req['tenant_id'],(int)$req['plan_id']);$pdo->prepare("UPDATE plan_upgrade_requests SET status='cancelled',resolved_at=NOW(),resolved_by=? WHERE tenant_id=? AND status='pending' AND id<>?")->execute([(int)$_SESSION['user']['id'],(int)$req['tenant_id'],$requestId]);}

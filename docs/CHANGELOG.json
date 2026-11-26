@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.31.164",
+    "date": "2026-11-26",
+    "title": "Promociones de suscripción con vigencia",
+    "changes": [
+      "Permite configurar el precio promocional del primer mes desde Suscripciones.",
+      "Presenta las ofertas vigentes en tarjetas públicas, detalles y comparativa.",
+      "Conserva el precio promocional aceptado en la solicitud para verificar el pago externo.",
+      "Ajusta los modales de promoción y solicitud al contenido, con pie compacto y desplazamiento limitado al cuerpo."
+    ]
+  },
+  {
     "version": "2.31.163",
     "date": "2026-11-25",
     "title": "Precios y comparativa pública de planes",

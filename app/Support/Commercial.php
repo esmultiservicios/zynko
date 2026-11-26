@@ -98,7 +98,22 @@ function zynkoCommercialValidate(PDO $pdo,array $data): array {
 function zynkoCommercialPlanSnapshot(array $plan): array {
  $out=[];foreach(['id','code','name','monthly_price','currency','max_users','max_channels','distinct_external_types','max_webchat_sites','max_daily_chats','max_monthly_chats','allowed_channels_json','module_access_json','features_json','external_ai_included','external_ai_monthly_tokens','external_ai_channels_json'] as $key)$out[$key]=(string)($plan[$key]??'');return $out;
 }
-function zynkoCommercialPlanHash(array $plan): string {return hash('sha256',json_encode(zynkoCommercialPlanSnapshot($plan),JSON_THROW_ON_ERROR));}
+function zynkoCommercialPromotion(array $plan, ?string $today=null): ?array {
+    $offer=json_decode((string)($plan['promotion_json']??''),true);
+    if(!is_array($offer)||empty($offer['enabled'])||empty($plan['active'])||empty($plan['is_available'])
+        ||!empty($plan['is_free_plan'])||!empty($plan['is_default_free'])||($plan['code']??'')==='free')return null;
+    $today??=(new DateTimeImmutable('now',new DateTimeZone('America/Tegucigalpa')))->format('Y-m-d');
+    $price=(float)($offer['price']??0);
+    if($price<=0||$price>=(float)($plan['monthly_price']??0)||$today<($offer['starts']??'')||$today>($offer['ends']??''))return null;
+    return ['price'=>number_format($price,2,'.',''),'starts'=>$offer['starts'],'ends'=>$offer['ends']];
+}
+function zynkoCommercialPlanQuote(array $plan): array {
+    $quote=zynkoCommercialPlanSnapshot($plan);
+    $promotion=zynkoCommercialPromotion($plan);
+    if($promotion!==null)$quote['promotion']=$promotion;
+    return $quote;
+}
+function zynkoCommercialPlanHash(array $quote): string {return hash('sha256',json_encode($quote,JSON_THROW_ON_ERROR));}
 function zynkoCommercialRecord(PDO $pdo,string $context,int $reference,array $versions,?int $tenant=null,?int $user=null,?array $plan=null): void {
  $sql='INSERT INTO commercial_acceptances(context,reference_id,tenant_id,user_id,documents_json,plan_json) VALUES(?,?,?,?,?,?)';
  if($context==='registration')$sql.=' ON DUPLICATE KEY UPDATE documents_json=IF(tenant_id IS NULL,VALUES(documents_json),documents_json),accepted_at=IF(tenant_id IS NULL,NOW(),accepted_at)';

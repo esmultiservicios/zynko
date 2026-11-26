@@ -86,3 +86,31 @@ dialog.zc-dialog>.select2-container--open .select2-results>.select2-results__opt
  .plan-matrix-row>.plan-matrix-cell{border:1px solid var(--line,#d5e3e8);border-radius:8px}
  .plan-matrix-mobile-name{display:inline;font-weight:700}
 }
+
+.zc-plan-offer{display:grid;justify-items:start;gap:4px;min-width:0;max-width:100%;padding:12px;border:1px solid #e9d8aa;border-radius:10px;background:#fff8e8;color:#513b15;overflow-wrap:anywhere}
+.zc-offer-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 7px;border-radius:999px;background:#f8e8bd;color:#654400;font-size:11px;font-weight:800}
+.zc-plan-offer>strong{font-size:clamp(18px,2vw,26px);line-height:1.2}
+.zc-plan-offer small{font-size:11px;font-weight:600}
+.plan-matrix-cell .zc-plan-offer{width:100%;padding:8px}
+.plan-matrix-cell .zc-plan-offer>strong{font-size:15px}
+.plan-offer-panel{display:block;margin-block:8px;color:var(--accent2);font-weight:700}
+.plan-promotion-form .zc-fields{margin-block:14px}
+
+/* Content-sized commercial dialogs share the header, scrolling body and anchored footer. */
+dialog.zc-dialog.zc-dialog-fit{
+  --zc-fit-max:calc(100dvh - 32px);
+  box-sizing:border-box;
+  height:fit-content;
+  min-height:0;
+  max-height:var(--zc-fit-max);
+}
+dialog.zc-dialog.zc-dialog-fit>.zc-dialog-frame{
+  height:auto;
+  min-height:0;
+  max-height:calc(var(--zc-fit-max) - 2px);
+}
+.zc-dialog-fit .zc-dialog-body{flex:0 1 auto}
+.zc-dialog-fit .zc-dialog-foot{flex:0 0 auto;height:auto;min-height:0}
+@media(max-width:600px){
+  dialog.zc-dialog.zc-dialog-fit{--zc-fit-max:calc(100dvh - 20px)}
+}
