@@ -29,7 +29,7 @@
 .zynko-legal-public .legal-public-content > :first-child { margin-top: 0; }
 .zynko-legal-public .legal-public-content p { margin: 0 0 16px; }
 .zynko-legal-public .legal-public-content ul, .zynko-legal-public .legal-public-content ol { padding-left: 24px; margin: 0 0 16px; }
-.zynko-legal-public .legal-public-content a { color: #087c6c; text-decoration: underline; }
+.zynko-legal-public .legal-public-content a { color: #087c6c; font-weight: 700; text-decoration: none; }
 .zynko-legal-public .legal-public-content blockquote { border-left: 3px solid var(--teal); padding: 10px 16px; margin: 14px 0; background: #f0faf7; }
 .zynko-legal-public .legal-site-footer { padding: 22px 0; }
 .zynko-legal-public .legal-site-footer .wrap { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 14px; color: var(--muted); font-size: 12px; }

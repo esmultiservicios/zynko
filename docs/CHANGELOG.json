@@ -1,5 +1,13 @@
 [
   {
+    "version": "2.31.161",
+    "date": "2026-11-25",
+    "title": "Enlaces y acciones sin subrayado",
+    "changes": [
+      "Elimina el subrayado de la ayuda de estados, los enlaces del panel y las guías y páginas legales públicas."
+    ]
+  },
+  {
     "version": "2.31.160",
     "date": "2026-11-25",
     "title": "Modal de ayuda para estados de suscripción",
