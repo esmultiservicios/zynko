@@ -1,5 +1,15 @@
 [
   {
+    "version": "2.31.159",
+    "date": "2026-11-25",
+    "title": "Asignación de planes compacta y modales ajustados al contenido",
+    "changes": [
+      "Organiza empresa, plan, estado y acción en una fila cuando hay espacio.",
+      "Mantiene las definiciones de estado en una ayuda desplegable compartida.",
+      "Adapta Consultar integración API al contenido y reutiliza el encabezado, cuerpo y pie del sistema de modales."
+    ]
+  },
+  {
     "version": "2.31.158",
     "date": "2026-11-25",
     "title": "Ayuda de suscripción y ficha de integración API",

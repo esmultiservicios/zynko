@@ -17,7 +17,15 @@ $selectedSubscriptionStatus = isset($subscriptionStatusOptions[$subscriptionStat
   <legend><?=htmlspecialchars($subscriptionStatusLabel, ENT_QUOTES, 'UTF-8')?></legend>
   <div class="billing-status-options">
     <?php foreach ($subscriptionStatusOptions as $value => $label): ?>
-      <label><input type="radio" name="status" value="<?=$value?>" <?=$selectedSubscriptionStatus === $value ? 'checked' : ''?>> <span><b><?=$label?></b><small><?=$subscriptionStatusDescriptions[$value]?></small></span></label>
+      <label><input type="radio" name="status" value="<?=$value?>" <?=$selectedSubscriptionStatus === $value ? 'checked' : ''?>> <span><?=$label?></span></label>
     <?php endforeach; ?>
   </div>
+  <details class="subscription-status-help">
+    <summary>Qué significa cada estado</summary>
+    <dl>
+      <?php foreach ($subscriptionStatusOptions as $value => $label): ?>
+        <div><dt><?=$label?></dt><dd><?=$subscriptionStatusDescriptions[$value]?></dd></div>
+      <?php endforeach; ?>
+    </dl>
+  </details>
 </fieldset>

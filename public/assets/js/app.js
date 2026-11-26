@@ -1075,7 +1075,7 @@ document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.mo
     card.classList.add('zynko-modal-fixed');
 
     // Modales compuestos (ej. Usuarios) ya traen un body común y footer independiente.
-    if(card.querySelector(':scope > .modal-composite-body')){
+    if(card.querySelector(':scope > .modal-composite-body, :scope > .zynko-modal-scroll-body')){
       card.dataset.zynkoModalNormalized='1';
       return;
     }
